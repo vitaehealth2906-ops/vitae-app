@@ -3,7 +3,9 @@
  * Todas as telas HTML usam este arquivo para se comunicar com o backend.
  */
 
-const API_URL = 'http://localhost:3001';
+const API_URL = window.location.hostname === 'localhost' || window.location.protocol === 'file:'
+  ? 'http://localhost:3001'
+  : 'https://vitae-app-production.up.railway.app';
 
 // ---- Token management ----
 
