@@ -1,0 +1,236 @@
+// ============================================
+// VITAE — Schema completo do banco de dados
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+// ---- USUARIOS ----
+model Usuario {
+  id              String   @id @default(uuid())
+  nome            String
+  email           String   @unique
+  celular         String?  @unique
+  senhaHash       String   @map("senha_hash")
+  provider        String?
+  providerId      String?  @map("provider_id")
+  fotoUrl         String?  @map("foto_url")
+  status          String   @default("PENDENTE")
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+  ultimoLogin     DateTime? @map("ultimo_login")
+
+  perfilSaude     PerfilSaude?
+  exames          Exame[]
+  medicamentos    Medicamento[]
+  alergias        Alergia[]
+  healthScores    HealthScore[]
+  checkins        CheckinSemanal[]
+  notificacoes    Notificacao[]
+  refreshTokens   RefreshToken[]
+
+  @@map("usuarios")
+}
+
+// ---- PERFIL DE SAUDE ----
+model PerfilSaude {
+  id                String   @id @default(uuid())
+  usuarioId         String   @unique @map("usuario_id")
+  genero            String?
+  dataNascimento    DateTime? @map("data_nascimento") @db.Date
+  alturaCm          Int?     @map("altura_cm")
+  pesoKg            Decimal? @map("peso_kg") @db.Decimal(5, 2)
+  tipoSanguineo     String?  @map("tipo_sanguineo")
+  historicoFamiliar String[] @map("historico_familiar")
+  nivelAtividade    String?  @map("nivel_atividade")
+  horasSono         Decimal? @map("horas_sono") @db.Decimal(3, 1)
+  fuma              Boolean?
+  alcool            String?
+  contatoEmergenciaNome    String?  @map("contato_emergencia_nome")
+  contatoEmergenciaTel     String?  @map("contato_emergencia_tel")
+  nomeMae           String?  @map("nome_mae")
+  telMae            String?  @map("tel_mae")
+  nomePai           String?  @map("nome_pai")
+  telPai            String?  @map("tel_pai")
+  condicoes         String?
+  atualizadoEm      DateTime @updatedAt @map("atualizado_em")
+
+  usuario           Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("perfil_saude")
+}
+
+// ---- EXAMES ----
+model Exame {
+  id                    String   @id @default(uuid())
+  usuarioId             String   @map("usuario_id")
+  nomeArquivo           String?  @map("nome_arquivo")
+  tipoArquivo           String?  @map("tipo_arquivo")
+  tamanhoBytes          Int?     @map("tamanho_bytes")
+  arquivoUrl            String?  @map("arquivo_url")
+  tipoExame             String?  @map("tipo_exame")
+  laboratorio           String?
+  medicoSolicitante     String?  @map("medico_solicitante")
+  dataExame             DateTime? @map("data_exame") @db.Date
+  status                String   @default("ENVIADO")
+  statusGeral           String?  @map("status_geral")
+  textoExtraido         String?  @map("texto_extraido") @db.Text
+  dadosEstruturados     Json?    @map("dados_estruturados")
+  resumoIA              String?  @map("resumo_ia") @db.Text
+  impactosIA            Json?    @map("impactos_ia")
+  melhoriasIA           Json?    @map("melhorias_ia")
+  scoreContribuicao     Decimal? @map("score_contribuicao") @db.Decimal(5, 2)
+  erroProcessamento     String?  @map("erro_processamento") @db.Text
+  processadoEm          DateTime? @map("processado_em")
+  criadoEm              DateTime @default(now()) @map("criado_em")
+  atualizadoEm          DateTime @updatedAt @map("atualizado_em")
+
+  usuario               Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  parametros            ParametroExame[]
+
+  @@map("exames")
+}
+
+// ---- PARAMETROS DO EXAME ----
+model ParametroExame {
+  id              String   @id @default(uuid())
+  exameId         String   @map("exame_id")
+  nome            String
+  valor           String
+  unidade         String?
+  valorReferencia String?  @map("valor_referencia")
+  valorNumerico   Decimal? @map("valor_numerico") @db.Decimal(10, 4)
+  referenciaMin   Decimal? @map("referencia_min") @db.Decimal(10, 4)
+  referenciaMax   Decimal? @map("referencia_max") @db.Decimal(10, 4)
+  referenciaTexto String?  @map("referencia_texto")
+  status          String   @default("NORMAL")
+  classificacao   String   @default("NORMAL")
+  percentualFaixa Decimal? @map("percentual_faixa") @db.Decimal(5, 2)
+
+  exame           Exame    @relation(fields: [exameId], references: [id], onDelete: Cascade)
+
+  @@map("exame_parametros")
+}
+
+// ---- MEDICAMENTOS ----
+model Medicamento {
+  id          String   @id @default(uuid())
+  usuarioId   String   @map("usuario_id")
+  nome        String
+  dosagem     String?
+  frequencia  String?
+  horario     String?
+  motivo      String?
+  dataInicio  DateTime? @map("data_inicio") @db.Date
+  ativo       Boolean  @default(true)
+  fonte       String   @default("manual")
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("medicamentos")
+}
+
+// ---- ALERGIAS ----
+model Alergia {
+  id          String   @id @default(uuid())
+  usuarioId   String   @map("usuario_id")
+  nome        String
+  tipo        String?
+  gravidade   String?
+  fonte       String   @default("manual")
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("alergias")
+}
+
+// ---- HEALTH SCORES (historico) ----
+model HealthScore {
+  id                  String   @id @default(uuid())
+  usuarioId           String   @map("usuario_id")
+  scoreGeral          Decimal  @map("score_geral") @db.Decimal(5, 2)
+  scoreSono           Decimal? @map("score_sono") @db.Decimal(5, 2)
+  scoreAtividade      Decimal? @map("score_atividade") @db.Decimal(5, 2)
+  scoreProdutividade  Decimal? @map("score_produtividade") @db.Decimal(5, 2)
+  scoreExame          Decimal? @map("score_exame") @db.Decimal(5, 2)
+  idadeBiologica      Decimal? @map("idade_biologica") @db.Decimal(4, 1)
+  idadeCronologica    Decimal? @map("idade_cronologica") @db.Decimal(4, 1)
+  fontesDados         String[] @map("fontes_dados")
+  confianca           String   @default("baixa")
+  detalhes            String?  @db.Text
+  fatores             Json?
+  criadoEm            DateTime @default(now()) @map("criado_em")
+
+  usuario             Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("health_scores")
+}
+
+// ---- CHECK-INS SEMANAIS ----
+model CheckinSemanal {
+  id                String   @id @default(uuid())
+  usuarioId         String   @map("usuario_id")
+  sonoQualidade     Int?     @map("sono_qualidade")
+  atividadeFisica   String?  @map("atividade_fisica")
+  humor             Int?
+  dor               String?
+  produtividade     Int?
+  notas             String?  @db.Text
+  criadoEm          DateTime @default(now()) @map("criado_em")
+
+  usuario           Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("checkins_semanais")
+}
+
+// ---- NOTIFICACOES ----
+model Notificacao {
+  id          String   @id @default(uuid())
+  usuarioId   String   @map("usuario_id")
+  tipo        String
+  titulo      String
+  mensagem    String   @db.Text
+  dados       String?  @db.Text
+  lida        Boolean  @default(false)
+  lidaEm      DateTime? @map("lida_em")
+  enviadaEm   DateTime @default(now()) @map("enviada_em")
+
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("notificacoes")
+}
+
+// ---- CODIGOS DE VERIFICACAO (SMS) ----
+model CodigoVerificacao {
+  id          String   @id @default(uuid())
+  celular     String
+  codigoHash  String   @map("codigo_hash")
+  tipo        String   @default("VERIFICACAO_SMS")
+  tentativas  Int      @default(0)
+  expiraEm    DateTime @map("expira_em")
+  usado       Boolean  @default(false)
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  @@map("codigos_verificacao")
+}
+
+// ---- REFRESH TOKENS ----
+model RefreshToken {
+  id          String   @id @default(uuid())
+  usuarioId   String   @map("usuario_id")
+  token       String   @unique
+  expiraEm    DateTime @map("expira_em")
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}

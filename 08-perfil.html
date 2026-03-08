@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VITAE — Perfil</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body {
+            background:#000;
+            display:flex; justify-content:center; align-items:center;
+            min-height:100vh; font-family:'Inter',sans-serif;
+        }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#0A0A0A;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        .notch {
+            position:absolute; top:0; left:50%; transform:translateX(-50%);
+            width:126px; height:34px; background:#0A0A0A;
+            border-radius:0 0 20px 20px; z-index:10;
+        }
+        .status {
+            position:absolute; top:14px; left:28px; right:28px;
+            display:flex; justify-content:space-between;
+            font-size:13px; font-weight:600; color:rgba(255,255,255,0.5);
+            z-index:11;
+        }
+
+        /* Entrance curtain — split reveal */
+        .curtain-left, .curtain-right {
+            position:absolute; top:0; width:50%; height:100%;
+            background:#0A0A0A; z-index:30; pointer-events:none;
+        }
+        .curtain-left { left:0; animation:curtainSlideLeft 0.9s cubic-bezier(0.76, 0, 0.24, 1) 0.2s forwards; }
+        .curtain-right { right:0; animation:curtainSlideRight 0.9s cubic-bezier(0.76, 0, 0.24, 1) 0.2s forwards; }
+        @keyframes curtainSlideLeft { 0%{transform:translateX(0)} 100%{transform:translateX(-100%)} }
+        @keyframes curtainSlideRight { 0%{transform:translateX(0)} 100%{transform:translateX(100%)} }
+
+        /* Gold line reveal */
+        .reveal-line {
+            position:absolute; top:0; left:50%; width:2px; height:100%;
+            background:linear-gradient(to bottom, transparent, #C5A55A, transparent);
+            z-index:31; pointer-events:none;
+            transform:translateX(-50%);
+            animation:revealLine 0.9s cubic-bezier(0.76, 0, 0.24, 1) 0.1s forwards;
+            opacity:0.8;
+        }
+        @keyframes revealLine {
+            0% { opacity:0.8; transform:translateX(-50%) scaleY(0); }
+            30% { opacity:1; transform:translateX(-50%) scaleY(1); }
+            100% { opacity:0; transform:translateX(-50%) scaleY(1); }
+        }
+
+        /* Exit curtain */
+        .exit-overlay {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background:#0A0A0A; z-index:40; pointer-events:none;
+            opacity:0; transition:opacity 0.5s ease;
+        }
+        .exit-overlay.active { opacity:1; pointer-events:all; }
+
+        /* Scrollable content */
+        .content {
+            height:calc(100% - 80px);
+            overflow-y:auto; overflow-x:hidden;
+            padding:70px 24px 24px;
+            scrollbar-width:none;
+        }
+        .content::-webkit-scrollbar { display:none; }
+
+        /* Profile header */
+        .profile-header {
+            display:flex; align-items:center; gap:16px;
+            margin-bottom:28px;
+            opacity:0; animation:fadeUp 0.6s ease 0.6s both;
+        }
+        .avatar {
+            width:64px; height:64px; border-radius:50%;
+            background:linear-gradient(135deg, rgba(197,165,90,0.2), rgba(197,165,90,0.05));
+            border:2px solid rgba(197,165,90,0.3);
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0;
+            cursor:pointer; transition:all 0.3s;
+        }
+        .avatar:hover { border-color:rgba(197,165,90,0.6); transform:scale(1.05); }
+        .avatar:active { transform:scale(0.95); }
+        .avatar-initials {
+            font-family:'Playfair Display', serif;
+            font-size:22px; font-weight:700;
+            color:#C5A55A;
+        }
+        .profile-info { flex:1; }
+        .profile-name {
+            font-size:20px; font-weight:700; color:#fff;
+            margin-bottom:2px;
+        }
+        .profile-age {
+            font-size:13px; color:rgba(255,255,255,0.35);
+        }
+
+        /* Health chart */
+        .health-chart {
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:18px;
+            padding:20px 20px 16px;
+            margin-bottom:24px;
+            opacity:0; animation:fadeUp 0.5s ease 0.75s both;
+            cursor:pointer;
+            transition:border-color 0.3s ease;
+        }
+        .health-chart:active {
+            border-color:rgba(197,165,90,0.25);
+        }
+        .chart-legend {
+            display:flex; align-items:center; gap:16px;
+            margin-bottom:10px;
+            font-size:10px; font-weight:500;
+            color:rgba(255,255,255,0.3);
+        }
+        .chart-legend-item {
+            display:flex; align-items:center; gap:5px;
+        }
+        .chart-legend-line {
+            width:16px; height:2px; border-radius:1px;
+        }
+        .chart-legend-line.gold { background:#C5A55A; }
+        .chart-legend-line.green { background:#4AD9A4; border-style:dashed; height:0; border-top:2px dashed #4AD9A4; }
+        .chart-tap-hint {
+            font-size:10px; font-weight:500;
+            color:rgba(74,217,164,0.4);
+            text-align:center;
+            margin-top:6px;
+            letter-spacing:0.2px;
+        }
+        .chart-header {
+            display:flex; justify-content:space-between; align-items:flex-start;
+            margin-bottom:16px;
+        }
+        .chart-title {
+            font-size:14px; font-weight:700;
+            color:rgba(255,255,255,0.6);
+            letter-spacing:0.3px;
+        }
+        .chart-title span {
+            font-family:'Playfair Display', serif;
+            color:#C5A55A; font-style:italic;
+        }
+        .chart-score {
+            text-align:right;
+        }
+        .chart-score-value {
+            font-family:'Playfair Display', serif;
+            font-size:28px; font-weight:700;
+            color:#C5A55A;
+            line-height:1;
+        }
+        .chart-score-label {
+            font-size:10px; font-weight:600;
+            color:rgba(255,255,255,0.2);
+            letter-spacing:0.3px;
+            text-transform:uppercase;
+        }
+        .chart-svg-container {
+            width:100%; height:120px;
+            margin-bottom:12px;
+        }
+        .chart-pillars {
+            display:grid; grid-template-columns:1fr 1fr 1fr 1fr;
+            gap:8px;
+        }
+        .pillar {
+            text-align:center;
+            padding:10px 4px;
+            background:rgba(255,255,255,0.02);
+            border-radius:10px;
+            border:1px solid rgba(255,255,255,0.04);
+        }
+        .pillar-value {
+            font-family:'Playfair Display', serif;
+            font-size:18px; font-weight:700;
+            line-height:1; margin-bottom:4px;
+        }
+        .pillar-label {
+            font-size:9px; font-weight:600;
+            color:rgba(255,255,255,0.25);
+            letter-spacing:0.3px;
+            text-transform:uppercase;
+        }
+        .pillar-dot {
+            width:5px; height:5px; border-radius:50%;
+            display:inline-block; margin-right:2px;
+            vertical-align:middle;
+            position:relative; top:-1px;
+        }
+
+        /* Section */
+        .section { margin-bottom:20px; }
+        .section.anim { opacity:0; animation:fadeUp 0.5s ease both; }
+
+        .section-header {
+            display:flex; justify-content:space-between; align-items:center;
+            margin-bottom:12px;
+        }
+        .section-title {
+            font-size:14px; font-weight:700;
+            color:rgba(255,255,255,0.6);
+            letter-spacing:0.3px;
+        }
+        .section-action {
+            font-size:12px; font-weight:600;
+            color:#C5A55A; cursor:pointer;
+            border:none; background:none;
+            font-family:'Inter',sans-serif;
+            transition:all 0.2s;
+            padding:4px 8px; border-radius:6px;
+        }
+        .section-action:hover { background:rgba(197,165,90,0.1); }
+        .section-action:active { transform:scale(0.95); }
+
+        /* Clickable row base */
+        .clickable-row {
+            cursor:pointer; transition:all 0.25s;
+        }
+        .clickable-row:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12); }
+        .clickable-row:active { transform:scale(0.98); }
+
+        /* Info row */
+        .info-row {
+            display:flex; align-items:center; gap:14px;
+            padding:14px 16px;
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:14px;
+            margin-bottom:8px;
+        }
+        .info-icon {
+            width:38px; height:38px; border-radius:11px;
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0;
+        }
+        .info-icon.red { background:rgba(217,68,82,0.08); border:1px solid rgba(217,68,82,0.12); }
+        .info-icon.blue { background:rgba(74,159,217,0.08); border:1px solid rgba(74,159,217,0.12); }
+        .info-icon.green { background:rgba(74,217,164,0.08); border:1px solid rgba(74,217,164,0.12); }
+        .info-icon.gold { background:rgba(197,165,90,0.08); border:1px solid rgba(197,165,90,0.12); }
+        .info-icon.purple { background:rgba(180,130,255,0.08); border:1px solid rgba(180,130,255,0.12); }
+
+        .info-content { flex:1; }
+        .info-label {
+            font-size:11px; color:rgba(255,255,255,0.25);
+            margin-bottom:2px; font-weight:500;
+        }
+        .info-value {
+            font-size:14px; color:rgba(255,255,255,0.8);
+            font-weight:600;
+        }
+        .info-arrow {
+            color:rgba(255,255,255,0.1);
+            flex-shrink:0;
+            transition:color 0.2s;
+        }
+        .clickable-row:hover .info-arrow { color:rgba(255,255,255,0.3); }
+
+        /* Medications */
+        .med-card {
+            display:flex; align-items:center; gap:14px;
+            padding:14px 16px;
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:14px;
+            margin-bottom:8px;
+        }
+        .med-dot {
+            width:8px; height:8px; border-radius:50%;
+            flex-shrink:0;
+        }
+        .med-dot.active { background:#4AD9A4; box-shadow:0 0 8px rgba(74,217,164,0.4); }
+        .med-info { flex:1; }
+        .med-name {
+            font-size:14px; font-weight:600;
+            color:rgba(255,255,255,0.8);
+            margin-bottom:2px;
+        }
+        .med-dosage {
+            font-size:12px; color:rgba(255,255,255,0.3);
+        }
+        .med-time {
+            font-size:11px; font-weight:600;
+            color:rgba(74,217,164,0.6);
+            background:rgba(74,217,164,0.08);
+            padding:4px 10px; border-radius:8px;
+        }
+
+        /* Allergies */
+        .allergy-tags {
+            display:flex; flex-wrap:wrap; gap:8px;
+        }
+        .allergy-tag {
+            padding:8px 14px;
+            background:rgba(217,68,82,0.06);
+            border:1px solid rgba(217,68,82,0.12);
+            border-radius:10px;
+            font-size:13px; font-weight:500;
+            color:rgba(217,68,82,0.8);
+            cursor:pointer; transition:all 0.25s;
+        }
+        .allergy-tag:hover { background:rgba(217,68,82,0.12); border-color:rgba(217,68,82,0.25); }
+        .allergy-tag:active { transform:scale(0.94); }
+
+        /* Recent exams */
+        .exam-card {
+            display:flex; align-items:center; gap:14px;
+            padding:14px 16px;
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:14px;
+            margin-bottom:8px;
+        }
+        .exam-type-icon {
+            width:42px; height:42px; border-radius:12px;
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0;
+        }
+        .exam-type-icon.blood { background:rgba(217,68,82,0.08); border:1px solid rgba(217,68,82,0.12); }
+        .exam-type-icon.cardio { background:rgba(74,159,217,0.08); border:1px solid rgba(74,159,217,0.12); }
+        .exam-info { flex:1; }
+        .exam-name {
+            font-size:14px; font-weight:600;
+            color:rgba(255,255,255,0.8);
+            margin-bottom:2px;
+        }
+        .exam-date {
+            font-size:12px; color:rgba(255,255,255,0.25);
+        }
+        .exam-status {
+            padding:5px 10px; border-radius:8px;
+            font-size:11px; font-weight:600;
+        }
+        .exam-status.normal {
+            background:rgba(74,217,164,0.08);
+            color:rgba(74,217,164,0.8);
+        }
+        .exam-status.attention {
+            background:rgba(197,165,90,0.08);
+            color:rgba(197,165,90,0.8);
+        }
+
+        /* Share button */
+        .btn-share {
+            width:100%; padding:16px;
+            background:rgba(255,255,255,0.04);
+            border:1.5px solid rgba(255,255,255,0.08);
+            border-radius:14px;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:600;
+            color:rgba(255,255,255,0.5);
+            cursor:pointer;
+            display:flex; align-items:center; justify-content:center; gap:10px;
+            transition:all 0.3s;
+            margin-bottom:20px;
+        }
+        .btn-share:hover {
+            background:rgba(197,165,90,0.08);
+            border-color:rgba(197,165,90,0.2);
+            color:#C5A55A;
+        }
+        .btn-share:hover svg { stroke:#C5A55A; }
+        .btn-share:active { transform:scale(0.98); }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(20px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+
+        /* Bottom tab bar */
+        .tab-bar {
+            position:absolute; bottom:0; left:0; right:0;
+            height:80px;
+            background:rgba(10,10,10,0.95);
+            backdrop-filter:blur(20px);
+            -webkit-backdrop-filter:blur(20px);
+            border-top:1px solid rgba(255,255,255,0.06);
+            display:flex; align-items:center; justify-content:space-around;
+            padding:0 20px 16px;
+            z-index:20;
+        }
+        .tab {
+            display:flex; flex-direction:column;
+            align-items:center; gap:4px;
+            cursor:pointer;
+            padding:8px 20px;
+            border-radius:12px;
+            transition:all 0.25s;
+            border:none; background:none;
+            font-family:'Inter',sans-serif;
+        }
+        .tab:active { transform:scale(0.92); }
+        .tab svg { transition:all 0.2s; }
+        .tab-label {
+            font-size:10px; font-weight:600;
+            letter-spacing:0.3px;
+            transition:color 0.2s;
+            color:rgba(255,255,255,0.25);
+        }
+        .tab.active .tab-label { color:#C5A55A; }
+        .tab.active svg { color:#C5A55A !important; stroke:#C5A55A !important; }
+        .tab:not(.active):hover .tab-label { color:rgba(255,255,255,0.4); }
+        .tab-indicator {
+            width:4px; height:4px; border-radius:50%;
+            background:#C5A55A;
+            margin-top:2px;
+            opacity:0; transition:opacity 0.2s;
+        }
+        .tab.active .tab-indicator { opacity:1; }
+
+        /* Toast notification */
+        .toast {
+            position:absolute; top:60px; left:50%; transform:translateX(-50%) translateY(-20px);
+            background:rgba(30,30,30,0.95);
+            backdrop-filter:blur(20px);
+            border:1px solid rgba(255,255,255,0.1);
+            border-radius:14px; padding:14px 22px;
+            display:flex; align-items:center; gap:10px;
+            z-index:50;
+            opacity:0; pointer-events:none;
+            transition:all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow:0 12px 40px rgba(0,0,0,0.5);
+        }
+        .toast.show {
+            opacity:1; transform:translateX(-50%) translateY(0);
+        }
+        .toast-icon {
+            width:28px; height:28px; border-radius:8px;
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0;
+        }
+        .toast-icon.success { background:rgba(74,217,164,0.15); }
+        .toast-icon.info { background:rgba(74,159,217,0.15); }
+        .toast-icon.gold { background:rgba(197,165,90,0.15); }
+        .toast-text {
+            font-size:13px; font-weight:600;
+            color:rgba(255,255,255,0.8);
+        }
+
+        /* Modal overlay */
+        .modal-overlay {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.7);
+            backdrop-filter:blur(8px);
+            z-index:35;
+            display:flex; align-items:flex-end; justify-content:center;
+            opacity:0; pointer-events:none;
+            transition:opacity 0.3s ease;
+        }
+        .modal-overlay.show { opacity:1; pointer-events:all; }
+        .modal-sheet {
+            width:100%;
+            background:#1A1A1A;
+            border-radius:24px 24px 0 0;
+            padding:20px 24px 40px;
+            transform:translateY(100%);
+            transition:transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-overlay.show .modal-sheet {
+            transform:translateY(0);
+        }
+        .modal-handle {
+            width:40px; height:4px; border-radius:2px;
+            background:rgba(255,255,255,0.15);
+            margin:0 auto 20px;
+        }
+        .modal-title {
+            font-family:'Playfair Display', serif;
+            font-size:22px; font-weight:700; color:#fff;
+            margin-bottom:6px;
+        }
+        .modal-title span { color:#C5A55A; font-style:italic; }
+        .modal-subtitle {
+            font-size:13px; color:rgba(255,255,255,0.3);
+            margin-bottom:20px;
+        }
+        .modal-item {
+            display:flex; align-items:center; gap:14px;
+            padding:14px 16px;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:14px;
+            margin-bottom:8px;
+            cursor:pointer; transition:all 0.25s;
+        }
+        .modal-item:hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); }
+        .modal-item:active { transform:scale(0.98); }
+        .modal-item-icon {
+            width:38px; height:38px; border-radius:11px;
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0;
+        }
+        .modal-item-text { flex:1; }
+        .modal-item-title {
+            font-size:14px; font-weight:600; color:rgba(255,255,255,0.8);
+        }
+        .modal-item-desc {
+            font-size:12px; color:rgba(255,255,255,0.3); margin-top:2px;
+        }
+        .modal-btn-close {
+            width:100%; padding:16px;
+            background:rgba(255,255,255,0.06);
+            border:none; border-radius:14px;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:600;
+            color:rgba(255,255,255,0.5);
+            cursor:pointer; margin-top:12px;
+            transition:all 0.2s;
+        }
+        .modal-btn-close:hover { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.7); }
+        .modal-btn-close:active { transform:scale(0.98); }
+
+        /* Modal input fields */
+        .modal-input {
+            width:100%; padding:14px 16px;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.1);
+            border-radius:12px;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:500;
+            color:#fff; outline:none;
+            transition:all 0.3s ease;
+            margin-bottom:8px;
+        }
+        .modal-input::placeholder { color:rgba(255,255,255,0.2); }
+        .modal-input:focus {
+            border-color:rgba(197,165,90,0.4);
+            background:rgba(197,165,90,0.04);
+            box-shadow:0 0 0 3px rgba(197,165,90,0.08);
+        }
+        .modal-select {
+            width:100%; padding:14px 16px;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.1);
+            border-radius:12px;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:500;
+            color:#fff; outline:none;
+            appearance:none;
+            -webkit-appearance:none;
+            margin-bottom:8px;
+            cursor:pointer;
+        }
+        .modal-select option { background:#1A1A1A; color:#fff; }
+        .modal-btn-primary {
+            width:100%; padding:16px;
+            background:linear-gradient(135deg, #C5A55A, #D4B96A);
+            border:none; border-radius:14px;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:700;
+            color:#0A0A0A; cursor:pointer;
+            transition:all 0.2s;
+            margin-top:4px; margin-bottom:8px;
+        }
+        .modal-btn-primary:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(197,165,90,0.3); }
+        .modal-btn-primary:active { transform:scale(0.98); }
+        .modal-field-label {
+            font-size:11px; font-weight:600;
+            color:rgba(255,255,255,0.3);
+            letter-spacing:0.5px; text-transform:uppercase;
+            margin-bottom:6px; margin-top:12px;
+        }
+        .modal-field-label:first-child { margin-top:0; }
+
+        /* Card animations */
+        @keyframes cardSlideIn {
+            from { opacity:0; transform:translateY(-10px); max-height:0; margin-bottom:0; padding:0 16px; }
+            to { opacity:1; transform:translateY(0); max-height:80px; margin-bottom:8px; padding:14px 16px; }
+        }
+        @keyframes cardFadeOut {
+            from { opacity:1; transform:scale(1); max-height:80px; margin-bottom:8px; }
+            to { opacity:0; transform:scale(0.95); max-height:0; margin-bottom:0; padding:0 16px; }
+        }
+        .med-card.entering { animation:cardSlideIn 0.35s ease both; }
+        .med-card.removing { animation:cardFadeOut 0.3s ease both; }
+        .allergy-tag.entering { animation:fadeUp 0.3s ease both; }
+        .allergy-tag.removing { animation:cardFadeOut 0.25s ease both; }
+
+        /* Allergy add inline */
+        .allergy-add-inline {
+            display:flex; gap:8px; margin-top:8px; width:100%;
+        }
+        .allergy-add-inline .modal-input { margin-bottom:0; flex:1; }
+        .allergy-add-inline button {
+            padding:12px 18px;
+            background:linear-gradient(135deg, #C5A55A, #D4B96A);
+            border:none; border-radius:12px;
+            font-family:'Inter',sans-serif;
+            font-size:13px; font-weight:700;
+            color:#0A0A0A; cursor:pointer;
+            white-space:nowrap;
+            transition:all 0.2s;
+        }
+        .allergy-add-inline button:hover { transform:translateY(-1px); }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128267;</span></div>
+
+    <!-- Split curtain reveal -->
+    <div class="reveal-line"></div>
+    <div class="curtain-left"></div>
+    <div class="curtain-right"></div>
+
+    <!-- Exit overlay -->
+    <div class="exit-overlay" id="exitOverlay"></div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <div class="toast-icon success" id="toastIcon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4AD9A4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        </div>
+        <span class="toast-text" id="toastText">Acao realizada</span>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal-sheet" id="modalSheet">
+            <div class="modal-handle"></div>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- Profile Header -->
+        <div class="profile-header" onclick="goToProfile()" style="cursor:pointer;">
+            <div class="avatar">
+                <span class="avatar-initials">--</span>
+            </div>
+            <div class="profile-info">
+                <div class="profile-name">Carregando...</div>
+                <div class="profile-age"></div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+
+        <!-- Health Chart -->
+        <div class="health-chart" onclick="navigateTo('melhorias')">
+            <div class="chart-header">
+                <div class="chart-title">Estimativa de <span>saude</span></div>
+                <div class="chart-score">
+                    <div class="chart-score-value">--</div>
+                    <div class="chart-score-label">Media geral</div>
+                </div>
+            </div>
+            <div class="chart-legend">
+                <div class="chart-legend-item"><span class="chart-legend-line gold"></span> Seu progresso</div>
+                <div class="chart-legend-item"><span class="chart-legend-line green"></span> Potencial</div>
+            </div>
+            <div class="chart-svg-container">
+                <svg id="healthChart" width="100%" height="120" viewBox="0 0 380 120" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#C5A55A" stop-opacity="0.25"/>
+                            <stop offset="100%" stop-color="#C5A55A" stop-opacity="0"/>
+                        </linearGradient>
+                        <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stop-color="rgba(197,165,90,0.3)"/>
+                            <stop offset="100%" stop-color="#C5A55A"/>
+                        </linearGradient>
+                        <linearGradient id="projLineGrad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stop-color="rgba(74,217,164,0.4)"/>
+                            <stop offset="100%" stop-color="#4AD9A4"/>
+                        </linearGradient>
+                        <linearGradient id="projAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#4AD9A4" stop-opacity="0.12"/>
+                            <stop offset="100%" stop-color="#4AD9A4" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Grid lines -->
+                    <line x1="0" y1="30" x2="380" y2="30" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+                    <line x1="0" y1="60" x2="380" y2="60" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+                    <line x1="0" y1="90" x2="380" y2="90" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+                    <!-- Gold area fill -->
+                    <path id="chartArea" fill="url(#chartGrad)" opacity="0"/>
+                    <!-- Projection area (between gold line end and green line) -->
+                    <path id="projArea" fill="url(#projAreaGrad)" opacity="0"/>
+                    <!-- Gold line -->
+                    <path id="chartLine" fill="none" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>
+                    <!-- Projection dashed line -->
+                    <path id="projLine" fill="none" stroke="url(#projLineGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" opacity="0"/>
+                    <!-- Data points -->
+                    <g id="chartDots"></g>
+                    <!-- Projection dots -->
+                    <g id="projDots"></g>
+                    <!-- Month labels -->
+                    <text x="0" y="118" fill="rgba(255,255,255,0.15)" font-size="9" font-family="Inter,sans-serif" font-weight="500">Set</text>
+                    <text x="42" y="118" fill="rgba(255,255,255,0.15)" font-size="9" font-family="Inter,sans-serif" font-weight="500">Out</text>
+                    <text x="84" y="118" fill="rgba(255,255,255,0.15)" font-size="9" font-family="Inter,sans-serif" font-weight="500">Nov</text>
+                    <text x="126" y="118" fill="rgba(255,255,255,0.15)" font-size="9" font-family="Inter,sans-serif" font-weight="500">Dez</text>
+                    <text x="168" y="118" fill="rgba(255,255,255,0.15)" font-size="9" font-family="Inter,sans-serif" font-weight="500">Jan</text>
+                    <text x="210" y="118" fill="rgba(255,255,255,0.15)" font-size="9" font-family="Inter,sans-serif" font-weight="500">Fev</text>
+                    <text x="244" y="118" fill="rgba(197,165,90,0.4)" font-size="9" font-family="Inter,sans-serif" font-weight="600">Mar</text>
+                    <text x="291" y="118" fill="rgba(74,217,164,0.25)" font-size="9" font-family="Inter,sans-serif" font-weight="500">Abr</text>
+                    <text x="330" y="118" fill="rgba(74,217,164,0.25)" font-size="9" font-family="Inter,sans-serif" font-weight="500">Mai</text>
+                    <text x="363" y="118" fill="rgba(74,217,164,0.3)" font-size="9" font-family="Inter,sans-serif" font-weight="600">Jun</text>
+                    <!-- Score label at projection end -->
+                    <text id="projScoreLabel" x="370" y="8" fill="#4AD9A4" font-size="11" font-family="Playfair Display,serif" font-weight="700" opacity="0">93</text>
+                </svg>
+            </div>
+            <div class="chart-tap-hint">Toque para ver melhorias</div>
+            <div class="chart-pillars">
+                <div class="pillar">
+                    <div class="pillar-value" style="color:#4A9FD9;">--</div>
+                    <div class="pillar-label"><span class="pillar-dot" style="background:#4A9FD9;"></span>Sono</div>
+                </div>
+                <div class="pillar">
+                    <div class="pillar-value" style="color:#4AD9A4;">--</div>
+                    <div class="pillar-label"><span class="pillar-dot" style="background:#4AD9A4;"></span>Atividade Fisica</div>
+                </div>
+                <div class="pillar">
+                    <div class="pillar-value" style="color:#B482FF;">--</div>
+                    <div class="pillar-label"><span class="pillar-dot" style="background:#B482FF;"></span>Produtividade</div>
+                </div>
+                <div class="pillar">
+                    <div class="pillar-value" style="color:#C5A55A;">--</div>
+                    <div class="pillar-label"><span class="pillar-dot" style="background:#C5A55A;"></span>Exame</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medicamentos -->
+        <div class="section anim" style="animation-delay:0.95s">
+            <div class="section-header">
+                <span class="section-title">Medicamentos</span>
+                <button class="section-action" onclick="openAddMed()">Adicionar</button>
+            </div>
+            <div id="medsContainer"></div>
+        </div>
+
+        <!-- Alergias -->
+        <div class="section anim" style="animation-delay:1.05s">
+            <div class="section-header">
+                <span class="section-title">Alergias</span>
+                <button class="section-action" onclick="openEditAllergies()">Editar</button>
+            </div>
+            <div class="allergy-tags" id="allergiesContainer"></div>
+        </div>
+
+        <!-- Ultimos exames -->
+        <div class="section anim" style="animation-delay:1.15s">
+            <div class="section-header">
+                <span class="section-title">Ultimos exames</span>
+                <button class="section-action" onclick="navigateTo('exames')">Ver todos</button>
+            </div>
+            <div class="exam-card clickable-row" onclick="openExamDetail('Hemograma completo')">
+                <div class="exam-type-icon blood">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D94452" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+                    </svg>
+                </div>
+                <div class="exam-info">
+                    <div class="exam-name">Hemograma completo</div>
+                    <div class="exam-date">12 Fev, 2026</div>
+                </div>
+                <span class="exam-status normal">Normal</span>
+            </div>
+            <div class="exam-card clickable-row" onclick="openExamDetail('Glicemia em jejum')">
+                <div class="exam-type-icon blood">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D94452" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+                    </svg>
+                </div>
+                <div class="exam-info">
+                    <div class="exam-name">Glicemia em jejum</div>
+                    <div class="exam-date">12 Fev, 2026</div>
+                </div>
+                <span class="exam-status attention">Atencao</span>
+            </div>
+            <div class="exam-card clickable-row" onclick="openExamDetail('Eletrocardiograma')">
+                <div class="exam-type-icon cardio">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A9FD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+                <div class="exam-info">
+                    <div class="exam-name">Eletrocardiograma</div>
+                    <div class="exam-date">28 Jan, 2026</div>
+                </div>
+                <span class="exam-status normal">Normal</span>
+            </div>
+        </div>
+
+        <!-- Share PDF -->
+        <div class="section anim" style="animation-delay:1.25s">
+            <button class="btn-share" onclick="sharePDF()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/>
+                    <polyline points="16 6 12 2 8 6"/>
+                    <line x1="12" y1="2" x2="12" y2="15"/>
+                </svg>
+                Compartilhar PDF com meu medico
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <button class="tab active">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span class="tab-label">Perfil</span>
+            <div class="tab-indicator"></div>
+        </button>
+        <button class="tab" onclick="navigateTo('exames')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span class="tab-label">Exames</span>
+            <div class="tab-indicator"></div>
+        </button>
+        <button class="tab" onclick="navigateTo('bioage')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            <span class="tab-label">Bio Age</span>
+            <div class="tab-indicator"></div>
+        </button>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+    // Verificar login
+    if (typeof vitaeAPI !== 'undefined' && !vitaeAPI.isLoggedIn()) {
+        window.location.href = '03-cadastro.html';
+    }
+
+    // ============ LOAD PROFILE DATA FROM API ============
+    async function loadProfileData() {
+        try {
+            const perfil = await vitaeAPI.getPerfil();
+            const u = perfil.usuario || perfil;
+            const ps = u.perfilSaude || perfil.perfilSaude || {};
+
+            // Nome e idade
+            if (u.nome) {
+                document.querySelector('.profile-name').textContent = u.nome;
+                const parts = u.nome.trim().split(/\s+/);
+                const initials = parts.length >= 2
+                    ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
+                    : parts[0].substring(0,2).toUpperCase();
+                document.querySelector('.avatar-initials').textContent = initials;
+            }
+            if (ps.dataNascimento) {
+                const birth = new Date(ps.dataNascimento);
+                const age = Math.floor((Date.now() - birth.getTime()) / (365.25*24*60*60*1000));
+                const genero = ps.genero || '';
+                document.querySelector('.profile-age').textContent = age + ' anos' + (genero ? ', ' + genero : '');
+            } else {
+                document.querySelector('.profile-age').textContent = '';
+            }
+        } catch (e) {
+            console.log('Erro ao carregar perfil:', e.message);
+        }
+    }
+
+    async function loadMedicationsFromAPI() {
+        try {
+            const data = await vitaeAPI.listarMedicamentos();
+            medications = (data.medicamentos || data || []).map(m => ({
+                id: m.id,
+                name: m.nome,
+                dosage: m.dosagem || '',
+                frequency: m.frequencia || '',
+                time: m.horario || ''
+            }));
+            renderMedications();
+        } catch (e) {
+            console.log('Erro ao carregar medicamentos:', e.message);
+        }
+    }
+
+    async function loadAllergiesFromAPI() {
+        try {
+            const data = await vitaeAPI.listarAlergias();
+            allergies = (data.alergias || data || []).map(a => ({
+                id: a.id,
+                name: a.nome || a.alergia || a.name
+            }));
+            renderAllergies();
+        } catch (e) {
+            console.log('Erro ao carregar alergias:', e.message);
+        }
+    }
+
+    async function loadExamsFromAPI() {
+        try {
+            const data = await vitaeAPI.listarExames();
+            const exams = data.exames || data || [];
+            renderRecentExams(exams.slice(0, 3));
+        } catch (e) {
+            console.log('Erro ao carregar exames:', e.message);
+        }
+    }
+
+    function renderRecentExams(exams) {
+        const section = document.querySelector('.section.anim[style*="1.15"]');
+        if (!section) return;
+        const container = section.querySelector('.exam-card');
+        if (!container) return;
+        // Remove all existing exam cards
+        section.querySelectorAll('.exam-card').forEach(c => c.remove());
+
+        if (exams.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.cssText = 'text-align:center;padding:20px 0;color:rgba(255,255,255,0.2);font-size:13px;';
+            empty.textContent = 'Nenhum exame enviado ainda';
+            section.appendChild(empty);
+            return;
+        }
+
+        exams.forEach(exam => {
+            const card = document.createElement('div');
+            card.className = 'exam-card clickable-row';
+            card.onclick = () => openExamDetail(exam.id);
+            const statusClass = exam.status === 'ATENCAO' ? 'attention' : exam.status === 'CRITICO' ? 'critical' : 'normal';
+            const statusLabel = exam.status === 'ATENCAO' ? 'Atencao' : exam.status === 'CRITICO' ? 'Critico' : 'Normal';
+            const date = exam.dataExame ? new Date(exam.dataExame).toLocaleDateString('pt-BR') : '';
+            card.innerHTML = `
+                <div class="exam-type-icon blood">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D94452" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+                    </svg>
+                </div>
+                <div class="exam-info">
+                    <div class="exam-name">${exam.tipoExame || 'Exame'}</div>
+                    <div class="exam-date">${date}</div>
+                </div>
+                <span class="exam-status ${statusClass}">${statusLabel}</span>
+            `;
+            section.insertBefore(card, section.querySelector('.section-header').nextSibling.nextSibling);
+        });
+    }
+
+    async function loadScoresFromAPI() {
+        try {
+            const data = await vitaeAPI.getScoreAtual();
+            if (data && data.score) {
+                const scoreEl = document.querySelector('.chart-score-value');
+                if (scoreEl) scoreEl.textContent = Math.round(data.score.geral || 0);
+                // Update pillar values
+                const pillars = document.querySelectorAll('.pillar-value');
+                if (pillars[0] && data.score.sono != null) pillars[0].textContent = Math.round(data.score.sono);
+                if (pillars[1] && data.score.atividade != null) pillars[1].textContent = Math.round(data.score.atividade);
+                if (pillars[2] && data.score.produtividade != null) pillars[2].textContent = Math.round(data.score.produtividade);
+                if (pillars[3] && data.score.exame != null) pillars[3].textContent = Math.round(data.score.exame);
+            }
+        } catch (e) {
+            console.log('Erro ao carregar scores:', e.message);
+            // Se nao tem scores, mostrar zeros
+            document.querySelector('.chart-score-value').textContent = '--';
+            document.querySelectorAll('.pillar-value').forEach(p => p.textContent = '--');
+        }
+    }
+
+    // Iniciar carregamento
+    if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
+        loadProfileData();
+        loadMedicationsFromAPI();
+        loadAllergiesFromAPI();
+        loadExamsFromAPI();
+        loadScoresFromAPI();
+    }
+
+    // ============ HEALTH CHART ANIMATION ============
+    (function() {
+        // Mock data: health scores over months, 0-100
+        const scores = [58, 62, 60, 68, 74, 78, 82];           // Sep-Mar (actual)
+        const projScores = [82, 87, 91, 93];                     // Mar-Jun (projection)
+        const totalMonths = scores.length + projScores.length - 1; // 9 months total (Mar shared)
+        const w = 380, h = 100;
+        const stepX = w / (totalMonths - 1);
+        const minS = 40, maxS = 100;
+
+        function yPos(val) {
+            return h - ((val - minS) / (maxS - minS)) * h;
+        }
+
+        // Build actual points (Sep-Mar)
+        const pts = scores.map((s, i) => ({ x: i * stepX, y: yPos(s) }));
+        // Build projection points (Mar-Jun), starting from last actual point
+        const projPts = projScores.map((s, i) => ({ x: (scores.length - 1 + i) * stepX, y: yPos(s) }));
+
+        // Smooth curve using cubic bezier (Catmull-Rom)
+        function smoothPath(points) {
+            if (points.length < 2) return '';
+            let d = 'M' + points[0].x + ',' + points[0].y;
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[Math.max(0, i - 1)];
+                const p1 = points[i];
+                const p2 = points[i + 1];
+                const p3 = points[Math.min(points.length - 1, i + 2)];
+                const cp1x = p1.x + (p2.x - p0.x) / 6;
+                const cp1y = p1.y + (p2.y - p0.y) / 6;
+                const cp2x = p2.x - (p3.x - p1.x) / 6;
+                const cp2y = p2.y - (p3.y - p1.y) / 6;
+                d += ' C' + cp1x + ',' + cp1y + ' ' + cp2x + ',' + cp2y + ' ' + p2.x + ',' + p2.y;
+            }
+            return d;
+        }
+
+        // Gold line paths
+        const linePath = smoothPath(pts);
+        const areaPath = linePath + ' L' + pts[pts.length-1].x + ',' + h + ' L' + pts[0].x + ',' + h + ' Z';
+
+        // Projection line path
+        const projLinePath = smoothPath(projPts);
+        // Projection area: between gold line end and projection line, closed downward
+        const projAreaPath = projLinePath + ' L' + projPts[projPts.length-1].x + ',' + h + ' L' + projPts[0].x + ',' + h + ' Z';
+
+        const lineEl = document.getElementById('chartLine');
+        const areaEl = document.getElementById('chartArea');
+        const dotsEl = document.getElementById('chartDots');
+        const projLineEl = document.getElementById('projLine');
+        const projAreaEl = document.getElementById('projArea');
+        const projDotsEl = document.getElementById('projDots');
+        const projScoreLbl = document.getElementById('projScoreLabel');
+
+        lineEl.setAttribute('d', linePath);
+        areaEl.setAttribute('d', areaPath);
+        projLineEl.setAttribute('d', projLinePath);
+        projAreaEl.setAttribute('d', projAreaPath);
+
+        // Position the "93" label near the last projection point
+        const lastProj = projPts[projPts.length - 1];
+        projScoreLbl.setAttribute('x', lastProj.x - 8);
+        projScoreLbl.setAttribute('y', lastProj.y - 8);
+
+        // Create gold dots
+        pts.forEach((p, i) => {
+            const isLast = i === pts.length - 1;
+            if (isLast) {
+                const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                glow.setAttribute('cx', p.x); glow.setAttribute('cy', p.y);
+                glow.setAttribute('r', '8'); glow.setAttribute('fill', 'rgba(197,165,90,0.15)');
+                glow.setAttribute('opacity', '0');
+                dotsEl.appendChild(glow);
+            }
+            const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('cx', p.x); dot.setAttribute('cy', p.y);
+            dot.setAttribute('r', isLast ? '4' : '2.5');
+            dot.setAttribute('fill', isLast ? '#C5A55A' : 'rgba(197,165,90,0.5)');
+            dot.setAttribute('opacity', '0');
+            dotsEl.appendChild(dot);
+        });
+
+        // Create green projection dots (skip first since it overlaps gold last)
+        projPts.forEach((p, i) => {
+            if (i === 0) return; // shared with gold line
+            const isLast = i === projPts.length - 1;
+            if (isLast) {
+                const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                glow.setAttribute('cx', p.x); glow.setAttribute('cy', p.y);
+                glow.setAttribute('r', '8'); glow.setAttribute('fill', 'rgba(74,217,164,0.15)');
+                glow.setAttribute('opacity', '0');
+                projDotsEl.appendChild(glow);
+            }
+            const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('cx', p.x); dot.setAttribute('cy', p.y);
+            dot.setAttribute('r', isLast ? '4' : '2.5');
+            dot.setAttribute('fill', isLast ? '#4AD9A4' : 'rgba(74,217,164,0.5)');
+            dot.setAttribute('opacity', '0');
+            projDotsEl.appendChild(dot);
+        });
+
+        // Animate in after curtain
+        setTimeout(() => {
+            // === GOLD LINE draw animation ===
+            const lineLen = lineEl.getTotalLength();
+            lineEl.style.strokeDasharray = lineLen;
+            lineEl.style.strokeDashoffset = lineLen;
+            lineEl.style.opacity = '1';
+
+            let start = null;
+            const duration = 1200;
+            function drawLine(ts) {
+                if (!start) start = ts;
+                const progress = Math.min((ts - start) / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3);
+                lineEl.style.strokeDashoffset = lineLen * (1 - ease);
+                if (progress < 1) requestAnimationFrame(drawLine);
+            }
+            requestAnimationFrame(drawLine);
+
+            // Gold area fade in
+            setTimeout(() => {
+                areaEl.style.transition = 'opacity 0.8s ease';
+                areaEl.style.opacity = '0.6';
+            }, 600);
+
+            // Gold dots pop in sequentially
+            const allDots = dotsEl.querySelectorAll('circle');
+            allDots.forEach((d, i) => {
+                setTimeout(() => {
+                    d.style.transition = 'opacity 0.3s ease';
+                    d.setAttribute('opacity', '1');
+                }, 400 + i * 80);
+            });
+
+            // === PROJECTION LINE draw animation (starts after gold finishes) ===
+            setTimeout(() => {
+                const projLen = projLineEl.getTotalLength();
+                // Save the dash pattern and use a large gap for the draw animation
+                projLineEl.style.strokeDasharray = projLen;
+                projLineEl.style.strokeDashoffset = projLen;
+                projLineEl.style.opacity = '1';
+
+                let pStart = null;
+                const pDuration = 800;
+                function drawProj(ts) {
+                    if (!pStart) pStart = ts;
+                    const progress = Math.min((ts - pStart) / pDuration, 1);
+                    const ease = 1 - Math.pow(1 - progress, 3);
+                    projLineEl.style.strokeDashoffset = projLen * (1 - ease);
+                    if (progress < 1) {
+                        requestAnimationFrame(drawProj);
+                    } else {
+                        // Restore the dashed pattern after draw completes
+                        projLineEl.style.strokeDasharray = '6 4';
+                        projLineEl.style.strokeDashoffset = '0';
+                    }
+                }
+                requestAnimationFrame(drawProj);
+
+                // Projection area fade in
+                setTimeout(() => {
+                    projAreaEl.style.transition = 'opacity 0.8s ease';
+                    projAreaEl.style.opacity = '0.6';
+                }, 300);
+
+                // Projection dots pop in
+                const pDots = projDotsEl.querySelectorAll('circle');
+                pDots.forEach((d, i) => {
+                    setTimeout(() => {
+                        d.style.transition = 'opacity 0.3s ease';
+                        d.setAttribute('opacity', '1');
+                    }, 300 + i * 100);
+                });
+
+                // Score label pop in
+                setTimeout(() => {
+                    projScoreLbl.style.transition = 'opacity 0.4s ease';
+                    projScoreLbl.setAttribute('opacity', '1');
+                }, 700);
+            }, 1300); // 1300ms after the gold animation started
+        }, 1100);
+    })();
+
+    // ============ TOAST ============
+    let toastTimer;
+    function showToast(text, type) {
+        const toast = document.getElementById('toast');
+        const toastText = document.getElementById('toastText');
+        const toastIcon = document.getElementById('toastIcon');
+        toastText.textContent = text;
+
+        const colors = { success:'#4AD9A4', info:'#4A9FD9', gold:'#C5A55A' };
+        const c = colors[type] || colors.info;
+        toastIcon.className = 'toast-icon ' + type;
+        toastIcon.innerHTML = type === 'success'
+            ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+            : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+
+        clearTimeout(toastTimer);
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // ============ MODAL ============
+    function openModal(html) {
+        document.getElementById('modalContent').innerHTML = html;
+        document.getElementById('modalOverlay').classList.add('show');
+    }
+    function closeModal(e) {
+        if (e && e.target !== document.getElementById('modalOverlay')) return;
+        document.getElementById('modalOverlay').classList.remove('show');
+    }
+    function closeModalForce() {
+        document.getElementById('modalOverlay').classList.remove('show');
+    }
+
+    // ============ GO TO PROFILE ============
+    function goToProfile() {
+        const overlay = document.getElementById('exitOverlay');
+        overlay.classList.add('active');
+        setTimeout(() => {
+            window.location.href = '09-dados-pessoais.html';
+        }, 500);
+    }
+
+    // ============ MEDICATIONS DATA ============
+    const PRESET_MEDS = [
+        { name:'Creatina', dosage:'5g', frequency:'1x ao dia', time:'08:00', desc:'Suplemento para performance muscular e cognitiva.', icon:'shield', color:'#4AD9A4' },
+        { name:'Melatonina', dosage:'3mg', frequency:'1x ao dia', time:'22:00', desc:'Regulador natural do ciclo do sono.', icon:'moon', color:'#B482FF' },
+        { name:'Whey Protein', dosage:'30g', frequency:'1x ao dia', time:'07:00', desc:'Proteina de alta qualidade para recuperacao muscular.', icon:'zap', color:'#4A9FD9' }
+    ];
+    const MED_DESCRIPTIONS = {
+        'Vitamina D3': 'Essencial para absorcao de calcio e saude ossea. Recomendado tomar com uma refeicao rica em gorduras.',
+        'Omega 3': 'Acidos graxos essenciais que auxiliam na saude cardiovascular, cerebral e reducao de inflamacao.',
+        'Creatina': 'Suplemento para performance muscular e cognitiva.',
+        'Melatonina': 'Regulador natural do ciclo do sono.',
+        'Whey Protein': 'Proteina de alta qualidade para recuperacao muscular.'
+    };
+
+    let medications = [];
+
+    function renderMedications() {
+        const container = document.getElementById('medsContainer');
+        if (medications.length === 0) {
+            container.innerHTML = '<div style="text-align:center;padding:20px 0;color:rgba(255,255,255,0.2);font-size:13px;">Nenhum medicamento adicionado</div>';
+            return;
+        }
+        container.innerHTML = medications.map((m, i) => `
+            <div class="med-card clickable-row" onclick="openMedDetail(${i})">
+                <div class="med-dot active"></div>
+                <div class="med-info">
+                    <div class="med-name">${m.name}</div>
+                    <div class="med-dosage">${m.dosage} — ${m.frequency}</div>
+                </div>
+                <span class="med-time">${m.time}</span>
+            </div>
+        `).join('');
+    }
+    renderMedications();
+
+    // ============ ADD MEDICATION ============
+    function openAddMed() {
+        const existing = medications.map(m => m.name);
+        const available = PRESET_MEDS.filter(p => !existing.includes(p.name));
+        const icons = {
+            shield: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+            moon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>',
+            zap: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'
+        };
+        let presetsHtml = available.map(p => `
+            <div class="modal-item" onclick="addPresetMed('${p.name}')">
+                <div class="modal-item-icon" style="background:rgba(${hexToRgb(p.color)},0.1);border:1px solid rgba(${hexToRgb(p.color)},0.15);border-radius:11px;color:${p.color};">
+                    ${icons[p.icon]}
+                </div>
+                <div class="modal-item-text"><div class="modal-item-title">${p.name}</div><div class="modal-item-desc">${p.dosage} — ${p.frequency}</div></div>
+            </div>
+        `).join('');
+        if (!presetsHtml) presetsHtml = '<div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.2);font-size:12px;">Todas sugestoes ja foram adicionadas</div>';
+
+        openModal(`
+            <div class="modal-title">Adicionar <span>medicamento</span></div>
+            <div class="modal-subtitle">Selecione uma sugestao ou adicione manualmente</div>
+            ${presetsHtml}
+            <div class="modal-item" onclick="openCustomMedForm()">
+                <div class="modal-item-icon" style="background:rgba(74,159,217,0.1);border:1px solid rgba(74,159,217,0.15);border-radius:11px;color:#4A9FD9;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </div>
+                <div class="modal-item-text"><div class="modal-item-title">Outro medicamento</div><div class="modal-item-desc">Adicionar manualmente</div></div>
+            </div>
+            <button class="modal-btn-close" onclick="closeModalForce()">Cancelar</button>
+        `);
+    }
+
+    function hexToRgb(hex) {
+        const r = parseInt(hex.slice(1,3),16);
+        const g = parseInt(hex.slice(3,5),16);
+        const b = parseInt(hex.slice(5,7),16);
+        return r+','+g+','+b;
+    }
+
+    async function addPresetMed(name) {
+        const preset = PRESET_MEDS.find(p => p.name === name);
+        if (!preset) return;
+        closeModalForce();
+        try {
+            if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
+                await vitaeAPI.adicionarMedicamento({
+                    nome: preset.name, dosagem: preset.dosage,
+                    frequencia: preset.frequency, horario: preset.time
+                });
+                await loadMedicationsFromAPI();
+            } else {
+                medications.push({ name:preset.name, dosage:preset.dosage, frequency:preset.frequency, time:preset.time });
+                MED_DESCRIPTIONS[preset.name] = preset.desc;
+                renderMedications();
+            }
+        } catch (e) {
+            medications.push({ name:preset.name, dosage:preset.dosage, frequency:preset.frequency, time:preset.time });
+            renderMedications();
+        }
+        const cards = document.querySelectorAll('#medsContainer .med-card');
+        const last = cards[cards.length - 1];
+        if (last) last.classList.add('entering');
+        setTimeout(() => showToast(name + ' adicionado', 'success'), 200);
+    }
+
+    function openCustomMedForm() {
+        document.getElementById('modalContent').innerHTML = `
+            <div class="modal-title">Novo <span>medicamento</span></div>
+            <div class="modal-subtitle">Preencha as informacoes</div>
+            <div class="modal-field-label">Nome</div>
+            <input class="modal-input" id="customMedName" type="text" placeholder="Ex: Rivotril, Losartana..." autofocus>
+            <div class="modal-field-label">Dosagem</div>
+            <input class="modal-input" id="customMedDosage" type="text" placeholder="Ex: 500mg, 10ml...">
+            <div class="modal-field-label">Frequencia</div>
+            <select class="modal-select" id="customMedFreq">
+                <option value="1x ao dia">1x ao dia</option>
+                <option value="2x ao dia">2x ao dia</option>
+                <option value="3x ao dia">3x ao dia</option>
+                <option value="Conforme necessario">Conforme necessario</option>
+            </select>
+            <div class="modal-field-label">Horario</div>
+            <input class="modal-input" id="customMedTime" type="text" placeholder="Ex: 08:00" value="08:00">
+            <button class="modal-btn-primary" onclick="submitCustomMed()">Adicionar</button>
+            <button class="modal-btn-close" onclick="closeModalForce()">Cancelar</button>
+        `;
+        setTimeout(() => document.getElementById('customMedName').focus(), 100);
+    }
+
+    async function submitCustomMed() {
+        const name = document.getElementById('customMedName').value.trim();
+        const dosage = document.getElementById('customMedDosage').value.trim() || 'Dose nao informada';
+        const freq = document.getElementById('customMedFreq').value;
+        const time = document.getElementById('customMedTime').value.trim() || '08:00';
+        if (!name) {
+            document.getElementById('customMedName').style.borderColor = '#D94452';
+            document.getElementById('customMedName').focus();
+            return;
+        }
+        closeModalForce();
+        try {
+            if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
+                await vitaeAPI.adicionarMedicamento({ nome: name, dosagem: dosage, frequencia: freq, horario: time });
+                await loadMedicationsFromAPI();
+            } else {
+                medications.push({ name, dosage, frequency:freq, time });
+                renderMedications();
+            }
+        } catch (e) {
+            medications.push({ name, dosage, frequency:freq, time });
+            renderMedications();
+        }
+        const cards = document.querySelectorAll('#medsContainer .med-card');
+        const last = cards[cards.length - 1];
+        if (last) last.classList.add('entering');
+        setTimeout(() => showToast(name + ' adicionado', 'success'), 200);
+    }
+
+    // ============ MEDICATION DETAIL ============
+    function openMedDetail(index) {
+        const m = medications[index];
+        if (!m) return;
+        const desc = MED_DESCRIPTIONS[m.name] || 'Sem descricao disponivel.';
+        openModal(`
+            <div class="modal-title">${m.name}</div>
+            <div class="modal-subtitle">${m.dosage} — ${m.frequency}</div>
+            <div class="modal-item">
+                <div class="modal-item-icon" style="background:rgba(74,217,164,0.1);border:1px solid rgba(74,217,164,0.15);border-radius:11px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4AD9A4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="modal-item-text"><div class="modal-item-title">Horario</div><div class="modal-item-desc">Todos os dias as ${m.time}</div></div>
+            </div>
+            <div style="padding:14px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;margin-bottom:8px;">
+                <div style="font-size:12px;color:rgba(255,255,255,0.25);margin-bottom:6px;font-weight:500;">Sobre</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;">${desc}</div>
+            </div>
+            <div class="modal-item" style="border-color:rgba(217,68,82,0.12);" onclick="removeMed(${index})">
+                <div class="modal-item-icon" style="background:rgba(217,68,82,0.08);border:1px solid rgba(217,68,82,0.12);border-radius:11px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D94452" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                </div>
+                <div class="modal-item-text"><div class="modal-item-title" style="color:rgba(217,68,82,0.8);">Remover medicamento</div></div>
+            </div>
+            <button class="modal-btn-close" onclick="closeModalForce()">Fechar</button>
+        `);
+    }
+
+    async function removeMed(index) {
+        const med = medications[index];
+        const name = med.name;
+        closeModalForce();
+        try {
+            if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn() && med.id) {
+                await vitaeAPI.removerMedicamento(med.id);
+                await loadMedicationsFromAPI();
+            } else {
+                medications.splice(index, 1);
+                renderMedications();
+            }
+        } catch (e) {
+            medications.splice(index, 1);
+            renderMedications();
+        }
+        setTimeout(() => showToast(name + ' removido', 'success'), 200);
+    }
+
+    // ============ ALLERGIES DATA ============
+    let allergies = [];
+
+    function renderAllergies() {
+        const container = document.getElementById('allergiesContainer');
+        if (allergies.length === 0) {
+            container.innerHTML = '<div style="padding:8px 0;color:rgba(255,255,255,0.2);font-size:13px;">Nenhuma alergia registrada</div>';
+            return;
+        }
+        container.innerHTML = allergies.map(a => {
+            const name = typeof a === 'string' ? a : a.name;
+            return `<span class="allergy-tag" onclick="showToast('${name} — alergia registrada', 'info')">${name}</span>`;
+        }).join('');
+    }
+    renderAllergies();
+
+    // ============ EDIT ALLERGIES ============
+    function openEditAllergies() {
+        let itemsHtml = allergies.map(a => {
+            const name = typeof a === 'string' ? a : a.name;
+            return `
+            <div class="modal-item" onclick="removeAllergy('${name}')">
+                <div class="modal-item-icon" style="background:rgba(217,68,82,0.08);border:1px solid rgba(217,68,82,0.12);border-radius:11px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D94452" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </div>
+                <div class="modal-item-text"><div class="modal-item-title">${name}</div></div>
+            </div>
+        `;}).join('');
+        if (!itemsHtml) itemsHtml = '<div style="text-align:center;padding:12px 0;color:rgba(255,255,255,0.2);font-size:12px;">Nenhuma alergia registrada</div>';
+
+        openModal(`
+            <div class="modal-title">Editar <span>alergias</span></div>
+            <div class="modal-subtitle">Toque no X para remover ou adicione novas</div>
+            <div id="allergyModalList">${itemsHtml}</div>
+            <div class="allergy-add-inline" id="allergyAddRow">
+                <input class="modal-input" id="newAllergyInput" type="text" placeholder="Nova alergia..." onkeydown="if(event.key==='Enter')addAllergyFromInput()">
+                <button onclick="addAllergyFromInput()">Adicionar</button>
+            </div>
+            <button class="modal-btn-close" onclick="closeModalForce()" style="margin-top:12px;">Fechar</button>
+        `);
+    }
+
+    async function removeAllergy(name) {
+        const allergy = allergies.find(a => (typeof a === 'string' ? a : a.name) === name);
+        try {
+            if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn() && allergy && allergy.id) {
+                await vitaeAPI.removerAlergia(allergy.id);
+                await loadAllergiesFromAPI();
+            } else {
+                allergies = allergies.filter(a => (typeof a === 'string' ? a : a.name) !== name);
+                renderAllergies();
+            }
+        } catch (e) {
+            allergies = allergies.filter(a => (typeof a === 'string' ? a : a.name) !== name);
+            renderAllergies();
+        }
+        openEditAllergies();
+        setTimeout(() => showToast(name + ' removida', 'success'), 100);
+    }
+
+    async function addAllergyFromInput() {
+        const input = document.getElementById('newAllergyInput');
+        const name = input.value.trim();
+        if (!name) { input.style.borderColor = '#D94452'; input.focus(); return; }
+        const exists = allergies.some(a => (typeof a === 'string' ? a : a.name) === name);
+        if (exists) { showToast(name + ' ja esta na lista', 'info'); return; }
+        try {
+            if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
+                await vitaeAPI.adicionarAlergia({ nome: name });
+                await loadAllergiesFromAPI();
+            } else {
+                allergies.push(name);
+                renderAllergies();
+            }
+        } catch (e) {
+            allergies.push(name);
+            renderAllergies();
+        }
+        openEditAllergies();
+        setTimeout(() => showToast(name + ' adicionada', 'success'), 100);
+    }
+
+    // ============ EXAM DETAIL ============
+    function openExamDetail(name) {
+        const overlay = document.getElementById('exitOverlay');
+        overlay.classList.add('active');
+        setTimeout(() => {
+            window.location.href = '13-exame-detalhe.html?exam=' + encodeURIComponent(name) + '&from=perfil';
+        }, 500);
+    }
+
+    // ============ SHARE PDF ============
+    function sharePDF() {
+        // Dados pessoais (simulados — em produção viriam do backend)
+        const personalData = {
+            nome: 'Lucas Silva',
+            idade: '18 anos',
+            sexo: 'Masculino',
+            nascimento: '15/03/2008',
+            altura: '1,78m',
+            peso: '72kg',
+            telefone: '(11) 99999-9999',
+            email: 'lucas@email.com',
+            tipoSanguineo: 'O+',
+        };
+
+        const medsHtml = medications.length > 0
+            ? medications.map(m => `
+                <tr>
+                    <td style="padding:10px 14px;border-bottom:1px solid #eee;font-weight:600;">${m.name}</td>
+                    <td style="padding:10px 14px;border-bottom:1px solid #eee;">${m.dosage}</td>
+                    <td style="padding:10px 14px;border-bottom:1px solid #eee;">${m.frequency}</td>
+                    <td style="padding:10px 14px;border-bottom:1px solid #eee;">${m.time}</td>
+                </tr>
+            `).join('')
+            : '<tr><td colspan="4" style="padding:14px;color:#999;text-align:center;">Nenhum medicamento registrado</td></tr>';
+
+        const allergiesHtml = allergies.length > 0
+            ? allergies.map(a => `<span style="display:inline-block;padding:6px 14px;background:#FFF0F0;color:#D94452;border-radius:8px;font-size:13px;font-weight:500;margin:4px;">${a}</span>`).join('')
+            : '<span style="color:#999;">Nenhuma alergia registrada</span>';
+
+        const examData = {
+            'Hemograma completo': { date:'12 Fev, 2026', status:'Normal', color:'#2E7D32', items:[
+                {label:'Hemoglobina',value:'14.2 g/dL',ref:'13.5 - 17.5'},
+                {label:'Hematocrito',value:'42%',ref:'38 - 50%'},
+                {label:'Leucocitos',value:'7.200 /mm3',ref:'4.000 - 11.000'}
+            ]},
+            'Glicemia em jejum': { date:'12 Fev, 2026', status:'Atencao', color:'#E65100', items:[
+                {label:'Glicose',value:'108 mg/dL',ref:'70 - 99'},
+                {label:'Classificacao',value:'Pre-diabetes',ref:'< 100 normal'}
+            ]},
+            'Eletrocardiograma': { date:'28 Jan, 2026', status:'Normal', color:'#2E7D32', items:[
+                {label:'Ritmo',value:'Sinusal',ref:'Normal'},
+                {label:'FC',value:'68 bpm',ref:'60 - 100'},
+                {label:'Eixo',value:'Normal',ref:'0 a 90 graus'}
+            ]}
+        };
+
+        let examsHtml = '';
+        for (const [name, e] of Object.entries(examData)) {
+            const rows = e.items.map(i => `
+                <tr>
+                    <td style="padding:8px 14px;border-bottom:1px solid #f0f0f0;">${i.label}</td>
+                    <td style="padding:8px 14px;border-bottom:1px solid #f0f0f0;font-weight:600;">${i.value}</td>
+                    <td style="padding:8px 14px;border-bottom:1px solid #f0f0f0;color:#888;font-size:12px;">${i.ref}</td>
+                </tr>
+            `).join('');
+            examsHtml += `
+                <div style="margin-bottom:20px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <h3 style="font-size:15px;font-weight:700;color:#222;margin:0;">${name}</h3>
+                        <div>
+                            <span style="font-size:12px;color:#888;margin-right:10px;">${e.date}</span>
+                            <span style="font-size:11px;font-weight:600;color:${e.color};background:${e.color}15;padding:4px 10px;border-radius:6px;">${e.status}</span>
+                        </div>
+                    </div>
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead><tr style="background:#f8f8f8;">
+                            <th style="padding:8px 14px;text-align:left;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;">Marcador</th>
+                            <th style="padding:8px 14px;text-align:left;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;">Valor</th>
+                            <th style="padding:8px 14px;text-align:left;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;">Referencia</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        const now = new Date();
+        const dataGeracao = now.toLocaleDateString('pt-BR') + ' as ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+
+        const pdfHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>VITAE — Relatorio de Saude — ${personalData.nome}</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI',Arial,sans-serif; color:#222; background:#fff; padding:40px; max-width:800px; margin:0 auto; }
+        @media print {
+            body { padding:20px; }
+            .no-print { display:none; }
+        }
+        .header { display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #C5A55A; padding-bottom:20px; margin-bottom:30px; }
+        .logo { font-size:28px; font-weight:800; letter-spacing:2px; color:#222; }
+        .logo span { color:#C5A55A; }
+        .header-right { text-align:right; font-size:12px; color:#888; }
+        .section { margin-bottom:28px; }
+        .section-title { font-size:13px; font-weight:700; color:#C5A55A; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:14px; padding-bottom:6px; border-bottom:1px solid #eee; }
+        .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 24px; }
+        .info-item { padding:8px 0; }
+        .info-label { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px; }
+        .info-value { font-size:14px; font-weight:600; color:#222; }
+        table { width:100%; border-collapse:collapse; }
+        .footer { margin-top:40px; padding-top:20px; border-top:1px solid #eee; text-align:center; font-size:11px; color:#aaa; }
+        .score-box { display:inline-block; padding:12px 24px; background:linear-gradient(135deg,#C5A55A,#D4B96A); color:#fff; border-radius:12px; font-size:24px; font-weight:800; margin-top:8px; }
+        .print-btn { display:block; margin:0 auto 30px; padding:14px 40px; background:#C5A55A; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; }
+        .print-btn:hover { background:#b5953f; }
+    </style>
+</head>
+<body>
+    <button class="print-btn no-print" onclick="window.print()">Salvar como PDF / Imprimir</button>
+
+    <div class="header">
+        <div>
+            <div class="logo">VITAE<span>.</span></div>
+            <div style="font-size:12px;color:#888;margin-top:4px;">Relatorio de Saude Pessoal</div>
+        </div>
+        <div class="header-right">
+            <div style="font-weight:600;color:#222;">${personalData.nome}</div>
+            <div>Gerado em ${dataGeracao}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Dados Pessoais</div>
+        <div class="info-grid">
+            <div class="info-item"><div class="info-label">Nome completo</div><div class="info-value">${personalData.nome}</div></div>
+            <div class="info-item"><div class="info-label">Idade</div><div class="info-value">${personalData.idade}</div></div>
+            <div class="info-item"><div class="info-label">Data de nascimento</div><div class="info-value">${personalData.nascimento}</div></div>
+            <div class="info-item"><div class="info-label">Sexo</div><div class="info-value">${personalData.sexo}</div></div>
+            <div class="info-item"><div class="info-label">Altura</div><div class="info-value">${personalData.altura}</div></div>
+            <div class="info-item"><div class="info-label">Peso</div><div class="info-value">${personalData.peso}</div></div>
+            <div class="info-item"><div class="info-label">Tipo sanguineo</div><div class="info-value">${personalData.tipoSanguineo}</div></div>
+            <div class="info-item"><div class="info-label">Contato</div><div class="info-value">${personalData.telefone}</div></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Estimativa de Saude</div>
+        <div style="text-align:center;">
+            <div style="font-size:13px;color:#888;">Score geral</div>
+            <div class="score-box">82/100</div>
+            <div style="margin-top:14px;display:flex;justify-content:center;gap:24px;">
+                <div><span style="color:#4A9FD9;font-weight:700;font-size:18px;">78</span><br><span style="font-size:11px;color:#888;">Sono</span></div>
+                <div><span style="color:#4AD9A4;font-weight:700;font-size:18px;">85</span><br><span style="font-size:11px;color:#888;">Atividade Fisica</span></div>
+                <div><span style="color:#B482FF;font-weight:700;font-size:18px;">80</span><br><span style="font-size:11px;color:#888;">Produtividade</span></div>
+                <div><span style="color:#C5A55A;font-weight:700;font-size:18px;">86</span><br><span style="font-size:11px;color:#888;">Exame</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Medicamentos em Uso</div>
+        <table>
+            <thead><tr style="background:#f8f8f8;">
+                <th style="padding:10px 14px;text-align:left;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;">Medicamento</th>
+                <th style="padding:10px 14px;text-align:left;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;">Dosagem</th>
+                <th style="padding:10px 14px;text-align:left;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;">Frequencia</th>
+                <th style="padding:10px 14px;text-align:left;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;">Horario</th>
+            </tr></thead>
+            <tbody>${medsHtml}</tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Alergias</div>
+        <div style="padding:8px 0;">${allergiesHtml}</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Ultimos Exames</div>
+        ${examsHtml}
+    </div>
+
+    <div class="footer">
+        <div style="font-weight:600;color:#C5A55A;margin-bottom:4px;">VITAE — Know Your Biology</div>
+        <div>Este documento foi gerado automaticamente e nao substitui consulta medica.</div>
+        <div>Dados atualizados em ${dataGeracao}.</div>
+    </div>
+</body>
+</html>`;
+
+        const pdfWindow = window.open('', '_blank');
+        pdfWindow.document.write(pdfHtml);
+        pdfWindow.document.close();
+        showToast('PDF gerado — salve ou imprima', 'success');
+    }
+
+    // ============ NAVIGATION ============
+    function navigateTo(tab) {
+        const overlay = document.getElementById('exitOverlay');
+        overlay.classList.add('active');
+        setTimeout(() => {
+            if (tab === 'exames') window.location.href = '11-exames-lista.html';
+            else if (tab === 'bioage') window.location.href = '15-bioage-sem-dados.html';
+            else if (tab === 'melhorias') window.location.href = '12-melhorias.html';
+        }, 500);
+    }
+</script>
+</body>
+</html>

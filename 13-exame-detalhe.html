@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VITAE — Detalhe do Exame</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body {
+            background:#000;
+            display:flex; justify-content:center; align-items:center;
+            min-height:100vh; font-family:'Inter',sans-serif;
+        }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#0A0A0A;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        .notch {
+            position:absolute; top:0; left:50%; transform:translateX(-50%);
+            width:126px; height:34px; background:#0A0A0A;
+            border-radius:0 0 20px 20px; z-index:10;
+        }
+        .status {
+            position:absolute; top:14px; left:28px; right:28px;
+            display:flex; justify-content:space-between;
+            font-size:13px; font-weight:600; color:rgba(255,255,255,0.5);
+            z-index:11;
+        }
+
+        /* Entrance curtain */
+        .curtain-left, .curtain-right {
+            position:absolute; top:0; width:50%; height:100%;
+            background:#0A0A0A; z-index:30; pointer-events:none;
+        }
+        .curtain-left { left:0; animation:curtainSlideLeft 0.9s cubic-bezier(0.76, 0, 0.24, 1) 0.2s forwards; }
+        .curtain-right { right:0; animation:curtainSlideRight 0.9s cubic-bezier(0.76, 0, 0.24, 1) 0.2s forwards; }
+        @keyframes curtainSlideLeft { 0%{transform:translateX(0)} 100%{transform:translateX(-100%)} }
+        @keyframes curtainSlideRight { 0%{transform:translateX(0)} 100%{transform:translateX(100%)} }
+
+        .reveal-line {
+            position:absolute; top:0; left:50%; width:2px; height:100%;
+            background:linear-gradient(to bottom, transparent, #C5A55A, transparent);
+            z-index:31; pointer-events:none;
+            transform:translateX(-50%);
+            animation:revealLine 0.9s cubic-bezier(0.76, 0, 0.24, 1) 0.1s forwards;
+            opacity:0.8;
+        }
+        @keyframes revealLine {
+            0% { opacity:0.8; transform:translateX(-50%) scaleY(0); }
+            30% { opacity:1; transform:translateX(-50%) scaleY(1); }
+            100% { opacity:0; transform:translateX(-50%) scaleY(1); }
+        }
+
+        .exit-overlay {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background:#0A0A0A; z-index:40; pointer-events:none;
+            opacity:0; transition:opacity 0.5s ease;
+        }
+        .exit-overlay.active { opacity:1; pointer-events:all; }
+
+        .content {
+            height:calc(100% - 80px);
+            overflow-y:auto; overflow-x:hidden;
+            padding:60px 24px 24px;
+            scrollbar-width:none;
+        }
+        .content::-webkit-scrollbar { display:none; }
+
+        /* Header */
+        .page-header {
+            display:flex; align-items:center; gap:12px;
+            margin-bottom:20px;
+            opacity:0; animation:fadeUp 0.6s ease 0.5s both;
+        }
+        .back-btn {
+            width:36px; height:36px; border-radius:50%;
+            background:rgba(255,255,255,0.05);
+            border:1px solid rgba(255,255,255,0.08);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; transition:all 0.2s; flex-shrink:0;
+        }
+        .back-btn:hover { background:rgba(255,255,255,0.1); }
+        .back-btn:active { transform:scale(0.9); }
+
+        /* Exam header */
+        .exam-header {
+            opacity:0; animation:fadeUp 0.5s ease 0.6s both;
+            margin-bottom:24px;
+        }
+        .exam-header-top {
+            display:flex; align-items:center; gap:12px;
+            margin-bottom:8px;
+        }
+        .exam-header-icon {
+            width:48px; height:48px; border-radius:14px;
+            display:flex; align-items:center; justify-content:center;
+            font-size:24px; flex-shrink:0;
+        }
+        .exam-header-name {
+            font-size:20px; font-weight:700; color:#fff;
+        }
+        .exam-header-meta {
+            display:flex; align-items:center; gap:10px;
+            padding-left:60px;
+        }
+        .exam-header-date {
+            font-size:13px; color:rgba(255,255,255,0.35);
+        }
+        .exam-status {
+            font-size:11px; font-weight:700;
+            padding:3px 10px; border-radius:8px;
+            text-transform:uppercase; letter-spacing:0.5px;
+        }
+        .exam-status.normal { background:rgba(74,217,164,0.1); color:#4AD9A4; }
+        .exam-status.attention { background:rgba(197,165,90,0.1); color:#C5A55A; }
+        .exam-status.critical { background:rgba(217,68,82,0.1); color:#D94452; }
+
+        /* Section card */
+        .section-card {
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:18px;
+            padding:20px;
+            margin-bottom:16px;
+        }
+        .section-card.anim { opacity:0; animation:fadeUp 0.5s ease both; }
+        .section-label {
+            font-size:10px; font-weight:700;
+            color:rgba(255,255,255,0.2);
+            letter-spacing:1px;
+            text-transform:uppercase;
+            margin-bottom:14px;
+        }
+        .section-summary {
+            font-size:13px; line-height:1.7;
+            color:rgba(255,255,255,0.55);
+            margin-bottom:18px;
+        }
+
+        /* Parameter rows */
+        .param-row {
+            padding:12px 0;
+            border-bottom:1px solid rgba(255,255,255,0.04);
+        }
+        .param-row:last-child { border-bottom:none; }
+        .param-top {
+            display:flex; justify-content:space-between; align-items:baseline;
+            margin-bottom:6px;
+        }
+        .param-name {
+            font-size:13px; font-weight:600; color:rgba(255,255,255,0.7);
+        }
+        .param-value {
+            font-size:14px; font-weight:700; color:#fff;
+        }
+        .param-value .unit {
+            font-size:11px; font-weight:500; color:rgba(255,255,255,0.3);
+            margin-left:2px;
+        }
+        .param-bar-track {
+            height:6px; background:rgba(255,255,255,0.06);
+            border-radius:3px; overflow:hidden;
+            margin-bottom:4px;
+        }
+        .param-bar-fill {
+            height:100%; border-radius:3px;
+            width:0; transition:width 0.8s cubic-bezier(0.25,0.46,0.45,0.94);
+        }
+        .param-bar-fill.normal { background:linear-gradient(90deg, rgba(74,217,164,0.4), #4AD9A4); }
+        .param-bar-fill.attention { background:linear-gradient(90deg, rgba(197,165,90,0.4), #C5A55A); }
+        .param-bar-fill.critical { background:linear-gradient(90deg, rgba(217,68,82,0.4), #D94452); }
+        .param-ref {
+            font-size:10px; color:rgba(255,255,255,0.2);
+        }
+
+        /* Impact cards */
+        .impact-card {
+            display:flex; gap:12px;
+            padding:14px 0;
+            border-bottom:1px solid rgba(255,255,255,0.04);
+        }
+        .impact-card:last-child { border-bottom:none; }
+        .impact-icon {
+            width:40px; height:40px; border-radius:12px;
+            background:rgba(255,255,255,0.04);
+            display:flex; align-items:center; justify-content:center;
+            font-size:20px; flex-shrink:0;
+        }
+        .impact-info { flex:1; }
+        .impact-title {
+            font-size:13px; font-weight:700; color:rgba(255,255,255,0.8);
+            margin-bottom:3px;
+        }
+        .impact-text {
+            font-size:12px; line-height:1.5;
+            color:rgba(255,255,255,0.4);
+        }
+
+        /* Improvement items */
+        .improvement-item {
+            display:flex; gap:10px; align-items:flex-start;
+            padding:10px 0;
+            border-bottom:1px solid rgba(255,255,255,0.04);
+        }
+        .improvement-item:last-child { border-bottom:none; }
+        .improvement-check {
+            width:20px; height:20px; border-radius:6px;
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0; margin-top:1px;
+        }
+        .improvement-text {
+            font-size:13px; line-height:1.5;
+            color:rgba(255,255,255,0.55);
+        }
+
+        /* Mini chart */
+        .chart-legend {
+            display:flex; align-items:center; gap:16px;
+            margin-bottom:10px;
+            font-size:10px; font-weight:500;
+            color:rgba(255,255,255,0.3);
+        }
+        .chart-legend-item {
+            display:flex; align-items:center; gap:5px;
+        }
+        .chart-legend-line { width:16px; height:2px; border-radius:1px; }
+        .chart-legend-line.gold { background:#C5A55A; }
+        .chart-legend-line.green { background:#4AD9A4; border-style:dashed; height:0; border-top:2px dashed #4AD9A4; }
+        .chart-svg-container {
+            width:100%; height:100px;
+        }
+
+        /* Tab bar */
+        .tab-bar {
+            position:absolute; bottom:0; left:0; right:0; height:80px;
+            background:linear-gradient(to top, #0A0A0A 60%, transparent);
+            display:flex; align-items:flex-end; justify-content:center;
+            padding-bottom:28px; gap:32px; z-index:5;
+        }
+        .tab {
+            display:flex; flex-direction:column; align-items:center; gap:4px;
+            cursor:pointer; transition:all 0.25s;
+        }
+        .tab-label {
+            font-size:10px; font-weight:600;
+            color:rgba(255,255,255,0.25);
+            letter-spacing:0.3px;
+        }
+        .tab:active { transform:scale(0.9); }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(16px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>5G</span></div>
+    <div class="curtain-left"></div>
+    <div class="curtain-right"></div>
+    <div class="reveal-line"></div>
+    <div class="exit-overlay" id="exitOverlay"></div>
+
+    <div class="content" id="mainContent">
+        <!-- Header -->
+        <div class="page-header">
+            <div class="back-btn" onclick="goBack()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+        </div>
+
+        <!-- Exam title (rendered by JS) -->
+        <div class="exam-header" id="examHeader"></div>
+
+        <!-- Section 1: Resumo -->
+        <div class="section-card anim" id="sectionResumo" style="animation-delay:0.7s"></div>
+
+        <!-- Section 2: Impacto -->
+        <div class="section-card anim" id="sectionImpacto" style="animation-delay:0.85s"></div>
+
+        <!-- Section 3: Melhorias -->
+        <div class="section-card anim" id="sectionMelhorias" style="animation-delay:1.0s"></div>
+
+        <!-- Section 4: Projecao -->
+        <div class="section-card anim" id="sectionProjecao" style="animation-delay:1.15s"></div>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+        <div class="tab" onclick="navigateTo('perfil')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="tab-label">Perfil</span>
+        </div>
+        <div class="tab" onclick="navigateTo('exames')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C5A55A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span class="tab-label" style="color:#C5A55A;">Exames</span>
+        </div>
+        <div class="tab" onclick="navigateTo('bioage')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span class="tab-label">Bio Age</span>
+        </div>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+    // ============ EXAM DATABASE ============
+    const examDB = {
+        'Hemograma completo': {
+            icon: '🩸', type: 'blood',
+            date: '12 Fev, 2026', status: 'normal', statusLabel: 'Normal',
+            summary: 'Seu hemograma esta dentro da normalidade. Os valores de hemoglobina, leucocitos e plaquetas indicam que seu sangue esta saudavel, transportando oxigenio adequadamente e com boa capacidade de defesa imunologica.',
+            items: [
+                { label: 'Hemoglobina', value: '14.2', unit: 'g/dL', ref: '13.5 - 17.5', pct: 75, status: 'normal' },
+                { label: 'Leucocitos', value: '7.500', unit: '/mm\u00b3', ref: '4.000 - 11.000', pct: 50, status: 'normal' },
+                { label: 'Plaquetas', value: '245.000', unit: '/mm\u00b3', ref: '150.000 - 400.000', pct: 38, status: 'normal' },
+                { label: 'Hematocrito', value: '42', unit: '%', ref: '38 - 50', pct: 33, status: 'normal' }
+            ],
+            impacts: [
+                { icon: '\u26a1', title: 'Energia', text: 'Hemoglobina normal significa boa oxigenacao dos tecidos. Voce deve sentir energia adequada para suas atividades diarias.' },
+                { icon: '\ud83d\udee1\ufe0f', title: 'Imunidade', text: 'Leucocitos dentro da faixa normal indicam que seu sistema imunologico esta funcionando bem contra infeccoes.' },
+                { icon: '\ud83d\udcaa', title: 'Recuperacao', text: 'Plaquetas saudaveis garantem boa cicatrizacao e recuperacao muscular apos exercicios intensos.' }
+            ],
+            improvements: [
+                'Manter consumo regular de alimentos ricos em ferro (carne vermelha, feijao, espinafre)',
+                'Incluir vitamina C nas refeicoes para melhorar absorcao de ferro',
+                'Hidratar-se bem antes do proximo exame de sangue',
+                'Repetir hemograma em 6 meses para acompanhamento'
+            ],
+            chartScores: [72, 75, 74, 78, 80, 82],
+            chartProjection: [82, 85, 88, 90],
+            chartMonths: ['Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai']
+        },
+        'Glicemia em jejum': {
+            icon: '🩸', type: 'blood',
+            date: '12 Fev, 2026', status: 'attention', statusLabel: 'Atencao',
+            summary: 'Sua glicemia em jejum esta levemente elevada (102 mg/dL). Isso nao caracteriza diabetes, mas indica um estado de pre-diabetes que merece atencao e mudancas de habito para evitar progressao.',
+            items: [
+                { label: 'Glicemia em jejum', value: '102', unit: 'mg/dL', ref: '70 - 99', pct: 85, status: 'attention' },
+                { label: 'Hemoglobina glicada', value: '5.9', unit: '%', ref: '< 5.7', pct: 80, status: 'attention' }
+            ],
+            impacts: [
+                { icon: '\u26a1', title: 'Energia', text: 'Glicemia elevada pode causar picos e quedas de energia ao longo do dia, especialmente apos refeicoes ricas em carboidratos.' },
+                { icon: '\u2696\ufe0f', title: 'Peso', text: 'Resistencia a insulina pode dificultar a perda de peso e favorecer acumulo de gordura abdominal.' },
+                { icon: '\ud83d\ude24', title: 'Humor e foco', text: 'Oscilacoes de glicose afetam humor, concentracao e qualidade do sono, podendo causar irritabilidade.' }
+            ],
+            improvements: [
+                'Reduzir consumo de acucar refinado e carboidratos simples',
+                'Caminhar 30 minutos apos as refeicoes principais',
+                'Aumentar consumo de fibras (vegetais, aveia, legumes)',
+                'Considerar jejum intermitente (consulte seu medico)',
+                'Repetir glicemia em 3 meses para acompanhar evolucao'
+            ],
+            chartScores: [70, 68, 72, 71, 74, 76],
+            chartProjection: [76, 80, 84, 88],
+            chartMonths: ['Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai']
+        },
+        'Colesterol total': {
+            icon: '🩸', type: 'blood',
+            date: '12 Fev, 2026', status: 'normal', statusLabel: 'Normal',
+            summary: 'Seu perfil lipidico esta equilibrado. O colesterol total e o LDL estao dentro da faixa ideal, e o HDL (colesterol bom) esta em nivel protetor.',
+            items: [
+                { label: 'Colesterol total', value: '185', unit: 'mg/dL', ref: '< 200', pct: 55, status: 'normal' },
+                { label: 'HDL', value: '52', unit: 'mg/dL', ref: '> 40', pct: 65, status: 'normal' },
+                { label: 'LDL', value: '110', unit: 'mg/dL', ref: '< 130', pct: 60, status: 'normal' },
+                { label: 'Triglicerides', value: '120', unit: 'mg/dL', ref: '< 150', pct: 50, status: 'normal' }
+            ],
+            impacts: [
+                { icon: '\u2764\ufe0f', title: 'Coracao', text: 'Colesterol equilibrado reduz significativamente o risco de doencas cardiovasculares e infarto.' },
+                { icon: '\ud83e\udee0', title: 'Circulacao', text: 'Artérias desobstruidas significam melhor circulacao, mais oxigenio nos musculos e no cerebro.' },
+                { icon: '\u231b', title: 'Longevidade', text: 'Manter esses niveis protege contra aterosclerose e contribui para uma vida mais longa e saudavel.' }
+            ],
+            improvements: [
+                'Manter dieta rica em gorduras boas (azeite, abacate, castanhas)',
+                'Continuar praticando exercicio fisico aerobico regularmente',
+                'Consumir mais fibras soluveis (aveia, frutas com casca)',
+                'Repetir perfil lipidico em 1 ano'
+            ],
+            chartScores: [74, 76, 75, 79, 81, 83],
+            chartProjection: [83, 86, 89, 91],
+            chartMonths: ['Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai']
+        },
+        'Eletrocardiograma': {
+            icon: '💙', type: 'cardio',
+            date: '28 Jan, 2026', status: 'normal', statusLabel: 'Normal',
+            summary: 'Seu eletrocardiograma nao apresenta alteracoes. O ritmo cardiaco esta normal (sinusal), sem sinais de arritmia ou sobrecarga nas camaras do coracao.',
+            items: [
+                { label: 'Frequencia cardiaca', value: '72', unit: 'bpm', ref: '60 - 100', pct: 45, status: 'normal' },
+                { label: 'Ritmo', value: 'Sinusal', unit: '', ref: 'Sinusal', pct: 50, status: 'normal' },
+                { label: 'Intervalo PR', value: '160', unit: 'ms', ref: '120 - 200', pct: 50, status: 'normal' }
+            ],
+            impacts: [
+                { icon: '\u2764\ufe0f', title: 'Coracao', text: 'Ritmo sinusal normal indica que seu coracao esta batendo de forma regular e eficiente.' },
+                { icon: '\ud83c\udfc3', title: 'Exercicio', text: 'Com ECG normal voce pode praticar exercicios de alta intensidade com seguranca.' },
+                { icon: '\ud83e\uddd8', title: 'Stress', text: 'Frequencia de 72bpm em repouso e saudavel, indicando bom equilibrio do sistema nervoso autonomo.' }
+            ],
+            improvements: [
+                'Continuar praticando exercicio aerobico para fortalecer o coracao',
+                'Monitorar pressao arterial regularmente',
+                'Manter uma rotina de sono regular para saude cardiaca',
+                'Repetir ECG anualmente como rotina preventiva'
+            ],
+            chartScores: [78, 80, 79, 82, 83, 85],
+            chartProjection: [85, 87, 89, 91],
+            chartMonths: ['Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai']
+        },
+        'TSH / T4 livre': {
+            icon: '💜', type: 'hormone',
+            date: '15 Jan, 2026', status: 'normal', statusLabel: 'Normal',
+            summary: 'Sua funcao tireoidiana esta normal. Os niveis de TSH e T4 livre indicam que a tireoide esta produzindo hormonios na quantidade adequada.',
+            items: [
+                { label: 'TSH', value: '2.1', unit: 'mUI/L', ref: '0.4 - 4.0', pct: 47, status: 'normal' },
+                { label: 'T4 livre', value: '1.2', unit: 'ng/dL', ref: '0.8 - 1.8', pct: 40, status: 'normal' }
+            ],
+            impacts: [
+                { icon: '\ud83d\udd25', title: 'Metabolismo', text: 'Tireoide funcionando bem significa metabolismo equilibrado, facilitando manter peso saudavel.' },
+                { icon: '\u26a1', title: 'Energia', text: 'Niveis normais de T4 garantem energia constante ao longo do dia sem fadiga excessiva.' },
+                { icon: '\u2696\ufe0f', title: 'Peso', text: 'Com tireoide regulada, seu corpo queima calorias de forma eficiente e previsivel.' }
+            ],
+            improvements: [
+                'Manter consumo adequado de iodo (sal iodado, frutos do mar)',
+                'Evitar excesso de soja, que pode interferir na funcao tireoidiana',
+                'Garantir niveis adequados de selenio (castanha do Para)',
+                'Repetir exame tireoidiano em 1 ano'
+            ],
+            chartScores: [76, 78, 77, 80, 82, 84],
+            chartProjection: [84, 86, 88, 90],
+            chartMonths: ['Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai']
+        },
+        'Vitamina D': {
+            icon: '🩸', type: 'blood',
+            date: '05 Dez, 2025', status: 'attention', statusLabel: 'Atencao',
+            summary: 'Seu nivel de Vitamina D esta abaixo do ideal (22 ng/mL). Embora nao seja deficiencia grave, e insuficiente para protecao otima dos ossos e do sistema imunologico.',
+            items: [
+                { label: 'Vitamina D (25-OH)', value: '22', unit: 'ng/mL', ref: '30 - 100', pct: 30, status: 'attention' },
+                { label: 'Calcio serico', value: '9.2', unit: 'mg/dL', ref: '8.5 - 10.5', pct: 45, status: 'normal' }
+            ],
+            impacts: [
+                { icon: '\ud83e\uddb4', title: 'Ossos', text: 'Vitamina D baixa enfraquece os ossos ao longo do tempo, aumentando risco de osteoporose e fraturas.' },
+                { icon: '\ud83d\ude0a', title: 'Humor', text: 'Deficiencia de vitamina D esta associada a maior risco de depressao e alteracoes de humor.' },
+                { icon: '\ud83d\udee1\ufe0f', title: 'Imunidade', text: 'Niveis baixos comprometem a resposta imune, aumentando susceptibilidade a infeccoes.' }
+            ],
+            improvements: [
+                'Tomar sol por 15-20 minutos diariamente (bracos e pernas)',
+                'Suplementar Vitamina D3 conforme orientacao medica (voce ja toma!)',
+                'Consumir alimentos ricos em vitamina D (peixes gordurosos, ovos)',
+                'Repetir dosagem em 3 meses para verificar melhora',
+                'Considerar aumentar a dose do suplemento com orientacao medica'
+            ],
+            chartScores: [62, 64, 63, 68, 70, 72],
+            chartProjection: [72, 77, 82, 86],
+            chartMonths: ['Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai']
+        },
+        'Hemograma completo (Dez)': {
+            icon: '🩸', type: 'blood',
+            date: '05 Dez, 2025', status: 'normal', statusLabel: 'Normal',
+            summary: 'Hemograma de dezembro mostrou valores normais. Comparando com o exame mais recente de fevereiro, houve melhora na hemoglobina e estabilidade nos demais parametros.',
+            items: [
+                { label: 'Hemoglobina', value: '13.8', unit: 'g/dL', ref: '13.5 - 17.5', pct: 60, status: 'normal' },
+                { label: 'Leucocitos', value: '6.800', unit: '/mm\u00b3', ref: '4.000 - 11.000', pct: 40, status: 'normal' },
+                { label: 'Plaquetas', value: '230.000', unit: '/mm\u00b3', ref: '150.000 - 400.000', pct: 32, status: 'normal' }
+            ],
+            impacts: [
+                { icon: '\u26a1', title: 'Energia', text: 'Hemoglobina no limite inferior mas normal. Sua energia pode ter variado levemente nesse periodo.' },
+                { icon: '\ud83d\udee1\ufe0f', title: 'Imunidade', text: 'Sistema imune funcionando normalmente nesse periodo.' },
+                { icon: '\ud83d\udcc8', title: 'Tendencia', text: 'Comparando com fevereiro, sua hemoglobina melhorou de 13.8 para 14.2 — otimo progresso!' }
+            ],
+            improvements: [
+                'Continue com a dieta rica em ferro que melhorou sua hemoglobina',
+                'Mantenha a suplementacao de vitamina D e Omega 3',
+                'Proximo hemograma ja realizado em fevereiro — tudo em dia!'
+            ],
+            chartScores: [68, 70, 72, 74, 76, 78],
+            chartProjection: [78, 81, 84, 86],
+            chartMonths: ['Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar']
+        },
+        'Urina tipo I': {
+            icon: '🧪', type: 'general',
+            date: '18 Nov, 2025', status: 'normal', statusLabel: 'Normal',
+            summary: 'Seu exame de urina esta completamente normal. Sem sinais de infeccao urinaria, problemas renais ou alteracoes metabolicas.',
+            items: [
+                { label: 'pH', value: '6.0', unit: '', ref: '5.0 - 7.0', pct: 50, status: 'normal' },
+                { label: 'Proteinas', value: 'Ausente', unit: '', ref: 'Ausente', pct: 20, status: 'normal' },
+                { label: 'Leucocitos', value: '< 5', unit: '/campo', ref: '< 10', pct: 25, status: 'normal' }
+            ],
+            impacts: [
+                { icon: '\ud83d\udca7', title: 'Rins', text: 'Ausencia de proteinas na urina indica que seus rins estao filtrando o sangue corretamente.' },
+                { icon: '\ud83e\udda0', title: 'Infeccao', text: 'Sem sinais de infeccao urinaria. Leucocitos baixos confirmam ausencia de processo inflamatorio.' },
+                { icon: '\ud83d\udca6', title: 'Hidratacao', text: 'pH equilibrado sugere boa hidratacao e dieta balanceada.' }
+            ],
+            improvements: [
+                'Manter hidratacao adequada (2 litros de agua por dia)',
+                'Evitar segurar a urina por periodos prolongados',
+                'Manter higiene adequada para prevenir infeccoes urinarias',
+                'Repetir exame de urina em 1 ano como rotina'
+            ],
+            chartScores: [75, 77, 78, 80, 81, 82],
+            chartProjection: [82, 84, 86, 88],
+            chartMonths: ['Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev']
+        }
+    };
+
+    // ============ GET EXAM FROM URL ============
+    const params = new URLSearchParams(window.location.search);
+    const examId = params.get('id');
+    const examName = params.get('exam') || 'Hemograma completo';
+    let exam = examDB[examName] || examDB['Hemograma completo'];
+
+    // Referrer for back navigation
+    const referrer = params.get('from') || 'perfil';
+
+    // Se temos um ID, carregar do backend
+    async function loadExamFromAPI() {
+        if (!examId) return;
+        try {
+            const data = await vitaeAPI.getExame(examId);
+            const e = data.exame || data;
+            // Construir exam object a partir dos dados da API
+            exam = {
+                icon: '🩸', type: 'blood',
+                date: e.dataExame ? new Date(e.dataExame).toLocaleDateString('pt-BR') : '',
+                status: e.status === 'ATENCAO' ? 'attention' : e.status === 'CRITICO' ? 'critical' : 'normal',
+                statusLabel: e.status === 'ATENCAO' ? 'Atencao' : e.status === 'CRITICO' ? 'Critico' : 'Normal',
+                summary: e.analise || e.dadosEstruturados?.resumo || 'Exame processado com sucesso.',
+                items: (e.parametros || []).map(p => ({
+                    label: p.nome, value: String(p.valor), unit: p.unidade || '',
+                    ref: p.valorReferencia || '', pct: 50, status: p.classificacao === 'ALTO' || p.classificacao === 'BAIXO' ? 'attention' : 'normal'
+                })),
+                impacts: [],
+                improvements: [],
+                chartScores: [70,72,74,76,78,80],
+                chartProjection: [80,83,86,89],
+                chartMonths: ['Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai']
+            };
+            // Re-render with API data
+            document.querySelector('.exam-header-name').textContent = e.tipoExame || 'Exame';
+            renderResumo();
+            renderImpacto();
+            renderMelhorias();
+            animateParamBars();
+        } catch (err) {
+            console.log('Erro ao carregar exame:', err.message);
+        }
+    }
+
+    // ============ TYPE COLORS ============
+    const typeColors = {
+        blood: '#D94452',
+        cardio: '#4A9FD9',
+        hormone: '#B482FF',
+        general: '#4AD9A4'
+    };
+    const statusColors = {
+        normal: '#4AD9A4',
+        attention: '#C5A55A',
+        critical: '#D94452'
+    };
+
+    // ============ RENDER EXAM HEADER ============
+    function renderHeader() {
+        const c = typeColors[exam.type];
+        document.getElementById('examHeader').innerHTML = `
+            <div class="exam-header-top">
+                <div class="exam-header-icon" style="background:${c}15;">${exam.icon}</div>
+                <div class="exam-header-name">${examName}</div>
+            </div>
+            <div class="exam-header-meta">
+                <span class="exam-header-date">${exam.date}</span>
+                <span class="exam-status ${exam.status}">${exam.statusLabel}</span>
+            </div>
+        `;
+    }
+
+    // ============ RENDER SECTION 1: RESUMO ============
+    function renderResumo() {
+        const el = document.getElementById('sectionResumo');
+        const itemsHtml = exam.items.map(item => {
+            const sc = statusColors[item.status];
+            return `
+                <div class="param-row">
+                    <div class="param-top">
+                        <span class="param-name">${item.label}</span>
+                        <span class="param-value">${item.value}<span class="unit">${item.unit}</span></span>
+                    </div>
+                    <div class="param-bar-track">
+                        <div class="param-bar-fill ${item.status}" data-pct="${item.pct}"></div>
+                    </div>
+                    <div class="param-ref">Ref: ${item.ref}</div>
+                </div>
+            `;
+        }).join('');
+
+        el.innerHTML = `
+            <div class="section-label">Resumo do exame</div>
+            <p class="section-summary">${exam.summary}</p>
+            ${itemsHtml}
+        `;
+    }
+
+    // ============ RENDER SECTION 2: IMPACTO ============
+    function renderImpacto() {
+        const el = document.getElementById('sectionImpacto');
+        const cardsHtml = exam.impacts.map(imp => `
+            <div class="impact-card">
+                <div class="impact-icon">${imp.icon}</div>
+                <div class="impact-info">
+                    <div class="impact-title">${imp.title}</div>
+                    <div class="impact-text">${imp.text}</div>
+                </div>
+            </div>
+        `).join('');
+
+        el.innerHTML = `
+            <div class="section-label">Como isso afeta voce</div>
+            ${cardsHtml}
+        `;
+    }
+
+    // ============ RENDER SECTION 3: MELHORIAS ============
+    function renderMelhorias() {
+        const el = document.getElementById('sectionMelhorias');
+        const sc = statusColors[exam.status];
+        const itemsHtml = exam.improvements.map(text => `
+            <div class="improvement-item">
+                <div class="improvement-check" style="background:${sc}15;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="${sc}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="improvement-text">${text}</div>
+            </div>
+        `).join('');
+
+        el.innerHTML = `
+            <div class="section-label">Melhorias sugeridas</div>
+            ${itemsHtml}
+        `;
+    }
+
+    // ============ RENDER SECTION 4: PROJECAO ============
+    function renderProjecao() {
+        const el = document.getElementById('sectionProjecao');
+        const scores = exam.chartScores;
+        const proj = exam.chartProjection;
+        const months = exam.chartMonths;
+        const totalPts = scores.length + proj.length - 1;
+        const w = 305, h = 80;
+        const stepX = w / (totalPts - 1);
+        const minS = 40, maxS = 100;
+
+        function yPos(val) { return h - ((val - minS) / (maxS - minS)) * h; }
+
+        const pts = scores.map((s, i) => ({ x: i * stepX, y: yPos(s) }));
+        const projPts = proj.map((s, i) => ({ x: (scores.length - 1 + i) * stepX, y: yPos(s) }));
+
+        function smoothPath(points) {
+            if (points.length < 2) return '';
+            let d = 'M' + points[0].x + ',' + points[0].y;
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[Math.max(0, i - 1)];
+                const p1 = points[i];
+                const p2 = points[i + 1];
+                const p3 = points[Math.min(points.length - 1, i + 2)];
+                const cp1x = p1.x + (p2.x - p0.x) / 6;
+                const cp1y = p1.y + (p2.y - p0.y) / 6;
+                const cp2x = p2.x - (p3.x - p1.x) / 6;
+                const cp2y = p2.y - (p3.y - p1.y) / 6;
+                d += ' C' + cp1x + ',' + cp1y + ' ' + cp2x + ',' + cp2y + ' ' + p2.x + ',' + p2.y;
+            }
+            return d;
+        }
+
+        const goldPath = smoothPath(pts);
+        const greenPath = smoothPath(projPts);
+        const lastProj = projPts[projPts.length - 1];
+        const projScore = proj[proj.length - 1];
+
+        // Month labels
+        const monthLabels = months.map((m, i) => {
+            const x = i * stepX;
+            const isProj = i >= scores.length;
+            const isCurrent = i === scores.length - 1;
+            const fill = isProj ? 'rgba(74,217,164,0.25)' : isCurrent ? 'rgba(197,165,90,0.4)' : 'rgba(255,255,255,0.15)';
+            const weight = (isCurrent || i === months.length - 1) ? '600' : '500';
+            return `<text x="${x}" y="${h + 16}" fill="${fill}" font-size="8" font-family="Inter,sans-serif" font-weight="${weight}">${m}</text>`;
+        }).join('');
+
+        // Gold dots
+        const goldDots = pts.map((p, i) => {
+            const isLast = i === pts.length - 1;
+            let html = '';
+            if (isLast) {
+                html += `<circle cx="${p.x}" cy="${p.y}" r="6" fill="rgba(197,165,90,0.15)" opacity="0" class="anim-dot"/>`;
+            }
+            html += `<circle cx="${p.x}" cy="${p.y}" r="${isLast ? 3 : 2}" fill="${isLast ? '#C5A55A' : 'rgba(197,165,90,0.5)'}" opacity="0" class="anim-dot"/>`;
+            return html;
+        }).join('');
+
+        // Green dots
+        const greenDots = projPts.slice(1).map((p, i) => {
+            const isLast = i === projPts.length - 2;
+            let html = '';
+            if (isLast) {
+                html += `<circle cx="${p.x}" cy="${p.y}" r="6" fill="rgba(74,217,164,0.15)" opacity="0" class="anim-dot"/>`;
+            }
+            html += `<circle cx="${p.x}" cy="${p.y}" r="${isLast ? 3 : 2}" fill="${isLast ? '#4AD9A4' : 'rgba(74,217,164,0.5)'}" opacity="0" class="anim-dot"/>`;
+            return html;
+        }).join('');
+
+        el.innerHTML = `
+            <div class="section-label">Projecao de saude</div>
+            <div class="chart-legend">
+                <div class="chart-legend-item"><span class="chart-legend-line gold"></span> Atual</div>
+                <div class="chart-legend-item"><span class="chart-legend-line green"></span> Com melhorias</div>
+            </div>
+            <div class="chart-svg-container">
+                <svg id="miniChart" width="100%" height="${h + 20}" viewBox="0 0 ${w} ${h + 20}" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="mgoldGrad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stop-color="rgba(197,165,90,0.3)"/>
+                            <stop offset="100%" stop-color="#C5A55A"/>
+                        </linearGradient>
+                        <linearGradient id="mgreenGrad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stop-color="rgba(74,217,164,0.3)"/>
+                            <stop offset="100%" stop-color="#4AD9A4"/>
+                        </linearGradient>
+                        <linearGradient id="mareaGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#C5A55A" stop-opacity="0.15"/>
+                            <stop offset="100%" stop-color="#C5A55A" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                    <line x1="0" y1="${h*0.33}" x2="${w}" y2="${h*0.33}" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+                    <line x1="0" y1="${h*0.66}" x2="${w}" y2="${h*0.66}" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+                    <path id="miniArea" d="${goldPath} L${pts[pts.length-1].x},${h} L${pts[0].x},${h} Z" fill="url(#mareaGrad)" opacity="0"/>
+                    <path id="miniGold" d="${goldPath}" fill="none" stroke="url(#mgoldGrad)" stroke-width="2" stroke-linecap="round" opacity="0"/>
+                    <path id="miniGreen" d="${greenPath}" fill="none" stroke="url(#mgreenGrad)" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 3" opacity="0"/>
+                    ${goldDots}
+                    ${greenDots}
+                    ${monthLabels}
+                    <text id="miniProjLabel" x="${lastProj.x - 6}" y="${lastProj.y - 6}" fill="#4AD9A4" font-size="10" font-family="Playfair Display,serif" font-weight="700" opacity="0">${projScore}</text>
+                </svg>
+            </div>
+        `;
+
+        // Animate chart after section becomes visible
+        setTimeout(() => {
+            const goldLine = document.getElementById('miniGold');
+            const area = document.getElementById('miniArea');
+            const greenLine = document.getElementById('miniGreen');
+            const label = document.getElementById('miniProjLabel');
+
+            // Gold line draw
+            const goldLen = goldLine.getTotalLength();
+            goldLine.style.strokeDasharray = goldLen;
+            goldLine.style.strokeDashoffset = goldLen;
+            goldLine.style.opacity = '1';
+            let s1 = null;
+            function drawGold(ts) {
+                if (!s1) s1 = ts;
+                const p = Math.min((ts - s1) / 900, 1);
+                goldLine.style.strokeDashoffset = goldLen * (1 - (1 - Math.pow(1 - p, 3)));
+                if (p < 1) requestAnimationFrame(drawGold);
+            }
+            requestAnimationFrame(drawGold);
+
+            // Area fade
+            setTimeout(() => { area.style.transition = 'opacity 0.6s ease'; area.style.opacity = '0.5'; }, 400);
+
+            // Green line draw (after gold)
+            setTimeout(() => {
+                const greenLen = greenLine.getTotalLength();
+                greenLine.style.strokeDasharray = greenLen;
+                greenLine.style.strokeDashoffset = greenLen;
+                greenLine.style.opacity = '1';
+                let s2 = null;
+                function drawGreen(ts) {
+                    if (!s2) s2 = ts;
+                    const p = Math.min((ts - s2) / 600, 1);
+                    greenLine.style.strokeDashoffset = greenLen * (1 - (1 - Math.pow(1 - p, 3)));
+                    if (p < 1) {
+                        requestAnimationFrame(drawGreen);
+                    } else {
+                        greenLine.style.strokeDasharray = '5 3';
+                        greenLine.style.strokeDashoffset = '0';
+                    }
+                }
+                requestAnimationFrame(drawGreen);
+
+                // Label pop
+                setTimeout(() => { label.style.transition = 'opacity 0.4s ease'; label.setAttribute('opacity', '1'); }, 500);
+            }, 1000);
+
+            // Dots pop
+            document.querySelectorAll('#miniChart .anim-dot').forEach((d, i) => {
+                setTimeout(() => { d.style.transition = 'opacity 0.3s ease'; d.setAttribute('opacity', '1'); }, 300 + i * 60);
+            });
+        }, 1500);
+    }
+
+    // ============ ANIMATE PARAM BARS ============
+    function animateParamBars() {
+        setTimeout(() => {
+            document.querySelectorAll('.param-bar-fill').forEach((bar, i) => {
+                setTimeout(() => { bar.style.width = bar.dataset.pct + '%'; }, i * 150);
+            });
+        }, 1200);
+    }
+
+    // ============ NAVIGATION ============
+    function goBack() {
+        const overlay = document.getElementById('exitOverlay');
+        overlay.classList.add('active');
+        setTimeout(() => {
+            if (referrer === 'lista') window.location.href = '11-exames-lista.html';
+            else window.location.href = '08-perfil.html';
+        }, 500);
+    }
+
+    function navigateTo(tab) {
+        const overlay = document.getElementById('exitOverlay');
+        overlay.classList.add('active');
+        setTimeout(() => {
+            if (tab === 'perfil') window.location.href = '08-perfil.html';
+            else if (tab === 'exames') window.location.href = '11-exames-lista.html';
+            else if (tab === 'bioage') window.location.href = '15-bioage-sem-dados.html';
+        }, 500);
+    }
+
+    // ============ INIT ============
+    renderHeader();
+    renderResumo();
+    renderImpacto();
+    renderMelhorias();
+    renderProjecao();
+    animateParamBars();
+    // Carregar do backend se tiver ID
+    if (examId && typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
+        loadExamFromAPI();
+    }
+</script>
+</body>
+</html>
