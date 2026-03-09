@@ -1500,28 +1500,11 @@
     function openMedDetail(index) {
         const m = medications[index];
         if (!m) return;
-        const desc = MED_DESCRIPTIONS[m.name] || 'Sem descricao disponivel.';
-        openModal(`
-            <div class="modal-title">${m.name}</div>
-            <div class="modal-subtitle">${m.dosage} — ${m.frequency}</div>
-            <div class="modal-item">
-                <div class="modal-item-icon" style="background:rgba(74,217,164,0.1);border:1px solid rgba(74,217,164,0.15);border-radius:11px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4AD9A4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                </div>
-                <div class="modal-item-text"><div class="modal-item-title">Horario</div><div class="modal-item-desc">Todos os dias as ${m.time}</div></div>
-            </div>
-            <div style="padding:14px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;margin-bottom:8px;">
-                <div style="font-size:12px;color:rgba(255,255,255,0.25);margin-bottom:6px;font-weight:500;">Sobre</div>
-                <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;">${desc}</div>
-            </div>
-            <div class="modal-item" style="border-color:rgba(217,68,82,0.12);" onclick="removeMed(${index})">
-                <div class="modal-item-icon" style="background:rgba(217,68,82,0.08);border:1px solid rgba(217,68,82,0.12);border-radius:11px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D94452" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                </div>
-                <div class="modal-item-text"><div class="modal-item-title" style="color:rgba(217,68,82,0.8);">Remover medicamento</div></div>
-            </div>
-            <button class="modal-btn-close" onclick="closeModalForce()">Fechar</button>
-        `);
+        const overlay = document.getElementById('exitOverlay');
+        if (overlay) overlay.classList.add('active');
+        setTimeout(() => {
+            window.location.href = '18-medicamento-detalhe.html?nome=' + encodeURIComponent(m.name) + '&from=perfil';
+        }, 400);
     }
 
     async function removeMed(index) {
@@ -1554,10 +1537,18 @@
         }
         container.innerHTML = allergies.map(a => {
             const name = typeof a === 'string' ? a : a.name;
-            return `<span class="allergy-tag" onclick="showToast('${name} — alergia registrada', 'info')">${name}</span>`;
+            return `<span class="allergy-tag" onclick="openAllergyDetail('${name}')">${name}</span>`;
         }).join('');
     }
     renderAllergies();
+
+    function openAllergyDetail(name) {
+        const exitOv = document.getElementById('exitOverlay') || document.querySelector('.exit-overlay');
+        if (exitOv) exitOv.classList.add('active');
+        setTimeout(() => {
+            window.location.href = '19-alergia-detalhe.html?nome=' + encodeURIComponent(name) + '&from=perfil';
+        }, 400);
+    }
 
     // ============ EDIT ALLERGIES ============
     function openEditAllergies() {

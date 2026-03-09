@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VITAE — Alergia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body {
+            background:#000;
+            display:flex; justify-content:center; align-items:center;
+            min-height:100vh; font-family:'Inter',sans-serif;
+        }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#0A0A0A;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        .notch {
+            position:absolute; top:0; left:50%; transform:translateX(-50%);
+            width:126px; height:34px; background:#0A0A0A;
+            border-radius:0 0 20px 20px; z-index:10;
+        }
+        .status {
+            position:absolute; top:14px; left:28px; right:28px;
+            display:flex; justify-content:space-between;
+            font-size:13px; font-weight:600; color:rgba(255,255,255,0.5);
+            z-index:11;
+        }
+        .entrance-curtain {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background:#0A0A0A; z-index:30; pointer-events:none;
+            animation: curtainOpen 0.6s ease 0.1s forwards;
+        }
+        @keyframes curtainOpen { 0%{opacity:1} 100%{opacity:0} }
+        .exit-overlay {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background:#0A0A0A; opacity:0; z-index:25; pointer-events:none;
+            transition:opacity 0.5s ease;
+        }
+        .exit-overlay.active { opacity:1; }
+
+        .content {
+            height:100%;
+            overflow-y:auto;
+            padding:55px 24px 40px;
+            scrollbar-width:none;
+        }
+        .content::-webkit-scrollbar { display:none; }
+
+        /* Header */
+        .page-header {
+            display:flex; align-items:center; gap:14px;
+            margin-bottom:24px;
+            opacity:0; animation:fadeUp 0.4s ease 0.3s both;
+        }
+        .back-btn {
+            width:40px; height:40px; border-radius:12px;
+            background:rgba(255,255,255,0.04);
+            backdrop-filter:blur(12px);
+            -webkit-backdrop-filter:blur(12px);
+            border:1px solid rgba(255,255,255,0.08);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; flex-shrink:0;
+            transition:all 0.2s;
+        }
+        .back-btn:hover { background:rgba(255,255,255,0.08); }
+        .back-btn:active { transform:scale(0.92); }
+        .page-title-wrap { flex:1; }
+        .page-title {
+            font-family:'Playfair Display', serif;
+            font-size:26px; font-weight:700; color:#fff;
+        }
+        .page-title span { color:#C5A55A; font-style:italic; }
+        .page-subtitle {
+            font-size:13px; color:rgba(255,255,255,0.3); margin-top:2px;
+        }
+
+        /* Hero card — Liquid Glass FORTE */
+        .hero-card {
+            background:rgba(255,255,255,0.04);
+            backdrop-filter:blur(24px) saturate(1.2);
+            -webkit-backdrop-filter:blur(24px) saturate(1.2);
+            border:1px solid rgba(255,255,255,0.08);
+            border-top:1px solid rgba(255,255,255,0.12);
+            box-shadow:0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+            border-radius:20px;
+            padding:24px;
+            margin-bottom:20px;
+            text-align:center;
+            opacity:0; animation:fadeUp 0.5s ease 0.4s both;
+        }
+        .hero-icon {
+            width:64px; height:64px; border-radius:18px;
+            background:linear-gradient(135deg, rgba(217,68,82,0.15), rgba(217,68,82,0.05));
+            border:1px solid rgba(217,68,82,0.2);
+            display:flex; align-items:center; justify-content:center;
+            margin:0 auto 16px;
+            font-size:28px;
+        }
+        .hero-name {
+            font-family:'Playfair Display', serif;
+            font-size:24px; font-weight:700; color:#fff;
+            margin-bottom:4px;
+        }
+        .hero-category {
+            font-size:12px; font-weight:600; letter-spacing:2px;
+            text-transform:uppercase;
+            color:#D94452; margin-bottom:14px;
+        }
+        .hero-desc {
+            font-size:13px; color:rgba(255,255,255,0.5); line-height:1.7;
+        }
+
+        /* Section label */
+        .section-label {
+            font-size:11px; font-weight:700;
+            letter-spacing:2px; text-transform:uppercase;
+            color:rgba(197,165,90,0.5);
+            margin:24px 0 12px 4px;
+            opacity:0; animation:fadeUp 0.4s ease both;
+        }
+
+        /* Symptom pills */
+        .symptoms-grid {
+            display:flex; flex-wrap:wrap; gap:8px;
+            margin-bottom:10px;
+            opacity:0; animation:fadeUp 0.4s ease both;
+        }
+        .symptom-pill {
+            padding:10px 16px;
+            border-radius:14px;
+            font-size:12px; font-weight:500;
+            display:flex; align-items:center; gap:8px;
+        }
+        .symptom-pill.leve {
+            background:rgba(255,193,7,0.06);
+            border:1px solid rgba(255,193,7,0.12);
+            color:rgba(255,193,7,0.8);
+        }
+        .symptom-pill.moderado {
+            background:rgba(255,152,0,0.06);
+            border:1px solid rgba(255,152,0,0.12);
+            color:rgba(255,152,0,0.8);
+        }
+        .symptom-pill.grave {
+            background:rgba(217,68,82,0.06);
+            border:1px solid rgba(217,68,82,0.12);
+            color:rgba(217,68,82,0.8);
+        }
+
+        /* Info cards — Liquid Glass MEDIO */
+        .info-card {
+            background:rgba(255,255,255,0.03);
+            backdrop-filter:blur(16px) saturate(1.1);
+            -webkit-backdrop-filter:blur(16px) saturate(1.1);
+            border:1px solid rgba(255,255,255,0.06);
+            border-top:1px solid rgba(255,255,255,0.09);
+            box-shadow:0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03);
+            border-radius:16px;
+            padding:16px;
+            margin-bottom:10px;
+            display:flex; gap:14px; align-items:flex-start;
+            opacity:0; animation:fadeUp 0.4s ease both;
+        }
+        .info-card-icon {
+            width:40px; height:40px; border-radius:12px;
+            display:flex; align-items:center; justify-content:center;
+            font-size:18px; flex-shrink:0;
+        }
+        .info-card-icon.avoid {
+            background:rgba(217,68,82,0.08);
+            border:1px solid rgba(217,68,82,0.12);
+        }
+        .info-card-icon.action {
+            background:rgba(74,217,164,0.08);
+            border:1px solid rgba(74,217,164,0.12);
+        }
+        .info-card-icon.alt {
+            background:rgba(197,165,90,0.08);
+            border:1px solid rgba(197,165,90,0.12);
+        }
+        .info-card-content { flex:1; }
+        .info-card-title {
+            font-size:14px; font-weight:600; color:#fff; margin-bottom:4px;
+        }
+        .info-card-text {
+            font-size:12px; color:rgba(255,255,255,0.45); line-height:1.6;
+        }
+
+        /* Emergency card — FORTE with red accent */
+        .emergency-card {
+            background:rgba(217,68,82,0.06);
+            backdrop-filter:blur(24px) saturate(1.2);
+            -webkit-backdrop-filter:blur(24px) saturate(1.2);
+            border:1px solid rgba(217,68,82,0.15);
+            border-left:3px solid rgba(217,68,82,0.4);
+            box-shadow:0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(217,68,82,0.05);
+            border-radius:16px;
+            padding:20px;
+            margin-bottom:10px;
+            opacity:0; animation:fadeUp 0.4s ease both;
+        }
+        .emergency-header {
+            display:flex; align-items:center; gap:10px;
+            margin-bottom:14px;
+        }
+        .emergency-badge {
+            font-size:18px;
+        }
+        .emergency-title {
+            font-size:14px; font-weight:700; color:rgba(217,68,82,0.9);
+            letter-spacing:1px; text-transform:uppercase;
+        }
+        .emergency-section {
+            margin-bottom:12px;
+        }
+        .emergency-section:last-child { margin-bottom:0; }
+        .emergency-sublabel {
+            font-size:11px; font-weight:600; color:rgba(217,68,82,0.5);
+            margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;
+        }
+        .emergency-item {
+            font-size:12px; color:rgba(255,255,255,0.5); line-height:1.8;
+            padding-left:14px; position:relative;
+        }
+        .emergency-item::before {
+            content:''; position:absolute; left:0; top:8px;
+            width:5px; height:5px; border-radius:50%;
+            background:rgba(217,68,82,0.4);
+        }
+
+        /* Alternatives — Liquid Glass LEVE */
+        .alternatives-list {
+            opacity:0; animation:fadeUp 0.4s ease both;
+        }
+        .alt-item {
+            background:rgba(255,255,255,0.02);
+            backdrop-filter:blur(12px);
+            -webkit-backdrop-filter:blur(12px);
+            border:1px solid rgba(255,255,255,0.05);
+            border-radius:12px;
+            padding:12px 16px;
+            margin-bottom:8px;
+            font-size:13px; color:rgba(255,255,255,0.5);
+            display:flex; align-items:center; gap:10px;
+        }
+        .alt-dot {
+            width:6px; height:6px; border-radius:50%;
+            background:rgba(74,217,164,0.5); flex-shrink:0;
+        }
+
+        /* Curiosity card */
+        .curiosity-card {
+            background:linear-gradient(135deg, rgba(197,165,90,0.08), rgba(197,165,90,0.02));
+            border:1px solid rgba(197,165,90,0.15);
+            border-radius:16px;
+            padding:18px 20px;
+            margin:20px 0 10px;
+            display:flex; gap:14px; align-items:flex-start;
+            opacity:0; animation:fadeUp 0.4s ease both;
+        }
+        .curiosity-icon {
+            font-size:22px; flex-shrink:0; margin-top:2px;
+        }
+        .curiosity-text {
+            font-size:13px; color:rgba(197,165,90,0.7); line-height:1.6;
+            font-style:italic;
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            text-align:center;
+            font-size:11px; color:rgba(255,255,255,0.15);
+            padding:20px 10px 40px;
+            line-height:1.5;
+            opacity:0; animation:fadeUp 0.4s ease 1s both;
+        }
+
+        /* Loading state */
+        .loading-container {
+            display:flex; flex-direction:column;
+            align-items:center; justify-content:center;
+            padding:80px 0;
+            opacity:0; animation:fadeUp 0.4s ease 0.3s both;
+        }
+        .loading-spinner {
+            width:40px; height:40px;
+            border:2px solid rgba(217,68,82,0.1);
+            border-top-color:rgba(217,68,82,0.6);
+            border-radius:50%;
+            animation:spin 0.8s linear infinite;
+            margin-bottom:16px;
+        }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .loading-text {
+            font-size:13px; color:rgba(255,255,255,0.3);
+        }
+        .loading-sub {
+            font-size:11px; color:rgba(255,255,255,0.15); margin-top:6px;
+        }
+
+        /* Error state */
+        .error-container {
+            text-align:center; padding:60px 20px;
+        }
+        .error-icon { font-size:40px; margin-bottom:16px; opacity:0.5; }
+        .error-text { font-size:14px; color:rgba(255,255,255,0.4); margin-bottom:20px; }
+        .retry-btn {
+            padding:12px 28px; border-radius:12px;
+            background:rgba(217,68,82,0.12); border:1px solid rgba(217,68,82,0.2);
+            color:#D94452; font-size:13px; font-weight:600;
+            cursor:pointer; transition:all 0.2s;
+        }
+        .retry-btn:hover { background:rgba(217,68,82,0.2); }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(12px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>VITAE</span></div>
+    <div class="entrance-curtain"></div>
+    <div class="exit-overlay" id="exitOverlay"></div>
+
+    <div class="content">
+        <div class="page-header">
+            <div class="back-btn" onclick="goBack()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C5A55A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </div>
+            <div class="page-title-wrap">
+                <div class="page-title">Sobre a <span>alergia</span></div>
+                <div class="page-subtitle">Informacoes geradas por IA</div>
+            </div>
+        </div>
+
+        <div id="mainContent">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Analisando alergia...</div>
+                <div class="loading-sub">VITAE AI esta gerando informacoes</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+    if (typeof vitaeAPI !== 'undefined') vitaeAPI.requireAuth();
+
+    const params = new URLSearchParams(window.location.search);
+    const allergyName = params.get('nome') || 'Alergia';
+    const fromPage = params.get('from') || 'perfil';
+
+    function goBack() {
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => {
+            if (fromPage === 'alergias') window.location.href = '17-alergias.html';
+            else window.location.href = '08-perfil.html?from=nav';
+        }, 400);
+    }
+
+    function renderContent(info) {
+        const container = document.getElementById('mainContent');
+        let delay = 0.4;
+        const d = () => { delay += 0.08; return delay.toFixed(2); };
+
+        const catIcons = {
+            'Medicamento': '💊', 'Alimento': '🍽️', 'Ambiental': '🌿',
+            'Contato': '🤚', 'Inseto': '🐝', 'Animal': '🐱'
+        };
+        const icon = catIcons[info.categoria] || '⚠️';
+
+        let html = `
+            <div class="hero-card" style="animation-delay:${d()}s">
+                <div class="hero-icon">${icon}</div>
+                <div class="hero-name">${info.nome || allergyName}</div>
+                <div class="hero-category">${info.categoria || 'Alergia'}</div>
+                <div class="hero-desc">${info.descricao || ''}</div>
+            </div>
+        `;
+
+        // Symptoms
+        if (info.sintomas && info.sintomas.length > 0) {
+            html += `<div class="section-label" style="animation-delay:${d()}s">Sintomas</div>`;
+            html += `<div class="symptoms-grid" style="animation-delay:${d()}s">`;
+            info.sintomas.forEach(s => {
+                const grav = (s.gravidade || 'leve').toLowerCase();
+                html += `
+                    <div class="symptom-pill ${grav}">
+                        ${s.icone || '•'} ${s.nome}
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        }
+
+        // What to avoid
+        if (info.o_que_evitar && info.o_que_evitar.length > 0) {
+            html += `<div class="section-label" style="animation-delay:${d()}s">O que evitar</div>`;
+            info.o_que_evitar.forEach(item => {
+                html += `
+                    <div class="info-card" style="animation-delay:${d()}s">
+                        <div class="info-card-icon avoid">${item.icone || '🚫'}</div>
+                        <div class="info-card-content">
+                            <div class="info-card-title">${item.item}</div>
+                            <div class="info-card-text">${item.motivo}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // What to do
+        if (info.o_que_fazer && info.o_que_fazer.length > 0) {
+            html += `<div class="section-label" style="animation-delay:${d()}s">O que fazer</div>`;
+            info.o_que_fazer.forEach(item => {
+                html += `
+                    <div class="info-card" style="animation-delay:${d()}s">
+                        <div class="info-card-icon action">${item.icone || '✅'}</div>
+                        <div class="info-card-content">
+                            <div class="info-card-title">${item.titulo}</div>
+                            <div class="info-card-text">${item.texto}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Emergency
+        if (info.emergencia) {
+            html += `
+                <div class="emergency-card" style="animation-delay:${d()}s">
+                    <div class="emergency-header">
+                        <div class="emergency-badge">🚨</div>
+                        <div class="emergency-title">Emergencia</div>
+                    </div>
+            `;
+            if (info.emergencia.sinais && info.emergencia.sinais.length > 0) {
+                html += `<div class="emergency-section"><div class="emergency-sublabel">Sinais de alerta</div>`;
+                info.emergencia.sinais.forEach(s => {
+                    html += `<div class="emergency-item">${s}</div>`;
+                });
+                html += `</div>`;
+            }
+            if (info.emergencia.acoes && info.emergencia.acoes.length > 0) {
+                html += `<div class="emergency-section"><div class="emergency-sublabel">O que fazer</div>`;
+                info.emergencia.acoes.forEach(a => {
+                    html += `<div class="emergency-item">${a}</div>`;
+                });
+                html += `</div>`;
+            }
+            html += `</div>`;
+        }
+
+        // Alternatives
+        if (info.alternativas && info.alternativas.length > 0) {
+            html += `<div class="section-label" style="animation-delay:${d()}s">Alternativas seguras</div>`;
+            html += `<div class="alternatives-list" style="animation-delay:${d()}s">`;
+            info.alternativas.forEach(alt => {
+                html += `
+                    <div class="alt-item">
+                        <span class="alt-dot"></span>
+                        ${alt}
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        }
+
+        // Curiosity
+        if (info.curiosidade) {
+            html += `
+                <div class="curiosity-card" style="animation-delay:${d()}s">
+                    <div class="curiosity-icon">💎</div>
+                    <div class="curiosity-text">${info.curiosidade}</div>
+                </div>
+            `;
+        }
+
+        html += `<div class="disclaimer">As informacoes sao educacionais e geradas por IA.<br>Consulte sempre um profissional de saude.</div>`;
+
+        container.innerHTML = html;
+    }
+
+    function renderError(msg) {
+        document.getElementById('mainContent').innerHTML = `
+            <div class="error-container">
+                <div class="error-icon">⚠️</div>
+                <div class="error-text">${msg || 'Nao foi possivel carregar as informacoes.'}</div>
+                <button class="retry-btn" onclick="loadInfo()">Tentar novamente</button>
+            </div>
+        `;
+    }
+
+    async function loadInfo() {
+        const cacheKey = 'vitae_allergy_info_' + allergyName;
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+            try {
+                renderContent(JSON.parse(cached));
+                return;
+            } catch {}
+        }
+
+        document.getElementById('mainContent').innerHTML = `
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Analisando ${allergyName}...</div>
+                <div class="loading-sub">VITAE AI esta gerando informacoes</div>
+            </div>
+        `;
+
+        try {
+            const data = await vitaeAPI.infoAlergia(allergyName);
+            if (data && data.info) {
+                sessionStorage.setItem(cacheKey, JSON.stringify(data.info));
+                renderContent(data.info);
+            } else {
+                renderError();
+            }
+        } catch (e) {
+            console.error('Erro ao carregar info:', e);
+            renderError(e.message);
+        }
+    }
+
+    loadInfo();
+</script>
+</body>
+</html>

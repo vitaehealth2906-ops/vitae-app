@@ -418,9 +418,99 @@ Regras:
   }
 }
 
+/**
+ * Gera informacoes detalhadas sobre um medicamento ou alergia usando IA.
+ *
+ * @param {string} nome - Nome do medicamento ou alergia.
+ * @param {string} tipo - 'medicamento' ou 'alergia'.
+ * @returns {object} Informacoes estruturadas.
+ */
+async function gerarInfoSubstancia(nome, tipo) {
+  if (!nome || nome.trim().length === 0) {
+    throw new Error('Nome e obrigatorio.');
+  }
+
+  const isMed = tipo === 'medicamento';
+
+  const userPrompt = isMed
+    ? `Gere informacoes detalhadas sobre o medicamento/suplemento "${nome}" para um aplicativo de saude.
+
+Retorne EXCLUSIVAMENTE um JSON valido:
+{
+  "nome": "string (nome correto do medicamento/suplemento)",
+  "categoria": "string (ex: 'Suplemento', 'Anti-inflamatorio', 'Analgesico', 'Vitamina', 'Hormonio')",
+  "descricao": "string (2-3 frases simples sobre o que e e para que serve)",
+  "beneficios": [
+    { "icone": "emoji", "titulo": "string (max 30 chars)", "texto": "string (1-2 frases)" }
+  ],
+  "como_funciona": "string (2-3 frases simples explicando o mecanismo de acao)",
+  "efeitos_colaterais": [
+    { "nome": "string", "gravidade": "leve|moderado|grave", "frequencia": "comum|incomum|raro" }
+  ],
+  "interacoes": ["string (medicamentos/substancias que podem interagir)"],
+  "dicas": [
+    { "icone": "emoji", "titulo": "string", "texto": "string (dica pratica de uso)" }
+  ],
+  "curiosidade": "string (1 fato interessante sobre o medicamento/suplemento)"
+}
+
+Regras:
+- Gere 3-4 beneficios, 3-5 efeitos colaterais, 2-4 interacoes, 2-3 dicas.
+- Linguagem simples e acessivel.
+- NAO faca diagnosticos. Sempre reforce a importancia de consultar um profissional.`
+    : `Gere informacoes detalhadas sobre a alergia a "${nome}" para um aplicativo de saude.
+
+Retorne EXCLUSIVAMENTE um JSON valido:
+{
+  "nome": "string (nome correto da alergia/alergeno)",
+  "categoria": "string (ex: 'Medicamento', 'Alimento', 'Ambiental', 'Contato')",
+  "descricao": "string (2-3 frases simples sobre o que e essa alergia)",
+  "sintomas": [
+    { "icone": "emoji", "nome": "string", "gravidade": "leve|moderado|grave" }
+  ],
+  "o_que_evitar": [
+    { "icone": "emoji", "item": "string", "motivo": "string (1 frase)" }
+  ],
+  "o_que_fazer": [
+    { "icone": "emoji", "titulo": "string", "texto": "string (1-2 frases de orientacao)" }
+  ],
+  "emergencia": {
+    "sinais": ["string (sinais de reacao grave/anafilaxia)"],
+    "acoes": ["string (o que fazer em caso de emergencia)"]
+  },
+  "alternativas": ["string (alternativas seguras quando aplicavel)"],
+  "curiosidade": "string (1 fato interessante sobre essa alergia)"
+}
+
+Regras:
+- Gere 4-6 sintomas, 3-5 itens para evitar, 3-4 orientacoes.
+- Linguagem simples e acessivel.
+- NAO faca diagnosticos. Sempre reforce a importancia de consultar um profissional.`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2048,
+    system: 'Voce e um assistente de saude da plataforma VITAE. Forneca informacoes educacionais precisas sobre medicamentos e alergias. IMPORTANTE: Voce NAO e medico. Sempre sugira consultar um profissional de saude.',
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+
+  const conteudo = response.content[0].text.trim();
+
+  try {
+    return JSON.parse(conteudo);
+  } catch {
+    const jsonMatch = conteudo.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[1].trim());
+    }
+    throw new Error('Falha ao gerar informacoes. Tente novamente.');
+  }
+}
+
 module.exports = {
   estruturarExame,
   gerarAnaliseExame,
   calcularIdadeBiologica,
   gerarMelhorias,
+  gerarInfoSubstancia,
 };

@@ -3,6 +3,7 @@ const { z } = require('zod');
 const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
+const ai = require('../services/ai');
 
 const router = express.Router();
 
@@ -151,6 +152,20 @@ router.delete('/:id', async (req, res, next) => {
     await prisma.medicamento.delete({ where: { id } });
 
     return res.status(200).json({ mensagem: 'Medicamento removido' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /info/:nome — AI-generated info about a medication
+// ---------------------------------------------------------------------------
+
+router.get('/info/:nome', async (req, res, next) => {
+  try {
+    const { nome } = req.params;
+    const info = await ai.gerarInfoSubstancia(decodeURIComponent(nome), 'medicamento');
+    return res.status(200).json({ info });
   } catch (err) {
     next(err);
   }

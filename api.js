@@ -207,6 +207,10 @@ const vitaeAPI = {
     return apiRequest(`/medicamentos/${id}`, { method: 'DELETE' });
   },
 
+  async infoMedicamento(nome) {
+    return apiRequest(`/medicamentos/info/${encodeURIComponent(nome)}`);
+  },
+
   // Alergias
   async listarAlergias() {
     return apiRequest('/alergias');
@@ -218,6 +222,10 @@ const vitaeAPI = {
 
   async removerAlergia(id) {
     return apiRequest(`/alergias/${id}`, { method: 'DELETE' });
+  },
+
+  async infoAlergia(nome) {
+    return apiRequest(`/alergias/info/${encodeURIComponent(nome)}`);
   },
 
   // Scores
