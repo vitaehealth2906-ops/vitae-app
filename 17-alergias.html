@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VITAE — Alergias</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body {
+            background:#000;
+            display:flex; justify-content:center; align-items:center;
+            min-height:100vh; font-family:'Inter',sans-serif;
+        }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#0A0A0A;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        .notch {
+            position:absolute; top:0; left:50%; transform:translateX(-50%);
+            width:126px; height:34px; background:#0A0A0A;
+            border-radius:0 0 20px 20px; z-index:10;
+        }
+        .status {
+            position:absolute; top:14px; left:28px; right:28px;
+            display:flex; justify-content:space-between;
+            font-size:13px; font-weight:600; color:rgba(255,255,255,0.5);
+            z-index:11;
+        }
+        .entrance-curtain {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background:#0A0A0A; z-index:30; pointer-events:none;
+            animation: curtainOpen 0.6s ease 0.1s forwards;
+        }
+        @keyframes curtainOpen { 0%{opacity:1} 100%{opacity:0} }
+        .exit-overlay {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background:#0A0A0A; opacity:0; z-index:25; pointer-events:none;
+            transition:opacity 0.5s ease;
+        }
+        .exit-overlay.active { opacity:1; }
+
+        .content {
+            height:calc(100% - 80px);
+            overflow-y:auto;
+            padding:55px 24px 24px;
+            scrollbar-width:none;
+        }
+        .content::-webkit-scrollbar { display:none; }
+
+        /* Header */
+        .page-header {
+            display:flex; align-items:center; gap:14px;
+            margin-bottom:28px;
+            opacity:0; animation:fadeUp 0.4s ease 0.3s both;
+        }
+        .back-btn {
+            width:40px; height:40px; border-radius:12px;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.08);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; flex-shrink:0;
+            transition:all 0.2s;
+        }
+        .back-btn:hover { background:rgba(255,255,255,0.08); }
+        .back-btn:active { transform:scale(0.92); }
+        .page-title-wrap { flex:1; }
+        .page-title {
+            font-family:'Playfair Display', serif;
+            font-size:26px; font-weight:700; color:#fff;
+        }
+        .page-title span { color:#C5A55A; font-style:italic; }
+        .page-subtitle {
+            font-size:13px; color:rgba(255,255,255,0.3); margin-top:2px;
+        }
+
+        /* Section label */
+        .section-label {
+            font-size:11px; font-weight:700;
+            color:rgba(255,255,255,0.2);
+            letter-spacing:1.5px; text-transform:uppercase;
+            margin-bottom:12px; margin-top:8px; padding-left:2px;
+        }
+
+        /* Add section */
+        .add-section {
+            margin-bottom:28px;
+            opacity:0; animation:fadeUp 0.4s ease 0.45s both;
+        }
+        .add-row {
+            display:flex; gap:10px;
+        }
+        .add-input {
+            flex:1; padding:14px 16px;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:12px;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:500; color:#fff;
+            outline:none; transition:all 0.3s;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .add-input::placeholder { color:rgba(255,255,255,0.15); }
+        .add-input:focus {
+            border-color:rgba(197,165,90,0.4);
+            background:rgba(197,165,90,0.04);
+            box-shadow:0 0 0 3px rgba(197,165,90,0.08);
+        }
+        .add-btn {
+            padding:14px 22px;
+            background:linear-gradient(135deg, #C5A55A, #D4B96A);
+            border:none; border-radius:12px;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:700;
+            color:#0A0A0A; cursor:pointer;
+            transition:all 0.2s; flex-shrink:0;
+        }
+        .add-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(197,165,90,0.25); }
+        .add-btn:active { transform:scale(0.98); }
+
+        /* Allergy tags (registered) */
+        .allergies-grid {
+            display:flex; flex-wrap:wrap; gap:8px;
+            margin-bottom:8px;
+        }
+        .allergy-pill {
+            display:flex; align-items:center; gap:8px;
+            padding:10px 14px;
+            background:rgba(217,68,82,0.06);
+            border:1px solid rgba(217,68,82,0.12);
+            border-radius:12px;
+            font-size:13px; font-weight:600;
+            color:rgba(217,68,82,0.8);
+            transition:all 0.25s;
+            animation:fadeUp 0.3s ease both;
+        }
+        .allergy-pill:hover {
+            background:rgba(217,68,82,0.1);
+            border-color:rgba(217,68,82,0.2);
+        }
+        .allergy-remove {
+            width:20px; height:20px; border-radius:6px;
+            background:rgba(217,68,82,0.1);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; flex-shrink:0;
+            transition:all 0.2s;
+        }
+        .allergy-remove:hover { background:rgba(217,68,82,0.25); }
+        .allergy-remove:active { transform:scale(0.85); }
+
+        /* Empty state */
+        .empty-state {
+            text-align:center; padding:40px 20px;
+            opacity:0; animation:fadeUp 0.4s ease 0.5s both;
+        }
+        .empty-icon {
+            width:64px; height:64px; border-radius:20px;
+            background:rgba(217,68,82,0.04);
+            border:1px solid rgba(217,68,82,0.08);
+            display:flex; align-items:center; justify-content:center;
+            margin:0 auto 16px;
+        }
+        .empty-text {
+            font-size:14px; color:rgba(255,255,255,0.2);
+            line-height:1.6;
+        }
+
+        /* Suggestions */
+        .suggestions-section {
+            margin-top:24px;
+            opacity:0; animation:fadeUp 0.4s ease 0.6s both;
+        }
+        .suggestions-grid {
+            display:flex; flex-wrap:wrap; gap:8px;
+        }
+        .suggestion-chip {
+            padding:10px 16px;
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:12px;
+            font-size:13px; font-weight:500;
+            color:rgba(255,255,255,0.4);
+            cursor:pointer;
+            transition:all 0.25s;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.03);
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .suggestion-chip:hover {
+            background:rgba(197,165,90,0.06);
+            border-color:rgba(197,165,90,0.2);
+            color:rgba(197,165,90,0.8);
+            transform:translateY(-2px);
+        }
+        .suggestion-chip:active { transform:scale(0.95); }
+        .suggestion-chip.added {
+            opacity:0.3; pointer-events:none;
+            text-decoration:line-through;
+        }
+
+        /* Tab bar */
+        .tab-bar {
+            position:absolute; bottom:0; left:0; right:0;
+            height:80px;
+            background:rgba(10,10,10,0.75);
+            backdrop-filter:blur(30px) saturate(1.3);
+            -webkit-backdrop-filter:blur(30px) saturate(1.3);
+            border-top:1px solid rgba(255,255,255,0.08);
+            display:flex; align-items:center; justify-content:space-around;
+            padding:0 20px 16px;
+            z-index:20;
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.3);
+        }
+        .tab {
+            display:flex; flex-direction:column;
+            align-items:center; gap:4px;
+            cursor:pointer; padding:8px 20px;
+            border-radius:12px; transition:all 0.25s;
+            border:none; background:none;
+            font-family:'Inter',sans-serif;
+        }
+        .tab:active { transform:scale(0.92); }
+        .tab-label {
+            font-size:10px; font-weight:600;
+            letter-spacing:0.3px; color:rgba(255,255,255,0.25);
+        }
+        .tab.active .tab-label { color:#C5A55A; }
+        .tab.active svg { stroke:#C5A55A !important; }
+        .tab-indicator {
+            width:4px; height:4px; border-radius:50%;
+            background:#C5A55A; margin-top:2px; opacity:0;
+        }
+        .tab.active .tab-indicator { opacity:1; }
+
+        /* Toast */
+        .toast {
+            position:absolute; top:60px; left:50%; transform:translateX(-50%) translateY(-20px);
+            background:rgba(20,20,20,0.8);
+            backdrop-filter:blur(24px) saturate(1.2);
+            -webkit-backdrop-filter:blur(24px) saturate(1.2);
+            border:1px solid rgba(255,255,255,0.1);
+            border-radius:14px; padding:14px 22px;
+            display:flex; align-items:center; gap:10px;
+            z-index:50;
+            opacity:0; pointer-events:none;
+            transition:all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow:0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+        .toast-icon {
+            width:28px; height:28px; border-radius:8px;
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0; background:rgba(74,217,164,0.15);
+        }
+        .toast-text { font-size:13px; font-weight:600; color:rgba(255,255,255,0.8); }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(20px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+        .anim { opacity:0; animation:fadeUp 0.4s ease both; }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128267;</span></div>
+    <div class="entrance-curtain"></div>
+    <div class="exit-overlay" id="exitOverlay"></div>
+
+    <div class="toast" id="toast">
+        <div class="toast-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4AD9A4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="toast-text" id="toastText"></span>
+    </div>
+
+    <div class="content">
+        <div class="page-header">
+            <div class="back-btn" onclick="goBack()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </div>
+            <div class="page-title-wrap">
+                <div class="page-title">Suas <span>alergias</span></div>
+                <div class="page-subtitle" id="allergyCount">Carregando...</div>
+            </div>
+        </div>
+
+        <!-- Add section -->
+        <div class="add-section">
+            <div class="section-label">Adicionar alergia</div>
+            <div class="add-row">
+                <input class="add-input" id="allergyInput" type="text" placeholder="Digite o nome da alergia..." onkeydown="if(event.key==='Enter')addAllergy()">
+                <button class="add-btn" onclick="addAllergy()">Adicionar</button>
+            </div>
+        </div>
+
+        <!-- Current allergies -->
+        <div id="allergiesList"></div>
+
+        <!-- Suggestions -->
+        <div class="suggestions-section" id="suggestionsSection">
+            <div class="section-label">Alergias comuns</div>
+            <div class="suggestions-grid" id="suggestionsList"></div>
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <button class="tab" onclick="navigateTo('perfil')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span class="tab-label">Perfil</span>
+            <div class="tab-indicator"></div>
+        </button>
+        <button class="tab" onclick="navigateTo('exames')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span class="tab-label">Exames</span>
+            <div class="tab-indicator"></div>
+        </button>
+        <button class="tab" onclick="navigateTo('bioage')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            <span class="tab-label">Bio Age</span>
+            <div class="tab-indicator"></div>
+        </button>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+    const COMMON_ALLERGIES = [
+        'Penicilina', 'Dipirona', 'Ibuprofeno', 'Latex',
+        'Amendoim', 'Frutos do mar', 'Gluten', 'Lactose',
+        'Ovo', 'Camarao', 'Sulfas', 'AAS'
+    ];
+
+    let allergies = [];
+
+    async function addAllergy(name) {
+        if (!name) {
+            const input = document.getElementById('allergyInput');
+            name = input.value.trim();
+            if (!name) { input.style.borderColor = '#D94452'; input.focus(); return; }
+            input.value = '';
+            input.style.borderColor = '';
+        }
+        const exists = allergies.some(a => a.name.toLowerCase() === name.toLowerCase());
+        if (exists) { showToast(name + ' ja esta na lista'); return; }
+        try {
+            await vitaeAPI.adicionarAlergia({ nome: name });
+            await loadAllergies();
+            showToast(name + ' adicionada');
+        } catch (e) {
+            showToast('Erro: ' + e.message);
+        }
+    }
+
+    async function removeAllergy(id, name) {
+        try {
+            await vitaeAPI.removerAlergia(id);
+            await loadAllergies();
+            showToast(name + ' removida');
+        } catch (e) {
+            showToast('Erro: ' + e.message);
+        }
+    }
+
+    function renderAllergies() {
+        const container = document.getElementById('allergiesList');
+        const countEl = document.getElementById('allergyCount');
+
+        if (allergies.length === 0) {
+            countEl.textContent = 'Nenhuma registrada';
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(217,68,82,0.3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div class="empty-text">Nenhuma alergia registrada.<br>Adicione acima ou escolha das sugestoes.</div>
+                </div>
+            `;
+        } else {
+            countEl.textContent = allergies.length + ' registrada' + (allergies.length > 1 ? 's' : '');
+            container.innerHTML = `<div class="section-label">Registradas</div><div class="allergies-grid">` +
+                allergies.map((a, i) => `
+                    <div class="allergy-pill" style="animation-delay:${0.4 + i * 0.05}s">
+                        <span>${a.name}</span>
+                        <div class="allergy-remove" onclick="removeAllergy('${a.id}','${a.name}')">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </div>
+                    </div>
+                `).join('') +
+            `</div>`;
+        }
+
+        renderSuggestions();
+    }
+
+    function renderSuggestions() {
+        const existingNames = allergies.map(a => a.name.toLowerCase());
+        const container = document.getElementById('suggestionsList');
+
+        container.innerHTML = COMMON_ALLERGIES.map(name => {
+            const added = existingNames.includes(name.toLowerCase());
+            return `<div class="suggestion-chip ${added ? 'added' : ''}" onclick="${added ? '' : "addAllergy('" + name + "')"}">${name}</div>`;
+        }).join('');
+    }
+
+    async function loadAllergies() {
+        try {
+            const data = await vitaeAPI.listarAlergias();
+            const raw = data.alergias || data || [];
+            allergies = raw.map(a => ({
+                id: a.id,
+                name: a.nome || a.alergia || a.name
+            }));
+        } catch (e) {
+            console.log('Erro ao carregar alergias:', e.message);
+            allergies = [];
+        }
+        renderAllergies();
+    }
+
+    // Toast
+    let toastTimer;
+    function showToast(text) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toastText').textContent = text;
+        clearTimeout(toastTimer);
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // Navigation
+    function goBack() {
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => { window.location.href = '08-perfil.html?from=nav'; }, 500);
+    }
+    function navigateTo(tab) {
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => {
+            if (tab === 'perfil') window.location.href = '08-perfil.html?from=nav';
+            else if (tab === 'exames') window.location.href = '11-exames-lista.html';
+            else if (tab === 'bioage') window.location.href = '15-bioage-sem-dados.html';
+        }, 500);
+    }
+
+    // Init
+    if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
+        loadAllergies();
+    } else {
+        renderAllergies();
+    }
+</script>
+</body>
+</html>

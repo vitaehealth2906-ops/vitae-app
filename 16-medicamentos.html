@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VITAE — Medicamentos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body {
+            background:#000;
+            display:flex; justify-content:center; align-items:center;
+            min-height:100vh; font-family:'Inter',sans-serif;
+        }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#0A0A0A;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        .notch {
+            position:absolute; top:0; left:50%; transform:translateX(-50%);
+            width:126px; height:34px; background:#0A0A0A;
+            border-radius:0 0 20px 20px; z-index:10;
+        }
+        .status {
+            position:absolute; top:14px; left:28px; right:28px;
+            display:flex; justify-content:space-between;
+            font-size:13px; font-weight:600; color:rgba(255,255,255,0.5);
+            z-index:11;
+        }
+        .entrance-curtain {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background:#0A0A0A; z-index:30; pointer-events:none;
+            animation: curtainOpen 0.6s ease 0.1s forwards;
+        }
+        @keyframes curtainOpen { 0%{opacity:1} 100%{opacity:0} }
+        .exit-overlay {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            background:#0A0A0A; opacity:0; z-index:25; pointer-events:none;
+            transition:opacity 0.5s ease;
+        }
+        .exit-overlay.active { opacity:1; }
+
+        .content {
+            height:calc(100% - 80px);
+            overflow-y:auto;
+            padding:55px 24px 24px;
+            scrollbar-width:none;
+        }
+        .content::-webkit-scrollbar { display:none; }
+
+        /* Header */
+        .page-header {
+            display:flex; align-items:center; gap:14px;
+            margin-bottom:28px;
+            opacity:0; animation:fadeUp 0.4s ease 0.3s both;
+        }
+        .back-btn {
+            width:40px; height:40px; border-radius:12px;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.08);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; flex-shrink:0;
+            transition:all 0.2s;
+        }
+        .back-btn:hover { background:rgba(255,255,255,0.08); }
+        .back-btn:active { transform:scale(0.92); }
+        .page-title-wrap { flex:1; }
+        .page-title {
+            font-family:'Playfair Display', serif;
+            font-size:26px; font-weight:700; color:#fff;
+        }
+        .page-title span { color:#C5A55A; font-style:italic; }
+        .page-subtitle {
+            font-size:13px; color:rgba(255,255,255,0.3); margin-top:2px;
+        }
+
+        /* Section labels */
+        .section-label {
+            font-size:11px; font-weight:700;
+            color:rgba(255,255,255,0.2);
+            letter-spacing:1.5px; text-transform:uppercase;
+            margin-bottom:12px; margin-top:8px; padding-left:2px;
+        }
+
+        /* Med card */
+        .med-card {
+            display:flex; align-items:center; gap:14px;
+            padding:16px;
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-top:1px solid rgba(255,255,255,0.08);
+            border-radius:14px;
+            margin-bottom:8px;
+            backdrop-filter:blur(12px);
+            -webkit-backdrop-filter:blur(12px);
+            box-shadow:0 2px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.03);
+            transition:all 0.25s;
+            animation:fadeUp 0.4s ease both;
+        }
+        .med-card:hover { background:rgba(255,255,255,0.06); }
+        .med-icon {
+            width:42px; height:42px; border-radius:12px;
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0;
+        }
+        .med-info { flex:1; }
+        .med-name {
+            font-size:14px; font-weight:600;
+            color:rgba(255,255,255,0.85); margin-bottom:3px;
+        }
+        .med-detail {
+            font-size:12px; color:rgba(255,255,255,0.3);
+        }
+        .med-time {
+            font-size:11px; font-weight:600;
+            color:rgba(197,165,90,0.7);
+            background:rgba(197,165,90,0.08);
+            padding:4px 10px; border-radius:8px;
+            flex-shrink:0;
+        }
+        .med-delete {
+            width:32px; height:32px; border-radius:8px;
+            background:rgba(217,68,82,0.06);
+            border:1px solid rgba(217,68,82,0.1);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; flex-shrink:0;
+            transition:all 0.2s;
+        }
+        .med-delete:hover { background:rgba(217,68,82,0.15); border-color:rgba(217,68,82,0.25); }
+        .med-delete:active { transform:scale(0.9); }
+
+        /* Empty state */
+        .empty-state {
+            text-align:center; padding:40px 20px;
+            opacity:0; animation:fadeUp 0.4s ease 0.5s both;
+        }
+        .empty-icon {
+            width:64px; height:64px; border-radius:20px;
+            background:rgba(197,165,90,0.06);
+            border:1px solid rgba(197,165,90,0.1);
+            display:flex; align-items:center; justify-content:center;
+            margin:0 auto 16px;
+        }
+        .empty-text {
+            font-size:14px; color:rgba(255,255,255,0.2);
+            line-height:1.6;
+        }
+
+        /* Add form */
+        .add-section {
+            margin-bottom:28px;
+            opacity:0; animation:fadeUp 0.4s ease 0.45s both;
+        }
+        .add-toggle {
+            width:100%; padding:18px;
+            background:rgba(197,165,90,0.06);
+            border:1.5px dashed rgba(197,165,90,0.25);
+            border-radius:16px;
+            display:flex; align-items:center; justify-content:center; gap:12px;
+            cursor:pointer;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:600; color:#C5A55A;
+            backdrop-filter:blur(16px);
+            -webkit-backdrop-filter:blur(16px);
+            box-shadow:0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
+            transition:all 0.25s;
+        }
+        .add-toggle:hover {
+            background:rgba(197,165,90,0.1);
+            border-color:rgba(197,165,90,0.4);
+        }
+        .add-toggle:active { transform:scale(0.98); }
+        .add-toggle-icon {
+            width:36px; height:36px; border-radius:10px;
+            background:rgba(197,165,90,0.1);
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0;
+        }
+
+        .add-form {
+            display:none;
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-top:1px solid rgba(255,255,255,0.09);
+            border-radius:16px;
+            padding:20px;
+            backdrop-filter:blur(16px);
+            -webkit-backdrop-filter:blur(16px);
+            box-shadow:0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
+            animation:fadeUp 0.3s ease both;
+        }
+        .add-form.visible { display:block; }
+        .form-title {
+            font-family:'Playfair Display', serif;
+            font-size:18px; font-weight:700; color:#fff;
+            margin-bottom:4px;
+        }
+        .form-title span { color:#C5A55A; font-style:italic; }
+        .form-subtitle {
+            font-size:12px; color:rgba(255,255,255,0.25);
+            margin-bottom:18px;
+        }
+        .form-label {
+            font-size:11px; font-weight:700;
+            color:rgba(255,255,255,0.3);
+            letter-spacing:0.5px; text-transform:uppercase;
+            margin-bottom:6px; margin-top:14px;
+        }
+        .form-label:first-of-type { margin-top:0; }
+        .form-input {
+            width:100%; padding:14px 16px;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:12px;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:500; color:#fff;
+            outline:none; transition:all 0.3s;
+        }
+        .form-input::placeholder { color:rgba(255,255,255,0.15); }
+        .form-input:focus {
+            border-color:rgba(197,165,90,0.4);
+            background:rgba(197,165,90,0.04);
+            box-shadow:0 0 0 3px rgba(197,165,90,0.08);
+        }
+        .form-select {
+            width:100%; padding:14px 16px;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:12px;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:500; color:#fff;
+            outline:none; transition:all 0.3s;
+            appearance:none;
+            background-image:url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.3)' stroke-width='2.5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat:no-repeat;
+            background-position:right 14px center;
+        }
+        .form-select option { background:#1a1a1a; color:#fff; }
+        .form-select:focus {
+            border-color:rgba(197,165,90,0.4);
+            box-shadow:0 0 0 3px rgba(197,165,90,0.08);
+        }
+        .form-row {
+            display:flex; gap:10px; margin-top:18px;
+        }
+        .btn-gold {
+            flex:1; padding:14px;
+            background:linear-gradient(135deg, #C5A55A, #D4B96A);
+            border:none; border-radius:12px;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:700;
+            color:#0A0A0A; cursor:pointer;
+            transition:all 0.2s;
+        }
+        .btn-gold:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(197,165,90,0.25); }
+        .btn-gold:active { transform:scale(0.98); }
+        .btn-cancel {
+            flex:1; padding:14px;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:12px;
+            font-family:'Inter',sans-serif;
+            font-size:14px; font-weight:600;
+            color:rgba(255,255,255,0.4); cursor:pointer;
+            transition:all 0.2s;
+        }
+        .btn-cancel:hover { background:rgba(255,255,255,0.08); }
+
+        /* Suggestions */
+        .suggestions-section {
+            margin-top:24px;
+            opacity:0; animation:fadeUp 0.4s ease 0.6s both;
+        }
+        .suggestion-card {
+            display:flex; align-items:center; gap:14px;
+            padding:14px 16px;
+            background:rgba(255,255,255,0.02);
+            border:1px solid rgba(255,255,255,0.05);
+            border-radius:14px;
+            margin-bottom:8px;
+            cursor:pointer;
+            backdrop-filter:blur(12px);
+            -webkit-backdrop-filter:blur(12px);
+            box-shadow:0 2px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.03);
+            transition:all 0.25s;
+        }
+        .suggestion-card:hover {
+            background:rgba(255,255,255,0.05);
+            border-color:rgba(255,255,255,0.1);
+            transform:translateX(4px);
+        }
+        .suggestion-card:active { transform:scale(0.98); }
+        .suggestion-icon {
+            width:38px; height:38px; border-radius:11px;
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0;
+        }
+        .suggestion-info { flex:1; }
+        .suggestion-name {
+            font-size:13px; font-weight:600;
+            color:rgba(255,255,255,0.7); margin-bottom:2px;
+        }
+        .suggestion-desc {
+            font-size:11px; color:rgba(255,255,255,0.2);
+        }
+        .suggestion-add {
+            font-size:18px; color:rgba(255,255,255,0.1);
+            font-weight:300; flex-shrink:0;
+            transition:color 0.2s;
+        }
+        .suggestion-card:hover .suggestion-add { color:rgba(197,165,90,0.6); }
+
+        /* Tab bar */
+        .tab-bar {
+            position:absolute; bottom:0; left:0; right:0;
+            height:80px;
+            background:rgba(10,10,10,0.75);
+            backdrop-filter:blur(30px) saturate(1.3);
+            -webkit-backdrop-filter:blur(30px) saturate(1.3);
+            border-top:1px solid rgba(255,255,255,0.08);
+            box-shadow:0 -4px 24px rgba(0,0,0,0.3);
+            display:flex; align-items:center; justify-content:space-around;
+            padding:0 20px 16px;
+            z-index:20;
+        }
+        .tab {
+            display:flex; flex-direction:column;
+            align-items:center; gap:4px;
+            cursor:pointer; padding:8px 20px;
+            border-radius:12px; transition:all 0.25s;
+            border:none; background:none;
+            font-family:'Inter',sans-serif;
+        }
+        .tab:active { transform:scale(0.92); }
+        .tab-label {
+            font-size:10px; font-weight:600;
+            letter-spacing:0.3px; color:rgba(255,255,255,0.25);
+        }
+        .tab.active .tab-label { color:#C5A55A; }
+        .tab.active svg { stroke:#C5A55A !important; }
+        .tab-indicator {
+            width:4px; height:4px; border-radius:50%;
+            background:#C5A55A; margin-top:2px; opacity:0;
+        }
+        .tab.active .tab-indicator { opacity:1; }
+
+        /* Toast */
+        .toast {
+            position:absolute; top:60px; left:50%; transform:translateX(-50%) translateY(-20px);
+            background:rgba(20,20,20,0.8);
+            backdrop-filter:blur(24px) saturate(1.2);
+            -webkit-backdrop-filter:blur(24px) saturate(1.2);
+            border:1px solid rgba(255,255,255,0.1);
+            border-radius:14px; padding:14px 22px;
+            display:flex; align-items:center; gap:10px;
+            z-index:50;
+            opacity:0; pointer-events:none;
+            transition:all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow:0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+        .toast-icon {
+            width:28px; height:28px; border-radius:8px;
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0; background:rgba(74,217,164,0.15);
+        }
+        .toast-text { font-size:13px; font-weight:600; color:rgba(255,255,255,0.8); }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(20px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+        .anim { opacity:0; animation:fadeUp 0.4s ease both; }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128267;</span></div>
+    <div class="entrance-curtain"></div>
+    <div class="exit-overlay" id="exitOverlay"></div>
+
+    <div class="toast" id="toast">
+        <div class="toast-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4AD9A4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="toast-text" id="toastText"></span>
+    </div>
+
+    <div class="content">
+        <div class="page-header">
+            <div class="back-btn" onclick="goBack()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </div>
+            <div class="page-title-wrap">
+                <div class="page-title">Seus <span>medicamentos</span></div>
+                <div class="page-subtitle" id="medCount">Carregando...</div>
+            </div>
+        </div>
+
+        <!-- Add section -->
+        <div class="add-section">
+            <div class="add-toggle" id="addToggle" onclick="toggleForm()">
+                <div class="add-toggle-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C5A55A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                </div>
+                <div>
+                    <div style="font-size:14px;font-weight:700;">Adicionar medicamento</div>
+                    <div style="font-size:11px;font-weight:400;color:rgba(197,165,90,0.6);margin-top:2px;">Preencha ou escolha uma sugestao abaixo</div>
+                </div>
+            </div>
+
+            <div class="add-form" id="addForm">
+                <div class="form-title">Novo <span>medicamento</span></div>
+                <div class="form-subtitle">Preencha as informacoes</div>
+
+                <div class="form-label">Nome</div>
+                <input class="form-input" id="medName" type="text" placeholder="Ex: Rivotril, Losartana...">
+
+                <div class="form-label">Dosagem</div>
+                <input class="form-input" id="medDosage" type="text" placeholder="Ex: 500mg, 10ml...">
+
+                <div class="form-label">Frequencia</div>
+                <select class="form-select" id="medFreq">
+                    <option value="1x ao dia">1x ao dia</option>
+                    <option value="2x ao dia">2x ao dia</option>
+                    <option value="3x ao dia">3x ao dia</option>
+                    <option value="Conforme necessario">Conforme necessario</option>
+                </select>
+
+                <div class="form-label">Horario</div>
+                <input class="form-input" id="medTime" type="text" placeholder="Ex: 08:00" value="08:00">
+
+                <div class="form-row">
+                    <button class="btn-cancel" onclick="toggleForm()">Cancelar</button>
+                    <button class="btn-gold" onclick="submitMed()">Adicionar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current meds list -->
+        <div id="medsList"></div>
+
+        <!-- Suggestions -->
+        <div class="suggestions-section" id="suggestionsSection">
+            <div class="section-label">Sugestoes rapidas</div>
+            <div id="suggestionsList"></div>
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <button class="tab" onclick="navigateTo('perfil')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span class="tab-label">Perfil</span>
+            <div class="tab-indicator"></div>
+        </button>
+        <button class="tab" onclick="navigateTo('exames')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span class="tab-label">Exames</span>
+            <div class="tab-indicator"></div>
+        </button>
+        <button class="tab" onclick="navigateTo('bioage')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            <span class="tab-label">Bio Age</span>
+            <div class="tab-indicator"></div>
+        </button>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+    const PRESETS = [
+        { name:'Vitamina D3', dosage:'2000 UI', frequency:'1x ao dia', time:'08:00', color:'#C5A55A', icon:'sun' },
+        { name:'Omega 3', dosage:'1000mg', frequency:'1x ao dia', time:'08:00', color:'#4A9FD9', icon:'drop' },
+        { name:'Creatina', dosage:'5g', frequency:'1x ao dia', time:'Pre-treino', color:'#D94452', icon:'zap' },
+        { name:'Melatonina', dosage:'3mg', frequency:'1x ao dia', time:'22:00', color:'#B482FF', icon:'moon' },
+        { name:'Whey Protein', dosage:'30g', frequency:'1x ao dia', time:'Pos-treino', color:'#4AD9A4', icon:'zap' },
+    ];
+
+    const ICONS = {
+        sun: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+        drop: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>',
+        zap: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+        moon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>',
+        pill: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5H8A6.5 6.5 0 001.5 8v8A6.5 6.5 0 008 22.5h8a6.5 6.5 0 006.5-6.5v-2.5"/><line x1="1.5" y1="22.5" x2="22.5" y2="1.5"/></svg>'
+    };
+
+    let medications = [];
+    let formVisible = false;
+
+    function toggleForm() {
+        formVisible = !formVisible;
+        document.getElementById('addForm').classList.toggle('visible', formVisible);
+        document.getElementById('addToggle').style.display = formVisible ? 'none' : 'flex';
+        if (formVisible) {
+            setTimeout(() => document.getElementById('medName').focus(), 100);
+        }
+    }
+
+    async function submitMed() {
+        const name = document.getElementById('medName').value.trim();
+        const dosage = document.getElementById('medDosage').value.trim() || 'Dose nao informada';
+        const freq = document.getElementById('medFreq').value;
+        const time = document.getElementById('medTime').value.trim() || '08:00';
+        if (!name) {
+            document.getElementById('medName').style.borderColor = '#D94452';
+            document.getElementById('medName').focus();
+            return;
+        }
+        try {
+            await vitaeAPI.adicionarMedicamento({ nome: name, dosagem: dosage, frequencia: freq, horario: time });
+            await loadMeds();
+            showToast(name + ' adicionado');
+        } catch (e) {
+            showToast('Erro: ' + e.message);
+        }
+        toggleForm();
+        document.getElementById('medName').value = '';
+        document.getElementById('medDosage').value = '';
+        document.getElementById('medTime').value = '08:00';
+    }
+
+    async function addPreset(index) {
+        const p = PRESETS[index];
+        try {
+            await vitaeAPI.adicionarMedicamento({ nome: p.name, dosagem: p.dosage, frequencia: p.frequency, horario: p.time });
+            await loadMeds();
+            showToast(p.name + ' adicionado');
+        } catch (e) {
+            showToast('Erro: ' + e.message);
+        }
+    }
+
+    async function removeMed(id, name) {
+        try {
+            await vitaeAPI.removerMedicamento(id);
+            await loadMeds();
+            showToast(name + ' removido');
+        } catch (e) {
+            showToast('Erro: ' + e.message);
+        }
+    }
+
+    function renderMeds() {
+        const container = document.getElementById('medsList');
+        const countEl = document.getElementById('medCount');
+
+        if (medications.length === 0) {
+            countEl.textContent = 'Nenhum adicionado';
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(197,165,90,0.4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                            <line x1="12" y1="11" x2="12" y2="17"/>
+                            <line x1="9" y1="14" x2="15" y2="14"/>
+                        </svg>
+                    </div>
+                    <div class="empty-text">Nenhum medicamento adicionado.<br>Use o botao acima ou as sugestoes abaixo.</div>
+                </div>
+            `;
+        } else {
+            countEl.textContent = medications.length + (medications.length === 1 ? ' medicamento' : ' medicamentos');
+            let delay = 0.5;
+            container.innerHTML = `<div class="section-label">Em uso</div>` + medications.map(m => {
+                delay += 0.05;
+                const color = '#C5A55A';
+                return `
+                <div class="med-card" style="animation-delay:${delay}s">
+                    <div class="med-icon" style="background:rgba(197,165,90,0.08);border:1px solid rgba(197,165,90,0.12);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                    </div>
+                    <div class="med-info">
+                        <div class="med-name">${m.name}</div>
+                        <div class="med-detail">${m.dosage} — ${m.frequency}</div>
+                    </div>
+                    <div class="med-time">${m.time}</div>
+                    <div class="med-delete" onclick="event.stopPropagation();removeMed('${m.id}','${m.name}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D94452" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        renderSuggestions();
+    }
+
+    function renderSuggestions() {
+        const existingNames = medications.map(m => m.name);
+        const available = PRESETS.filter(p => !existingNames.includes(p.name));
+        const container = document.getElementById('suggestionsList');
+        const section = document.getElementById('suggestionsSection');
+
+        if (available.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+        container.innerHTML = available.map((p, i) => {
+            const origIndex = PRESETS.indexOf(p);
+            return `
+            <div class="suggestion-card" onclick="addPreset(${origIndex})">
+                <div class="suggestion-icon" style="background:rgba(${hexToRgb(p.color)},0.08);border:1px solid rgba(${hexToRgb(p.color)},0.12);color:${p.color};">
+                    ${ICONS[p.icon]}
+                </div>
+                <div class="suggestion-info">
+                    <div class="suggestion-name">${p.name}</div>
+                    <div class="suggestion-desc">${p.dosage} — ${p.frequency}</div>
+                </div>
+                <span class="suggestion-add">+</span>
+            </div>`;
+        }).join('');
+    }
+
+    function hexToRgb(hex) {
+        const r = parseInt(hex.slice(1,3),16);
+        const g = parseInt(hex.slice(3,5),16);
+        const b = parseInt(hex.slice(5,7),16);
+        return r+','+g+','+b;
+    }
+
+    async function loadMeds() {
+        try {
+            const data = await vitaeAPI.listarMedicamentos();
+            const raw = data.medicamentos || data || [];
+            medications = raw.map(m => ({
+                id: m.id,
+                name: m.nome || m.name,
+                dosage: m.dosagem || m.dosage || '',
+                frequency: m.frequencia || m.frequency || '',
+                time: m.horario || m.time || ''
+            }));
+        } catch (e) {
+            console.log('Erro ao carregar medicamentos:', e.message);
+            medications = [];
+        }
+        renderMeds();
+    }
+
+    // Toast
+    let toastTimer;
+    function showToast(text) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toastText').textContent = text;
+        clearTimeout(toastTimer);
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // Navigation
+    function goBack() {
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => { window.location.href = '08-perfil.html?from=nav'; }, 500);
+    }
+    function navigateTo(tab) {
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => {
+            if (tab === 'perfil') window.location.href = '08-perfil.html?from=nav';
+            else if (tab === 'exames') window.location.href = '11-exames-lista.html';
+            else if (tab === 'bioage') window.location.href = '15-bioage-sem-dados.html';
+        }, 500);
+    }
+
+    // Init
+    if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
+        loadMeds();
+    } else {
+        renderMeds();
+    }
+</script>
+</body>
+</html>
