@@ -3,7 +3,7 @@
  * Todas as telas HTML usam este arquivo para se comunicar com o backend.
  */
 
-const API_URL = window.location.hostname === 'localhost' || window.location.protocol === 'file:'
+const API_URL = ['localhost','127.0.0.1'].includes(window.location.hostname) || window.location.protocol === 'file:'
   ? 'http://localhost:3001'
   : 'https://vitae-app-production.up.railway.app';
 
