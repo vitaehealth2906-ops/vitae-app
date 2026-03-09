@@ -120,39 +120,31 @@ router.post('/cadastro', validate(cadastroSchema), async (req, res, next) => {
     // Hash da senha
     const senhaHash = await bcrypt.hash(senha, 12);
 
-    // Criar usuario com status PENDENTE
+    // Criar usuario ja ativo (sem verificacao SMS)
     const usuario = await prisma.usuario.create({
       data: {
         nome,
         email,
         celular,
         senhaHash,
-        status: 'PENDENTE',
+        status: 'ATIVO',
         perfilSaude: {
           create: {},
         },
       },
     });
 
-    // Gerar e salvar codigo de verificacao
-    const codigo = gerarCodigo6Digitos();
-    const codigoHash = await bcrypt.hash(codigo, 10);
-
-    await prisma.codigoVerificacao.create({
-      data: {
-        celular,
-        codigoHash,
-        tipo: 'VERIFICACAO_SMS',
-        expiraEm: new Date(Date.now() + 10 * 60 * 1000), // 10 minutos
-      },
-    });
-
-    // Enviar SMS
-    await sms.enviarCodigoVerificacao(celular, codigo);
+    // Gerar tokens para login automatico
+    const { token, refreshToken } = await gerarTokens(usuario);
 
     return res.status(201).json({
-      mensagem: 'Codigo enviado para seu celular',
-      userId: usuario.id,
+      token,
+      refreshToken,
+      usuario: {
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+      },
     });
   } catch (err) {
     next(err);
