@@ -21,11 +21,13 @@ async function enviarEmailResetSenha(emailDestino, nomeUsuario, linkReset) {
         </div>
         <h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Olá, ${nomeUsuario} 👋</h2>
         <p style="color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;margin:0 0 28px;">
-          Recebemos uma solicitação para redefinir a senha da sua conta VITAE. Clique no link abaixo para criar uma nova senha:
+          Recebemos uma solicitação para redefinir a senha da sua conta VITAE. Clique no botão abaixo para criar uma nova senha.
         </p>
-        <p style="margin:0 0 28px;">
-          <a href="${linkReset}" style="color:#C5A55A;font-size:15px;word-break:break-all;">Redefinir minha senha</a>
-        </p>
+        <div style="text-align:center;margin-bottom:28px;">
+          <a href="${linkReset}" style="display:inline-block;background:linear-gradient(135deg,#C5A55A,#D4B96A);color:#0A0A0A;text-decoration:none;padding:16px 40px;border-radius:12px;font-weight:700;font-size:15px;letter-spacing:0.5px;">
+            Redefinir minha senha
+          </a>
+        </div>
         <p style="color:rgba(255,255,255,0.3);font-size:12px;line-height:1.6;margin:0;">
           Este link expira em <strong style="color:rgba(255,255,255,0.5);">30 minutos</strong>. Se você não solicitou a redefinição, ignore este email — sua senha permanece a mesma.
         </p>
