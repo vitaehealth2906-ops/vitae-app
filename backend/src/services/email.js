@@ -12,7 +12,7 @@ async function enviarEmailResetSenha(emailDestino, nomeUsuario, linkReset) {
   await transporter.sendMail({
     from: `"VITAE Health" <${process.env.GMAIL_USER}>`,
     to: emailDestino,
-    subject: 'Redefinir sua senha — VITAE',
+    subject: 'VITAE — Link para redefinir sua senha',
     html: `
       <div style="background:#0A0A0A;padding:40px;font-family:Inter,sans-serif;max-width:480px;margin:0 auto;border-radius:16px;">
         <div style="text-align:center;margin-bottom:32px;">
