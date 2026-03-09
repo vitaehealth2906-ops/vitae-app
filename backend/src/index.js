@@ -61,7 +61,7 @@ app.use(errorHandler);
 // ── Inicializacao do servidor ─────────────────────────
 const PORT = parseInt(process.env.PORT, 10) || 3001;
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`[VITAE] Servidor rodando na porta ${PORT}`);
   console.log(`[VITAE] Ambiente: ${process.env.NODE_ENV || 'development'}`);
 });
