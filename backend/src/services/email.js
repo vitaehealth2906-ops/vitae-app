@@ -1,16 +1,10 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function enviarEmailResetSenha(emailDestino, nomeUsuario, linkReset) {
-  await transporter.sendMail({
-    from: `"VITAE Health" <${process.env.GMAIL_USER}>`,
+  await resend.emails.send({
+    from: 'VITAE Health <onboarding@resend.dev>',
     to: emailDestino,
     subject: 'VITAE — Link para redefinir sua senha',
     html: `
