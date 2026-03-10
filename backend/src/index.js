@@ -61,9 +61,30 @@ app.use(errorHandler);
 // ── Inicializacao do servidor ─────────────────────────
 const PORT = parseInt(process.env.PORT, 10) || 3001;
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`[VITAE] Servidor rodando na porta ${PORT}`);
   console.log(`[VITAE] Ambiente: ${process.env.NODE_ENV || 'development'}`);
+
+  // Limpa exames travados em PROCESSANDO/ENVIADO de deploys anteriores
+  try {
+    const prisma = require('./utils/prisma');
+    const corte = new Date(Date.now() - 10 * 60 * 1000); // 10 minutos atrás
+    const result = await prisma.exame.updateMany({
+      where: {
+        status: { in: ['PROCESSANDO', 'ENVIADO'] },
+        criadoEm: { lt: corte },
+      },
+      data: {
+        status: 'ERRO',
+        erroProcessamento: 'Processamento interrompido por reinicialização do servidor. Envie o exame novamente.',
+      },
+    });
+    if (result.count > 0) {
+      console.log(`[VITAE] ${result.count} exame(s) travado(s) marcado(s) como ERRO.`);
+    }
+  } catch (e) {
+    console.error('[VITAE] Erro ao limpar exames travados:', e.message);
+  }
 });
 
 module.exports = app;

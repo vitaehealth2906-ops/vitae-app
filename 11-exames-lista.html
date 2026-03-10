@@ -672,9 +672,18 @@ async function loadExams() {
     const data = await vitaeAPI.listarExames();
     const raw = data.exames || data || [];
 
-    // Separa exames prontos dos que ainda estão processando/erro
-    processingExams = raw.filter(e => ['ENVIADO', 'PROCESSANDO'].includes(e.status));
-    const errorExams = raw.filter(e => e.status === 'ERRO');
+    // Exames em processando há mais de 5 min → trata como erro no frontend
+    const TIMEOUT_MS = 5 * 60 * 1000;
+    const agora = Date.now();
+    processingExams = raw.filter(e =>
+      ['ENVIADO', 'PROCESSANDO'].includes(e.status) &&
+      (agora - new Date(e.criadoEm).getTime()) < TIMEOUT_MS
+    );
+    const timedOut = raw.filter(e =>
+      ['ENVIADO', 'PROCESSANDO'].includes(e.status) &&
+      (agora - new Date(e.criadoEm).getTime()) >= TIMEOUT_MS
+    );
+    const errorExams = [...raw.filter(e => e.status === 'ERRO'), ...timedOut];
 
     // Só exibe na lista exames 100% prontos com parâmetros reais
     allExams = raw
