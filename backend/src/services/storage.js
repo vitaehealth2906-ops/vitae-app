@@ -26,19 +26,23 @@ const BUCKET_EXAMES = 'exames';
 /**
  * Faz upload de um arquivo para o Supabase Storage.
  */
+function uploadLocal({ buffer, nomeOriginal, pasta }) {
+  const fs = require('fs');
+  const path = require('path');
+  const uploadDir = path.join(__dirname, '../../uploads', pasta || '');
+  fs.mkdirSync(uploadDir, { recursive: true });
+  const fileName = `${Date.now()}-${nomeOriginal.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  const filePath = path.join(uploadDir, fileName);
+  fs.writeFileSync(filePath, buffer);
+  return `/uploads/${pasta ? pasta + '/' : ''}${fileName}`;
+}
+
 async function upload({ buffer, nomeOriginal, mimetype, pasta }) {
   const client = getSupabase();
 
-  // Se Supabase nao estiver configurado, salva localmente como fallback
+  // Se Supabase nao estiver configurado, salva localmente
   if (!client) {
-    const fs = require('fs');
-    const path = require('path');
-    const uploadDir = path.join(__dirname, '../../uploads', pasta || '');
-    fs.mkdirSync(uploadDir, { recursive: true });
-    const fileName = `${Date.now()}-${nomeOriginal.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-    const filePath = path.join(uploadDir, fileName);
-    fs.writeFileSync(filePath, buffer);
-    return `/uploads/${pasta ? pasta + '/' : ''}${fileName}`;
+    return uploadLocal({ buffer, nomeOriginal, pasta });
   }
 
   const nomeSeguro = nomeOriginal
@@ -57,7 +61,9 @@ async function upload({ buffer, nomeOriginal, mimetype, pasta }) {
     });
 
   if (error) {
-    throw new Error(`Falha ao fazer upload: ${error.message}`);
+    // Bucket nao existe ou permissao negada → fallback local
+    console.warn(`[STORAGE] Supabase falhou (${error.message}). Usando armazenamento local.`);
+    return uploadLocal({ buffer, nomeOriginal, pasta });
   }
 
   const { data: urlData } = client.storage

@@ -16,12 +16,10 @@ const PRISMA_ERROR_MAP = {
  * Deve ser registrado como o ultimo middleware no Express.
  */
 function errorHandler(err, req, res, _next) {
-  // --- Log em desenvolvimento ---
+  // --- Log sempre (Railway captura stderr) ---
+  console.error(`[ERROR] ${req.method} ${req.originalUrl} — ${err.message}`);
   if (process.env.NODE_ENV === 'development') {
-    console.error('--- ERRO ---');
-    console.error('Rota:', req.method, req.originalUrl);
-    console.error(err);
-    console.error('------------');
+    console.error(err.stack);
   }
 
   // --- Erros do Prisma (PrismaClientKnownRequestError) ---
