@@ -21,7 +21,7 @@ function getSupabase() {
   return supabase;
 }
 
-const BUCKET_EXAMES = 'exames';
+const BUCKET_EXAMES = 'vitae';
 
 /**
  * Faz upload de um arquivo para o Supabase Storage.
