@@ -38,7 +38,10 @@ async function processarExame(exameId, usuarioId) {
         arquivoBuffer = fs.readFileSync(path.join(__dirname, '../..', exame.arquivoUrl));
       } else {
         const response = await fetch(exame.arquivoUrl);
+        if (!response.ok) throw new Error(`Falha ao baixar arquivo (${response.status}): ${exame.arquivoUrl}`);
         arquivoBuffer = Buffer.from(await response.arrayBuffer());
+        if (!arquivoBuffer || arquivoBuffer.length === 0) throw new Error('Arquivo baixado está vazio. Verifique as permissões do Storage.');
+        console.log(`[EXAME] Arquivo baixado: ${arquivoBuffer.length} bytes`);
       }
     }
 
@@ -91,7 +94,6 @@ async function processarExame(exameId, usuarioId) {
         where: { id: exameId },
         data: {
           status: 'CONCLUIDO',
-          textoExtraido,
           tipoExame: dadosEstruturados.tipo_exame || dadosEstruturados.nome_exame || null,
           laboratorio: dadosEstruturados.laboratorio || null,
           dadosEstruturados: dadosEstruturados,
