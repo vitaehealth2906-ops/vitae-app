@@ -29,21 +29,22 @@ async function processarExame(exameId, usuarioId) {
 
     const exame = await prisma.exame.findUnique({ where: { id: exameId } });
 
-    let textoExtraido;
+    // Obtém o buffer do arquivo (local ou Supabase)
+    let arquivoBuffer;
     if (exame.arquivoUrl) {
       if (exame.arquivoUrl.startsWith('/uploads/')) {
         const fs = require('fs');
         const path = require('path');
-        const filePath = path.join(__dirname, '../..', exame.arquivoUrl);
-        const buffer = fs.readFileSync(filePath);
-        textoExtraido = await ocr.extrairTexto(buffer, exame.tipoArquivo);
+        arquivoBuffer = fs.readFileSync(path.join(__dirname, '../..', exame.arquivoUrl));
       } else {
         const response = await fetch(exame.arquivoUrl);
-        const buffer = Buffer.from(await response.arrayBuffer());
-        textoExtraido = await ocr.extrairTexto(buffer, exame.tipoArquivo);
+        arquivoBuffer = Buffer.from(await response.arrayBuffer());
       }
     }
 
+    if (!arquivoBuffer) throw new Error('Arquivo do exame não encontrado.');
+
+    // Busca perfil em paralelo com o carregamento já em andamento
     const [perfil, medicamentos, alergias] = await Promise.all([
       prisma.perfilSaude.findUnique({ where: { usuarioId } }),
       prisma.medicamento.findMany({ where: { usuarioId, ativo: true } }),
@@ -57,19 +58,18 @@ async function processarExame(exameId, usuarioId) {
       historicoFamiliar: perfil?.historicoFamiliar || [],
     };
 
-    const dadosEstruturados = await ai.estruturarExame(textoExtraido, contexto);
+    // UMA única chamada à IA: lê o arquivo E estrutura tudo de uma vez
+    const dadosEstruturados = await ai.estruturarExameDeArquivo(arquivoBuffer, exame.tipoArquivo, contexto);
 
-    // Validação de completude — exame só é aceito se a IA identificou tipo e parâmetros
+    // Validação de completude
     const tipoIdentificado = dadosEstruturados.tipo_exame || dadosEstruturados.nome_exame;
     const temParametros = dadosEstruturados.parametros && dadosEstruturados.parametros.length > 0;
     if (!tipoIdentificado || !temParametros) {
-      throw new Error(
-        'A IA não conseguiu identificar os parâmetros do exame. ' +
-        'Verifique se o arquivo é um resultado de laboratório completo e legível, e tente novamente.'
-      );
+      throw new Error('A IA não identificou parâmetros no exame. Verifique se o arquivo é um resultado de laboratório completo.');
     }
 
-    const analise = await ai.gerarAnaliseExame(dadosEstruturados, contexto);
+    // Usa os dados já gerados na primeira chamada (resumo, impactos, melhorias já vêm junto)
+    const analise = dadosEstruturados;
 
     await prisma.$transaction(async (tx) => {
       if (dadosEstruturados.parametros && dadosEstruturados.parametros.length > 0) {

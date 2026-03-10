@@ -60,28 +60,11 @@ function montarContextoPerfil(perfilUsuario) {
 }
 
 /**
- * Envia o texto extraído de um exame laboratorial para o Claude e retorna
- * os dados estruturados em JSON.
- *
- * @param {string} textoExtraido - Texto bruto extraído do exame (via OCR ou PDF).
- * @param {object} perfilUsuario - Perfil do usuário (idade, sexo, peso, etc.).
- * @returns {object} Dados estruturados do exame.
+ * Monta o prompt de estruturação do exame (usado tanto pela versão texto quanto pela versão arquivo).
  */
-async function estruturarExame(textoExtraido, perfilUsuario) {
-  if (!textoExtraido || textoExtraido.trim().length === 0) {
-    throw new Error('Texto do exame está vazio. Não foi possível processar.');
-  }
+function montarPromptEstruturacao(contextoPerfil) {
+  return `Analise este exame laboratorial e retorne EXCLUSIVAMENTE um JSON válido (sem markdown, sem blocos de código) com a seguinte estrutura:${contextoPerfil}
 
-  const contextoPerfil = montarContextoPerfil(perfilUsuario);
-
-  const userPrompt = `Analise o seguinte texto extraído de um exame laboratorial e retorne um JSON estruturado.${contextoPerfil}
-
-Texto do exame:
----
-${textoExtraido}
----
-
-Retorne EXCLUSIVAMENTE um JSON válido (sem markdown, sem blocos de código) com a seguinte estrutura:
 {
   "tipo_exame": "string (ex: 'hemograma', 'bioquimica', 'hormonal', 'urina')",
   "nome_exame": "string (nome completo do exame)",
@@ -116,6 +99,71 @@ Retorne EXCLUSIVAMENTE um JSON válido (sem markdown, sem blocos de código) com
     }
   ]
 }`;
+}
+
+function parsearRespostaIA(conteudo) {
+  try {
+    return JSON.parse(conteudo);
+  } catch {
+    const jsonMatch = conteudo.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) return JSON.parse(jsonMatch[1].trim());
+    throw new Error('Falha ao interpretar a resposta da IA. Resposta não é um JSON válido.');
+  }
+}
+
+/**
+ * Analisa um arquivo de exame diretamente — lê e estrutura em UMA ÚNICA chamada à API.
+ * Mais rápido que a abordagem OCR + estruturar separadamente.
+ *
+ * @param {Buffer} arquivoBuffer - Buffer do arquivo (PDF ou imagem).
+ * @param {string} mimeType - Tipo MIME do arquivo.
+ * @param {object} perfilUsuario - Perfil do usuário.
+ * @returns {object} Dados estruturados do exame.
+ */
+async function estruturarExameDeArquivo(arquivoBuffer, mimeType, perfilUsuario) {
+  const base64 = arquivoBuffer.toString('base64');
+  const tipo = (mimeType || '').toLowerCase();
+  const contextoPerfil = montarContextoPerfil(perfilUsuario);
+
+  let contentItem;
+  if (tipo === 'application/pdf') {
+    contentItem = {
+      type: 'document',
+      source: { type: 'base64', media_type: 'application/pdf', data: base64 },
+    };
+  } else {
+    const mediaType = tipo === 'image/jpg' ? 'image/jpeg' : tipo;
+    contentItem = {
+      type: 'image',
+      source: { type: 'base64', media_type: mediaType, data: base64 },
+    };
+  }
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4096,
+    system: SYSTEM_PROMPT_ESTRUTURAR,
+    messages: [{
+      role: 'user',
+      content: [contentItem, { type: 'text', text: montarPromptEstruturacao(contextoPerfil) }],
+    }],
+  });
+
+  return parsearRespostaIA(response.content[0].text.trim());
+}
+
+/**
+ * Envia o texto extraído de um exame laboratorial para o Claude e retorna
+ * os dados estruturados em JSON.
+ * (Mantido para compatibilidade — prefira estruturarExameDeArquivo quando possível)
+ */
+async function estruturarExame(textoExtraido, perfilUsuario) {
+  if (!textoExtraido || textoExtraido.trim().length === 0) {
+    throw new Error('Texto do exame está vazio. Não foi possível processar.');
+  }
+
+  const contextoPerfil = montarContextoPerfil(perfilUsuario);
+  const userPrompt = `Texto do exame:\n---\n${textoExtraido}\n---\n\n${montarPromptEstruturacao(contextoPerfil)}`;
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
@@ -124,20 +172,7 @@ Retorne EXCLUSIVAMENTE um JSON válido (sem markdown, sem blocos de código) com
     messages: [{ role: 'user', content: userPrompt }],
   });
 
-  const conteudo = response.content[0].text.trim();
-
-  try {
-    return JSON.parse(conteudo);
-  } catch (parseError) {
-    // Tenta extrair JSON de possíveis blocos de código markdown
-    const jsonMatch = conteudo.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[1].trim());
-    }
-    throw new Error(
-      `Falha ao interpretar a resposta da IA. Resposta recebida não é um JSON válido.`
-    );
-  }
+  return parsearRespostaIA(response.content[0].text.trim());
 }
 
 /**
@@ -525,6 +560,7 @@ Regras:
 
 module.exports = {
   estruturarExame,
+  estruturarExameDeArquivo,
   gerarAnaliseExame,
   calcularIdadeBiologica,
   gerarMelhorias,
