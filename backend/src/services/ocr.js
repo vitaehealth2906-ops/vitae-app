@@ -4,10 +4,11 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const TEXTO_MINIMO_PDF = 100;
+const TEXTO_MINIMO = 80;
 
 /**
- * Extrai texto embutido de um buffer PDF usando busca por streams de texto.
+ * Extrai texto embutido de um buffer PDF usando streams de texto.
+ * Retorna null se o texto for insuficiente (PDF escaneado).
  */
 function extrairTextoDiretoPdf(pdfBuffer) {
   try {
@@ -39,18 +40,36 @@ function extrairTextoDiretoPdf(pdfBuffer) {
     }
 
     const textoFinal = blocos.join(' ').replace(/\s+/g, ' ').trim();
-    return textoFinal.length >= TEXTO_MINIMO_PDF ? textoFinal : null;
+    return textoFinal.length >= TEXTO_MINIMO ? textoFinal : null;
   } catch {
     return null;
   }
 }
 
 /**
- * Usa Claude Vision para extrair texto de uma imagem de exame.
+ * Envia um arquivo (imagem ou PDF escaneado) para o Claude extrair o texto visualmente.
+ * Suporta PDFs nativos e imagens.
  */
-async function ocrComClaude(imagemBuffer, mimeType) {
-  const base64 = imagemBuffer.toString('base64');
-  const mediaType = mimeType === 'image/jpg' ? 'image/jpeg' : mimeType;
+async function lerArquivoComClaude(arquivoBuffer, mimeType) {
+  const base64 = arquivoBuffer.toString('base64');
+  const tipo = (mimeType || '').toLowerCase();
+
+  let contentItem;
+
+  if (tipo === 'application/pdf') {
+    // Claude lê o PDF diretamente — incluindo PDFs escaneados (sem texto selecionável)
+    contentItem = {
+      type: 'document',
+      source: { type: 'base64', media_type: 'application/pdf', data: base64 },
+    };
+  } else {
+    // Imagem: JPEG, PNG etc.
+    const mediaType = tipo === 'image/jpg' ? 'image/jpeg' : tipo;
+    contentItem = {
+      type: 'image',
+      source: { type: 'base64', media_type: mediaType, data: base64 },
+    };
+  }
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
@@ -59,17 +78,10 @@ async function ocrComClaude(imagemBuffer, mimeType) {
       {
         role: 'user',
         content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: mediaType,
-              data: base64,
-            },
-          },
+          contentItem,
           {
             type: 'text',
-            text: 'Extraia TODO o texto visivel nesta imagem de exame laboratorial. Mantenha a formatacao original o maximo possivel, incluindo nomes de parametros, valores, unidades e faixas de referencia. Retorne apenas o texto extraido, sem comentarios.',
+            text: 'Extraia TODO o texto visível neste documento de exame laboratorial. Mantenha a formatação original o máximo possível, incluindo nomes de parâmetros, valores, unidades e faixas de referência. Se o documento estiver em formato de tabela, preserve a estrutura. Retorne apenas o texto extraído, sem comentários ou explicações.',
           },
         ],
       },
@@ -77,54 +89,53 @@ async function ocrComClaude(imagemBuffer, mimeType) {
   });
 
   const texto = response.content[0].text.trim();
+
   if (!texto || texto.length < 20) {
-    throw new Error('Nenhum texto foi detectado na imagem. Verifique se a imagem do exame esta nitida e legivel.');
+    throw new Error(
+      'O arquivo não contém texto legível. Verifique se o arquivo é um resultado de laboratório válido.'
+    );
   }
+
   return texto;
 }
 
 /**
  * Extrai texto de um arquivo de exame (PDF ou imagem).
- * Para PDFs, tenta extracao direta primeiro. Se falhar, usa Claude Vision.
- * Para imagens, usa Claude Vision diretamente.
+ *
+ * Estratégia:
+ * - PDF com texto → extração direta (rápido, sem custo de API)
+ * - PDF escaneado → Claude lê visualmente o documento
+ * - Imagem (JPG/PNG) → Claude Vision
  */
 async function extrairTexto(arquivoBuffer, tipoArquivo) {
   if (!arquivoBuffer || arquivoBuffer.length === 0) {
-    throw new Error('O arquivo enviado esta vazio.');
+    throw new Error('O arquivo enviado está vazio.');
   }
 
   if (!tipoArquivo) {
-    throw new Error('O tipo do arquivo nao foi informado.');
+    throw new Error('O tipo do arquivo não foi informado.');
   }
 
   const tipo = tipoArquivo.toLowerCase();
 
-  try {
-    if (tipo === 'application/pdf' || tipo === 'pdf') {
-      // Tenta extracao direta primeiro (mais rapida e sem custo de API)
-      const textoDireto = extrairTextoDiretoPdf(arquivoBuffer);
-      if (textoDireto) {
-        return textoDireto;
-      }
-      // Fallback: Claude Vision nao suporta PDF diretamente
-      // Retorna erro pedindo que envie como imagem
-      throw new Error('Este PDF nao contem texto selecionavel. Por favor, tire uma foto do exame e envie como imagem (JPG ou PNG).');
+  if (tipo === 'application/pdf' || tipo === 'pdf') {
+    // Tenta extração direta primeiro (mais rápida e sem custo de API)
+    const textoDireto = extrairTextoDiretoPdf(arquivoBuffer);
+    if (textoDireto) {
+      console.log('[OCR] PDF com texto selecionável — extração direta OK');
+      return textoDireto;
     }
-
-    if (['image/jpeg', 'image/jpg', 'image/png', 'jpeg', 'jpg', 'png'].includes(tipo)) {
-      return await ocrComClaude(arquivoBuffer, tipo.startsWith('image/') ? tipo : `image/${tipo}`);
-    }
-
-    throw new Error(`Tipo de arquivo nao suportado: ${tipoArquivo}. Envie um PDF, JPG ou PNG.`);
-  } catch (err) {
-    if (err.message && /[àáâãéêíóôõúç]/i.test(err.message)) {
-      throw err;
-    }
-    if (err.message && (err.message.includes('nao') || err.message.includes('Este PDF'))) {
-      throw err;
-    }
-    throw new Error(`Erro ao processar o arquivo: ${err.message || 'falha desconhecida'}. Tente novamente.`);
+    // PDF escaneado: Claude lê visualmente
+    console.log('[OCR] PDF sem texto selecionável — usando Claude Vision');
+    return await lerArquivoComClaude(arquivoBuffer, 'application/pdf');
   }
+
+  if (['image/jpeg', 'image/jpg', 'image/png', 'jpeg', 'jpg', 'png'].includes(tipo)) {
+    const mime = tipo.startsWith('image/') ? tipo : `image/${tipo}`;
+    return await lerArquivoComClaude(arquivoBuffer, mime);
+  }
+
+  throw new Error(`Tipo de arquivo não suportado: ${tipoArquivo}. Envie PDF, JPG ou PNG.`);
 }
 
 module.exports = {

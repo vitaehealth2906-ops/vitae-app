@@ -58,6 +58,17 @@ async function processarExame(exameId, usuarioId) {
     };
 
     const dadosEstruturados = await ai.estruturarExame(textoExtraido, contexto);
+
+    // Validação de completude — exame só é aceito se a IA identificou tipo e parâmetros
+    const tipoIdentificado = dadosEstruturados.tipo_exame || dadosEstruturados.nome_exame;
+    const temParametros = dadosEstruturados.parametros && dadosEstruturados.parametros.length > 0;
+    if (!tipoIdentificado || !temParametros) {
+      throw new Error(
+        'A IA não conseguiu identificar os parâmetros do exame. ' +
+        'Verifique se o arquivo é um resultado de laboratório completo e legível, e tente novamente.'
+      );
+    }
+
     const analise = await ai.gerarAnaliseExame(dadosEstruturados, contexto);
 
     await prisma.$transaction(async (tx) => {
@@ -159,17 +170,27 @@ router.get('/', async (req, res, next) => {
       orderBy: { criadoEm: 'desc' },
       select: {
         id: true, nomeArquivo: true, tipoExame: true, laboratorio: true,
-        dataExame: true, status: true, statusGeral: true, criadoEm: true,
-        _count: { select: { parametros: true } },
+        arquivoUrl: true, dataExame: true, status: true, statusGeral: true,
+        erroProcessamento: true, criadoEm: true,
+        parametros: { select: { classificacao: true } },
       },
     });
 
     return res.status(200).json({
-      exames: exames.map((e) => ({
-        id: e.id, nomeArquivo: e.nomeArquivo, tipoExame: e.tipoExame,
-        laboratorio: e.laboratorio, dataExame: e.dataExame, status: e.status,
-        statusGeral: e.statusGeral, totalParametros: e._count.parametros, criadoEm: e.criadoEm,
-      })),
+      exames: exames.map((e) => {
+        const params = e.parametros || [];
+        const normalCount = params.filter(p => ['NORMAL', ''].includes(p.classificacao || '')).length;
+        const atencaoCount = params.filter(p => ['ALTO', 'BAIXO', 'ATENCAO'].includes(p.classificacao || '')).length;
+        const criticoCount = params.filter(p => p.classificacao === 'CRITICO').length;
+        return {
+          id: e.id, nomeArquivo: e.nomeArquivo, tipoExame: e.tipoExame,
+          laboratorio: e.laboratorio, arquivoUrl: e.arquivoUrl,
+          dataExame: e.dataExame, status: e.status, statusGeral: e.statusGeral,
+          erroProcessamento: e.erroProcessamento,
+          totalParametros: params.length, normalCount, atencaoCount, criticoCount,
+          criadoEm: e.criadoEm,
+        };
+      }),
     });
   } catch (err) {
     next(err);

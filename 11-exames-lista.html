@@ -644,38 +644,114 @@ function showToast(txt) {
 }
 
 // ══════════════════════════════
+// POLLING CONTROL
+// ══════════════════════════════
+let pollInterval = null;
+
+function startPolling() {
+  if (pollInterval) return;
+  pollInterval = setInterval(async () => {
+    const prevProcessing = processingExams.length;
+    await loadExams();
+    // Se terminou de processar, para o polling
+    if (processingExams.length === 0) stopPolling();
+  }, 8000);
+}
+
+function stopPolling() {
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+}
+
+// ══════════════════════════════
 // LOAD EXAMS LIST
 // ══════════════════════════════
+let processingExams = []; // exames ainda em análise
+
 async function loadExams() {
   try {
     const data = await vitaeAPI.listarExames();
     const raw = data.exames || data || [];
-    allExams = raw.map(e => ({
-      id: e.id,
-      name: e.tipoExame || 'Exame',
-      date: formatDate(e.dataExame || e.criadoEm),
-      dateFull: formatDateFull(e.dataExame || e.criadoEm),
-      lab: e.laboratorio || '',
-      statusRaw: e.status || 'NORMAL',
-      statusCls: apiStatusClass(e.status),
-      params: e.parametros || [],
-      analise: e.analise || '',
-    }));
-    renderLista();
+
+    // Separa exames prontos dos que ainda estão processando/erro
+    processingExams = raw.filter(e => ['ENVIADO', 'PROCESSANDO'].includes(e.status));
+    const errorExams = raw.filter(e => e.status === 'ERRO');
+
+    // Só exibe na lista exames 100% prontos com parâmetros reais
+    allExams = raw
+      .filter(e => e.status === 'CONCLUIDO' && (e.totalParametros || 0) > 0)
+      .map(e => ({
+        id: e.id,
+        name: e.tipoExame || 'Exame',
+        date: formatDate(e.dataExame || e.criadoEm),
+        dateFull: formatDateFull(e.dataExame || e.criadoEm),
+        lab: e.laboratorio || '',
+        arquivoUrl: e.arquivoUrl || null,
+        statusRaw: e.statusGeral || 'NORMAL',
+        statusCls: apiStatusClass(e.statusGeral),
+        totalParams: e.totalParametros || 0,
+        normalCount: e.normalCount || 0,
+        atencaoCount: e.atencaoCount || 0,
+        criticoCount: e.criticoCount || 0,
+      }));
+
+    renderLista(processingExams.length, errorExams);
+
+    // Inicia polling se há exames processando
+    if (processingExams.length > 0) startPolling();
+    else stopPolling();
+
   } catch (err) {
     console.log('Erro ao carregar exames:', err.message);
-    renderLista();
+    renderLista(0, []);
   }
 }
 
 // ══════════════════════════════
 // RENDER LISTA
 // ══════════════════════════════
-function renderLista() {
+function renderLista(processingCount = 0, errorExams = []) {
   const container = document.getElementById('listaContent');
 
-  if (allExams.length === 0) {
-    container.innerHTML = `
+  let html = '';
+
+  // Banner de análise em andamento
+  if (processingCount > 0) {
+    html += `
+      <div class="fade" style="margin:0 18px 14px;padding:14px 18px;border-radius:16px;
+        background:rgba(201,169,110,.1);border:1px solid rgba(201,169,110,.22);
+        display:flex;align-items:center;gap:12px">
+        <div style="width:18px;height:18px;flex-shrink:0;border-radius:50%;
+          border:1.5px solid transparent;border-top-color:var(--gold);
+          animation:spinRing 1s linear infinite"></div>
+        <div>
+          <div style="font-family:'Jost',sans-serif;font-size:13px;font-weight:400;color:var(--ink)">
+            ${processingCount} exame${processingCount > 1 ? 's' : ''} em análise
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;color:var(--ink4);margin-top:3px">
+            A IA está lendo o documento • atualiza automaticamente
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Exames com erro
+  errorExams.forEach((e, i) => {
+    html += `
+      <div class="exam-gc fade" style="margin-bottom:10px;opacity:.75">
+        <div class="exam-gi">
+          <div class="e-info">
+            <div class="e-meta" style="color:var(--red)">${formatDate(e.criadoEm)} · Erro</div>
+            <div class="e-name">${e.nomeArquivo || 'Exame'}</div>
+            <div class="tag-row"><span class="tag crit">Não foi possível analisar</span></div>
+          </div>
+          <div class="e-arr" style="color:var(--ink4)">›</div>
+        </div>
+      </div>`;
+  });
+
+  // Nenhum exame pronto ainda
+  if (allExams.length === 0 && processingCount === 0 && errorExams.length === 0) {
+    container.innerHTML = html + `
       <div class="empty-state fade">
         <div class="empty-icon">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(160,120,64,.6)" stroke-width="1.5" stroke-linecap="round">
@@ -684,8 +760,13 @@ function renderLista() {
           </svg>
         </div>
         <div class="empty-title">Nenhum exame ainda</div>
-        <div class="empty-sub">Envie seu primeiro resultado de laboratório.<br>A IA analisa em segundos.</div>
+        <div class="empty-sub">Envie seu primeiro resultado de laboratório.<br>A IA analisa e estrutura tudo automaticamente.</div>
       </div>`;
+    return;
+  }
+
+  if (allExams.length === 0) {
+    container.innerHTML = html;
     return;
   }
 
@@ -693,23 +774,17 @@ function renderLista() {
   const normals = allExams.filter(e => e.statusCls === 'ok').length;
   const crits = allExams.filter(e => e.statusCls === 'crit').length;
 
-  let html = `<div class="sec-label fade d2">${total} resultado${total > 1 ? 's' : ''} · ${normals} normais${crits > 0 ? ' · ' + crits + ' críticos' : ''}</div>`;
+  html += `<div class="sec-label fade d2">${total} resultado${total > 1 ? 's' : ''} · ${normals} normais${crits > 0 ? ' · ' + crits + ' críticos' : ''}</div>`;
 
   allExams.forEach((e, i) => {
-    const score = calcScore(e.params);
+    const score = e.totalParams > 0 ? (e.normalCount / e.totalParams * 10).toFixed(1) : '--';
     const sCls = e.statusCls;
-    const nOtimos = e.params.filter(p => (p.classificacao || '').toUpperCase() === 'NORMAL').length;
-    const nAtencao = e.params.filter(p => { const c = (p.classificacao || '').toUpperCase(); return c === 'ALTO' || c === 'BAIXO'; }).length;
-    const nCrits = e.params.filter(p => (p.classificacao || '').toUpperCase() === 'CRITICO').length;
-    const isProc = e.statusRaw === 'PROCESSANDO';
 
-    const tags = isProc
-      ? '<span class="tag proc">Processando...</span>'
-      : [
-          nOtimos > 0 ? `<span class="tag ok">${nOtimos} ótimo${nOtimos > 1 ? 's' : ''}</span>` : '',
-          nAtencao > 0 ? `<span class="tag warn">${nAtencao} atenção</span>` : '',
-          nCrits > 0 ? `<span class="tag crit">${nCrits} crítico${nCrits > 1 ? 's' : ''}</span>` : '',
-        ].filter(Boolean).join('') || '<span class="tag ok">Analisado</span>';
+    const tags = [
+      e.normalCount > 0 ? `<span class="tag ok">${e.normalCount} ótimo${e.normalCount > 1 ? 's' : ''}</span>` : '',
+      e.atencaoCount > 0 ? `<span class="tag warn">${e.atencaoCount} atenção</span>` : '',
+      e.criticoCount > 0 ? `<span class="tag crit">${e.criticoCount} crítico${e.criticoCount > 1 ? 's' : ''}</span>` : '',
+    ].filter(Boolean).join('') || '<span class="tag ok">Analisado</span>';
 
     const meta = [e.date, e.lab].filter(Boolean).join(' · ');
 
@@ -721,10 +796,10 @@ function renderLista() {
             <div class="e-name">${e.name}</div>
             <div class="tag-row">${tags}</div>
           </div>
-          ${!isProc ? `<div class="e-score">
+          <div class="e-score">
             <div class="e-num ${sCls}">${score}</div>
             <div class="e-den">/ 10</div>
-          </div>` : ''}
+          </div>
           <div class="e-arr">›</div>
         </div>
       </div>`;
@@ -740,8 +815,8 @@ async function openExam(index) {
   currentExamBasic = allExams[index];
   if (!currentExamBasic) return;
 
-  if (currentExamBasic.statusRaw === 'PROCESSANDO') {
-    showToast('Este exame ainda está sendo analisado pela IA. Tente em alguns instantes.');
+  if (['PROCESSANDO', 'ENVIADO'].includes(currentExamBasic.statusRaw)) {
+    showToast('Este exame ainda está sendo analisado. Aguarde alguns instantes.');
     return;
   }
 
@@ -782,9 +857,18 @@ async function openExam(index) {
 // RENDER OVERVIEW SCREENS
 // ══════════════════════════════
 function renderHeroSkeleton(basic) {
-  const score = calcScore(basic.params);
+  const score = basic.totalParams > 0 ? (basic.normalCount / basic.totalParams * 10).toFixed(1) : '--';
   const sCls = basic.statusCls;
   const statusLabel = { ok: 'Normal', warn: 'Atenção em alguns marcadores', crit: 'Atenção — marcadores críticos', proc: 'Processando...' };
+  const fileBtn = basic.arquivoUrl
+    ? `<a href="${basic.arquivoUrl}" target="_blank" rel="noopener" style="
+        font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;
+        color:var(--gold-l);background:rgba(201,169,110,.12);border:1px solid rgba(201,169,110,.25);
+        padding:7px 14px;border-radius:20px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Ver exame original
+      </a>`
+    : '';
   document.getElementById('heroCard').innerHTML = `
     <div class="gc-hero">
       <div class="gi-dark">
@@ -798,6 +882,7 @@ function renderHeroSkeleton(basic) {
           <button class="hero-cta primary" onclick="push('s-compare')">Ver evolução</button>
           <button class="hero-cta secondary" onclick="push('s-melhorias')">Melhorias</button>
         </div>
+        ${fileBtn ? `<div style="margin-top:10px">${fileBtn}</div>` : ''}
       </div>
     </div>`;
 }
@@ -1344,13 +1429,12 @@ fileInput.addEventListener('change', async function(e) {
   showUploadLoading();
   try {
     if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
-      const result = await vitaeAPI.uploadExame(file);
-      // Reload exams and open the new one
+      await vitaeAPI.uploadExame(file);
+      // Exame enviado — recarrega a lista (aparece o banner "em análise")
+      // Não abre o exame ainda — ele só aparece quando a IA terminar
       await loadExams();
-      // Find and open the newly uploaded exam
-      if (allExams.length > 0) {
-        setTimeout(() => openExam(0), 800);
-      }
+      resetUploadArea();
+      showToast('Exame enviado! A IA está analisando — você será avisado quando estiver pronto.');
     } else {
       // Demo: just show overview after animation
       setTimeout(() => {
