@@ -68,6 +68,7 @@ function montarPromptEstruturacao(contextoPerfil) {
 {
   "tipo_exame": "string (ex: 'hemograma', 'bioquimica', 'hormonal', 'urina')",
   "nome_exame": "string (nome completo do exame)",
+  "nome_amigavel": "string (nome do exame em linguagem leiga, ex: 'Exame de Sangue Completo', 'Painel do Coração', 'Painel Completo de Saúde')",
   "data_exame": "string (data no formato YYYY-MM-DD, ou null se não encontrada)",
   "laboratorio": "string (nome do laboratório, ou null se não encontrado)",
   "status_geral": "string ('NORMAL', 'ATENCAO' ou 'CRITICO')",
@@ -79,7 +80,10 @@ function montarPromptEstruturacao(contextoPerfil) {
       "referencia_min": "number ou null",
       "referencia_max": "number ou null",
       "referencia_texto": "string (faixa como aparece no exame)",
-      "classificacao": "string ('NORMAL', 'ATENCAO' ou 'CRITICO')"
+      "classificacao": "string ('NORMAL', 'ATENCAO' ou 'CRITICO')",
+      "explicacao_simples": "string (1-2 frases explicando o que este marcador significa para a saúde do paciente, em linguagem que qualquer pessoa entende, sem jargão médico)",
+      "impacto_pessoal": "string (como este resultado específico afeta o dia a dia desta pessoa — seja concreto: energia, sono, humor, etc. Só preencha se não for NORMAL)",
+      "dicas": ["string (dica prática e acionável para melhorar este marcador — só para valores ATENCAO ou CRITICO, máximo 2 dicas)"]
     }
   ],
   "resumo": "string (resumo em linguagem simples para o paciente, 2-4 frases)",
