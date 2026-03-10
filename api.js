@@ -4,7 +4,7 @@
  */
 
 const API_URL = ['localhost','127.0.0.1'].includes(window.location.hostname) || window.location.protocol === 'file:'
-  ? 'http://localhost:3001'
+  ? 'http://localhost:3002'
   : 'https://vitae-app-production.up.railway.app';
 
 // ---- Token management ----
