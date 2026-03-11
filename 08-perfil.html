@@ -1004,6 +1004,27 @@
         }
     }
 
+    function toNomeAmigavel(nome) {
+        if (!nome) return 'Exame de Saúde';
+        const n = nome.toLowerCase().trim();
+        if (n.includes('multiplo') || n === 'múltiplos' || n === 'multiplos') return 'Painel Completo de Saúde';
+        if (n.includes('hemograma')) return 'Exame de Sangue Completo';
+        if (n.includes('lipidogram') || (n.includes('lipid') && !n.includes('vitamina'))) return 'Perfil do Coração';
+        if (n.includes('glicemia') && n.includes('hba') || n.includes('glicada')) return 'Controle de Açúcar no Sangue';
+        if (n.includes('glicemia') || n.includes('glicose')) return 'Nível de Açúcar no Sangue';
+        if (n.includes('tsh') || n.includes('tireoide') || n.includes('tirói')) return 'Função da Tireoide';
+        if (n.includes('testosterona')) return 'Hormônios Masculinos';
+        if (n.includes('hormonal') || n.includes('estradiol') || n.includes('progesterona')) return 'Perfil Hormonal';
+        if (n.includes('vitamina')) return 'Vitaminas e Minerais';
+        if (n.includes('urina') || n.includes('urinalise') || n.includes('urinálise')) return 'Exame de Urina';
+        if (n.includes('fezes') || n.includes('parasitolog')) return 'Exame de Fezes';
+        if (n.includes('renal') || n.includes('rim')) return 'Função dos Rins';
+        if (n.includes('hepat') || n.includes('figado') || n.includes('fígado') || n.includes('tgo') || n.includes('tgp')) return 'Função do Fígado';
+        if (n.includes('check') || n.includes('painel') || n.includes('completo')) return 'Painel Completo de Saúde';
+        if (n.includes('bioquimica') || n.includes('bioquímica')) return 'Bioquímica Geral';
+        return nome;
+    }
+
     async function loadMedicationsFromAPI() {
         try {
             const data = await vitaeAPI.listarMedicamentos();
@@ -1028,7 +1049,7 @@
                 .filter(e => e.status === 'CONCLUIDO' && (e.totalParametros || 0) > 0)
                 .map(e => ({
                     id: e.id,
-                    name: e.tipoExame || 'Exame',
+                    name: toNomeAmigavel(e.tipoExame),
                     date: e.dataExame ? new Date(e.dataExame).toLocaleDateString('pt-BR', {day:'2-digit',month:'short',year:'numeric'}) : '',
                     lab: e.laboratorio || '',
                     statusGeral: e.statusGeral || 'NORMAL',
