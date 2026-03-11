@@ -350,6 +350,41 @@
         }
         .clickable-row:hover .info-arrow { color:rgba(255,255,255,0.3); }
 
+        /* Medications — Liquid Glass LEVE */
+        .med-card {
+            display:flex; align-items:center; gap:14px;
+            padding:14px 16px;
+            background:rgba(255,255,255,0.03);
+            backdrop-filter:blur(12px);
+            -webkit-backdrop-filter:blur(12px);
+            border:1px solid rgba(255,255,255,0.06);
+            border-top:1px solid rgba(255,255,255,0.08);
+            border-radius:14px;
+            margin-bottom:8px;
+            box-shadow:0 2px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.03);
+            transition:all 0.25s;
+        }
+        .med-dot {
+            width:8px; height:8px; border-radius:50%;
+            flex-shrink:0;
+        }
+        .med-dot.active { background:#4AD9A4; box-shadow:0 0 8px rgba(74,217,164,0.4); }
+        .med-info { flex:1; }
+        .med-name {
+            font-size:14px; font-weight:600;
+            color:rgba(255,255,255,0.8);
+            margin-bottom:2px;
+        }
+        .med-dosage {
+            font-size:12px; color:rgba(255,255,255,0.3);
+        }
+        .med-time {
+            font-size:11px; font-weight:600;
+            color:rgba(74,217,164,0.6);
+            background:rgba(74,217,164,0.08);
+            padding:4px 10px; border-radius:8px;
+        }
+
         /* Perfil Exam Cards */
         .pf-exam-card {
             display:flex; align-items:center; gap:10px;
@@ -844,13 +879,13 @@
             </div>
         </div>
 
-        <!-- Meus Exames -->
+        <!-- Medicamentos -->
         <div class="section anim" style="animation-delay:0.95s">
             <div class="section-header">
-                <span class="section-title">Meus Exames</span>
-                <button class="section-action" onclick="navigateTo('exames')">Ver todos</button>
+                <span class="section-title">Medicamentos</span>
+                <button class="section-action" onclick="navigateToMeds()">Adicionar</button>
             </div>
-            <div id="perfilExamsContainer"></div>
+            <div id="medsContainer"></div>
         </div>
 
         <!-- Alergias -->
@@ -862,7 +897,14 @@
             <div class="allergy-tags" id="allergiesContainer"></div>
         </div>
 
-        <!-- (Ultimos exames removido - agora é dinâmico em "Meus Exames" acima) -->
+        <!-- Meus Exames -->
+        <div class="section anim" style="animation-delay:1.15s">
+            <div class="section-header">
+                <span class="section-title">Meus Exames</span>
+                <button class="section-action" onclick="navigateTo('exames')">Ver todos</button>
+            </div>
+            <div id="perfilExamsContainer"></div>
+        </div>
 
         <!-- Share PDF -->
         <div class="section anim" style="animation-delay:1.25s">
@@ -959,6 +1001,22 @@
             }
         } catch (e) {
             console.log('Erro ao carregar perfil:', e.message);
+        }
+    }
+
+    async function loadMedicationsFromAPI() {
+        try {
+            const data = await vitaeAPI.listarMedicamentos();
+            medications = (data.medicamentos || data || []).map(m => ({
+                id: m.id,
+                name: m.nome,
+                dosage: m.dosagem || '',
+                frequency: m.frequencia || '',
+                time: m.horario || ''
+            }));
+            renderMedications();
+        } catch (e) {
+            console.log('Erro ao carregar medicamentos:', e.message);
         }
     }
 
@@ -1065,8 +1123,9 @@
     // Iniciar carregamento
     if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
         loadProfileData();
-        loadPerfilExams();
+        loadMedicationsFromAPI();
         loadAllergiesFromAPI();
+        loadPerfilExams();
         loadScoresFromAPI();
     }
 
