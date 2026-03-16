@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VITAE — Preview Completo RG da Saúde</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   PREVIEW SYSTEM — Navigation & Layout
+   ═══════════════════════════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0A0A0A; --bg-warm:#1A1610;
+  --gold:#C5A55A; --gold-l:#D4B96A; --gold-d:#A07840;
+  --green:#4AD9A4; --red:#D94452; --blue:#4A9FD9;
+  --ink:#fff; --ink2:rgba(255,255,255,0.8); --ink3:rgba(255,255,255,0.5);
+  --ink4:rgba(255,255,255,0.25); --ink5:rgba(255,255,255,0.1);
+  --glass:rgba(255,255,255,0.03); --glass-border:rgba(255,255,255,0.06);
+  --glass-border-t:rgba(255,255,255,0.08);
+}
+html,body{height:100%;overflow:hidden;background:#000;font-family:'Inter',sans-serif;color:#fff}
+
+/* Phone container */
+.phone{
+  width:393px;max-width:100vw;height:852px;max-height:100vh;
+  background:var(--bg);border-radius:52px;overflow:hidden;position:relative;
+  box-shadow:0 0 0 1px rgba(197,165,90,0.15),0 0 0 3px #1a1a1a,0 40px 120px rgba(0,0,0,0.9);
+  margin:auto;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+}
+.notch{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:126px;height:34px;background:var(--bg);border-radius:0 0 20px 20px;z-index:100;
+}
+.statusbar{
+  position:absolute;top:14px;left:28px;right:28px;
+  display:flex;justify-content:space-between;
+  font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);z-index:101;
+}
+
+/* Screen system */
+.screen{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  overflow-y:auto;overflow-x:hidden;
+  background:var(--bg);
+  opacity:0;pointer-events:none;
+  transition:opacity 0.35s ease,transform 0.4s cubic-bezier(.77,0,.18,1);
+  transform:translateX(60px);
+  z-index:1;
+}
+.screen::-webkit-scrollbar{display:none}
+.screen.active{opacity:1;pointer-events:all;transform:translateX(0);z-index:2}
+.screen.back{transform:translateX(-60px)}
+
+/* Common elements */
+.screen-pad{padding:70px 24px 120px}
+
+/* Top bar */
+.topbar{
+  padding:52px 22px 12px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:10;
+  background:linear-gradient(to bottom,var(--bg) 70%,transparent);
+}
+.topbar-title{
+  font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#fff;
+}
+.topbar-title em{color:var(--gold);font-style:italic}
+.back-btn{
+  width:38px;height:38px;border-radius:13px;cursor:pointer;
+  background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);
+  color:var(--ink3);font-size:20px;display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;font-family:'Inter',sans-serif;
+}
+.back-btn:active{transform:scale(0.92)}
+
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS — Cards, Buttons, Forms
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Glass card */
+.glass-card{
+  background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--glass-border);border-top:1px solid var(--glass-border-t);
+  border-radius:16px;padding:16px 18px;margin-bottom:10px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.03);
+  transition:all 0.25s;
+}
+.glass-card.clickable{cursor:pointer}
+.glass-card.clickable:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12)}
+.glass-card.clickable:active{transform:scale(0.98)}
+
+/* RG Card (premium) */
+.rg-card{
+  background:linear-gradient(145deg,rgba(30,25,18,0.95),rgba(20,16,10,0.95));
+  border:1.5px solid rgba(197,165,90,0.3);border-radius:20px;
+  padding:24px;margin-bottom:16px;position:relative;overflow:hidden;
+  box-shadow:0 4px 24px rgba(0,0,0,0.3),inset 0 1px 0 rgba(197,165,90,0.1);
+  cursor:pointer;transition:all 0.3s;
+}
+.rg-card:active{transform:scale(0.98)}
+.rg-card::before{
+  content:'';position:absolute;top:0;right:0;width:200px;height:200px;
+  background:radial-gradient(circle,rgba(197,165,90,0.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.rg-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.rg-card-brand{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;font-weight:400}
+.rg-card-status{font-size:10px;font-weight:600;color:#4AD9A4;background:rgba(74,217,164,0.1);border:1px solid rgba(74,217,164,0.2);padding:3px 10px;border-radius:20px;display:flex;align-items:center;gap:5px}
+.rg-card-status::before{content:'';width:5px;height:5px;border-radius:50%;background:#4AD9A4}
+.rg-card-name{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#fff;margin-bottom:4px}
+.rg-card-cpf{font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.35);letter-spacing:0.05em;margin-bottom:18px}
+.rg-card-footer{display:flex;align-items:flex-end;justify-content:space-between}
+.rg-card-fields{display:flex;gap:24px}
+.rg-field-label{font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.3);margin-bottom:3px}
+.rg-field-value{font-size:13px;font-weight:600;color:rgba(255,255,255,0.7)}
+.rg-card-qr{width:52px;height:52px;background:rgba(197,165,90,0.1);border:1px solid rgba(197,165,90,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.rg-card-qr svg{opacity:0.6}
+
+/* Action buttons row */
+.action-row{display:flex;gap:10px;margin-bottom:20px}
+.action-btn{
+  flex:1;padding:14px 12px;border-radius:14px;border:none;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all 0.2s;
+}
+.action-btn:active{transform:scale(0.97)}
+.action-btn.primary{background:linear-gradient(135deg,#C5A55A,#D4B96A);color:#0A0A0A}
+.action-btn.primary:hover{box-shadow:0 6px 20px rgba(197,165,90,0.3)}
+.action-btn.secondary{background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);color:var(--ink2)}
+.action-btn.secondary:hover{background:rgba(255,255,255,0.07)}
+
+/* Section headers */
+.section{margin-bottom:24px}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.section-title{font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink4)}
+.section-link{font-size:12px;font-weight:600;color:var(--gold);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;padding:4px 8px;border-radius:6px;transition:all 0.2s}
+.section-link:hover{background:rgba(197,165,90,0.1)}
+
+/* Info card with icon */
+.info-card{
+  display:flex;align-items:center;gap:14px;padding:14px 16px;
+  background:var(--glass);border:1px solid var(--glass-border);border-top:1px solid var(--glass-border-t);
+  border-radius:14px;margin-bottom:8px;cursor:pointer;transition:all 0.25s;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  box-shadow:0 2px 12px rgba(0,0,0,0.15),inset 0 1px 0 rgba(255,255,255,0.03);
+}
+.info-card:hover{background:rgba(255,255,255,0.06)}
+.info-card:active{transform:scale(0.98)}
+.info-card-icon{
+  width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.info-card-icon.gold{background:rgba(197,165,90,0.08);border:1px solid rgba(197,165,90,0.15)}
+.info-card-icon.green{background:rgba(74,217,164,0.08);border:1px solid rgba(74,217,164,0.15)}
+.info-card-icon.blue{background:rgba(74,159,217,0.08);border:1px solid rgba(74,159,217,0.15)}
+.info-card-icon.red{background:rgba(217,68,82,0.08);border:1px solid rgba(217,68,82,0.15)}
+.info-card-icon.purple{background:rgba(180,130,255,0.08);border:1px solid rgba(180,130,255,0.15)}
+.info-card-body{flex:1}
+.info-card-title{font-size:14px;font-weight:600;color:var(--ink2);margin-bottom:2px}
+.info-card-sub{font-size:12px;color:var(--ink4)}
+.info-card-arrow{color:var(--ink5);font-size:18px;flex-shrink:0}
+
+/* Form elements */
+.form-group{margin-bottom:16px}
+.form-label{font-size:11px;font-weight:600;color:var(--ink4);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;display:block}
+.form-input{
+  width:100%;padding:14px 16px;background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.1);border-radius:12px;
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:500;
+  color:#fff;outline:none;transition:all 0.3s;
+}
+.form-input::placeholder{color:rgba(255,255,255,0.2)}
+.form-input:focus{border-color:rgba(197,165,90,0.4);background:rgba(197,165,90,0.04);box-shadow:0 0 0 3px rgba(197,165,90,0.08)}
+.form-row{display:flex;gap:10px}
+.form-row .form-group{flex:1}
+
+/* Primary button */
+.btn-gold{
+  width:100%;padding:16px;background:linear-gradient(135deg,#C5A55A,#D4B96A);
+  border:none;border-radius:14px;font-family:'Inter',sans-serif;
+  font-size:15px;font-weight:700;color:#0A0A0A;cursor:pointer;transition:all 0.2s;
+}
+.btn-gold:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(197,165,90,0.3)}
+.btn-gold:active{transform:scale(0.98)}
+
+/* Secondary button */
+.btn-outline{
+  width:100%;padding:16px;background:transparent;
+  border:1.5px solid rgba(197,165,90,0.3);border-radius:14px;
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+  color:var(--gold);cursor:pointer;transition:all 0.2s;
+}
+.btn-outline:hover{background:rgba(197,165,90,0.06)}
+
+/* Danger button */
+.btn-danger{
+  width:100%;padding:16px;background:rgba(217,68,82,0.08);
+  border:1.5px solid rgba(217,68,82,0.2);border-radius:14px;
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+  color:#D94452;cursor:pointer;transition:all 0.2s;
+}
+
+/* Steps indicator */
+.steps{display:flex;gap:6px;justify-content:center;margin-bottom:28px;padding-top:8px}
+.step-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.08);transition:all 0.3s}
+.step-dot.active{background:var(--gold);box-shadow:0 0 8px rgba(197,165,90,0.4)}
+.step-dot.done{background:rgba(74,217,164,0.5)}
+
+/* Checkbox */
+.checkbox-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;cursor:pointer}
+.checkbox-box{
+  width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,0.15);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;
+  margin-top:1px;
+}
+.checkbox-row.checked .checkbox-box{background:var(--gold);border-color:var(--gold)}
+.checkbox-text{font-size:13px;color:var(--ink3);line-height:1.5}
+.checkbox-text a{color:var(--gold);text-decoration:underline}
+
+/* Tag/chip */
+.tag{display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;margin:0 6px 6px 0;cursor:pointer;transition:all 0.2s}
+.tag.gold{background:rgba(197,165,90,0.1);border:1px solid rgba(197,165,90,0.2);color:var(--gold)}
+.tag.red{background:rgba(217,68,82,0.08);border:1px solid rgba(217,68,82,0.15);color:#D94452}
+.tag.green{background:rgba(74,217,164,0.08);border:1px solid rgba(74,217,164,0.15);color:#4AD9A4}
+.tag.selected{background:rgba(197,165,90,0.2);border-color:var(--gold)}
+
+/* Timeline */
+.timeline{position:relative;padding-left:24px}
+.timeline::before{content:'';position:absolute;left:8px;top:8px;bottom:8px;width:1.5px;background:rgba(197,165,90,0.15)}
+.timeline-item{position:relative;margin-bottom:20px;padding-left:16px}
+.timeline-item::before{
+  content:'';position:absolute;left:-20px;top:6px;width:10px;height:10px;
+  border-radius:50%;background:var(--gold);border:2px solid var(--bg);z-index:1;
+}
+.timeline-date{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--ink4);margin-bottom:4px}
+.timeline-title{font-size:14px;font-weight:600;color:var(--ink2);margin-bottom:2px}
+.timeline-sub{font-size:12px;color:var(--ink4)}
+
+/* Tab bar */
+.tab-bar{
+  position:absolute;bottom:0;left:0;right:0;height:80px;
+  background:rgba(10,10,10,0.85);backdrop-filter:blur(30px) saturate(1.3);
+  -webkit-backdrop-filter:blur(30px) saturate(1.3);
+  border-top:1px solid rgba(255,255,255,0.08);
+  display:flex;align-items:center;justify-content:space-around;
+  padding:0 20px 16px;z-index:50;
+}
+.tab{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  cursor:pointer;padding:8px 16px;border-radius:12px;
+  transition:all 0.25s;border:none;background:none;font-family:'Inter',sans-serif;
+}
+.tab:active{transform:scale(0.92)}
+.tab-label{font-size:10px;font-weight:600;letter-spacing:0.3px;color:var(--ink4);transition:color 0.2s}
+.tab.active .tab-label{color:var(--gold)}
+.tab.active svg{color:var(--gold)!important;stroke:var(--gold)!important}
+.tab-dot{width:4px;height:4px;border-radius:50%;background:var(--gold);opacity:0;transition:opacity 0.2s}
+.tab.active .tab-dot{opacity:1}
+
+/* Audio recorder */
+.audio-rec{
+  display:flex;align-items:center;gap:12px;padding:16px;
+  background:rgba(217,68,82,0.04);border:1px solid rgba(217,68,82,0.12);
+  border-radius:14px;margin-bottom:10px;
+}
+.audio-rec-btn{
+  width:44px;height:44px;border-radius:50%;border:none;
+  background:rgba(217,68,82,0.15);color:#D94452;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all 0.2s;flex-shrink:0;
+}
+.audio-rec-btn:hover{background:rgba(217,68,82,0.25)}
+.audio-rec-text{flex:1}
+.audio-rec-title{font-size:13px;font-weight:600;color:var(--ink2)}
+.audio-rec-sub{font-size:11px;color:var(--ink4)}
+
+/* Doctor dashboard specific */
+.patient-card{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;
+  background:var(--glass);border:1px solid var(--glass-border);
+  border-radius:14px;margin-bottom:8px;cursor:pointer;transition:all 0.25s;
+}
+.patient-card:hover{background:rgba(255,255,255,0.06)}
+.patient-avatar{
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(197,165,90,0.1);border:1px solid rgba(197,165,90,0.2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--gold);flex-shrink:0;
+}
+.patient-info{flex:1}
+.patient-name{font-size:14px;font-weight:600;color:var(--ink2)}
+.patient-detail{font-size:11px;color:var(--ink4)}
+.patient-status{font-size:10px;font-weight:600;padding:4px 10px;border-radius:20px}
+.patient-status.ready{background:rgba(74,217,164,0.1);color:#4AD9A4}
+.patient-status.pending{background:rgba(197,165,90,0.1);color:var(--gold)}
+
+/* Summary card */
+.summary-block{
+  background:rgba(255,255,255,0.02);border:1px solid var(--glass-border);
+  border-radius:14px;padding:16px;margin-bottom:12px;
+}
+.summary-label{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.summary-text{font-size:13px;color:var(--ink2);line-height:1.6}
+.summary-text strong{color:#fff;font-weight:600}
+
+/* Wallet banner */
+.wallet-banner{
+  display:flex;align-items:center;gap:14px;padding:14px 16px;
+  background:rgba(197,165,90,0.04);border:1px solid rgba(197,165,90,0.12);
+  border-radius:14px;margin-bottom:20px;
+}
+.wallet-icon{font-size:28px;flex-shrink:0}
+.wallet-text{font-size:12px;color:var(--ink3);line-height:1.4}
+.wallet-text a{color:var(--gold);font-weight:600;text-decoration:none}
+
+/* Legal page */
+.legal-text{font-size:13px;color:var(--ink3);line-height:1.8}
+.legal-text h3{font-size:15px;font-weight:700;color:var(--ink2);margin:20px 0 8px}
+.legal-text p{margin-bottom:12px}
+.legal-text strong{color:var(--ink2)}
+
+/* Counter badge */
+.counter-badge{
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--ink4);
+  background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);
+  padding:4px 10px;border-radius:20px;
+}
+
+/* QR Code display */
+.qr-display{
+  width:220px;height:220px;margin:30px auto;
+  background:rgba(255,255,255,0.95);border-radius:20px;padding:20px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 40px rgba(197,165,90,0.15);
+}
+.qr-placeholder{width:100%;height:100%;background:repeating-conic-gradient(#1a1a1a 0% 25%,#fff 0% 50%) 0 0/40px 40px;border-radius:8px;opacity:0.8}
+
+/* Consent popup */
+.consent-popup{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  z-index:60;opacity:0;pointer-events:none;transition:all 0.3s;
+}
+.consent-popup.show{opacity:1;pointer-events:all}
+.consent-box{
+  background:#1A1A1A;border-radius:24px;padding:28px 24px;
+  border:1px solid rgba(197,165,90,0.15);width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+}
+
+/* Landing specific */
+.landing-hero{text-align:center;padding:80px 24px 40px}
+.landing-badge{
+  display:inline-block;font-family:'DM Mono',monospace;font-size:10px;
+  letter-spacing:0.15em;color:var(--gold);text-transform:uppercase;
+  background:rgba(197,165,90,0.08);border:1px solid rgba(197,165,90,0.15);
+  padding:6px 14px;border-radius:20px;margin-bottom:20px;
+}
+.landing-title{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:#fff;margin-bottom:12px;line-height:1.2}
+.landing-title em{color:var(--gold);font-style:italic}
+.landing-sub{font-size:14px;color:var(--ink3);line-height:1.6;margin-bottom:30px}
+.landing-feature{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;text-align:left;padding:0 8px}
+.landing-feature-icon{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+.landing-feature-text h4{font-size:14px;font-weight:600;color:var(--ink2);margin-bottom:2px}
+.landing-feature-text p{font-size:12px;color:var(--ink4);line-height:1.4}
+
+/* Price card */
+.price-card{
+  background:rgba(197,165,90,0.04);border:1.5px solid rgba(197,165,90,0.2);
+  border-radius:18px;padding:24px;text-align:center;margin:20px 0;
+}
+.price-amount{font-family:'Playfair Display',serif;font-size:40px;font-weight:700;color:var(--gold)}
+.price-amount span{font-size:16px;color:var(--ink4);font-family:'Inter',sans-serif;font-weight:400}
+.price-desc{font-size:12px;color:var(--ink4);margin-top:4px}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="statusbar"><span>9:41</span><span>●●● 🔋</span></div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 1: LANDING PACIENTE
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen active" id="s-landing-paciente">
+    <div class="landing-hero">
+      <div class="landing-badge">✦ VITAE HEALTH</div>
+      <div class="landing-title">Seu <em>RG da Saúde</em> digital</div>
+      <div class="landing-sub">Todos os seus dados de saúde em um só lugar. Mostre na clínica, no hospital, na emergência — com um QR Code.</div>
+    </div>
+    <div style="padding:0 24px 40px">
+      <div class="landing-feature">
+        <div class="landing-feature-icon" style="background:rgba(197,165,90,0.1);border:1px solid rgba(197,165,90,0.15)">🪪</div>
+        <div class="landing-feature-text">
+          <h4>Carteirinha digital</h4>
+          <p>Nome, CPF, tipo sanguíneo, alergias, medicamentos — tudo no seu celular.</p>
+        </div>
+      </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon" style="background:rgba(74,217,164,0.1);border:1px solid rgba(74,217,164,0.15)">📱</div>
+        <div class="landing-feature-text">
+          <h4>QR Code na recepção</h4>
+          <p>Recepcionista escaneia e já tem todos os seus dados. Sem preencher fichas.</p>
+        </div>
+      </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon" style="background:rgba(74,159,217,0.1);border:1px solid rgba(74,159,217,0.15)">🔒</div>
+        <div class="landing-feature-text">
+          <h4>Você controla o acesso</h4>
+          <p>Ninguém vê seus dados sem sua autorização. Protegido pela LGPD.</p>
+        </div>
+      </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon" style="background:rgba(180,130,255,0.1);border:1px solid rgba(180,130,255,0.15)">📋</div>
+        <div class="landing-feature-text">
+          <h4>Exames em PDF</h4>
+          <p>Suba seus exames e tenha o histórico completo com análise inteligente.</p>
+        </div>
+      </div>
+
+      <div class="price-card">
+        <div class="price-amount">R$4<span>,99</span></div>
+        <div class="price-desc">Pagamento único · Para sempre seu</div>
+      </div>
+
+      <button class="btn-gold" onclick="goTo('s-cadastro-1')" style="margin-top:12px">Criar meu RG da Saúde</button>
+      <p style="text-align:center;font-size:11px;color:var(--ink4);margin-top:12px">Já tem conta? <span style="color:var(--gold);cursor:pointer" onclick="goTo('s-meu-rg')">Entrar</span></p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 2: CADASTRO PASSO 1 — Dados pessoais
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-cadastro-1">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-landing-paciente')">‹</div>
+      <span style="font-size:12px;color:var(--ink4)">Passo 1 de 4</span>
+    </div>
+    <div class="steps">
+      <div class="step-dot active"></div>
+      <div class="step-dot"></div>
+      <div class="step-dot"></div>
+      <div class="step-dot"></div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:4px">Dados <em style="color:var(--gold);font-style:italic">pessoais</em></h2>
+      <p style="font-size:13px;color:var(--ink4);margin-bottom:24px">Informações básicas para seu RG da Saúde.</p>
+
+      <div class="form-group">
+        <label class="form-label">Nome completo</label>
+        <input class="form-input" placeholder="Daniel Silva" value="Daniel Silva">
+      </div>
+      <div class="form-group">
+        <label class="form-label">CPF</label>
+        <input class="form-input" placeholder="000.000.000-00" value="047.832.901-15">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Data de nascimento</label>
+          <input class="form-input" placeholder="DD/MM/AAAA" value="29/06/1996">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sexo</label>
+          <input class="form-input" placeholder="Masculino" value="Masculino">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Peso (kg)</label>
+          <input class="form-input" placeholder="74" value="74">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Altura (m)</label>
+          <input class="form-input" placeholder="1.78" value="1.78">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo sanguíneo</label>
+        <input class="form-input" placeholder="O+" value="O+">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contato de emergência</label>
+        <input class="form-input" placeholder="Nome — (11) 99999-9999" value="Maria Silva — (11) 98765-4321">
+      </div>
+
+      <button class="btn-gold" onclick="goTo('s-cadastro-2')" style="margin-top:16px">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 3: CADASTRO PASSO 2 — Histórico médico
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-cadastro-2">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-cadastro-1')">‹</div>
+      <span style="font-size:12px;color:var(--ink4)">Passo 2 de 4</span>
+    </div>
+    <div class="steps">
+      <div class="step-dot done"></div>
+      <div class="step-dot active"></div>
+      <div class="step-dot"></div>
+      <div class="step-dot"></div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:4px">Histórico <em style="color:var(--gold);font-style:italic">médico</em></h2>
+      <p style="font-size:13px;color:var(--ink4);margin-bottom:24px">Cirurgias, condições crônicas e plano de saúde.</p>
+
+      <div class="form-group">
+        <label class="form-label">Cirurgias anteriores</label>
+        <input class="form-input" placeholder="Ex: Joelho direito (2020)">
+        <p style="font-size:11px;color:var(--ink4);margin-top:4px">Separe por vírgula se tiver mais de uma</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Condições crônicas</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+          <span class="tag gold">Diabetes</span>
+          <span class="tag gold">Hipertensão</span>
+          <span class="tag gold">Asma</span>
+          <span class="tag gold">Colesterol alto</span>
+          <span class="tag gold">Ansiedade</span>
+          <span class="tag gold">Depressão</span>
+          <span class="tag gold selected">Nenhuma</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Plano de saúde</label>
+        <input class="form-input" placeholder="Operadora" value="Unimed">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Número da carteirinha</label>
+        <input class="form-input" placeholder="000.000.000" value="304.592.118">
+      </div>
+
+      <button class="btn-gold" onclick="goTo('s-cadastro-3')" style="margin-top:16px">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 4: CADASTRO PASSO 3 — Medicamentos e Alergias
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-cadastro-3">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-cadastro-2')">‹</div>
+      <span style="font-size:12px;color:var(--ink4)">Passo 3 de 4</span>
+    </div>
+    <div class="steps">
+      <div class="step-dot done"></div>
+      <div class="step-dot done"></div>
+      <div class="step-dot active"></div>
+      <div class="step-dot"></div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:4px">Medicamentos e <em style="color:var(--gold);font-style:italic">alergias</em></h2>
+      <p style="font-size:13px;color:var(--ink4);margin-bottom:24px">Informações essenciais para sua segurança.</p>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Alergias</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+          <span class="tag red">Dipirona ✕</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" placeholder="Adicionar alergia..." style="margin-bottom:0;flex:1">
+          <button style="padding:12px 16px;background:rgba(217,68,82,0.1);border:1px solid rgba(217,68,82,0.2);border-radius:12px;color:#D94452;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap">+ Add</button>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top:24px">
+        <div class="section-header">
+          <span class="section-title">Medicamentos de uso contínuo</span>
+        </div>
+        <div class="glass-card" style="display:flex;align-items:center;gap:12px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#4AD9A4;flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600;color:var(--ink2)">Creatina</div>
+            <div style="font-size:12px;color:var(--ink4)">5g — 1x ao dia</div>
+          </div>
+          <span style="font-size:14px;color:var(--ink4);cursor:pointer">✕</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input class="form-input" placeholder="Nome do medicamento" style="margin-bottom:0;flex:1">
+          <button style="padding:12px 16px;background:rgba(74,217,164,0.1);border:1px solid rgba(74,217,164,0.2);border-radius:12px;color:#4AD9A4;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap">+ Add</button>
+        </div>
+      </div>
+
+      <button class="btn-gold" onclick="goTo('s-cadastro-4')" style="margin-top:24px">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 5: CADASTRO PASSO 4 — Termos e confirmação
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-cadastro-4">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-cadastro-3')">‹</div>
+      <span style="font-size:12px;color:var(--ink4)">Passo 4 de 4</span>
+    </div>
+    <div class="steps">
+      <div class="step-dot done"></div>
+      <div class="step-dot done"></div>
+      <div class="step-dot done"></div>
+      <div class="step-dot active"></div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:4px">Termos e <em style="color:var(--gold);font-style:italic">privacidade</em></h2>
+      <p style="font-size:13px;color:var(--ink4);margin-bottom:24px">Para sua segurança, precisamos do seu consentimento.</p>
+
+      <div class="glass-card" style="padding:20px">
+        <div style="font-size:13px;color:var(--ink3);line-height:1.7;max-height:200px;overflow-y:auto;margin-bottom:16px">
+          <strong style="color:var(--ink2)">Resumo dos Termos:</strong><br><br>
+          • Seus dados são armazenados com <strong style="color:var(--ink2)">criptografia</strong> de ponta<br>
+          • <strong style="color:var(--ink2)">Ninguém</strong> acessa seus dados sem sua autorização expressa<br>
+          • Cada compartilhamento requer uma <strong style="color:var(--ink2)">nova autorização</strong><br>
+          • Você pode <strong style="color:var(--ink2)">excluir todos os seus dados</strong> a qualquer momento<br>
+          • Dados usados <strong style="color:var(--ink2)">apenas para atendimento médico</strong><br>
+          • Em conformidade com a <strong style="color:var(--gold)">LGPD</strong> (Lei Geral de Proteção de Dados)
+        </div>
+      </div>
+
+      <div class="checkbox-row checked" onclick="this.classList.toggle('checked')">
+        <div class="checkbox-box">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="checkbox-text">Li e aceito os <a onclick="goTo('s-termos-paciente')">Termos de Uso</a> da Vitae</div>
+      </div>
+      <div class="checkbox-row checked" onclick="this.classList.toggle('checked')">
+        <div class="checkbox-box">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="checkbox-text">Li e aceito a <a onclick="goTo('s-lgpd')">Política de Privacidade</a> (LGPD)</div>
+      </div>
+      <div class="checkbox-row" onclick="this.classList.toggle('checked')">
+        <div class="checkbox-box">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="checkbox-text">Aceito receber lembretes de saúde por notificação (opcional)</div>
+      </div>
+
+      <button class="btn-gold" onclick="goTo('s-confirmacao')" style="margin-top:24px">Criar meu RG da Saúde →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 6: CONFIRMAÇÃO — RG Criado!
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-confirmacao">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px 24px;text-align:center">
+      <div style="width:80px;height:80px;border-radius:50%;background:rgba(74,217,164,0.1);border:2px solid rgba(74,217,164,0.3);display:flex;align-items:center;justify-content:center;margin-bottom:24px;font-size:36px">✓</div>
+      <h2 style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:8px">RG da Saúde <em style="color:var(--gold);font-style:italic">criado!</em></h2>
+      <p style="font-size:14px;color:var(--ink4);margin-bottom:8px;line-height:1.5">Seu documento digital de saúde está pronto.</p>
+      <p style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ink4);margin-bottom:32px">RG-SP · 047.832.901-15</p>
+
+      <div class="rg-card" style="width:100%;cursor:default">
+        <div class="rg-card-header">
+          <div class="rg-card-brand">VITAE · RG DA SAÚDE</div>
+          <div class="rg-card-status">Ativo</div>
+        </div>
+        <div class="rg-card-name">Daniel Silva</div>
+        <div class="rg-card-cpf">RG-SP · 047.832.901-15</div>
+        <div class="rg-card-footer">
+          <div class="rg-card-fields">
+            <div><div class="rg-field-label">Tipo sanguíneo</div><div class="rg-field-value">O+</div></div>
+            <div><div class="rg-field-label">Idade</div><div class="rg-field-value">30 anos</div></div>
+            <div><div class="rg-field-label">Alergias</div><div class="rg-field-value">Dipirona</div></div>
+          </div>
+          <div class="rg-card-qr">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-gold" onclick="goTo('s-meu-rg')" style="margin-top:24px">Ver meu RG da Saúde</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 7: MEU RG (TELA PRINCIPAL — substitui Perfil)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-meu-rg">
+    <div class="screen-pad">
+      <!-- RG Card -->
+      <div class="rg-card" onclick="goTo('s-editar-dados')">
+        <div class="rg-card-header">
+          <div class="rg-card-brand">VITAE · RG DA SAÚDE</div>
+          <div class="rg-card-status">Ativo</div>
+        </div>
+        <div class="rg-card-name">Daniel Silva</div>
+        <div class="rg-card-cpf">RG-SP · 047.832.901-15</div>
+        <div class="rg-card-footer">
+          <div class="rg-card-fields">
+            <div><div class="rg-field-label">Tipo sanguíneo</div><div class="rg-field-value">O+</div></div>
+            <div><div class="rg-field-label">Idade</div><div class="rg-field-value">30 anos</div></div>
+            <div><div class="rg-field-label">Alergias</div><div class="rg-field-value">Dipirona</div></div>
+          </div>
+          <div class="rg-card-qr">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="action-row">
+        <button class="action-btn primary" onclick="goTo('s-qr-code')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/></svg>
+          MOSTRAR QR CODE
+        </button>
+        <button class="action-btn secondary" onclick="goTo('s-exames-info')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          ADICIONAR EXAMES
+        </button>
+      </div>
+
+      <!-- Wallet banner -->
+      <div class="wallet-banner">
+        <div class="wallet-icon">💳</div>
+        <div class="wallet-text">Adicione ao <a>Apple Wallet</a> ou <a>Google Wallet</a> para acesso rápido mesmo sem internet.</div>
+      </div>
+
+      <!-- Próximo Exame -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Próximo exame</span>
+        </div>
+        <div class="info-card" onclick="goTo('s-proximo-exame')">
+          <div class="info-card-icon gold">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="info-card-body">
+            <div class="info-card-title">Consulta Dr. Marcos</div>
+            <div class="info-card-sub">22 Mar 2026 · 14:30 — Lembrete ativo 🔔</div>
+          </div>
+          <div class="info-card-arrow">›</div>
+        </div>
+      </div>
+
+      <!-- Histórico Médico -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Histórico médico</span>
+          <button class="section-link" onclick="goTo('s-historico')">Ver tudo</button>
+        </div>
+        <div class="info-card" onclick="goTo('s-historico')">
+          <div class="info-card-icon red">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D94452" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div class="info-card-body">
+            <div class="info-card-title">Alergias</div>
+            <div class="info-card-sub">Dipirona</div>
+          </div>
+          <div class="info-card-arrow">›</div>
+        </div>
+        <div class="info-card" onclick="goTo('s-historico')">
+          <div class="info-card-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4AD9A4" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          </div>
+          <div class="info-card-body">
+            <div class="info-card-title">Medicamentos</div>
+            <div class="info-card-sub">Creatina 5g — 1x ao dia</div>
+          </div>
+          <div class="info-card-arrow">›</div>
+        </div>
+        <div class="info-card" onclick="goTo('s-historico')">
+          <div class="info-card-icon blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A9FD9" stroke-width="2" stroke-linecap="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+          </div>
+          <div class="info-card-body">
+            <div class="info-card-title">Cirurgias</div>
+            <div class="info-card-sub">Nenhuma registrada</div>
+          </div>
+          <div class="info-card-arrow">›</div>
+        </div>
+      </div>
+
+      <!-- Linha do Tempo -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Linha do tempo</span>
+          <button class="section-link" onclick="goTo('s-timeline')">Ver completa</button>
+        </div>
+        <div class="info-card" onclick="goTo('s-timeline')">
+          <div class="info-card-icon purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgb(180,130,255)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="info-card-body">
+            <div class="info-card-title">3 eventos registrados</div>
+            <div class="info-card-sub">Último: Hemograma — 14 Mar 2026</div>
+          </div>
+          <div class="info-card-arrow">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <div class="tab active" onclick="goTo('s-meu-rg')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg>
+        <span class="tab-label">Meu RG</span>
+        <div class="tab-dot"></div>
+      </div>
+      <div class="tab" onclick="goTo('s-exames-info')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span class="tab-label">Exames</span>
+        <div class="tab-dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 8: QR CODE EXPANDIDO
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-qr-code">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-meu-rg')">‹</div>
+      <span class="topbar-title">QR Code</span>
+      <div></div>
+    </div>
+    <div style="padding:20px 24px 120px;text-align:center">
+      <p style="font-size:13px;color:var(--ink4);margin-bottom:8px">Mostre este QR Code na recepção</p>
+      <p style="font-size:11px;color:var(--ink4);margin-bottom:24px">O acesso requer sua <strong style="color:var(--gold)">autorização</strong></p>
+
+      <div class="qr-display">
+        <div class="qr-placeholder"></div>
+      </div>
+
+      <p style="font-family:'DM Mono',monospace;font-size:14px;color:var(--ink3);margin-top:20px;letter-spacing:0.05em">RG-SP · 047.832.901-15</p>
+      <p style="font-size:13px;font-weight:600;color:var(--ink2);margin-top:4px">Daniel Silva</p>
+
+      <div style="margin-top:30px;display:flex;flex-direction:column;gap:10px">
+        <button class="btn-gold">Compartilhar QR Code</button>
+        <button class="btn-outline">Baixar como imagem</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 9: AUTORIZAÇÃO DE ACESSO (popup simulado como tela)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-autorizacao">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px 24px;text-align:center">
+      <div style="width:60px;height:60px;border-radius:50%;background:rgba(197,165,90,0.1);border:1.5px solid rgba(197,165,90,0.2);display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:24px">🔐</div>
+      <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:6px">Solicitação de <em style="color:var(--gold);font-style:italic">acesso</em></h2>
+      <p style="font-size:13px;color:var(--ink4);margin-bottom:24px;line-height:1.5">Alguém escaneou seu QR Code e deseja ver seus dados de saúde.</p>
+
+      <div class="glass-card" style="width:100%;text-align:left;margin-bottom:20px">
+        <div style="font-size:11px;color:var(--ink4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Solicitante</div>
+        <div style="font-size:16px;font-weight:600;color:var(--ink2);margin-bottom:4px">Clínica Dr. Marcos Pereira</div>
+        <div style="font-size:12px;color:var(--ink4)">CRM 123456 · Cardiologia</div>
+        <div style="font-size:12px;color:var(--ink4);margin-top:8px">📍 São Paulo, SP · Agora</div>
+      </div>
+
+      <div class="glass-card" style="width:100%;text-align:left;margin-bottom:24px;border-color:rgba(197,165,90,0.15)">
+        <div style="font-size:11px;color:var(--gold);margin-bottom:6px;font-weight:600">⚖️ CONSENTIMENTO LGPD</div>
+        <div style="font-size:12px;color:var(--ink3);line-height:1.6">
+          Ao autorizar, seus dados serão compartilhados <strong style="color:var(--ink2)">apenas para este atendimento</strong>. O acesso é registrado e você pode revogá-lo a qualquer momento.
+        </div>
+      </div>
+
+      <button class="btn-gold" onclick="goTo('s-meu-rg')" style="margin-bottom:10px">✓ Autorizar acesso</button>
+      <button class="btn-outline" onclick="goTo('s-meu-rg')" style="border-color:rgba(217,68,82,0.3);color:#D94452">✕ Recusar</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 10: EDITAR DADOS DO RG
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-editar-dados">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-meu-rg')">‹</div>
+      <span class="topbar-title">Editar <em>dados</em></span>
+      <div></div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <p style="font-size:13px;color:var(--ink4);margin-bottom:20px">Atualize suas informações do RG da Saúde.</p>
+      <div class="form-group"><label class="form-label">Nome completo</label><input class="form-input" value="Daniel Silva"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Peso (kg)</label><input class="form-input" value="74"></div>
+        <div class="form-group"><label class="form-label">Altura (m)</label><input class="form-input" value="1.78"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Tipo sanguíneo</label><input class="form-input" value="O+"></div>
+      <div class="form-group"><label class="form-label">Contato de emergência</label><input class="form-input" value="Maria Silva — (11) 98765-4321"></div>
+      <div class="form-group"><label class="form-label">Plano de saúde</label><input class="form-input" value="Unimed — 304.592.118"></div>
+      <button class="btn-gold" onclick="goTo('s-meu-rg')" style="margin-top:16px">Salvar alterações</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 11: PRÓXIMO EXAME (agendar)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-proximo-exame">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-meu-rg')">‹</div>
+      <span class="topbar-title">Próximo <em>exame</em></span>
+      <div></div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <p style="font-size:13px;color:var(--ink4);margin-bottom:24px">Agende seu próximo exame e receba um lembrete para levar seu QR Code.</p>
+      <div class="form-group"><label class="form-label">Tipo de compromisso</label><input class="form-input" placeholder="Consulta, Exame, Retorno..." value="Consulta Dr. Marcos"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Data</label><input class="form-input" type="date" value="2026-03-22"></div>
+        <div class="form-group"><label class="form-label">Horário</label><input class="form-input" type="time" value="14:30"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Local / Clínica</label><input class="form-input" placeholder="Nome da clínica" value="Clínica CardioVida"></div>
+      <div class="form-group"><label class="form-label">Observações</label><input class="form-input" placeholder="Levar exames anteriores, jejum..."></div>
+
+      <div class="glass-card" style="margin-top:16px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:20px">🔔</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--ink2)">Lembrete</div>
+          <div style="font-size:11px;color:var(--ink4)">Te lembraremos de levar o QR Code do RG da Saúde</div>
+        </div>
+        <div style="width:42px;height:24px;border-radius:12px;background:var(--gold);position:relative;cursor:pointer"><div style="position:absolute;right:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:all 0.2s"></div></div>
+      </div>
+
+      <button class="btn-gold" onclick="goTo('s-meu-rg')" style="margin-top:20px">Salvar compromisso</button>
+      <button class="btn-danger" style="margin-top:10px">Excluir compromisso</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 12: HISTÓRICO MÉDICO COMPLETO
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-historico">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-meu-rg')">‹</div>
+      <span class="topbar-title">Histórico <em>médico</em></span>
+      <div></div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <div class="section">
+        <div class="section-header"><span class="section-title">Alergias</span><button class="section-link">Editar</button></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <span class="tag red">Dipirona</span>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">Medicamentos</span><button class="section-link">Adicionar</button></div>
+        <div class="info-card">
+          <div style="width:8px;height:8px;border-radius:50%;background:#4AD9A4;flex-shrink:0"></div>
+          <div class="info-card-body">
+            <div class="info-card-title">Creatina</div>
+            <div class="info-card-sub">5g — 1x ao dia</div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">Cirurgias</span><button class="section-link">Adicionar</button></div>
+        <div class="glass-card" style="text-align:center;padding:24px">
+          <p style="font-size:13px;color:var(--ink4)">Nenhuma cirurgia registrada</p>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">Condições crônicas</span></div>
+        <div class="glass-card" style="text-align:center;padding:24px">
+          <p style="font-size:13px;color:var(--ink4)">Nenhuma condição registrada</p>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">Plano de saúde</span></div>
+        <div class="info-card">
+          <div class="info-card-icon gold">💳</div>
+          <div class="info-card-body">
+            <div class="info-card-title">Unimed</div>
+            <div class="info-card-sub">Carteirinha: 304.592.118</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 13: LINHA DO TEMPO
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-timeline">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-meu-rg')">‹</div>
+      <span class="topbar-title">Linha do <em>tempo</em></span>
+      <div></div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <p style="font-size:13px;color:var(--ink4);margin-bottom:24px">Todo seu histórico de saúde em ordem cronológica.</p>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-date">14 MAR 2026</div>
+          <div class="timeline-title">Hemograma Completo</div>
+          <div class="timeline-sub">Laboratório Fleury · Todos os valores normais</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">28 FEV 2026</div>
+          <div class="timeline-title">Consulta Dr. Marcos Pereira</div>
+          <div class="timeline-sub">Cardiologia · Check-up anual</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">15 JAN 2026</div>
+          <div class="timeline-title">Painel Completo de Saúde</div>
+          <div class="timeline-sub">Laboratório Fleury · 14 biomarcadores analisados</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">10 DEZ 2025</div>
+          <div class="timeline-title">Consulta Dra. Ana Costa</div>
+          <div class="timeline-sub">Clínico Geral · Gripe + receita antibiótico</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-date">05 NOV 2025</div>
+          <div class="timeline-title">RG da Saúde criado</div>
+          <div class="timeline-sub">Cadastro inicial na Vitae</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 14: EXAMES INFO (placeholder da aba Exames)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-exames-info">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px 24px;text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">📋</div>
+      <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:8px">Aba de <em style="color:var(--gold);font-style:italic">Exames</em></h2>
+      <p style="font-size:14px;color:var(--ink4);line-height:1.6;margin-bottom:24px">Esta aba já existe e está pronta.<br>Upload de PDF, lista de exames, detalhes de biomarcadores — <strong style="color:var(--ink2)">não será alterada</strong>.</p>
+      <button class="btn-outline" onclick="goTo('s-meu-rg')">← Voltar pro Meu RG</button>
+    </div>
+    <div class="tab-bar">
+      <div class="tab" onclick="goTo('s-meu-rg')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg>
+        <span class="tab-label">Meu RG</span>
+        <div class="tab-dot"></div>
+      </div>
+      <div class="tab active" onclick="goTo('s-exames-info')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span class="tab-label">Exames</span>
+        <div class="tab-dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 15: LANDING MÉDICO
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-landing-medico">
+    <div class="landing-hero">
+      <div class="landing-badge">✦ VITAE PARA MÉDICOS</div>
+      <div class="landing-title">Receba a ficha do paciente <em>antes da consulta</em></div>
+      <div class="landing-sub">Pré-consulta inteligente. O paciente preenche, a IA resume em 1 minuto. Você já começa sabendo tudo.</div>
+    </div>
+    <div style="padding:0 24px 40px">
+      <div class="landing-feature">
+        <div class="landing-feature-icon" style="background:rgba(197,165,90,0.1);border:1px solid rgba(197,165,90,0.15)">📋</div>
+        <div class="landing-feature-text">
+          <h4>Pré-consulta digital</h4>
+          <p>Secretária manda link, paciente preenche pelo celular. Sem papel.</p>
+        </div>
+      </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon" style="background:rgba(74,217,164,0.1);border:1px solid rgba(74,217,164,0.15)">🤖</div>
+        <div class="landing-feature-text">
+          <h4>One Minute Summary</h4>
+          <p>IA organiza todos os dados em um resumo de 1 minuto. Leia ou ouça.</p>
+        </div>
+      </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon" style="background:rgba(74,159,217,0.1);border:1px solid rgba(74,159,217,0.15)">📱</div>
+        <div class="landing-feature-text">
+          <h4>QR Code do paciente</h4>
+          <p>Se o paciente já tem RG da Saúde, é só escanear na recepção.</p>
+        </div>
+      </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon" style="background:rgba(217,68,82,0.1);border:1px solid rgba(217,68,82,0.15)">🔒</div>
+        <div class="landing-feature-text">
+          <h4>LGPD compliant</h4>
+          <p>Consentimento do paciente a cada compartilhamento. 100% legal.</p>
+        </div>
+      </div>
+
+      <div class="price-card">
+        <div class="price-amount">R$19<span>,90/mês</span></div>
+        <div class="price-desc">Até 100 pacientes · Cancele quando quiser</div>
+      </div>
+
+      <button class="btn-gold" onclick="goTo('s-cadastro-medico')">Começar agora</button>
+      <p style="text-align:center;font-size:11px;color:var(--ink4);margin-top:12px">Já tem conta? <span style="color:var(--gold);cursor:pointer" onclick="goTo('s-painel-medico')">Entrar</span></p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 16: CADASTRO MÉDICO
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-cadastro-medico">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-landing-medico')">‹</div>
+      <span class="topbar-title">Cadastro <em>médico</em></span>
+      <div></div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <p style="font-size:13px;color:var(--ink4);margin-bottom:24px">Preencha seus dados profissionais.</p>
+      <div class="form-group"><label class="form-label">Nome completo</label><input class="form-input" placeholder="Dr. / Dra." value="Dr. Marcos Pereira"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">CRM</label><input class="form-input" placeholder="123456" value="123456"></div>
+        <div class="form-group"><label class="form-label">UF</label><input class="form-input" placeholder="SP" value="SP"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Especialidade</label><input class="form-input" placeholder="Cardiologia" value="Cardiologia"></div>
+      <div class="form-group"><label class="form-label">Nome da clínica</label><input class="form-input" placeholder="Clínica XYZ" value="Clínica CardioVida"></div>
+      <div class="form-group"><label class="form-label">Email profissional</label><input class="form-input" placeholder="dr@clinica.com" value="marcos@cardiovida.com.br"></div>
+      <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" placeholder="(11) 99999-9999" value="(11) 99832-4567"></div>
+
+      <div class="checkbox-row checked" onclick="this.classList.toggle('checked')" style="margin-top:16px">
+        <div class="checkbox-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="checkbox-text">Li e aceito os <a onclick="goTo('s-termos-medico')">Termos de Uso para Profissionais</a></div>
+      </div>
+
+      <button class="btn-gold" onclick="goTo('s-painel-medico')" style="margin-top:16px">Criar conta médica</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 17: PAINEL DO MÉDICO (Dashboard)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-painel-medico">
+    <div style="padding:52px 22px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:12px;color:var(--ink4)">Bem-vindo,</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700">Dr. Marcos</div>
+        </div>
+        <div class="counter-badge">8/100 pacientes</div>
+      </div>
+    </div>
+    <div style="padding:12px 24px 120px">
+      <button class="btn-gold" onclick="goTo('s-gerar-link')" style="margin-bottom:20px">
+        + Enviar pré-consulta para paciente
+      </button>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Pacientes recentes</span>
+          <span style="font-size:11px;color:var(--ink4)">Hoje</span>
+        </div>
+        <div class="patient-card" onclick="goTo('s-summary')">
+          <div class="patient-avatar">DS</div>
+          <div class="patient-info">
+            <div class="patient-name">Daniel Silva</div>
+            <div class="patient-detail">30 anos · Dor no joelho</div>
+          </div>
+          <div class="patient-status ready">Pronto</div>
+        </div>
+        <div class="patient-card">
+          <div class="patient-avatar">MC</div>
+          <div class="patient-info">
+            <div class="patient-name">Maria Costa</div>
+            <div class="patient-detail">45 anos · Check-up</div>
+          </div>
+          <div class="patient-status ready">Pronto</div>
+        </div>
+        <div class="patient-card">
+          <div class="patient-avatar">JP</div>
+          <div class="patient-info">
+            <div class="patient-name">João Pereira</div>
+            <div class="patient-detail">28 anos · Aguardando...</div>
+          </div>
+          <div class="patient-status pending">Pendente</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Amanhã</span>
+        </div>
+        <div class="patient-card">
+          <div class="patient-avatar">AL</div>
+          <div class="patient-info">
+            <div class="patient-name">Ana Lima</div>
+            <div class="patient-detail">52 anos · Link enviado</div>
+          </div>
+          <div class="patient-status pending">Pendente</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 18: GERAR LINK DE PRÉ-CONSULTA
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-gerar-link">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-painel-medico')">‹</div>
+      <span class="topbar-title">Enviar <em>pré-consulta</em></span>
+      <div></div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <p style="font-size:13px;color:var(--ink4);margin-bottom:24px">Gere um link para o paciente preencher antes da consulta.</p>
+      <div class="form-group"><label class="form-label">Nome do paciente</label><input class="form-input" placeholder="Nome completo"></div>
+      <div class="form-group"><label class="form-label">Telefone (WhatsApp)</label><input class="form-input" placeholder="(11) 99999-9999"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Data da consulta</label><input class="form-input" type="date"></div>
+        <div class="form-group"><label class="form-label">Horário</label><input class="form-input" type="time"></div>
+      </div>
+
+      <div class="glass-card" style="margin-top:16px;text-align:center;padding:20px">
+        <div style="font-size:11px;color:var(--ink4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Link gerado</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);background:rgba(197,165,90,0.06);padding:10px;border-radius:8px;word-break:break-all">vitae.app/pre/dr-marcos/abc123</div>
+      </div>
+
+      <button class="btn-gold" style="margin-top:16px">📱 Enviar por WhatsApp</button>
+      <button class="btn-outline" style="margin-top:10px">📋 Copiar link</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 19: PRÉ-CONSULTA (tela que o PACIENTE preenche)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-pre-consulta">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-meu-rg')">‹</div>
+      <span class="topbar-title">Pré-<em>consulta</em></span>
+      <div></div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <div class="glass-card" style="display:flex;align-items:center;gap:12px;margin-bottom:20px;border-color:rgba(197,165,90,0.15)">
+        <span style="font-size:20px">👨‍⚕️</span>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--ink2)">Dr. Marcos Pereira</div>
+          <div style="font-size:11px;color:var(--ink4)">Cardiologia · 22 Mar 2026 às 14:30</div>
+        </div>
+      </div>
+
+      <div class="glass-card" style="display:flex;align-items:center;gap:12px;margin-bottom:20px;border-color:rgba(74,217,164,0.15)">
+        <span style="font-size:16px">✓</span>
+        <div style="font-size:12px;color:var(--green)">Seus dados do RG da Saúde serão enviados automaticamente</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Motivo da consulta</label>
+        <textarea class="form-input" rows="3" placeholder="Descreva o que está sentindo..." style="resize:none;font-family:'Inter',sans-serif">Dor no joelho direito há 2 semanas, piora ao subir escada</textarea>
+      </div>
+
+      <div class="audio-rec">
+        <div class="audio-rec-btn">🎙</div>
+        <div class="audio-rec-text">
+          <div class="audio-rec-title">Ou grave um áudio</div>
+          <div class="audio-rec-sub">Explique com suas palavras (máx. 2min)</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Há quanto tempo sente isso?</label>
+        <input class="form-input" placeholder="Ex: 2 semanas" value="2 semanas">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tomou algum medicamento pra isso?</label>
+        <input class="form-input" placeholder="Ex: Ibuprofeno" value="Ibuprofeno 400mg">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Exames recentes (PDF)</label>
+        <div class="glass-card" style="text-align:center;padding:20px;border-style:dashed;cursor:pointer">
+          <span style="font-size:24px;display:block;margin-bottom:8px">📄</span>
+          <div style="font-size:13px;color:var(--ink3)">Toque para anexar PDFs</div>
+          <div style="font-size:11px;color:var(--ink4)">Hemograma, raio-x, ressonância...</div>
+        </div>
+      </div>
+
+      <div class="checkbox-row checked" onclick="this.classList.toggle('checked')">
+        <div class="checkbox-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="checkbox-text">Autorizo o compartilhamento dos meus dados com <strong style="color:var(--ink2)">Dr. Marcos Pereira</strong> para fins de atendimento médico.</div>
+      </div>
+
+      <button class="btn-gold" onclick="goTo('s-pre-consulta-ok')" style="margin-top:16px">Enviar para o médico →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 20: PRÉ-CONSULTA ENVIADA (confirmação)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-pre-consulta-ok">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px 24px;text-align:center">
+      <div style="width:80px;height:80px;border-radius:50%;background:rgba(74,217,164,0.1);border:2px solid rgba(74,217,164,0.3);display:flex;align-items:center;justify-content:center;margin-bottom:24px;font-size:36px">✓</div>
+      <h2 style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;margin-bottom:8px">Pré-consulta <em style="color:var(--gold);font-style:italic">enviada!</em></h2>
+      <p style="font-size:14px;color:var(--ink4);line-height:1.5;margin-bottom:8px">Dr. Marcos Pereira receberá seus dados antes da consulta.</p>
+      <p style="font-size:12px;color:var(--ink4);margin-bottom:32px">22 Mar 2026 · 14:30 — Clínica CardioVida</p>
+      <button class="btn-gold" onclick="goTo('s-meu-rg')">Voltar para Meu RG</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 21: ONE MINUTE SUMMARY (tela do médico)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-summary">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-painel-medico')">‹</div>
+      <span class="topbar-title">Summary</span>
+      <div style="display:flex;gap:8px">
+        <button style="padding:6px 12px;background:rgba(197,165,90,0.1);border:1px solid rgba(197,165,90,0.2);border-radius:20px;color:var(--gold);font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">🖨 Imprimir</button>
+      </div>
+    </div>
+    <div style="padding:0 24px 120px">
+      <!-- Audio player -->
+      <div class="glass-card" style="display:flex;align-items:center;gap:14px;border-color:rgba(197,165,90,0.15);margin-bottom:20px">
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+          <span style="color:#0A0A0A;font-size:18px;margin-left:2px">▶</span>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--ink2)">One Minute Summary</div>
+          <div style="font-size:11px;color:var(--ink4)">0:00 / 0:58 · Gerado por IA</div>
+          <div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-top:6px"><div style="height:100%;width:0%;background:var(--gold);border-radius:2px"></div></div>
+        </div>
+      </div>
+
+      <div class="summary-block">
+        <div class="summary-label">Paciente</div>
+        <div class="summary-text"><strong>Daniel Silva</strong> · 30 anos · Masculino · 74kg · 1.78m<br>Tipo sanguíneo: <strong>O+</strong> · Plano: <strong>Unimed</strong></div>
+      </div>
+      <div class="summary-block">
+        <div class="summary-label">Alergias</div>
+        <div style="display:flex;gap:6px"><span class="tag red">Dipirona</span></div>
+      </div>
+      <div class="summary-block">
+        <div class="summary-label">Medicamentos em uso</div>
+        <div class="summary-text"><strong>Creatina</strong> — 5g, 1x ao dia</div>
+      </div>
+      <div class="summary-block">
+        <div class="summary-label">Motivo da consulta</div>
+        <div class="summary-text"><strong>Dor no joelho direito há 2 semanas</strong>. Piora ao subir escadas. Paciente tomou Ibuprofeno 400mg com alívio parcial. Sem histórico de cirurgias no joelho. Sem condições crônicas.</div>
+      </div>
+      <div class="summary-block">
+        <div class="summary-label">Exames recentes</div>
+        <div class="summary-text"><strong>Hemograma</strong> (14 Mar 2026) — Todos os valores dentro da normalidade<br><strong>Painel Completo</strong> (15 Jan 2026) — 14 biomarcadores, sem alterações significativas</div>
+      </div>
+      <div class="summary-block">
+        <div class="summary-label">Histórico relevante</div>
+        <div class="summary-text">Sem cirurgias anteriores. Sem condições crônicas. Pratica musculação 3x/semana. Paciente ativo e saudável.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 22: TERMOS DE USO — PACIENTE
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-termos-paciente">
+    <div class="topbar">
+      <div class="back-btn" onclick="history.back();goTo('s-cadastro-4')">‹</div>
+      <span class="topbar-title">Termos de <em>Uso</em></span>
+      <div></div>
+    </div>
+    <div style="padding:0 24px 120px" class="legal-text">
+      <h3>1. Aceitação dos Termos</h3>
+      <p>Ao criar seu RG da Saúde na plataforma Vitae, você concorda com estes Termos de Uso. A Vitae é uma plataforma digital de gestão de dados pessoais de saúde.</p>
+      <h3>2. Dados Coletados</h3>
+      <p>Coletamos: nome, CPF, data de nascimento, dados de saúde (alergias, medicamentos, cirurgias, exames), contato de emergência e plano de saúde. Todos os dados são fornecidos <strong>voluntariamente</strong> pelo usuário.</p>
+      <h3>3. Armazenamento e Segurança</h3>
+      <p>Seus dados são armazenados com <strong>criptografia de ponta a ponta</strong>. Utilizamos servidores seguros e seguimos as melhores práticas de segurança da informação.</p>
+      <h3>4. Compartilhamento de Dados</h3>
+      <p>Seus dados <strong>nunca</strong> são compartilhados sem sua autorização expressa. Cada compartilhamento (via QR Code ou pré-consulta) requer uma <strong>nova autorização</strong>, registrada com data, hora e destinatário.</p>
+      <h3>5. Seus Direitos</h3>
+      <p>Conforme a LGPD, você tem direito a: <strong>acessar, corrigir, excluir</strong> e <strong>exportar</strong> seus dados a qualquer momento. Para exercer esses direitos, acesse as configurações do app ou entre em contato conosco.</p>
+      <h3>6. Responsabilidades</h3>
+      <p>Você é responsável pela veracidade dos dados informados. A Vitae <strong>não substitui</strong> orientação médica profissional. Os dados e resumos gerados por IA são ferramentas de apoio.</p>
+      <h3>7. Pagamento</h3>
+      <p>O RG da Saúde tem custo único de R$4,99. Não há cobranças recorrentes para o paciente.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 23: TERMOS DE USO — MÉDICO
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-termos-medico">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-cadastro-medico')">‹</div>
+      <span class="topbar-title">Termos <em>Profissional</em></span>
+      <div></div>
+    </div>
+    <div style="padding:0 24px 120px" class="legal-text">
+      <h3>1. Uso Profissional</h3>
+      <p>A plataforma Vitae para Profissionais é destinada exclusivamente a <strong>médicos e profissionais de saúde</strong> devidamente registrados em seus conselhos (CRM, CRO, etc).</p>
+      <h3>2. Responsabilidades do Profissional</h3>
+      <p>O profissional se compromete a: utilizar os dados <strong>exclusivamente para atendimento médico</strong>; não compartilhar dados com terceiros sem autorização do paciente; manter sigilo profissional.</p>
+      <h3>3. Dados do Paciente</h3>
+      <p>Os dados recebidos via pré-consulta pertencem ao <strong>paciente</strong>. O acesso é concedido mediante consentimento expresso do titular, conforme a LGPD (Art. 7º, I).</p>
+      <h3>4. One Minute Summary</h3>
+      <p>Os resumos gerados por IA são <strong>ferramentas auxiliares</strong>. Não substituem a anamnese clínica. O profissional é responsável por suas decisões clínicas.</p>
+      <h3>5. Plano e Limites</h3>
+      <p>O plano básico permite até <strong>100 pacientes/mês</strong> por R$19,90. Pacientes adicionais podem ser adquiridos em pacotes.</p>
+      <h3>6. LGPD</h3>
+      <p>A Vitae atua como <strong>operador</strong> dos dados; o profissional atua como <strong>controlador conjunto</strong>. Ambos compartilham responsabilidades conforme a LGPD.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCREEN 24: POLÍTICA DE PRIVACIDADE (LGPD)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="s-lgpd">
+    <div class="topbar">
+      <div class="back-btn" onclick="goTo('s-cadastro-4')">‹</div>
+      <span class="topbar-title">Política de <em>Privacidade</em></span>
+      <div></div>
+    </div>
+    <div style="padding:0 24px 120px" class="legal-text">
+      <h3>1. Controlador dos Dados</h3>
+      <p><strong>Vitae Health Tecnologia Ltda.</strong><br>Encarregado (DPO): privacidade@vitae.app</p>
+      <h3>2. Dados Pessoais Coletados</h3>
+      <p><strong>Dados cadastrais:</strong> nome, CPF, data de nascimento, sexo, email, telefone.<br><strong>Dados de saúde (sensíveis):</strong> tipo sanguíneo, peso, altura, alergias, medicamentos, cirurgias, condições crônicas, exames laboratoriais, plano de saúde.</p>
+      <h3>3. Base Legal</h3>
+      <p>O tratamento dos dados pessoais é baseado no <strong>consentimento do titular</strong> (Art. 7º, I e Art. 11, I da LGPD). Dados sensíveis de saúde são tratados com base no <strong>consentimento específico e destacado</strong>.</p>
+      <h3>4. Finalidade</h3>
+      <p>Seus dados são utilizados para: criação do RG da Saúde; compartilhamento autorizado com profissionais de saúde; geração de resumos de pré-consulta; lembretes de exames.</p>
+      <h3>5. Compartilhamento</h3>
+      <p>Dados são compartilhados <strong>somente</strong> com profissionais de saúde <strong>mediante consentimento expresso</strong> a cada compartilhamento. Cada autorização é registrada com data, hora e destinatário.</p>
+      <h3>6. Armazenamento</h3>
+      <p>Dados armazenados com <strong>criptografia AES-256</strong>. Servidores com certificação ISO 27001. Backups criptografados.</p>
+      <h3>7. Seus Direitos (Art. 18 da LGPD)</h3>
+      <p>Você tem direito a: <strong>confirmação</strong> do tratamento; <strong>acesso</strong> aos dados; <strong>correção</strong> de dados incompletos; <strong>anonimização ou eliminação</strong>; <strong>portabilidade</strong>; <strong>revogação</strong> do consentimento.</p>
+      <h3>8. Exclusão de Dados</h3>
+      <p>Você pode solicitar a <strong>exclusão total</strong> dos seus dados a qualquer momento. A exclusão é irreversível e será processada em até 15 dias úteis.</p>
+      <h3>9. Contato</h3>
+      <p>Para exercer seus direitos: privacidade@vitae.app<br>Horário: segunda a sexta, 9h às 18h.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       NAVIGATION MAP (floating)
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="navMap" style="position:absolute;bottom:0;left:0;right:0;background:rgba(10,10,10,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(197,165,90,0.2);z-index:200;max-height:50%;overflow-y:auto;transform:translateY(100%);transition:transform 0.35s ease;padding:16px 16px 30px;border-radius:20px 20px 0 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700">🗺 Mapa de telas</div>
+      <div style="cursor:pointer;font-size:20px;color:var(--ink4)" onclick="toggleNav()">✕</div>
+    </div>
+
+    <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.15em;text-transform:uppercase;margin:12px 0 6px">FLUXO PACIENTE</div>
+    <div class="nav-item" onclick="goTo('s-landing-paciente')">Landing Page Paciente</div>
+    <div class="nav-item" onclick="goTo('s-cadastro-1')">Cadastro 1 — Dados pessoais</div>
+    <div class="nav-item" onclick="goTo('s-cadastro-2')">Cadastro 2 — Histórico médico</div>
+    <div class="nav-item" onclick="goTo('s-cadastro-3')">Cadastro 3 — Medicamentos e alergias</div>
+    <div class="nav-item" onclick="goTo('s-cadastro-4')">Cadastro 4 — Termos e privacidade</div>
+    <div class="nav-item" onclick="goTo('s-confirmacao')">Confirmação — RG criado</div>
+
+    <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.15em;text-transform:uppercase;margin:16px 0 6px">TELA PRINCIPAL</div>
+    <div class="nav-item" onclick="goTo('s-meu-rg')">★ Meu RG da Saúde (Home)</div>
+    <div class="nav-item" onclick="goTo('s-qr-code')">QR Code expandido</div>
+    <div class="nav-item" onclick="goTo('s-autorizacao')">Autorização de acesso</div>
+    <div class="nav-item" onclick="goTo('s-editar-dados')">Editar dados do RG</div>
+    <div class="nav-item" onclick="goTo('s-proximo-exame')">Próximo exame / agendar</div>
+    <div class="nav-item" onclick="goTo('s-historico')">Histórico médico completo</div>
+    <div class="nav-item" onclick="goTo('s-timeline')">Linha do tempo</div>
+    <div class="nav-item" onclick="goTo('s-exames-info')">Aba Exames (info)</div>
+
+    <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.15em;text-transform:uppercase;margin:16px 0 6px">FLUXO MÉDICO</div>
+    <div class="nav-item" onclick="goTo('s-landing-medico')">Landing Page Médico</div>
+    <div class="nav-item" onclick="goTo('s-cadastro-medico')">Cadastro do médico</div>
+    <div class="nav-item" onclick="goTo('s-painel-medico')">Painel do médico (Dashboard)</div>
+    <div class="nav-item" onclick="goTo('s-gerar-link')">Gerar link de pré-consulta</div>
+    <div class="nav-item" onclick="goTo('s-pre-consulta')">Pré-consulta (paciente preenche)</div>
+    <div class="nav-item" onclick="goTo('s-pre-consulta-ok')">Pré-consulta enviada</div>
+    <div class="nav-item" onclick="goTo('s-summary')">One Minute Summary</div>
+
+    <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.15em;text-transform:uppercase;margin:16px 0 6px">JURÍDICO</div>
+    <div class="nav-item" onclick="goTo('s-termos-paciente')">Termos de Uso — Paciente</div>
+    <div class="nav-item" onclick="goTo('s-termos-medico')">Termos de Uso — Médico</div>
+    <div class="nav-item" onclick="goTo('s-lgpd')">Política de Privacidade (LGPD)</div>
+  </div>
+
+  <!-- Nav toggle button -->
+  <div id="navToggle" onclick="toggleNav()" style="position:absolute;bottom:20px;right:20px;width:48px;height:48px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:201;box-shadow:0 4px 20px rgba(197,165,90,0.4);font-size:18px;transition:all 0.2s">🗺</div>
+
+</div>
+
+<style>
+.nav-item{padding:10px 12px;border-radius:10px;font-size:13px;color:var(--ink2);cursor:pointer;transition:all 0.15s;margin-bottom:2px}
+.nav-item:hover{background:rgba(197,165,90,0.08);color:var(--gold)}
+.nav-item:active{transform:scale(0.98)}
+</style>
+
+<script>
+let currentScreen = 's-landing-paciente';
+let navOpen = false;
+
+function goTo(id) {
+  if (id === currentScreen) return;
+  const prev = document.getElementById(currentScreen);
+  const next = document.getElementById(id);
+  if (!next) return;
+
+  if (prev) {
+    prev.classList.remove('active');
+    prev.classList.add('back');
+    setTimeout(() => prev.classList.remove('back'), 400);
+  }
+
+  next.classList.add('active');
+  next.scrollTop = 0;
+  currentScreen = id;
+
+  if (navOpen) toggleNav();
+}
+
+function toggleNav() {
+  const map = document.getElementById('navMap');
+  navOpen = !navOpen;
+  map.style.transform = navOpen ? 'translateY(0)' : 'translateY(100%)';
+}
+</script>
+</body>
+</html>
