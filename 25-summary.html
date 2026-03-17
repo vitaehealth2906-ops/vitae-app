@@ -176,15 +176,28 @@
 
             // Raw responses if no AI summary
             if (!summary.blocos && pc.respostas) {
+                const LABELS = {
+                    nomeCompleto:'Nome completo', dataNascimento:'Data de nascimento',
+                    cpf:'CPF', telefone:'Telefone', email:'E-mail', sexo:'Sexo biológico',
+                    queixaPrincipal:'Queixa principal', duracaoSintomas:'Duração dos sintomas',
+                    medicamentosEmUso:'Medicamentos em uso', alergias:'Alergias',
+                    reacoesAdversas:'Reações adversas', doencasAtuais:'Doenças atuais',
+                    historicoInternacoes:'Histórico de internações', cirurgias:'Cirurgias',
+                    historiaFamiliar:'História familiar', tabagismo:'Tabagismo',
+                    tabagismoDetalhe:'Detalhe tabagismo', alcool:'Álcool',
+                    exercicio:'Exercício físico', exercicioTipo:'Tipo de exercício',
+                    cafeina:'Cafeína', sono:'Sono', mudancasRotina:'Mudanças na rotina',
+                    examesAnteriores:'Exames anteriores', observacoes:'Observações',
+                };
                 html += '<div class="questions-title">Respostas do paciente</div>';
                 const r = pc.respostas;
                 for (const [key, val] of Object.entries(r)) {
-                    if (val) {
-                        html += `<div class="block">
-                            <div class="block-title">${key}</div>
-                            <div class="block-content">${val}</div>
-                        </div>`;
-                    }
+                    if (!val || typeof val === 'object') continue;
+                    const label = LABELS[key] || key;
+                    html += `<div class="block">
+                        <div class="block-title">${label}</div>
+                        <div class="block-content">${val}</div>
+                    </div>`;
                 }
             }
 
@@ -211,7 +224,7 @@
         utterance.onstart = () => {
             isSpeaking = true;
             btn.classList.add('playing');
-            btn.innerHTML = '⏸️ Pausar';
+            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Parar';
         };
 
         utterance.onend = () => {

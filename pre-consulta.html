@@ -470,8 +470,10 @@ const token = urlParams.get('token');
 // Mostrar/ocultar detalhe do tabagismo
 document.querySelectorAll('input[name="tabagismo"]').forEach(r => {
     r.addEventListener('change', () => {
-        document.getElementById('tabagismoDetalhe').style.display =
-            r.value === 'sim' ? 'block' : 'none';
+        const detail = document.getElementById('tabagismoDetalhe');
+        const show = r.value === 'sim';
+        detail.style.display = show ? 'block' : 'none';
+        if (!show) detail.value = '';
     });
 });
 
@@ -489,56 +491,65 @@ async function init() {
             if (p.nome) document.getElementById('nomeCompleto').value = p.nome;
             if (p.dataNascimento) document.getElementById('dataNascimento').value = p.dataNascimento.slice(0,10);
             if (p.cpf) document.getElementById('cpf').value = p.cpf;
-            if (p.telefone) document.getElementById('telefone').value = p.telefone;
+            if (p.celular) document.getElementById('telefone').value = p.celular;
             if (p.email) document.getElementById('emailId').value = p.email;
             if (p.genero) document.getElementById('sexo').value = p.genero.toLowerCase();
         }
 
         // Tags de medicamentos pré-preenchidos
-        if (data.medicamentos && data.medicamentos.length > 0) {
+        const meds = data.perfilPaciente?.medicamentos || [];
+        if (meds.length > 0) {
             document.getElementById('prefillMeds').style.display = 'block';
             const wrap = document.getElementById('medsTagsWrap');
-            data.medicamentos.forEach(m => {
+            meds.forEach(m => {
                 const tag = document.createElement('span');
                 tag.className = 'prefill-tag';
-                tag.textContent = m.nome + (m.dosagem ? ' ' + m.dosagem : '');
+                tag.textContent = m; // já é string formatada do backend
                 wrap.appendChild(tag);
             });
+            // Popular textarea para que os dados sejam enviados
+            document.getElementById('medicamentos').value = meds.join('\n');
             document.getElementById('medicamentos').placeholder = 'Adicione outros medicamentos não listados acima...';
         }
 
         // Tags de alergias pré-preenchidas
-        if (data.alergias && data.alergias.length > 0) {
+        const algs = data.perfilPaciente?.alergias || [];
+        if (algs.length > 0) {
             document.getElementById('prefillAlergias').style.display = 'block';
             const wrap = document.getElementById('alergiasTagsWrap');
-            data.alergias.forEach(a => {
+            algs.forEach(a => {
                 const tag = document.createElement('span');
                 tag.className = 'prefill-tag';
-                tag.textContent = a.nome;
+                tag.textContent = a; // já é string
                 wrap.appendChild(tag);
             });
+            // Popular campo para envio
+            document.getElementById('alergias').value = algs.join(', ');
         }
 
         // Tags de cirurgias pré-preenchidas
-        if (data.cirurgias && data.cirurgias.length > 0) {
+        const cirgs = data.perfilPaciente?.cirurgias || [];
+        if (cirgs.length > 0) {
             document.getElementById('prefillCirurgias').style.display = 'block';
             const wrap = document.getElementById('cirurgiasTagsWrap');
-            data.cirurgias.forEach(c => {
+            cirgs.forEach(c => {
                 const tag = document.createElement('span');
                 tag.className = 'prefill-tag';
                 tag.textContent = c;
                 wrap.appendChild(tag);
             });
+            document.getElementById('cirurgias').value = cirgs.join('\n');
         }
 
-        // Tags de exames pré-preenchidos
-        if (data.exames && data.exames.length > 0) {
+        // Tags de exames pré-preenchidos (examesRecentes é uma string separada por ", ")
+        const examesStr = data.perfilPaciente?.examesRecentes || '';
+        if (examesStr) {
             document.getElementById('prefillExames').style.display = 'block';
             const wrap = document.getElementById('examesTagsWrap');
-            data.exames.slice(0,5).forEach(e => {
+            examesStr.split(', ').slice(0,5).forEach(e => {
                 const tag = document.createElement('span');
                 tag.className = 'prefill-tag';
-                tag.textContent = (e.tipoExame || e.nome || 'Exame');
+                tag.textContent = e;
                 wrap.appendChild(tag);
             });
         }

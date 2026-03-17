@@ -133,13 +133,11 @@ router.get('/t/:token', async (req, res, next) => {
         const ps = usuarioVitae.perfilSaude;
         perfilPaciente = {
           nome: ps.nomeSocial || usuarioVitae.nome,
-          apelido: ps.apelido,
-          nomeSocial: ps.nomeSocial,
           dataNascimento: ps.dataNascimento,
           cpf: ps.cpf,
           genero: ps.genero,
-          estadoCivil: ps.estadoCivil,
-          corEtnia: ps.corEtnia,
+          celular: usuarioVitae.celular,
+          email: usuarioVitae.email,
           planoSaude: ps.planoSaude,
           carteirinhaPlano: ps.carteirinhaPlano,
           condicoes: ps.condicoes,

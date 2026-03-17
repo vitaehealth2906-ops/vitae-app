@@ -35,13 +35,16 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
         select: { nome: true, tipo: true, gravidade: true },
       }),
       prisma.exame.findMany({
-        where: { usuarioId: usuario.id, status: 'PROCESSADO' },
+        where: { usuarioId: usuario.id },
         orderBy: { dataExame: 'desc' },
-        take: 3,
+        take: 5,
         select: {
+          id: true,
           tipoExame: true,
+          nomeArquivo: true,
           dataExame: true,
           statusGeral: true,
+          status: true,
           parametros: {
             where: { classificacao: { in: ['CRITICO', 'ATENCAO'] } },
             select: { nome: true, valor: true, unidade: true, classificacao: true },
@@ -79,6 +82,28 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
       medicamentos,
       examesRecentes,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /exame-publico/:userId/:examId — Exame completo publico (sem auth)
+// Valida que o exame pertence ao userId antes de expor os dados
+// ---------------------------------------------------------------------------
+
+router.get('/exame-publico/:userId/:examId', async (req, res, next) => {
+  try {
+    const exame = await prisma.exame.findUnique({
+      where: { id: req.params.examId },
+      include: { parametros: { orderBy: { nome: 'asc' } } },
+    });
+
+    if (!exame || exame.usuarioId !== req.params.userId) {
+      return res.status(404).json({ erro: 'Exame nao encontrado' });
+    }
+
+    return res.status(200).json({ exame });
   } catch (err) {
     next(err);
   }

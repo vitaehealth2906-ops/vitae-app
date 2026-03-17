@@ -81,12 +81,15 @@
         .warn-text strong { display:block; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
 
         /* Exame card */
-        .exam-card { padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+        .exam-card { padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04); text-decoration:none; display:block; }
         .exam-card:last-child { border-bottom:none; padding-bottom:0; }
         .exam-card:first-child { padding-top:0; }
+        .exam-card.clickable { cursor:pointer; transition:opacity .2s; }
+        .exam-card.clickable:hover { opacity:0.8; }
         .exam-top { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
         .exam-name { font-size:13px; font-weight:600; color:rgba(255,255,255,0.75); flex:1; }
         .exam-date { font-size:11px; color:rgba(255,255,255,0.25); }
+        .exam-arrow { font-size:14px; color:rgba(197,165,90,0.5); flex-shrink:0; }
         .exam-markers { display:flex; flex-wrap:wrap; gap:5px; }
 
         /* Emergency */
@@ -255,14 +258,18 @@
                 const markerHtml = (e.parametros || []).map(mp =>
                     `<span class="tag ${mp.classificacao === 'CRITICO' ? 'exam-crit' : 'exam-warn'}">${mp.nome}: ${mp.valor}${mp.unidade ? ' '+mp.unidade : ''}</span>`
                 ).join('');
-                return `<div class="exam-card">
+                const isClickable = e.id && e.status === 'PROCESSADO';
+                const tag = isClickable ? `<a class="exam-card clickable" href="exame-publico.html?user=${usuario.id}&exam=${e.id}">` : '<div class="exam-card">';
+                const closeTag = isClickable ? '</a>' : '</div>';
+                return `${tag}
                     <div class="exam-top">
-                        <div class="exam-name">${e.tipoExame || 'Exame'}</div>
+                        <div class="exam-name">${e.tipoExame || e.nomeArquivo || 'Exame'}</div>
                         <div class="exam-date">${dt}</div>
-                        ${e.statusGeral ? `<span class="tag ${statusMap[e.statusGeral] || 'exam-ok'}" style="font-size:10px;padding:3px 8px;">${e.statusGeral}</span>` : ''}
+                        ${e.statusGeral ? `<span class="tag ${statusMap[e.statusGeral] || 'exam-ok'}" style="font-size:10px;padding:3px 8px;">${e.statusGeral}</span>` : (e.status === 'PROCESSANDO' ? `<span class="tag exam-warn" style="font-size:10px;padding:3px 8px;">Processando</span>` : '')}
+                        ${isClickable ? '<span class="exam-arrow">›</span>' : ''}
                     </div>
                     ${markerHtml ? `<div class="exam-markers">${markerHtml}</div>` : ''}
-                </div>`;
+                ${closeTag}`;
             }).join('');
             html += `
                 <div class="section-title">${svgIcon('#4AD9A4','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>')} Últimos Exames</div>
