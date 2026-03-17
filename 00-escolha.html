@@ -190,6 +190,23 @@
             if (u.tipo === 'MEDICO') {
                 window.location.href = '20-medico-dashboard.html';
             } else {
+                // Verificar se perfil tem dados preenchidos
+                checkPerfilPreenchido();
+            }
+        }
+
+        async function checkPerfilPreenchido() {
+            try {
+                const API = ['localhost','127.0.0.1'].includes(window.location.hostname) || window.location.protocol === 'file:'
+                    ? 'http://localhost:3002' : 'https://vitae-app-production.up.railway.app';
+                const res = await fetch(API + '/perfil', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                const p = data.perfil || {};
+                const vazio = !p.dataNascimento && !p.tipoSanguineo && !p.genero && !p.cpf;
+                window.location.href = vazio ? '05-quiz.html' : '08-perfil.html';
+            } catch (e) {
                 window.location.href = '08-perfil.html';
             }
         }
