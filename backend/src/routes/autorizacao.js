@@ -25,7 +25,7 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
       where: { usuarioId: usuario.id },
     });
 
-    const [medicamentos, alergias] = await Promise.all([
+    const [medicamentos, alergias, examesRecentes] = await Promise.all([
       prisma.medicamento.findMany({
         where: { usuarioId: usuario.id, ativo: true },
         select: { nome: true, dosagem: true, frequencia: true },
@@ -33,6 +33,20 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
       prisma.alergia.findMany({
         where: { usuarioId: usuario.id },
         select: { nome: true, tipo: true, gravidade: true },
+      }),
+      prisma.exame.findMany({
+        where: { usuarioId: usuario.id, status: 'PROCESSADO' },
+        orderBy: { dataExame: 'desc' },
+        take: 3,
+        select: {
+          tipoExame: true,
+          dataExame: true,
+          statusGeral: true,
+          parametros: {
+            where: { classificacao: { in: ['CRITICO', 'ATENCAO'] } },
+            select: { nome: true, valor: true, unidade: true, classificacao: true },
+          },
+        },
       }),
     ]);
 
@@ -44,11 +58,11 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
       cpf: perfil.cpf ? perfil.cpf.slice(0,3) + '.***.***-' + perfil.cpf.slice(-2) : null,
       apelido: perfil.apelido,
       nomeSocial: perfil.nomeSocial,
-      estadoCivil: perfil.estadoCivil,
-      corEtnia: perfil.corEtnia,
       condicoes: perfil.condicoes,
       cirurgias: perfil.cirurgias || [],
       planoSaude: perfil.planoSaude,
+      carteirinhaPlano: perfil.carteirinhaPlano,
+      historicoFamiliar: perfil.historicoFamiliar || [],
       limitacoesAcessibilidade: perfil.limitacoesAcessibilidade,
       contatoEmergenciaNome: perfil.contatoEmergenciaNome,
       contatoEmergenciaTel: perfil.contatoEmergenciaTel,
@@ -63,6 +77,7 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
       perfil: perfilPublico,
       alergias,
       medicamentos,
+      examesRecentes,
     });
   } catch (err) {
     next(err);
