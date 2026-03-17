@@ -27,9 +27,23 @@ const app = express();
 // ── CORS ───────────────────────────────────────────────
 // Em dev, aceita qualquer origin (file://, localhost, etc.)
 // Em producao, restringir para o dominio real
+const allowedOrigins = [
+  'https://vitaehealth2906-ops.github.io',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+  'http://127.0.0.1:3002',
+];
 app.use(
   cors({
-    origin: true,
+    origin: function(origin, callback) {
+      // Permitir requests sem origin (file://, mobile apps, curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.some(o => origin.startsWith(o))) return callback(null, true);
+      callback(null, false);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

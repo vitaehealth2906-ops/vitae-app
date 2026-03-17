@@ -6,6 +6,57 @@ const { validate } = require('../middleware/validate');
 
 const router = express.Router();
 
+// ---------------------------------------------------------------------------
+// GET /rg-publico/:userId — Dados publicos do RG (sem auth — leitura publica)
+// ---------------------------------------------------------------------------
+
+router.get('/rg-publico/:userId', async (req, res, next) => {
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: req.params.userId },
+      select: { id: true, nome: true },
+    });
+
+    if (!usuario) {
+      return res.status(404).json({ erro: 'Usuario nao encontrado' });
+    }
+
+    const perfil = await prisma.perfilSaude.findUnique({
+      where: { usuarioId: usuario.id },
+    });
+
+    const [medicamentos, alergias] = await Promise.all([
+      prisma.medicamento.findMany({
+        where: { usuarioId: usuario.id, ativo: true },
+        select: { nome: true },
+      }),
+      prisma.alergia.findMany({
+        where: { usuarioId: usuario.id },
+        select: { nome: true },
+      }),
+    ]);
+
+    // Retornar dados limitados — apenas o essencial para emergencia
+    const perfilPublico = perfil ? {
+      tipoSanguineo: perfil.tipoSanguineo,
+      dataNascimento: perfil.dataNascimento,
+      cpf: perfil.cpf ? perfil.cpf.slice(0,3) + '.***.***-' + perfil.cpf.slice(-2) : null,
+      contatoEmergenciaNome: perfil.contatoEmergenciaNome,
+      contatoEmergenciaTel: perfil.contatoEmergenciaTel,
+    } : {};
+
+    return res.status(200).json({
+      usuario,
+      perfil: perfilPublico,
+      alergias,
+      medicamentos,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Todas as rotas abaixo requerem autenticacao
 router.use(verificarAuth);
 
 // ---------------------------------------------------------------------------

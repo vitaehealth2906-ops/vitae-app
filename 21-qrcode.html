@@ -84,6 +84,7 @@
             line-height:1.5; text-align:center;
         }
     </style>
+    <link rel="stylesheet" href="vitae-glass.css">
 </head>
 <body>
 <div class="phone">
@@ -127,19 +128,9 @@
 
             document.getElementById('qrName').textContent = data.usuario.nome || 'Paciente';
 
-            // Build QR content
-            const qrContent = JSON.stringify({
-                vitae: true,
-                id: data.usuario.id,
-                nome: data.usuario.nome,
-                sangue: data.perfil.tipoSanguineo || '',
-                alergias: (data.alergias || []).map(a => a.nome),
-                medicamentos: (data.medicamentos || []).map(m => m.nome),
-                emergencia: data.perfil.contatoEmergenciaNome ? {
-                    nome: data.perfil.contatoEmergenciaNome,
-                    tel: data.perfil.contatoEmergenciaTel
-                } : null,
-            });
+            // Build QR content — URL publica que abre o RG da Saude
+            const baseUrl = window.location.origin + window.location.pathname.replace('21-qrcode.html', '');
+            const qrContent = baseUrl + 'rg-publico.html?id=' + data.usuario.id;
 
             new QRCode(document.getElementById('qrcode'), {
                 text: qrContent,
@@ -166,13 +157,16 @@
 
     function shareWhatsApp() {
         const nome = qrData.usuario?.nome || 'Paciente';
-        const msg = encodeURIComponent(`${nome} compartilhou o RG da Saúde VITAE. Baixe o app para visualizar: https://vitaehealth2906-ops.github.io/vitae-app/`);
+        const baseUrl = window.location.origin + window.location.pathname.replace('21-qrcode.html', '');
+        const publicUrl = baseUrl + 'rg-publico.html?id=' + (qrData.usuario?.id || '');
+        const msg = encodeURIComponent(`${nome} compartilhou o RG da Saúde VITAE.\n\nVeja aqui: ${publicUrl}`);
         window.open(`https://wa.me/?text=${msg}`, '_blank');
     }
 
     function copyLink() {
-        const url = window.location.href;
-        navigator.clipboard.writeText(url).then(() => {
+        const baseUrl = window.location.origin + window.location.pathname.replace('21-qrcode.html', '');
+        const publicUrl = baseUrl + 'rg-publico.html?id=' + (qrData.usuario?.id || '');
+        navigator.clipboard.writeText(publicUrl).then(() => {
             alert('Link copiado!');
         });
     }

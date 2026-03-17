@@ -273,7 +273,7 @@
         }
         .btn-cancel:hover { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.7); }
     </style>
-    <link rel="stylesheet" href="/vitae-light.css">
+    <link rel="stylesheet" href="/vitae-glass.css">
 </head>
 <body>
 <div class="phone">
@@ -353,6 +353,26 @@
                 <span class="data-row-value empty" id="val-genero">Adicionar</span>
                 <span class="data-row-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
             </div>
+            <div class="data-row" onclick="editField('cpf')">
+                <span class="data-row-label">CPF</span>
+                <span class="data-row-value empty" id="val-cpf">Adicionar</span>
+                <span class="data-row-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+            </div>
+        </div>
+
+        <!-- Saude extra -->
+        <div class="section-label" style="animation-delay:0.55s">Plano & Cirurgias</div>
+        <div class="data-table" style="animation-delay:0.6s">
+            <div class="data-row" onclick="editField('plano')">
+                <span class="data-row-label">Plano de saúde</span>
+                <span class="data-row-value empty" id="val-plano">Adicionar</span>
+                <span class="data-row-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+            </div>
+            <div class="data-row" onclick="editField('cirurgias')">
+                <span class="data-row-label">Cirurgias</span>
+                <span class="data-row-value empty" id="val-cirurgias">Nenhuma</span>
+                <span class="data-row-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+            </div>
         </div>
 
         <!-- Contato -->
@@ -429,7 +449,10 @@
         pai:         { value:'', value2:'',              label:'Pai',              placeholder:'Nome do pai', placeholder2:'Celular do pai', dual:true },
         historico:   { value:'',    label:'Historico familiar', placeholder:'Ex: Diabetes, Hipertensao...' },
         sangue:      { value:'',                       label:'Tipo sanguineo',   placeholder:'Ex: A+, B-, O+, AB+...' },
-        condicoes:   { value:'',                         label:'Condicoes',        placeholder:'Ex: Asma, Rinite...' }
+        condicoes:   { value:'',                         label:'Condicoes',        placeholder:'Ex: Asma, Rinite...' },
+        cpf:         { value:'',                         label:'CPF',              placeholder:'000.000.000-00' },
+        plano:       { value:'',                         label:'Plano de saúde',   placeholder:'Ex: Unimed, SulAmérica...' },
+        cirurgias:   { value:'',                         label:'Cirurgias',        placeholder:'Ex: Apendicectomia, Amigdalas...' }
     };
 
     // Carregar dados do backend
@@ -453,6 +476,9 @@
             if (ps.tipoSanguineo) data.sangue.value = ps.tipoSanguineo;
             if (ps.historicoFamiliar) data.historico.value = ps.historicoFamiliar;
             if (ps.condicoes) data.condicoes.value = ps.condicoes;
+            if (ps.cpf) data.cpf.value = ps.cpf;
+            if (ps.planoSaude) data.plano.value = ps.planoSaude;
+            if (ps.cirurgias && ps.cirurgias.length > 0) data.cirurgias.value = ps.cirurgias.join(', ');
             if (ps.contatoEmergenciaNome) { data.emergencia.value = ps.contatoEmergenciaNome; data.emergencia.value2 = ps.contatoEmergenciaTel || ''; }
             if (ps.nomeMae) { data.mae.value = ps.nomeMae; data.mae.value2 = ps.nomeMaeTel || ''; }
             if (ps.nomePai) { data.pai.value = ps.nomePai; data.pai.value2 = ps.nomePaiTel || ''; }
@@ -577,6 +603,9 @@
                 else if (key === 'sangue') payload.tipoSanguineo = val;
                 else if (key === 'historico') payload.historicoFamiliar = val;
                 else if (key === 'condicoes') payload.condicoes = val;
+                else if (key === 'cpf') payload.cpf = val.replace(/\D/g, '');
+                else if (key === 'plano') payload.planoSaude = val;
+                else if (key === 'cirurgias') payload.cirurgias = val.split(',').map(s => s.trim()).filter(Boolean);
                 else if (key === 'nascimento') {
                     const parts = val.split('/');
                     if (parts.length === 3) payload.dataNascimento = new Date(parts[2], parts[1]-1, parts[0]).toISOString();

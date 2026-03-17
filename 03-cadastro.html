@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VITAE — Cadastro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -40,7 +40,7 @@
             margin-bottom:36px;
         }
         .page-title {
-            font-family:'Cormorant Garamond', serif;
+            font-family:'Playfair Display', serif;
             font-size:32px; font-weight:700;
             color:#fff; margin-bottom:8px;
         }
@@ -117,45 +117,6 @@
             font-size:18px; color:rgba(255,255,255,0.25);
         }
 
-        /* Divider */
-        .divider {
-            display:flex; align-items:center; gap:16px;
-            margin:8px 0;
-        }
-        .divider-line {
-            flex:1; height:1px;
-            background:rgba(255,255,255,0.06);
-        }
-        .divider-text {
-            font-size:12px; font-weight:500;
-            color:rgba(255,255,255,0.2);
-        }
-
-        /* Social buttons */
-        .social-buttons {
-            display:flex; gap:12px;
-        }
-        .social-btn {
-            flex:1; padding:14px;
-            background:rgba(255,255,255,0.04);
-            backdrop-filter:blur(16px);
-            -webkit-backdrop-filter:blur(16px);
-            border:1px solid rgba(255,255,255,0.08);
-            border-top:1px solid rgba(255,255,255,0.1);
-            border-radius:14px;
-            display:flex; align-items:center; justify-content:center; gap:10px;
-            cursor:pointer;
-            font-family:'Inter',sans-serif;
-            font-size:14px; font-weight:600; color:#fff;
-            transition:all 0.2s ease;
-            box-shadow:0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
-        }
-        .social-btn:hover {
-            border-color:rgba(255,255,255,0.15);
-            background:rgba(255,255,255,0.06);
-        }
-        .social-icon { font-size:20px; }
-
         /* Terms */
         .terms {
             display:flex; align-items:flex-start; gap:12px;
@@ -215,7 +176,7 @@
             color:#C5A55A; text-decoration:none; font-weight:600;
         }
     </style>
-    <link rel="stylesheet" href="/vitae-light.css">
+    <link rel="stylesheet" href="/vitae-glass.css">
 </head>
 <body>
 <div class="phone">
@@ -252,23 +213,6 @@
                 <div class="password-wrap">
                     <input class="field-input" type="password" id="passInput" placeholder="Mínimo 8 caracteres" oninput="checkForm()">
                     <button class="password-toggle" onclick="togglePass()">👁</button>
-                </div>
-            </div>
-
-            <div class="divider">
-                <div class="divider-line"></div>
-                <div class="divider-text">ou continue com</div>
-                <div class="divider-line"></div>
-            </div>
-
-            <div class="social-buttons">
-                <div class="social-btn" onclick="goToVerification()">
-                    <span class="social-icon">G</span>
-                    Google
-                </div>
-                <div class="social-btn" onclick="goToVerification()">
-                    <span class="social-icon"></span>
-                    Apple
                 </div>
             </div>
 
@@ -364,7 +308,15 @@
                 if (u.tipo === 'MEDICO') {
                     window.location.href = '20-medico-dashboard.html';
                 } else {
-                    window.location.href = '08-perfil.html';
+                    // Verificar se perfil tem dados — se vazio, vai pro quiz
+                    try {
+                        const perfilData = await vitaeAPI.getPerfil();
+                        const p = perfilData.perfil || {};
+                        const vazio = !p.dataNascimento && !p.tipoSanguineo && !p.genero && !p.cpf;
+                        window.location.href = vazio ? '05-quiz.html' : '08-perfil.html';
+                    } catch(e) {
+                        window.location.href = '08-perfil.html';
+                    }
                 }
             } else {
                 const celFormatado = formatCelular(celularInput.value);
@@ -413,8 +365,6 @@
             nomeInput.closest('.field').style.display = 'none';
             celularInput.closest('.field').style.display = 'none';
             document.querySelector('.terms').style.display = 'none';
-            document.querySelector('.divider').style.display = 'none';
-            document.querySelector('.social-buttons').style.display = 'none';
             document.getElementById('forgotLink').style.display = 'block';
         } else {
             header.innerHTML = 'Criar <span>conta</span>';
@@ -424,8 +374,6 @@
             nomeInput.closest('.field').style.display = 'flex';
             celularInput.closest('.field').style.display = 'flex';
             document.querySelector('.terms').style.display = 'flex';
-            document.querySelector('.divider').style.display = 'flex';
-            document.querySelector('.social-buttons').style.display = 'flex';
             document.getElementById('forgotLink').style.display = 'none';
         }
         checkForm();
@@ -443,7 +391,17 @@
         if (u && u.tipo === 'MEDICO') {
             window.location.href = '20-medico-dashboard.html';
         } else {
-            window.location.href = '08-perfil.html';
+            // Verificar se perfil preenchido
+            (async () => {
+                try {
+                    const perfilData = await vitaeAPI.getPerfil();
+                    const p = perfilData.perfil || {};
+                    const vazio = !p.dataNascimento && !p.tipoSanguineo && !p.genero && !p.cpf;
+                    window.location.href = vazio ? '05-quiz.html' : '08-perfil.html';
+                } catch(e) {
+                    window.location.href = '08-perfil.html';
+                }
+            })();
         }
     }
 </script>

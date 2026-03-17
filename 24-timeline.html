@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VITAE — Timeline</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg:#0A0A0A; --gold:#C5A55A; --green:#4AD9A4; --red:#D94452; --blue:#4A90E2; }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Inter',sans-serif; }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:var(--bg);
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:var(--bg); border-radius:0 0 20px 20px; z-index:10; }
+        .header {
+            position:absolute; top:58px; left:20px; right:20px;
+            display:flex; align-items:center; z-index:5;
+        }
+        .back-btn {
+            width:40px; height:40px; border-radius:12px;
+            background:rgba(255,255,255,0.04); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+            border:1px solid rgba(255,255,255,0.08);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; font-size:18px; color:rgba(255,255,255,0.5);
+            transition:all 0.2s;
+        }
+        .back-btn:hover { background:rgba(255,255,255,0.08); }
+        .header-title {
+            flex:1; text-align:center;
+            font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:#fff;
+        }
+        .content { height:100%; overflow-y:auto; padding:110px 20px 100px; scrollbar-width:none; }
+        .content::-webkit-scrollbar { display:none; }
+
+        /* Filters */
+        .filters { display:flex; gap:8px; margin-bottom:24px; overflow-x:auto; padding-bottom:4px; }
+        .filter-btn {
+            padding:8px 16px; border-radius:20px; border:none;
+            font-family:'Inter',sans-serif; font-size:12px; font-weight:600;
+            cursor:pointer; white-space:nowrap; transition:all 0.2s;
+            background:rgba(255,255,255,0.04); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+            border:1px solid rgba(255,255,255,0.06); color:rgba(255,255,255,0.5);
+        }
+        .filter-btn.active { background:rgba(197,165,90,0.15); border-color:rgba(197,165,90,0.3); color:var(--gold); }
+
+        /* Timeline */
+        .timeline { position:relative; padding-left:24px; }
+        .timeline::before {
+            content:''; position:absolute; left:7px; top:0; bottom:0;
+            width:2px; background:rgba(255,255,255,0.06);
+        }
+        .tl-item {
+            position:relative; margin-bottom:20px;
+            background:rgba(255,255,255,0.03); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:16px; padding:16px;
+            transition:all 0.2s;
+        }
+        .tl-item:hover { border-color:rgba(255,255,255,0.12); }
+        .tl-dot {
+            position:absolute; left:-20px; top:20px;
+            width:12px; height:12px; border-radius:50%;
+            border:2px solid var(--bg);
+        }
+        .tl-dot.exame { background:var(--gold); }
+        .tl-dot.medicamento { background:var(--blue); }
+        .tl-dot.agendamento { background:var(--green); }
+        .tl-dot.alergia { background:var(--red); }
+        .tl-item-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+        .tl-item-tipo {
+            font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+            padding:3px 8px; border-radius:6px;
+        }
+        .tl-item-tipo.exame { color:var(--gold); background:rgba(197,165,90,0.1); }
+        .tl-item-tipo.medicamento { color:var(--blue); background:rgba(74,144,226,0.1); }
+        .tl-item-tipo.agendamento { color:var(--green); background:rgba(74,217,164,0.1); }
+        .tl-item-tipo.alergia { color:var(--red); background:rgba(217,68,82,0.1); }
+        .tl-item-date { font-size:11px; color:rgba(255,255,255,0.25); }
+        .tl-item-title { font-size:15px; font-weight:600; color:#fff; margin-bottom:2px; }
+        .tl-item-sub { font-size:12px; color:rgba(255,255,255,0.35); }
+
+        .empty-state {
+            text-align:center; padding:60px 20px;
+            color:rgba(255,255,255,0.25); font-size:14px;
+        }
+        .empty-state-icon { font-size:48px; margin-bottom:16px; opacity:0.3; }
+
+        /* Tab bar */
+        .tab-bar {
+            position:absolute; bottom:0; left:0; right:0; height:86px; padding:0 24px;
+            background:linear-gradient(to top, var(--bg) 60%, transparent);
+            display:flex; align-items:center; justify-content:space-around; z-index:20;
+        }
+        .tab { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:8px 16px; }
+        .tab-icon { font-size:22px; opacity:0.4; }
+        .tab-label { font-size:10px; font-weight:600; color:rgba(255,255,255,0.3); letter-spacing:0.5px; }
+        .tab.active .tab-icon { opacity:1; }
+        .tab.active .tab-label { color:var(--gold); }
+    </style>
+    <link rel="stylesheet" href="vitae-glass.css">
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="header">
+        <div class="back-btn" onclick="window.location.href='08-perfil.html?from=nav'">‹</div>
+        <div class="header-title">Timeline</div>
+        <div style="width:40px;"></div>
+    </div>
+
+    <div class="content">
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterTimeline('todos')">Todos</button>
+            <button class="filter-btn" onclick="filterTimeline('EXAME')">Exames</button>
+            <button class="filter-btn" onclick="filterTimeline('MEDICAMENTO')">Medicamentos</button>
+            <button class="filter-btn" onclick="filterTimeline('AGENDAMENTO')">Agendamentos</button>
+        </div>
+        <div id="timelineContainer">
+            <div class="empty-state">
+                <div class="empty-state-icon">📊</div>
+                Carregando sua timeline...
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-bar">
+        <div class="tab" onclick="window.location.href='08-perfil.html?from=nav'">
+            <div class="tab-icon">🏠</div>
+            <div class="tab-label">Meu RG</div>
+        </div>
+        <div class="tab" onclick="window.location.href='11-exames-lista.html'">
+            <div class="tab-icon">🧪</div>
+            <div class="tab-label">Exames</div>
+        </div>
+        <div class="tab active">
+            <div class="tab-icon">📊</div>
+            <div class="tab-label">Timeline</div>
+        </div>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+    if (!vitaeAPI.isLoggedIn()) window.location.href = '00-escolha.html';
+
+    let allEvents = [];
+    let currentFilter = 'todos';
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
+    }
+
+    function getTipoClass(tipo) {
+        const map = { 'EXAME':'exame', 'MEDICAMENTO':'medicamento', 'AGENDAMENTO':'agendamento', 'ALERGIA':'alergia' };
+        return map[tipo] || 'exame';
+    }
+
+    function getTipoLabel(tipo) {
+        const map = { 'EXAME':'Exame', 'MEDICAMENTO':'Medicamento', 'AGENDAMENTO':'Agendamento', 'ALERGIA':'Alergia' };
+        return map[tipo] || tipo;
+    }
+
+    function renderTimeline(events) {
+        const container = document.getElementById('timelineContainer');
+        if (events.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    Sua timeline está vazia.<br>Adicione exames, medicamentos ou agendamentos.
+                </div>`;
+            return;
+        }
+        const cls = getTipoClass;
+        container.innerHTML = '<div class="timeline">' + events.map(e => `
+            <div class="tl-item">
+                <div class="tl-dot ${cls(e.tipo)}"></div>
+                <div class="tl-item-header">
+                    <span class="tl-item-tipo ${cls(e.tipo)}">${getTipoLabel(e.tipo)}</span>
+                    <span class="tl-item-date">${formatDate(e.data)}</span>
+                </div>
+                <div class="tl-item-title">${e.titulo || '—'}</div>
+                <div class="tl-item-sub">${e.subtitulo || ''}</div>
+            </div>
+        `).join('') + '</div>';
+    }
+
+    function filterTimeline(tipo) {
+        currentFilter = tipo;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        const filtered = tipo === 'todos' ? allEvents : allEvents.filter(e => e.tipo === tipo);
+        renderTimeline(filtered);
+    }
+
+    async function loadTimeline() {
+        try {
+            const data = await vitaeAPI.getTimeline();
+            allEvents = data.timeline || [];
+            renderTimeline(allEvents);
+        } catch (e) {
+            document.getElementById('timelineContainer').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⚠️</div>
+                    Erro ao carregar timeline
+                </div>`;
+        }
+    }
+
+    loadTimeline();
+</script>
+</body>
+</html>
