@@ -48,8 +48,28 @@ async function verificarCodigo(codigoDigitado, codigoHash) {
   return bcrypt.compare(codigoLimpo, codigoHash);
 }
 
+async function enviarSMSConfirmacaoPreConsulta(celular, nomePaciente, nomeMedico) {
+  if (!celular) return;
+
+  const mensagem = `VITAE: Olá ${nomePaciente.split(' ')[0]}! Seu formulário de pré-consulta com Dr(a). ${nomeMedico} foi recebido com sucesso. Até logo!`;
+
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+    const twilio = require('twilio');
+    const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    await twilioClient.messages.create({
+      body: mensagem,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: celular,
+    });
+    console.log(`[SMS] Confirmação de pré-consulta enviada para ${celular}`);
+  } else {
+    console.log(`[SMS BYPASS] Confirmação pré-consulta: ${mensagem}`);
+  }
+}
+
 module.exports = {
   enviarCodigoVerificacao,
   verificarCodigo,
   gerarCodigo,
+  enviarSMSConfirmacaoPreConsulta,
 };

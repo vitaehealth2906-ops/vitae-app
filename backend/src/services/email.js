@@ -32,4 +32,44 @@ async function enviarEmailResetSenha(emailDestino, nomeUsuario, linkReset) {
   });
 }
 
-module.exports = { enviarEmailResetSenha };
+async function enviarEmailPreConsultaRespondida(emailMedico, nomeMedico, nomePaciente, summaryIA, linkDashboard) {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`[EMAIL BYPASS] Pre-consulta respondida: ${nomePaciente} → ${emailMedico}`);
+    return;
+  }
+
+  const summaryHtml = summaryIA
+    ? `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(197,165,90,0.15);border-radius:12px;padding:20px;margin:20px 0;">
+        <p style="color:rgba(255,255,255,0.5);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 10px;">Resumo clínico</p>
+        <p style="color:rgba(255,255,255,0.75);font-size:14px;line-height:1.7;margin:0;">${summaryIA}</p>
+       </div>`
+    : '';
+
+  await resend.emails.send({
+    from: 'VITAE Health <onboarding@resend.dev>',
+    to: emailMedico,
+    subject: `VITAE — ${nomePaciente} respondeu a pré-consulta`,
+    html: `
+      <div style="background:#0A0A0A;padding:40px;font-family:Inter,sans-serif;max-width:520px;margin:0 auto;border-radius:16px;">
+        <div style="text-align:center;margin-bottom:32px;">
+          <h1 style="color:#C5A55A;font-size:28px;margin:0;font-family:Georgia,serif;">VITAE</h1>
+          <p style="color:rgba(255,255,255,0.35);font-size:12px;margin:4px 0 0;letter-spacing:0.1em;text-transform:uppercase;">Sua saúde em um só lugar</p>
+        </div>
+        <h2 style="color:#fff;font-size:18px;margin:0 0 8px;">Olá, Dr(a). ${nomeMedico}</h2>
+        <p style="color:rgba(255,255,255,0.55);font-size:14px;line-height:1.6;margin:0 0 20px;">
+          Seu paciente <strong style="color:#fff;">${nomePaciente}</strong> acabou de responder o formulário de pré-consulta.
+        </p>
+        ${summaryHtml}
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${linkDashboard}" style="display:inline-block;background:linear-gradient(135deg,#C5A55A,#D4B96A);color:#0A0A0A;text-decoration:none;padding:16px 40px;border-radius:12px;font-weight:700;font-size:14px;letter-spacing:0.5px;">
+            Ver pré-consulta completa
+          </a>
+        </div>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:24px 0;">
+        <p style="color:rgba(255,255,255,0.2);font-size:11px;text-align:center;margin:0;">VITAE Health · vitae.health2906@gmail.com</p>
+      </div>
+    `,
+  });
+}
+
+module.exports = { enviarEmailResetSenha, enviarEmailPreConsultaRespondida };

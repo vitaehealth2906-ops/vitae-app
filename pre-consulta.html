@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VITAE — Pré-Consulta</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Inter',sans-serif; }
@@ -13,287 +13,679 @@
             border-radius:52px; overflow:hidden; position:relative;
             box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
         }
+        @media(max-width:430px){ .phone{border-radius:0;height:100vh;} }
         .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#0A0A0A; border-radius:0 0 20px 20px; z-index:10; }
 
-        .content { height:100%; overflow-y:auto; padding:62px 24px 40px; scrollbar-width:none; }
+        .content { height:100%; overflow-y:auto; padding:52px 20px 40px; scrollbar-width:none; }
         .content::-webkit-scrollbar { display:none; }
 
-        .logo { font-family:'Playfair Display',serif; font-size:24px; font-weight:700; color:#C5A55A; letter-spacing:2px; text-align:center; margin-bottom:4px; }
-        .sub { font-size:13px; color:rgba(255,255,255,0.35); text-align:center; margin-bottom:24px; }
+        /* Header */
+        .pc-header { text-align:center; margin-bottom:20px; }
+        .pc-logo { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:#C5A55A; letter-spacing:2px; }
+        .pc-sub { font-size:11px; color:rgba(255,255,255,0.3); margin-top:2px; font-family:'DM Mono',monospace; letter-spacing:.1em; text-transform:uppercase; }
 
         .welcome-card {
             background:rgba(197,165,90,0.06); border:1px solid rgba(197,165,90,0.15);
-            border-radius:18px; padding:18px; margin-bottom:24px; text-align:center;
+            border-radius:16px; padding:16px; margin-bottom:20px;
         }
         .welcome-name { font-size:16px; font-weight:600; color:#fff; margin-bottom:4px; }
-        .welcome-doc { font-size:13px; color:rgba(255,255,255,0.4); }
+        .welcome-doc { font-size:12px; color:rgba(255,255,255,0.4); }
 
-        .field { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
-        .field-label { font-size:12px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.5px; }
+        /* Seções */
+        .section { margin-bottom:20px; }
+        .section-title {
+            font-family:'DM Mono',monospace; font-size:10px; font-weight:500;
+            color:rgba(197,165,90,0.7); text-transform:uppercase; letter-spacing:.15em;
+            margin-bottom:12px; display:flex; align-items:center; gap:8px;
+        }
+        .section-title::after { content:''; flex:1; height:1px; background:rgba(197,165,90,0.12); }
+        .section-card {
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07);
+            border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:14px;
+        }
+
+        /* Fields */
+        .field { display:flex; flex-direction:column; gap:6px; }
+        .field-label { font-size:11px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.5px; }
         .field-label .req { color:#D94452; }
-        .field-input, .field-textarea {
-            width:100%; padding:14px 16px;
+        .field-hint { font-size:11px; color:rgba(255,255,255,0.25); line-height:1.4; margin-top:2px; }
+        .field-input, .field-textarea, .field-select {
+            width:100%; padding:12px 14px;
             background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
-            border-radius:14px; font-family:'Inter',sans-serif; font-size:14px; color:#fff; outline:none;
+            border-radius:12px; font-family:'Inter',sans-serif; font-size:14px; color:#fff; outline:none;
+            appearance:none; -webkit-appearance:none;
         }
         .field-input::placeholder, .field-textarea::placeholder { color:rgba(255,255,255,0.2); }
-        .field-textarea { min-height:80px; resize:vertical; }
-        .field-input:focus, .field-textarea:focus { border-color:rgba(197,165,90,0.3); }
+        .field-textarea { min-height:76px; resize:vertical; }
+        .field-input:focus, .field-textarea:focus, .field-select:focus { border-color:rgba(197,165,90,0.3); }
+        .field-select option { background:#1a1a1a; color:#fff; }
+        .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
-        /* Audio recording */
-        .audio-section {
-            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
-            border-radius:18px; padding:18px; margin-bottom:20px; text-align:center;
+        /* Aviso de destaque */
+        .field-warn {
+            background:rgba(217,68,82,0.06); border:1px solid rgba(217,68,82,0.15);
+            border-radius:10px; padding:10px 12px;
+            font-size:12px; color:rgba(255,255,255,0.6); line-height:1.5;
         }
-        .audio-title { font-size:14px; font-weight:600; color:#fff; margin-bottom:4px; }
-        .audio-sub { font-size:12px; color:rgba(255,255,255,0.3); margin-bottom:16px; }
-        .record-btn {
-            width:64px; height:64px; border-radius:50%;
-            border:3px solid rgba(217,68,82,0.4);
-            background:rgba(217,68,82,0.1);
-            cursor:pointer; transition:all 0.3s;
-            display:inline-flex; align-items:center; justify-content:center;
-            font-size:24px;
+        .field-warn strong { color:#D94452; }
+
+        /* Checkboxes */
+        .check-item {
+            display:flex; align-items:center; gap:12px; padding:12px;
+            background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06);
+            border-radius:12px; cursor:pointer;
         }
-        .record-btn.recording {
-            border-color:#D94452; background:rgba(217,68,82,0.2);
-            animation:pulse 1.5s ease infinite;
+        .check-item input[type=checkbox] { width:18px; height:18px; accent-color:#C5A55A; flex-shrink:0; cursor:pointer; }
+        .check-item-label { font-size:13px; color:rgba(255,255,255,0.7); line-height:1.4; }
+        .check-item-label small { display:block; font-size:11px; color:rgba(255,255,255,0.3); margin-top:2px; }
+
+        /* Tags pré-preenchidas */
+        .prefill-tags { display:flex; flex-wrap:wrap; gap:6px; }
+        .prefill-tag {
+            padding:5px 10px; border-radius:20px;
+            background:rgba(197,165,90,0.08); border:1px solid rgba(197,165,90,0.2);
+            font-size:12px; color:rgba(255,255,255,0.7); font-family:'DM Mono',monospace;
         }
-        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
-        .record-status { font-size:12px; color:rgba(255,255,255,0.3); margin-top:8px; }
-        .transcription {
-            margin-top:12px; padding:12px;
-            background:rgba(255,255,255,0.03); border-radius:12px;
-            font-size:13px; color:rgba(255,255,255,0.5); line-height:1.5;
-            min-height:40px; display:none;
+        .prefill-note { font-size:11px; color:rgba(255,255,255,0.25); margin-bottom:8px; }
+
+        /* Hábitos radio */
+        .radio-group { display:flex; gap:6px; flex-wrap:wrap; }
+        .radio-opt { position:relative; }
+        .radio-opt input { position:absolute; opacity:0; width:0; height:0; }
+        .radio-opt label {
+            padding:7px 12px; border-radius:20px; cursor:pointer;
+            background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+            font-size:12px; color:rgba(255,255,255,0.5); display:block; transition:all .2s;
+        }
+        .radio-opt input:checked + label {
+            background:rgba(197,165,90,0.12); border-color:rgba(197,165,90,0.3);
+            color:rgba(197,165,90,0.9);
         }
 
+        /* Submit */
         .btn-submit {
             width:100%; padding:18px;
             background:linear-gradient(135deg, #C5A55A, #D4B96A);
             border:none; border-radius:16px;
             font-family:'Inter',sans-serif; font-size:16px; font-weight:700;
-            color:#0A0A0A; cursor:pointer; margin-top:8px;
+            color:#0A0A0A; cursor:pointer; margin-top:8px; transition:all .2s;
         }
+        .btn-submit:active { transform:scale(.98); }
 
-        .success-screen {
-            display:none; position:absolute; top:0; left:0; right:0; bottom:0;
-            background:#0A0A0A; z-index:50;
-            flex-direction:column; align-items:center; justify-content:center;
-            padding:40px;
-        }
-        .success-screen.active { display:flex; }
-        .success-icon { font-size:64px; margin-bottom:20px; }
-        .success-title { font-family:'Playfair Display',serif; font-size:24px; font-weight:700; color:#fff; text-align:center; margin-bottom:8px; }
-        .success-sub { font-size:14px; color:rgba(255,255,255,0.4); text-align:center; }
-
-        .loading-screen {
-            display:none; position:absolute; top:0; left:0; right:0; bottom:0;
-            background:#0A0A0A; z-index:45;
-            flex-direction:column; align-items:center; justify-content:center;
-        }
-        .loading-screen.active { display:flex; }
-        .loading-text { font-size:14px; color:rgba(255,255,255,0.4); margin-top:16px; }
-
-        .error-state {
+        /* Telas de estado */
+        .overlay-screen {
             display:none; position:absolute; top:0; left:0; right:0; bottom:0;
             background:#0A0A0A; z-index:50;
             flex-direction:column; align-items:center; justify-content:center; padding:40px;
+            text-align:center;
         }
-        .error-state.active { display:flex; }
+        .overlay-screen.active { display:flex; }
+        .overlay-icon { width:56px; height:56px; margin-bottom:20px; color:#C5A55A; }
+        .overlay-title { font-family:'Playfair Display',serif; font-size:24px; font-weight:700; color:#fff; margin-bottom:8px; }
+        .overlay-sub { font-size:14px; color:rgba(255,255,255,0.4); line-height:1.6; }
+
+        /* Spinner */
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .spinner { width:40px; height:40px; border:3px solid rgba(197,165,90,0.2); border-top-color:#C5A55A; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:16px; }
     </style>
-    <link rel="stylesheet" href="vitae-glass.css">
 </head>
 <body>
 <div class="phone">
     <div class="notch"></div>
 
+    <!-- ═══ FORMULÁRIO ═══ -->
     <div class="content" id="formContent">
-        <div class="logo">VITAE</div>
-        <div class="sub">Pré-Consulta</div>
+        <div class="pc-header">
+            <div class="pc-logo">VITAE</div>
+            <div class="pc-sub">Pré-Consulta Médica</div>
+        </div>
 
         <div class="welcome-card">
             <div class="welcome-name" id="welcomeName">Olá!</div>
-            <div class="welcome-doc" id="welcomeDoc">Preencha antes da sua consulta</div>
+            <div class="welcome-doc" id="welcomeDoc">Preencha as informações antes da sua consulta</div>
         </div>
 
-        <div class="field">
-            <div class="field-label">Queixa principal <span class="req">*</span></div>
-            <textarea class="field-textarea" id="queixa" placeholder="O que te trouxe aqui hoje? Descreva seus sintomas..."></textarea>
+        <!-- ─── 1. IDENTIFICAÇÃO ─── -->
+        <div class="section">
+            <div class="section-title">1. Sua identificação</div>
+            <div class="section-card">
+                <div class="field-row">
+                    <div class="field">
+                        <div class="field-label">Nome completo</div>
+                        <input class="field-input" id="nomeCompleto" placeholder="Seu nome">
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Como prefere ser chamado?</div>
+                        <input class="field-input" id="apelido" placeholder="Ex: Lucas, Dra. Ana">
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Nome social</div>
+                    <input class="field-input" id="nomeSocial" placeholder="Se diferente do nome civil (opcional)">
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <div class="field-label">Data de nascimento</div>
+                        <input class="field-input" id="dataNascimento" type="date">
+                    </div>
+                    <div class="field">
+                        <div class="field-label">CPF</div>
+                        <input class="field-input" id="cpf" placeholder="000.000.000-00">
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <div class="field-label">Telefone</div>
+                        <input class="field-input" id="telefone" placeholder="(11) 99999-9999">
+                    </div>
+                    <div class="field">
+                        <div class="field-label">E-mail</div>
+                        <input class="field-input" id="emailId" type="email" placeholder="seu@email.com">
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <div class="field-label">Sexo</div>
+                        <select class="field-select" id="sexo">
+                            <option value="">Selecione</option>
+                            <option value="masculino">Masculino</option>
+                            <option value="feminino">Feminino</option>
+                            <option value="outro">Outro</option>
+                            <option value="nao_informado">Prefiro não informar</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Estado civil</div>
+                        <select class="field-select" id="estadoCivil">
+                            <option value="">Selecione</option>
+                            <option value="solteiro">Solteiro(a)</option>
+                            <option value="casado">Casado(a)</option>
+                            <option value="divorciado">Divorciado(a)</option>
+                            <option value="viuvo">Viúvo(a)</option>
+                            <option value="uniao_estavel">União estável</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Cor / Etnia</div>
+                    <select class="field-select" id="corEtnia">
+                        <option value="">Selecione (opcional)</option>
+                        <option value="branca">Branca</option>
+                        <option value="parda">Parda</option>
+                        <option value="preta">Preta</option>
+                        <option value="amarela">Amarela</option>
+                        <option value="indigena">Indígena</option>
+                        <option value="nao_informado">Prefiro não informar</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
-        <div class="field">
-            <div class="field-label">Há quanto tempo?</div>
-            <input class="field-input" id="duracao" placeholder="Ex: 3 dias, 2 semanas">
+        <!-- ─── 2. MOTIVO DA CONSULTA ─── -->
+        <div class="section">
+            <div class="section-title">2. Motivo da consulta</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Queixa principal <span class="req">*</span></div>
+                    <textarea class="field-textarea" id="queixa" placeholder="O que te trouxe aqui hoje? Descreva seus sintomas com detalhes..."></textarea>
+                </div>
+                <div class="field">
+                    <div class="field-label">Há quanto tempo?</div>
+                    <input class="field-input" id="duracao" placeholder="Ex: 3 dias, 2 semanas, 1 mês">
+                </div>
+            </div>
         </div>
 
-        <div class="field">
-            <div class="field-label">Medicamentos em uso</div>
-            <textarea class="field-textarea" id="medicamentos" placeholder="Liste os medicamentos que toma atualmente..."></textarea>
+        <!-- ─── 3. MEDICAMENTOS E SUPLEMENTOS ─── -->
+        <div class="section">
+            <div class="section-title">3. Medicamentos e suplementos</div>
+            <div class="section-card">
+                <div class="field-warn">
+                    <strong>Atenção:</strong> Inclua <strong>suplementos, vitaminas, injetáveis para emagrecer</strong> (Ozempic, Mounjaro, Wegovy), fitoterápicos e qualquer outro produto — eles são medicamentos e o médico precisa saber.
+                </div>
+                <div id="prefillMeds" style="display:none">
+                    <div class="prefill-note">Medicamentos já cadastrados no Vitae:</div>
+                    <div class="prefill-tags" id="medsTagsWrap"></div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Medicamentos, suplementos e vitaminas</div>
+                    <textarea class="field-textarea" id="medicamentos" placeholder="Liste todos, incluindo dosagem se souber...&#10;Ex: Dipirona 500mg quando necessário, Vitamina D 4000UI/dia, Ozempic 0,5mg/semana"></textarea>
+                </div>
+            </div>
         </div>
 
-        <div class="field">
-            <div class="field-label">Alergias</div>
-            <input class="field-input" id="alergias" placeholder="Ex: Dipirona, Penicilina">
+        <!-- ─── 4. ALERGIAS E REAÇÕES ─── -->
+        <div class="section">
+            <div class="section-title">4. Alergias e reações adversas</div>
+            <div class="section-card">
+                <div id="prefillAlergias" style="display:none">
+                    <div class="prefill-note">Alergias já cadastradas no Vitae:</div>
+                    <div class="prefill-tags" id="alergiasTagsWrap"></div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Alergias conhecidas</div>
+                    <input class="field-input" id="alergias" placeholder="Ex: Penicilina, Dipirona, Látex, Frutos do mar">
+                </div>
+                <div class="field">
+                    <div class="field-label">Reações adversas a medicamentos</div>
+                    <textarea class="field-textarea" id="reacoesAdversas" placeholder="Ex: Tomei amoxicilina e tive urticária. Uso de AINEs causa gastrite forte..." style="min-height:64px;"></textarea>
+                </div>
+            </div>
         </div>
 
-        <div class="field">
-            <div class="field-label">Histórico relevante</div>
-            <textarea class="field-textarea" id="historico" placeholder="Cirurgias, internações, condições crônicas..."></textarea>
+        <!-- ─── 5. DOENÇAS E INTERNAÇÕES ─── -->
+        <div class="section">
+            <div class="section-title">5. Doenças e internações</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Doenças atuais e condições crônicas</div>
+                    <textarea class="field-textarea" id="doencasAtuais" placeholder="Ex: Hipertensão, Diabetes tipo 2, Hipotireoidismo, Ansiedade..."></textarea>
+                </div>
+                <div class="field">
+                    <div class="field-label">Doenças anteriores e internações relevantes</div>
+                    <textarea class="field-textarea" id="historicoInternacoes" placeholder="Ex: Pneumonia em 2020 (internado 5 dias), Dengue em 2022..." style="min-height:64px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 6. CIRURGIAS E PROCEDIMENTOS ─── -->
+        <div class="section">
+            <div class="section-title">6. Cirurgias e procedimentos</div>
+            <div class="section-card">
+                <div class="field-warn">
+                    <strong>Lembre-se:</strong> Procedimentos estéticos também contam — botox, preenchimentos, implantes, rinoplastia, lipoaspiração, etc.
+                </div>
+                <div id="prefillCirurgias" style="display:none">
+                    <div class="prefill-note">Cirurgias cadastradas no Vitae:</div>
+                    <div class="prefill-tags" id="cirurgiasTagsWrap"></div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Cirurgias e procedimentos realizados</div>
+                    <textarea class="field-textarea" id="cirurgias" placeholder="Ex: Apendicectomia (2018), Preenchimento labial (2023), Colocação de silicone (2021)..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 7. HISTÓRIA FAMILIAR ─── -->
+        <div class="section">
+            <div class="section-title">7. História familiar</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Doenças hereditárias na família</div>
+                    <textarea class="field-textarea" id="historiaFamiliar" placeholder="Ex: Pai tem diabetes tipo 2. Mãe teve câncer de mama. Avô paterno faleceu de infarto..." style="min-height:64px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 8. HÁBITOS E ROTINA ─── -->
+        <div class="section">
+            <div class="section-title">8. Hábitos e contexto de vida</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Tabagismo</div>
+                    <div class="radio-group">
+                        <div class="radio-opt"><input type="radio" name="tabagismo" id="tab0" value="nunca"><label for="tab0">Nunca fumei</label></div>
+                        <div class="radio-opt"><input type="radio" name="tabagismo" id="tab1" value="ex"><label for="tab1">Ex-fumante</label></div>
+                        <div class="radio-opt"><input type="radio" name="tabagismo" id="tab2" value="sim"><label for="tab2">Fumo atualmente</label></div>
+                    </div>
+                    <input class="field-input" id="tabagismoDetalhe" placeholder="Se fumante: quantos cigarros por dia?" style="margin-top:8px; display:none;">
+                </div>
+                <div class="field">
+                    <div class="field-label">Álcool</div>
+                    <div class="radio-group">
+                        <div class="radio-opt"><input type="radio" name="alcool" id="alc0" value="nunca"><label for="alc0">Nunca</label></div>
+                        <div class="radio-opt"><input type="radio" name="alcool" id="alc1" value="socialmente"><label for="alc1">Socialmente</label></div>
+                        <div class="radio-opt"><input type="radio" name="alcool" id="alc2" value="frequente"><label for="alc2">Com frequência</label></div>
+                        <div class="radio-opt"><input type="radio" name="alcool" id="alc3" value="diario"><label for="alc3">Diariamente</label></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Exercício físico</div>
+                    <div class="radio-group">
+                        <div class="radio-opt"><input type="radio" name="exercicio" id="ex0" value="sedentario"><label for="ex0">Sedentário</label></div>
+                        <div class="radio-opt"><input type="radio" name="exercicio" id="ex1" value="leve"><label for="ex1">Leve (1-2x/sem)</label></div>
+                        <div class="radio-opt"><input type="radio" name="exercicio" id="ex2" value="moderado"><label for="ex2">Moderado (3-4x)</label></div>
+                        <div class="radio-opt"><input type="radio" name="exercicio" id="ex3" value="intenso"><label for="ex3">Intenso (5x+)</label></div>
+                    </div>
+                    <input class="field-input" id="exercicioTipo" placeholder="Qual atividade? Ex: caminhada, musculação, natação" style="margin-top:8px;">
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <div class="field-label">Cafeína (xícaras/dia)</div>
+                        <div class="radio-group">
+                            <div class="radio-opt"><input type="radio" name="cafeina" id="caf0" value="nenhuma"><label for="caf0">Nenhuma</label></div>
+                            <div class="radio-opt"><input type="radio" name="cafeina" id="caf1" value="1-2"><label for="caf1">1-2</label></div>
+                            <div class="radio-opt"><input type="radio" name="cafeina" id="caf2" value="3-5"><label for="caf2">3-5</label></div>
+                            <div class="radio-opt"><input type="radio" name="cafeina" id="caf3" value="6+"><label for="caf3">6+</label></div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Horas de sono/noite</div>
+                        <div class="radio-group">
+                            <div class="radio-opt"><input type="radio" name="sono" id="son0" value="menos5"><label for="son0">&lt;5h</label></div>
+                            <div class="radio-opt"><input type="radio" name="sono" id="son1" value="5-7"><label for="son1">5-7h</label></div>
+                            <div class="radio-opt"><input type="radio" name="sono" id="son2" value="7-9"><label for="son2">7-9h</label></div>
+                            <div class="radio-opt"><input type="radio" name="sono" id="son3" value="mais9"><label for="son3">9h+</label></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Mudanças recentes na rotina</div>
+                    <textarea class="field-textarea" id="mudancasRotina" placeholder="Ex: novo trabalho, viagem longa, estresse elevado, mudança de cidade, término de relacionamento..." style="min-height:60px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 9. EXAMES ANTERIORES ─── -->
+        <div class="section">
+            <div class="section-title">9. Exames anteriores</div>
+            <div class="section-card">
+                <div id="prefillExames" style="display:none">
+                    <div class="prefill-note">Exames no Vitae relacionados:</div>
+                    <div class="prefill-tags" id="examesTagsWrap"></div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Exames anteriores relevantes</div>
+                    <textarea class="field-textarea" id="examesAnteriores" placeholder="Liste exames recentes relacionados à queixa. Ex: hemograma (jan/2025), TSH (mar/2025)..." style="min-height:64px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 10. MOBILIDADE E ACESSIBILIDADE ─── -->
+        <div class="section">
+            <div class="section-title">10. Mobilidade e acessibilidade</div>
+            <div class="section-card">
+                <div class="prefill-note" style="color:rgba(255,255,255,0.35); font-size:12px; margin-bottom:4px;">
+                    Essas informações ajudam a clínica a se preparar para receber você da melhor forma.
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="cadeirante">
+                    <label class="check-item-label" for="cadeirante">
+                        Uso cadeira de rodas ou tenho dificuldade de locomoção
+                    </label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="defVisual">
+                    <label class="check-item-label" for="defVisual">
+                        Deficiência visual
+                    </label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="defAuditiva">
+                    <label class="check-item-label" for="defAuditiva">
+                        Deficiência auditiva / surdez
+                    </label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="defCognitiva">
+                    <label class="check-item-label" for="defCognitiva">
+                        Deficiência cognitiva ou dificuldade de comunicação
+                    </label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="autismo">
+                    <label class="check-item-label" for="autismo">
+                        Autismo ou condição do neurodesenvolvimento
+                    </label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="limitacaoPosCircurgia">
+                    <label class="check-item-label" for="limitacaoPosCircurgia">
+                        Limitação gerada por cirurgia ou procedimento
+                        <small>Descreva no campo abaixo se necessário</small>
+                    </label>
+                </div>
+                <div class="field">
+                    <div class="field-label">Outras informações de acessibilidade</div>
+                    <textarea class="field-textarea" id="acessibilidadeObs" placeholder="Descreva qualquer outra necessidade especial para o atendimento..." style="min-height:56px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 11. CONSENTIMENTOS ─── -->
+        <div class="section">
+            <div class="section-title">11. Consentimentos</div>
+            <div class="section-card">
+                <div class="check-item">
+                    <input type="checkbox" id="consentPriv">
+                    <label class="check-item-label" for="consentPriv">
+                        Aceito a Política de Privacidade do Vitae
+                        <small>Meus dados são protegidos nos termos da LGPD</small>
+                    </label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="consentContato">
+                    <label class="check-item-label" for="consentContato">
+                        Autorizo o contato pelo médico e pela clínica
+                        <small>Por telefone, e-mail ou WhatsApp</small>
+                    </label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="consentComp">
+                    <label class="check-item-label" for="consentComp">
+                        Autorizo o compartilhamento das minhas informações com a equipe de saúde responsável
+                        <small>Médicos, enfermeiros e equipe administrativa desta consulta</small>
+                    </label>
+                </div>
+            </div>
         </div>
 
         <div class="field">
             <div class="field-label">Observações adicionais</div>
-            <textarea class="field-textarea" id="observacoes" placeholder="Algo mais que deseja informar ao médico?"></textarea>
-        </div>
-
-        <!-- Audio section -->
-        <div class="audio-section">
-            <div class="audio-title">Prefere falar?</div>
-            <div class="audio-sub">Grave um áudio e vamos transcrever para você</div>
-            <div class="record-btn" id="recordBtn" onclick="toggleRecording()">🎙️</div>
-            <div class="record-status" id="recordStatus">Toque para gravar</div>
-            <div class="transcription" id="transcription"></div>
+            <textarea class="field-textarea" id="observacoes" placeholder="Algo mais que deseja informar ao médico? Qualquer informação que considere relevante..."></textarea>
         </div>
 
         <button class="btn-submit" onclick="enviar()">Enviar pré-consulta</button>
+        <div style="height:20px;"></div>
     </div>
 
-    <div class="loading-screen" id="loadingScreen">
-        <div style="font-size:48px;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-        <div class="loading-text">Enviando suas respostas...</div>
+    <!-- Loading -->
+    <div class="overlay-screen" id="loadingScreen">
+        <div class="spinner"></div>
+        <div class="overlay-title" style="font-size:18px;">Enviando...</div>
+        <div class="overlay-sub">A IA está preparando o resumo para o seu médico</div>
     </div>
 
-    <div class="success-screen" id="successScreen">
-        <div class="success-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
-        <div class="success-title">Pré-consulta enviada!</div>
-        <div class="success-sub">Seu médico receberá um resumo antes da consulta. Pode fechar esta página.</div>
+    <!-- Sucesso -->
+    <div class="overlay-screen" id="successScreen">
+        <svg class="overlay-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div class="overlay-title">Pré-consulta enviada!</div>
+        <div class="overlay-sub">Seu médico receberá um resumo completo antes da consulta.<br><br>Pode fechar esta página.</div>
     </div>
 
-    <div class="error-state" id="errorState">
-        <div style="font-size:48px;margin-bottom:16px;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
-        <div style="font-size:18px;font-weight:600;color:#fff;text-align:center;margin-bottom:8px;" id="errorTitle">Erro</div>
-        <div style="font-size:14px;color:rgba(255,255,255,0.4);text-align:center;" id="errorMsg"></div>
+    <!-- Erro -->
+    <div class="overlay-screen" id="errorState">
+        <svg class="overlay-icon" style="color:#D94452;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <div class="overlay-title" id="errorTitle">Erro</div>
+        <div class="overlay-sub" id="errorMsg"></div>
     </div>
 </div>
 
 <script src="api.js"></script>
 <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    let isRecording = false;
-    let recognition = null;
-    let fullTranscript = '';
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
 
-    // Load pre-consulta info
-    async function init() {
-        if (!token) {
-            showError('Link inválido', 'Este link de pré-consulta não é válido.');
-            return;
+// Mostrar/ocultar detalhe do tabagismo
+document.querySelectorAll('input[name="tabagismo"]').forEach(r => {
+    r.addEventListener('change', () => {
+        document.getElementById('tabagismoDetalhe').style.display =
+            r.value === 'sim' ? 'block' : 'none';
+    });
+});
+
+async function init() {
+    if (!token) { showError('Link inválido', 'Este link de pré-consulta não é válido. Solicite um novo link ao seu médico.'); return; }
+
+    try {
+        const data = await vitaeAPI.getPreConsultaPorToken(token);
+        document.getElementById('welcomeName').textContent = `Olá, ${data.pacienteNome}!`;
+        document.getElementById('welcomeDoc').textContent = `Consulta com Dr(a). ${data.medicoNome} — ${data.especialidade}`;
+
+        // Pré-preencher se tiver dados do perfil Vitae
+        if (data.perfilPaciente) {
+            const p = data.perfilPaciente;
+            if (p.nomeCompleto) document.getElementById('nomeCompleto').value = p.nomeCompleto;
+            if (p.apelido) document.getElementById('apelido').value = p.apelido;
+            if (p.nomeSocial) document.getElementById('nomeSocial').value = p.nomeSocial;
+            if (p.dataNascimento) document.getElementById('dataNascimento').value = p.dataNascimento.slice(0,10);
+            if (p.cpf) document.getElementById('cpf').value = p.cpf;
+            if (p.telefone) document.getElementById('telefone').value = p.telefone;
+            if (p.email) document.getElementById('emailId').value = p.email;
+            if (p.genero) document.getElementById('sexo').value = p.genero.toLowerCase();
+            if (p.estadoCivil) document.getElementById('estadoCivil').value = p.estadoCivil.toLowerCase();
+            if (p.corEtnia) document.getElementById('corEtnia').value = p.corEtnia.toLowerCase();
         }
 
-        try {
-            const data = await vitaeAPI.getPreConsultaPorToken(token);
-            document.getElementById('welcomeName').textContent = `Olá, ${data.pacienteNome}!`;
-            document.getElementById('welcomeDoc').textContent = `Consulta com Dr(a). ${data.medicoNome} — ${data.especialidade}`;
-        } catch (e) {
-            showError('Link expirado', e.message);
-        }
-    }
-
-    function showError(title, msg) {
-        document.getElementById('errorTitle').textContent = title;
-        document.getElementById('errorMsg').textContent = msg;
-        document.getElementById('errorState').classList.add('active');
-    }
-
-    // Speech recognition
-    function toggleRecording() {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('Seu navegador não suporta gravação de áudio. Use o Chrome.');
-            return;
-        }
-
-        if (isRecording) {
-            recognition.stop();
-            isRecording = false;
-            document.getElementById('recordBtn').classList.remove('recording');
-            document.getElementById('recordStatus').textContent = 'Gravação finalizada';
-            return;
-        }
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        recognition = new SpeechRecognition();
-        recognition.lang = 'pt-BR';
-        recognition.continuous = true;
-        recognition.interimResults = true;
-
-        recognition.onstart = () => {
-            isRecording = true;
-            document.getElementById('recordBtn').classList.add('recording');
-            document.getElementById('recordStatus').textContent = 'Gravando... toque para parar';
-        };
-
-        recognition.onresult = (event) => {
-            let interim = '';
-            fullTranscript = '';
-            for (let i = 0; i < event.results.length; i++) {
-                if (event.results[i].isFinal) {
-                    fullTranscript += event.results[i][0].transcript + ' ';
-                } else {
-                    interim += event.results[i][0].transcript;
-                }
-            }
-            const t = document.getElementById('transcription');
-            t.style.display = 'block';
-            t.textContent = fullTranscript + interim;
-        };
-
-        recognition.onerror = (e) => {
-            console.log('Speech error:', e.error);
-            isRecording = false;
-            document.getElementById('recordBtn').classList.remove('recording');
-            document.getElementById('recordStatus').textContent = 'Erro na gravação. Tente novamente.';
-        };
-
-        recognition.onend = () => {
-            isRecording = false;
-            document.getElementById('recordBtn').classList.remove('recording');
-            document.getElementById('recordStatus').textContent = 'Gravação finalizada';
-        };
-
-        recognition.start();
-    }
-
-    // Submit
-    async function enviar() {
-        const queixa = document.getElementById('queixa').value.trim();
-        if (!queixa) return alert('A queixa principal é obrigatória');
-
-        document.getElementById('loadingScreen').classList.add('active');
-
-        try {
-            await vitaeAPI.responderPreConsulta(token, {
-                respostas: {
-                    queixaPrincipal: queixa,
-                    duracaoSintomas: document.getElementById('duracao').value.trim(),
-                    medicamentosEmUso: document.getElementById('medicamentos').value.trim(),
-                    alergias: document.getElementById('alergias').value.trim(),
-                    historicoRelevante: document.getElementById('historico').value.trim(),
-                    observacoes: document.getElementById('observacoes').value.trim(),
-                },
-                transcricao: fullTranscript || undefined,
+        // Tags de medicamentos pré-preenchidos
+        if (data.medicamentos && data.medicamentos.length > 0) {
+            document.getElementById('prefillMeds').style.display = 'block';
+            const wrap = document.getElementById('medsTagsWrap');
+            data.medicamentos.forEach(m => {
+                const tag = document.createElement('span');
+                tag.className = 'prefill-tag';
+                tag.textContent = m.nome + (m.dosagem ? ' ' + m.dosagem : '');
+                wrap.appendChild(tag);
             });
-
-            document.getElementById('loadingScreen').classList.remove('active');
-            document.getElementById('successScreen').classList.add('active');
-        } catch (e) {
-            document.getElementById('loadingScreen').classList.remove('active');
-            alert('Erro ao enviar: ' + e.message);
+            document.getElementById('medicamentos').placeholder = 'Adicione outros medicamentos não listados acima...';
         }
+
+        // Tags de alergias pré-preenchidas
+        if (data.alergias && data.alergias.length > 0) {
+            document.getElementById('prefillAlergias').style.display = 'block';
+            const wrap = document.getElementById('alergiasTagsWrap');
+            data.alergias.forEach(a => {
+                const tag = document.createElement('span');
+                tag.className = 'prefill-tag';
+                tag.textContent = a.nome;
+                wrap.appendChild(tag);
+            });
+        }
+
+        // Tags de cirurgias pré-preenchidas
+        if (data.cirurgias && data.cirurgias.length > 0) {
+            document.getElementById('prefillCirurgias').style.display = 'block';
+            const wrap = document.getElementById('cirurgiasTagsWrap');
+            data.cirurgias.forEach(c => {
+                const tag = document.createElement('span');
+                tag.className = 'prefill-tag';
+                tag.textContent = c;
+                wrap.appendChild(tag);
+            });
+        }
+
+        // Tags de exames pré-preenchidos
+        if (data.exames && data.exames.length > 0) {
+            document.getElementById('prefillExames').style.display = 'block';
+            const wrap = document.getElementById('examesTagsWrap');
+            data.exames.slice(0,5).forEach(e => {
+                const tag = document.createElement('span');
+                tag.className = 'prefill-tag';
+                tag.textContent = (e.tipoExame || e.nome || 'Exame');
+                wrap.appendChild(tag);
+            });
+        }
+
+    } catch (e) {
+        showError('Link expirado ou inválido', e.message || 'Solicite um novo link ao seu médico.');
+    }
+}
+
+function showError(title, msg) {
+    document.getElementById('errorTitle').textContent = title;
+    document.getElementById('errorMsg').textContent = msg;
+    document.getElementById('errorState').classList.add('active');
+}
+
+function getRadio(name) {
+    const checked = document.querySelector(`input[name="${name}"]:checked`);
+    return checked ? checked.value : '';
+}
+
+async function enviar() {
+    const queixa = document.getElementById('queixa').value.trim();
+    if (!queixa) { alert('A queixa principal é obrigatória.'); return; }
+
+    const consentPriv = document.getElementById('consentPriv').checked;
+    const consentContato = document.getElementById('consentContato').checked;
+    const consentComp = document.getElementById('consentComp').checked;
+    if (!consentPriv || !consentContato || !consentComp) {
+        alert('Por favor, aceite todos os termos de consentimento para continuar.');
+        return;
     }
 
-    init();
+    document.getElementById('loadingScreen').classList.add('active');
+
+    const respostas = {
+        // Identificação
+        nomeCompleto: document.getElementById('nomeCompleto').value.trim(),
+        apelido: document.getElementById('apelido').value.trim(),
+        nomeSocial: document.getElementById('nomeSocial').value.trim(),
+        dataNascimento: document.getElementById('dataNascimento').value,
+        cpf: document.getElementById('cpf').value.trim(),
+        telefone: document.getElementById('telefone').value.trim(),
+        email: document.getElementById('emailId').value.trim(),
+        sexo: document.getElementById('sexo').value,
+        estadoCivil: document.getElementById('estadoCivil').value,
+        corEtnia: document.getElementById('corEtnia').value,
+        // Motivo
+        queixaPrincipal: queixa,
+        duracaoSintomas: document.getElementById('duracao').value.trim(),
+        // Medicamentos
+        medicamentosEmUso: document.getElementById('medicamentos').value.trim(),
+        // Alergias
+        alergias: document.getElementById('alergias').value.trim(),
+        reacoesAdversas: document.getElementById('reacoesAdversas').value.trim(),
+        // Doenças
+        doencasAtuais: document.getElementById('doencasAtuais').value.trim(),
+        historicoInternacoes: document.getElementById('historicoInternacoes').value.trim(),
+        // Cirurgias
+        cirurgias: document.getElementById('cirurgias').value.trim(),
+        // História familiar
+        historiaFamiliar: document.getElementById('historiaFamiliar').value.trim(),
+        // Hábitos
+        tabagismo: getRadio('tabagismo'),
+        tabagismoDetalhe: document.getElementById('tabagismoDetalhe').value.trim(),
+        alcool: getRadio('alcool'),
+        exercicio: getRadio('exercicio'),
+        exercicioTipo: document.getElementById('exercicioTipo').value.trim(),
+        cafeina: getRadio('cafeina'),
+        sono: getRadio('sono'),
+        mudancasRotina: document.getElementById('mudancasRotina').value.trim(),
+        // Exames
+        examesAnteriores: document.getElementById('examesAnteriores').value.trim(),
+        // Mobilidade
+        limitacoes: {
+            cadeirante: document.getElementById('cadeirante').checked,
+            defVisual: document.getElementById('defVisual').checked,
+            defAuditiva: document.getElementById('defAuditiva').checked,
+            defCognitiva: document.getElementById('defCognitiva').checked,
+            autismo: document.getElementById('autismo').checked,
+            limitacaoPosCircurgia: document.getElementById('limitacaoPosCircurgia').checked,
+            observacoes: document.getElementById('acessibilidadeObs').value.trim(),
+        },
+        // Consentimentos
+        consentimentos: {
+            privacidade: true,
+            contato: true,
+            compartilhamento: true,
+            dataHora: new Date().toISOString(),
+        },
+        // Observações
+        observacoes: document.getElementById('observacoes').value.trim(),
+    };
+
+    try {
+        await vitaeAPI.responderPreConsulta(token, { respostas });
+        document.getElementById('loadingScreen').classList.remove('active');
+        document.getElementById('successScreen').classList.add('active');
+    } catch (e) {
+        document.getElementById('loadingScreen').classList.remove('active');
+        alert('Erro ao enviar: ' + (e.message || 'Tente novamente.'));
+    }
+}
+
+init();
 </script>
 </body>
 </html>

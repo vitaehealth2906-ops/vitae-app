@@ -2,9 +2,11 @@ const express = require('express');
 const crypto = require('crypto');
 const { z } = require('zod');
 const prisma = require('../utils/prisma');
-const { verificarAuth, authOpcional } = require('../middleware/auth');
+const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
-const { gerarSummaryPreConsulta } = require('../services/ai');
+const { gerarSummaryPreConsulta, gerarAudioElevenLabs } = require('../services/ai');
+const { enviarEmailPreConsultaRespondida } = require('../services/email');
+const { enviarSMSConfirmacaoPreConsulta } = require('../services/sms');
 
 const router = express.Router();
 
@@ -19,15 +21,7 @@ const criarPreConsultaSchema = z.object({
 });
 
 const responderPreConsultaSchema = z.object({
-  respostas: z.object({
-    queixaPrincipal: z.string().min(1, 'Queixa principal obrigatoria'),
-    sintomas: z.string().optional(),
-    duracaoSintomas: z.string().optional(),
-    medicamentosEmUso: z.string().optional(),
-    alergias: z.string().optional(),
-    historicoRelevante: z.string().optional(),
-    observacoes: z.string().optional(),
-  }),
+  respostas: z.record(z.any()), // aceita qualquer estrutura — todos os campos do formulario
   transcricao: z.string().optional(),
 });
 
@@ -75,6 +69,7 @@ router.post('/', verificarAuth, validate(criarPreConsultaSchema), async (req, re
 
 // ---------------------------------------------------------------------------
 // GET /t/:token — Buscar pre-consulta por token (publico)
+// Marca link como aberto + tenta auto-fill pelo telefone/email do paciente
 // ---------------------------------------------------------------------------
 
 router.get('/t/:token', async (req, res, next) => {
@@ -102,12 +97,75 @@ router.get('/t/:token', async (req, res, next) => {
       return res.status(409).json({ erro: 'Pre-consulta ja respondida' });
     }
 
+    // Marcar link como aberto (apenas na primeira vez)
+    if (!preConsulta.linkAberto) {
+      await prisma.preConsulta.update({
+        where: { id: preConsulta.id },
+        data: {
+          linkAberto: true,
+          linkAbertoEm: new Date(),
+          status: 'ABERTO',
+        },
+      });
+    }
+
+    // Tentar encontrar paciente no Vitae pelo telefone ou email
+    let perfilPaciente = null;
+    try {
+      const usuarioVitae = preConsulta.pacienteTel || preConsulta.pacienteEmail
+        ? await prisma.usuario.findFirst({
+            where: {
+              OR: [
+                preConsulta.pacienteTel ? { celular: preConsulta.pacienteTel.replace(/\D/g, '').replace(/^(\d{2})(\d+)$/, '+55$1$2') } : undefined,
+                preConsulta.pacienteEmail ? { email: preConsulta.pacienteEmail } : undefined,
+              ].filter(Boolean),
+            },
+            include: {
+              perfilSaude: true,
+              medicamentos: { where: { ativo: true }, select: { nome: true, dosagem: true } },
+              alergias: { select: { nome: true, gravidade: true } },
+              exames: { orderBy: { dataExame: 'desc' }, take: 5, select: { tipoExame: true, dataExame: true } },
+            },
+          })
+        : null;
+
+      if (usuarioVitae && usuarioVitae.perfilSaude) {
+        const ps = usuarioVitae.perfilSaude;
+        perfilPaciente = {
+          nome: ps.nomeSocial || usuarioVitae.nome,
+          apelido: ps.apelido,
+          nomeSocial: ps.nomeSocial,
+          dataNascimento: ps.dataNascimento,
+          cpf: ps.cpf,
+          genero: ps.genero,
+          estadoCivil: ps.estadoCivil,
+          corEtnia: ps.corEtnia,
+          planoSaude: ps.planoSaude,
+          carteirinhaPlano: ps.carteirinhaPlano,
+          condicoes: ps.condicoes,
+          cirurgias: ps.cirurgias || [],
+          historicoFamiliar: ps.historicoFamiliar || [],
+          fuma: ps.fuma,
+          alcool: ps.alcool,
+          horasSono: ps.horasSono,
+          nivelAtividade: ps.nivelAtividade,
+          limitacoesAcessibilidade: ps.limitacoesAcessibilidade,
+          medicamentos: usuarioVitae.medicamentos.map(m => `${m.nome}${m.dosagem ? ` ${m.dosagem}` : ''}`),
+          alergias: usuarioVitae.alergias.map(a => a.nome),
+          examesRecentes: usuarioVitae.exames.map(e => e.tipoExame || 'Exame').join(', '),
+        };
+      }
+    } catch (lookupErr) {
+      console.error('[PRE-CONSULTA] Erro ao buscar perfil do paciente:', lookupErr.message);
+    }
+
     return res.status(200).json({
       id: preConsulta.id,
       pacienteNome: preConsulta.pacienteNome,
       medicoNome: preConsulta.medico.usuario.nome,
       especialidade: preConsulta.medico.especialidade,
       status: preConsulta.status,
+      perfilPaciente, // null se nao tiver conta Vitae
     });
   } catch (err) {
     next(err);
@@ -122,6 +180,13 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
   try {
     const preConsulta = await prisma.preConsulta.findUnique({
       where: { linkToken: req.params.token },
+      include: {
+        medico: {
+          include: {
+            usuario: { select: { nome: true, email: true } },
+          },
+        },
+      },
     });
 
     if (!preConsulta) {
@@ -164,6 +229,26 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
         respondidaEm: new Date(),
       },
     });
+
+    // Notificacoes (fire-and-forget — nao bloqueia a resposta)
+    const nomeMedico = preConsulta.medico.usuario.nome;
+    const emailMedico = preConsulta.medico.usuario.email;
+    const nomePaciente = preConsulta.pacienteNome;
+    const baseUrl = process.env.FRONTEND_URL || 'https://vitaehealth2906-ops.github.io/vitae-app';
+    const linkDashboard = `${baseUrl}/20-medico-dashboard.html`;
+
+    // Email para o medico
+    if (emailMedico) {
+      enviarEmailPreConsultaRespondida(emailMedico, nomeMedico, nomePaciente, summaryIA, linkDashboard)
+        .catch(e => console.error('[EMAIL] Erro ao notificar medico:', e.message));
+    }
+
+    // SMS para o paciente (usa o telefone do formulario ou o telefone cadastrado)
+    const celularPaciente = respostas?.celular || preConsulta.pacienteTel;
+    if (celularPaciente) {
+      enviarSMSConfirmacaoPreConsulta(celularPaciente, nomePaciente, nomeMedico)
+        .catch(e => console.error('[SMS] Erro ao confirmar para paciente:', e.message));
+    }
 
     return res.status(200).json({ preConsulta: atualizada });
   } catch (err) {
@@ -213,6 +298,43 @@ router.get('/:id', verificarAuth, async (req, res, next) => {
     }
 
     return res.status(200).json({ preConsulta });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /:id/tts — Gerar audio ElevenLabs do summary (autenticado — medico)
+// ---------------------------------------------------------------------------
+
+router.post('/:id/tts', verificarAuth, async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) {
+      return res.status(403).json({ erro: 'Apenas medicos podem gerar audio' });
+    }
+
+    const preConsulta = await prisma.preConsulta.findFirst({
+      where: { id: req.params.id, medicoId: medico.id },
+    });
+
+    if (!preConsulta) {
+      return res.status(404).json({ erro: 'Pre-consulta nao encontrada' });
+    }
+
+    const textoVoz = preConsulta.summaryJson?.textoVoz || preConsulta.summaryIA;
+    if (!textoVoz) {
+      return res.status(422).json({ erro: 'Nao ha summary disponivel para gerar audio' });
+    }
+
+    try {
+      const audioBuffer = await gerarAudioElevenLabs(textoVoz);
+      res.set('Content-Type', 'audio/mpeg');
+      res.set('Content-Length', audioBuffer.length);
+      return res.send(audioBuffer);
+    } catch (ttsErr) {
+      return res.status(503).json({ erro: ttsErr.message });
+    }
   } catch (err) {
     next(err);
   }

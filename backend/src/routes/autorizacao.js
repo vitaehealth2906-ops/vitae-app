@@ -14,7 +14,7 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
   try {
     const usuario = await prisma.usuario.findUnique({
       where: { id: req.params.userId },
-      select: { id: true, nome: true },
+      select: { id: true, nome: true, email: true, celular: true },
     });
 
     if (!usuario) {
@@ -28,21 +28,34 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
     const [medicamentos, alergias] = await Promise.all([
       prisma.medicamento.findMany({
         where: { usuarioId: usuario.id, ativo: true },
-        select: { nome: true },
+        select: { nome: true, dosagem: true, frequencia: true },
       }),
       prisma.alergia.findMany({
         where: { usuarioId: usuario.id },
-        select: { nome: true },
+        select: { nome: true, tipo: true, gravidade: true },
       }),
     ]);
 
-    // Retornar dados limitados — apenas o essencial para emergencia
+    // Retornar todos os dados relevantes para o RG publico
     const perfilPublico = perfil ? {
-      tipoSanguineo: perfil.tipoSanguineo,
+      genero: perfil.genero,
       dataNascimento: perfil.dataNascimento,
+      tipoSanguineo: perfil.tipoSanguineo,
       cpf: perfil.cpf ? perfil.cpf.slice(0,3) + '.***.***-' + perfil.cpf.slice(-2) : null,
+      apelido: perfil.apelido,
+      nomeSocial: perfil.nomeSocial,
+      estadoCivil: perfil.estadoCivil,
+      corEtnia: perfil.corEtnia,
+      condicoes: perfil.condicoes,
+      cirurgias: perfil.cirurgias || [],
+      planoSaude: perfil.planoSaude,
+      limitacoesAcessibilidade: perfil.limitacoesAcessibilidade,
       contatoEmergenciaNome: perfil.contatoEmergenciaNome,
       contatoEmergenciaTel: perfil.contatoEmergenciaTel,
+      nomeMae: perfil.nomeMae,
+      telMae: perfil.telMae,
+      nomePai: perfil.nomePai,
+      telPai: perfil.telPai,
     } : {};
 
     return res.status(200).json({

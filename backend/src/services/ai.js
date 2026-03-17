@@ -571,24 +571,77 @@ Regras:
  * @returns {object} { summaryTexto, blocos, alertas }
  */
 async function gerarSummaryPreConsulta(pacienteNome, respostas, transcricao) {
-  const dadosPaciente = Object.entries(respostas || {})
-    .filter(([, v]) => v && v.trim && v.trim().length > 0)
-    .map(([k, v]) => `- ${k}: ${v}`)
-    .join('\n');
+  // Monta contexto estruturado com os novos campos do formulario de 11 secoes
+  const r = respostas || {};
+
+  const secoes = [];
+
+  if (r.queixaPrincipal) secoes.push(`QUEIXA PRINCIPAL: ${r.queixaPrincipal}`);
+  if (r.duracaoSintomas) secoes.push(`Duração dos sintomas: ${r.duracaoSintomas}`);
+  if (r.sintomas) secoes.push(`Sintomas adicionais: ${r.sintomas}`);
+
+  if (r.medicamentosEmUso) secoes.push(`MEDICAMENTOS EM USO: ${r.medicamentosEmUso}`);
+  if (r.alergias) secoes.push(`ALERGIAS: ${r.alergias}`);
+  if (r.reacoesAdversas) secoes.push(`Reações adversas: ${r.reacoesAdversas}`);
+
+  if (r.doencasAtuais) secoes.push(`DOENÇAS/CONDIÇÕES ATUAIS: ${r.doencasAtuais}`);
+  if (r.hospitalizacoes) secoes.push(`Hospitalizações: ${r.hospitalizacoes}`);
+
+  if (r.cirurgias) secoes.push(`CIRURGIAS ANTERIORES: ${r.cirurgias}`);
+  if (r.procedimentosCosmeticos) secoes.push(`Procedimentos cosméticos: ${r.procedimentosCosmeticos}`);
+
+  if (r.historicoFamiliar) secoes.push(`HISTÓRICO FAMILIAR: ${r.historicoFamiliar}`);
+
+  // Hábitos
+  const habitos = [];
+  if (r.tabagismo && r.tabagismo !== 'nao') habitos.push(`tabagismo: ${r.tabagismo}`);
+  if (r.alcool && r.alcool !== 'nao') habitos.push(`álcool: ${r.alcool}`);
+  if (r.exercicio && r.exercicio !== 'nao') habitos.push(`exercício: ${r.exercicio}`);
+  if (r.cafe) habitos.push(`café: ${r.cafe} xíc/dia`);
+  if (r.horasSono) habitos.push(`sono: ${r.horasSono}h/noite`);
+  if (r.mudancasRecentes) habitos.push(`mudanças recentes: ${r.mudancasRecentes}`);
+  if (habitos.length > 0) secoes.push(`HÁBITOS: ${habitos.join('; ')}`);
+
+  if (r.examesRecentes) secoes.push(`EXAMES RECENTES: ${r.examesRecentes}`);
+
+  // Acessibilidade
+  if (r.acessibilidade) {
+    const accLabels = { cadeirante:'cadeirante', deficienciaVisual:'def. visual', deficienciaAuditiva:'def. auditiva', deficienciaCognitiva:'def. cognitiva', autismo:'autismo', limitacaoPosCircurgia:'limitação pós-cirurgia' };
+    const accAtivas = Object.entries(r.acessibilidade).filter(([,v]) => v).map(([k]) => accLabels[k] || k);
+    if (accAtivas.length > 0) secoes.push(`ACESSIBILIDADE: ${accAtivas.join(', ')}`);
+    if (r.acessibilidade.descricao) secoes.push(`Obs. acessibilidade: ${r.acessibilidade.descricao}`);
+  }
+
+  if (r.observacoes) secoes.push(`OBSERVAÇÕES: ${r.observacoes}`);
+
+  const dadosPaciente = secoes.join('\n');
+
+  // Dados de identificacao do paciente
+  const identificacao = [];
+  if (r.apelido) identificacao.push(`Apelido: ${r.apelido}`);
+  if (r.dataNascimento) {
+    const idade = Math.floor((Date.now() - new Date(r.dataNascimento)) / (365.25 * 24 * 60 * 60 * 1000));
+    identificacao.push(`Idade: ${idade} anos`);
+  }
+  if (r.sexo) identificacao.push(`Sexo: ${r.sexo}`);
+  if (r.estadoCivil) identificacao.push(`Estado civil: ${r.estadoCivil}`);
 
   const userPrompt = `Gere um resumo clinico conciso (One Minute Summary) para o medico, baseado nas informacoes da pre-consulta do paciente ${pacienteNome}.
 
-Dados do formulario:
+${identificacao.length > 0 ? `Identificação: ${identificacao.join(' | ')}` : ''}
+
+Dados clínicos:
 ${dadosPaciente}
 
-${transcricao ? `Transcricao do audio do paciente:\n"${transcricao}"` : ''}
+${transcricao ? `Transcrição do paciente:\n"${transcricao}"` : ''}
 
-Retorne EXCLUSIVAMENTE um JSON valido:
+Retorne EXCLUSIVAMENTE um JSON válido:
 {
   "summaryTexto": "string (resumo corrido de 3-5 frases para o medico ler em 1 minuto)",
+  "textoVoz": "string (texto natural para narração em voz, começando com 'Olá Doutor...' ou 'Olá Doutora...', informal, fluido, 4-6 frases)",
   "blocos": [
     {
-      "titulo": "string (ex: 'Queixa Principal', 'Sintomas', 'Medicamentos', 'Alergias', 'Historico')",
+      "titulo": "string (ex: 'Queixa Principal', 'Medicamentos', 'Alergias', 'Histórico', 'Hábitos')",
       "conteudo": "string (resumo objetivo deste bloco)",
       "prioridade": "string ('alta', 'media', 'baixa')"
     }
@@ -596,29 +649,30 @@ Retorne EXCLUSIVAMENTE um JSON valido:
   "alertas": [
     {
       "tipo": "string ('URGENTE', 'ATENCAO', 'INFO')",
-      "mensagem": "string (alerta clinico relevante)"
+      "mensagem": "string (alerta clínico relevante)"
     }
   ],
   "perguntasSugeridas": [
-    "string (perguntas que o medico poderia fazer ao paciente durante a consulta)"
+    "string (perguntas que o médico poderia fazer ao paciente)"
   ]
 }
 
 Regras:
-- O summaryTexto deve ser direto, clinico e objetivo — para o medico ler em menos de 1 minuto.
-- Gere de 3 a 6 blocos organizados por relevancia clinica.
-- Gere alertas apenas se houver informacoes que exijam atencao (interacoes, sintomas graves, etc.).
-- Gere 2-4 perguntas sugeridas baseadas nos dados fornecidos.
-- Use linguagem tecnica apropriada para medicos.
-- NAO faca diagnosticos. Organize e resuma as informacoes do paciente.`;
+- summaryTexto: direto, clínico, objetivo — para ler em menos de 1 minuto.
+- textoVoz: conversacional, natural, como se um assistente falasse ao médico antes de ele entrar na sala. Ex: 'Olá, Doutor! Antes de você entrar, deixa eu te adiantar: ...'
+- Gere de 3 a 6 blocos organizados por relevância clínica.
+- Alertas: apenas se houver info que exija atenção (interações medicamentosas, sintomas graves, GLP-1 + anestesia, etc.).
+- 2-4 perguntas sugeridas baseadas nos dados.
+- Use linguagem técnica para o summaryTexto e blocos. textoVoz pode ser mais informal.
+- NAO faça diagnósticos.`;
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 2048,
     system:
-      'Voce e um assistente clinico da plataforma VITAE. Sua funcao e organizar informacoes de pre-consulta ' +
-      'em resumos concisos para medicos. Use linguagem tecnica apropriada. NAO faca diagnosticos — ' +
-      'apenas organize e resuma os dados reportados pelo paciente.',
+      'Voce e um assistente clinico da plataforma VITAE. Organiza informacoes de pre-consulta ' +
+      'em resumos concisos para medicos. Use linguagem tecnica nos blocos e resumo. ' +
+      'NAO faca diagnosticos — apenas organize e resuma os dados do paciente.',
     messages: [{ role: 'user', content: userPrompt }],
   });
 
@@ -635,6 +689,41 @@ Regras:
   }
 }
 
+/**
+ * Gera audio via ElevenLabs a partir do textoVoz do summary.
+ * Requer ELEVENLABS_API_KEY na env.
+ *
+ * @param {string} textoVoz - Texto natural para narração.
+ * @returns {Buffer} Buffer do audio MP3.
+ */
+async function gerarAudioElevenLabs(textoVoz) {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) throw new Error('ELEVENLABS_API_KEY nao configurada');
+
+  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL'; // Sarah — voz feminina profissional
+
+  const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'xi-api-key': apiKey,
+    },
+    body: JSON.stringify({
+      text: textoVoz,
+      model_id: 'eleven_multilingual_v2',
+      voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`ElevenLabs error: ${response.status} — ${err}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
 module.exports = {
   estruturarExame,
   estruturarExameDeArquivo,
@@ -643,4 +732,5 @@ module.exports = {
   gerarMelhorias,
   gerarInfoSubstancia,
   gerarSummaryPreConsulta,
+  gerarAudioElevenLabs,
 };

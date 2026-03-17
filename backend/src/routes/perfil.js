@@ -52,6 +52,19 @@ const atualizarPerfilSchema = z.object({
   condicoes: z.string().optional(),
   contatoEmergenciaNome: z.string().optional(),
   contatoEmergenciaTel: z.string().optional(),
+  apelido: z.string().optional(),
+  nomeSocial: z.string().optional(),
+  estadoCivil: z.enum(['SOLTEIRO', 'CASADO', 'DIVORCIADO', 'VIUVO', 'UNIAO_ESTAVEL', 'OUTRO']).optional(),
+  corEtnia: z.string().optional(),
+  limitacoesAcessibilidade: z.object({
+    cadeirante: z.boolean().optional(),
+    deficienciaVisual: z.boolean().optional(),
+    deficienciaAuditiva: z.boolean().optional(),
+    deficienciaCognitiva: z.boolean().optional(),
+    autismo: z.boolean().optional(),
+    limitacaoPosCircurgia: z.boolean().optional(),
+    descricao: z.string().optional(),
+  }).optional(),
 });
 
 // ---------------------------------------------------------------------------

@@ -60,6 +60,7 @@
         .pc-date { font-size:12px; color:rgba(255,255,255,0.25); }
         .pc-status { font-size:11px; font-weight:600; padding:4px 10px; border-radius:8px; margin-left:auto; }
         .pc-status.pendente { color:#C5A55A; background:rgba(197,165,90,0.1); }
+        .pc-status.aberto { color:#4A90E2; background:rgba(74,144,226,0.1); }
         .pc-status.respondida { color:#4AD9A4; background:rgba(74,217,164,0.1); }
 
         .empty-state { text-align:center; padding:32px 20px; color:rgba(255,255,255,0.2); font-size:14px; }
@@ -235,17 +236,29 @@
             if (pcs.length === 0) return;
 
             const list = document.getElementById('pcList');
+            const statusLabel = { PENDENTE:'Pendente', ABERTO:'Link aberto', RESPONDIDA:'Respondida', EXPIRADA:'Expirada' };
+            const statusClass = { PENDENTE:'pendente', ABERTO:'aberto', RESPONDIDA:'respondida', EXPIRADA:'pendente' };
             list.innerHTML = pcs.map(pc => {
                 const dt = new Date(pc.criadoEm).toLocaleDateString('pt-BR');
+                const isRespondida = pc.status === 'RESPONDIDA';
+                const isAberto = pc.status === 'ABERTO';
+                const subtext = isAberto && pc.linkAbertoEm
+                    ? `Aberto ${new Date(pc.linkAbertoEm).toLocaleDateString('pt-BR')}`
+                    : dt;
                 return `
-                <div class="pc-card" onclick="${pc.status === 'RESPONDIDA' ? `window.location.href='25-summary.html?id=${pc.id}'` : ''}">
+                <div class="pc-card" onclick="${isRespondida ? `window.location.href='25-summary.html?id=${pc.id}'` : ''}">
                     <div class="pc-header">
-                        <div class="pc-avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                        <div class="pc-avatar">${isRespondida
+                            ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4AD9A4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+                            : isAberto
+                            ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A90E2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+                            : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+                        }</div>
                         <div>
                             <div class="pc-name">${pc.pacienteNome}</div>
-                            <div class="pc-date">${dt}</div>
+                            <div class="pc-date">${subtext}</div>
                         </div>
-                        <span class="pc-status ${pc.status.toLowerCase()}">${pc.status === 'RESPONDIDA' ? 'Respondida' : 'Pendente'}</span>
+                        <span class="pc-status ${statusClass[pc.status] || 'pendente'}">${statusLabel[pc.status] || pc.status}</span>
                     </div>
                 </div>`;
             }).join('');
