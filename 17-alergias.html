@@ -28,12 +28,6 @@
             font-size:13px; font-weight:600; color:rgba(255,255,255,0.5);
             z-index:11;
         }
-        .entrance-curtain {
-            position:absolute; top:0; left:0; width:100%; height:100%;
-            background:#0A0A0A; z-index:30; pointer-events:none;
-            animation: curtainOpen 0.6s ease 0.1s forwards;
-        }
-        @keyframes curtainOpen { 0%{opacity:1} 100%{opacity:0} }
         .exit-overlay {
             position:absolute; top:0; left:0; width:100%; height:100%;
             background:#0A0A0A; opacity:0; z-index:25; pointer-events:none;
@@ -167,39 +161,6 @@
             line-height:1.6;
         }
 
-        /* Suggestions */
-        .suggestions-section {
-            margin-top:24px;
-            opacity:0; animation:fadeUp 0.4s ease 0.6s both;
-        }
-        .suggestions-grid {
-            display:flex; flex-wrap:wrap; gap:8px;
-        }
-        .suggestion-chip {
-            padding:10px 16px;
-            background:rgba(255,255,255,0.03);
-            border:1px solid rgba(255,255,255,0.06);
-            border-radius:12px;
-            font-size:13px; font-weight:500;
-            color:rgba(255,255,255,0.4);
-            cursor:pointer;
-            transition:all 0.25s;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.03);
-            border-top: 1px solid rgba(255,255,255,0.08);
-        }
-        .suggestion-chip:hover {
-            background:rgba(197,165,90,0.06);
-            border-color:rgba(197,165,90,0.2);
-            color:rgba(197,165,90,0.8);
-            transform:translateY(-2px);
-        }
-        .suggestion-chip:active { transform:scale(0.95); }
-        .suggestion-chip.added {
-            opacity:0.3; pointer-events:none;
-            text-decoration:line-through;
-        }
 
         /* Tab bar */
         .tab-bar {
@@ -269,7 +230,6 @@
 <div class="phone">
     <div class="notch"></div>
     <div class="status"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128267;</span></div>
-    <div class="entrance-curtain"></div>
     <div class="exit-overlay" id="exitOverlay"></div>
 
     <div class="toast" id="toast">
@@ -304,21 +264,15 @@
         <!-- Current allergies -->
         <div id="allergiesList"></div>
 
-        <!-- Suggestions -->
-        <div class="suggestions-section" id="suggestionsSection">
-            <div class="section-label">Alergias comuns</div>
-            <div class="suggestions-grid" id="suggestionsList"></div>
-        </div>
     </div>
 
     <!-- Tab Bar -->
     <div class="tab-bar">
         <button class="tab" onclick="navigateTo('perfil')">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
+                <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/>
             </svg>
-            <span class="tab-label">Perfil</span>
+            <span class="tab-label">Meu RG</span>
             <div class="tab-indicator"></div>
         </button>
         <button class="tab" onclick="navigateTo('exames')">
@@ -329,11 +283,11 @@
             <span class="tab-label">Exames</span>
             <div class="tab-indicator"></div>
         </button>
-        <button class="tab" onclick="navigateTo('bioage')">
+        <button class="tab" onclick="window.location.href='21-qrcode.html'">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/>
             </svg>
-            <span class="tab-label">Bio Age</span>
+            <span class="tab-label">QR Code</span>
             <div class="tab-indicator"></div>
         </button>
     </div>
@@ -341,12 +295,6 @@
 
 <script src="api.js"></script>
 <script>
-    const COMMON_ALLERGIES = [
-        'Penicilina', 'Dipirona', 'Ibuprofeno', 'Latex',
-        'Amendoim', 'Frutos do mar', 'Gluten', 'Lactose',
-        'Ovo', 'Camarao', 'Sulfas', 'AAS'
-    ];
-
     let allergies = [];
 
     async function addAllergy(name) {
@@ -393,7 +341,7 @@
                             <line x1="12" y1="17" x2="12.01" y2="17"/>
                         </svg>
                     </div>
-                    <div class="empty-text">Nenhuma alergia registrada.<br>Adicione acima ou escolha das sugestoes.</div>
+                    <div class="empty-text">Nenhuma alergia registrada.<br>Adicione acima usando o campo de texto.</div>
                 </div>
             `;
         } else {
@@ -412,17 +360,6 @@
             `</div>`;
         }
 
-        renderSuggestions();
-    }
-
-    function renderSuggestions() {
-        const existingNames = allergies.map(a => a.name.toLowerCase());
-        const container = document.getElementById('suggestionsList');
-
-        container.innerHTML = COMMON_ALLERGIES.map(name => {
-            const added = existingNames.includes(name.toLowerCase());
-            return `<div class="suggestion-chip ${added ? 'added' : ''}" onclick="${added ? '' : "addAllergy('" + name + "')"}">${name}</div>`;
-        }).join('');
     }
 
     async function loadAllergies() {

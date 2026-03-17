@@ -28,12 +28,6 @@
             font-size:13px; font-weight:600; color:rgba(255,255,255,0.5);
             z-index:11;
         }
-        .entrance-curtain {
-            position:absolute; top:0; left:0; width:100%; height:100%;
-            background:#0A0A0A; z-index:30; pointer-events:none;
-            animation: curtainOpen 0.6s ease 0.1s forwards;
-        }
-        @keyframes curtainOpen { 0%{opacity:1} 100%{opacity:0} }
         .exit-overlay {
             position:absolute; top:0; left:0; width:100%; height:100%;
             background:#0A0A0A; opacity:0; z-index:25; pointer-events:none;
@@ -302,7 +296,6 @@
 <div class="phone">
     <div class="notch"></div>
     <div class="status"><span>9:41</span><span>VITAE</span></div>
-    <div class="entrance-curtain"></div>
     <div class="exit-overlay" id="exitOverlay"></div>
 
     <div class="content">
@@ -348,12 +341,14 @@
         const d = () => { delay += 0.08; return delay.toFixed(2); };
 
         // Category icon mapping
+        const svgPill = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.5 1.5H8C4.68 1.5 2 4.18 2 7.5S4.68 13.5 8 13.5h8c3.32 0 6-2.68 6-6s-2.68-6-6-6h-2.5"/><line x1="12" y1="1.5" x2="12" y2="13.5"/></svg>';
+        const svgCircle = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>';
         const catIcons = {
-            'Suplemento': '💊', 'Anti-inflamatorio': '🔥', 'Analgesico': '💉',
-            'Vitamina': '☀️', 'Hormonio': '🧬', 'Proteina': '💪',
-            'Aminoacido': '🧪', 'Mineral': '⚡'
+            'Suplemento': svgPill, 'Anti-inflamatorio': svgCircle, 'Analgesico': svgCircle,
+            'Vitamina': svgCircle, 'Hormonio': svgCircle, 'Proteina': svgCircle,
+            'Aminoacido': svgCircle, 'Mineral': svgCircle
         };
-        const icon = catIcons[info.categoria] || '💊';
+        const icon = catIcons[info.categoria] || svgPill;
 
         let html = `
             <div class="hero-card" style="animation-delay:${d()}s">
@@ -370,7 +365,7 @@
             info.beneficios.forEach(b => {
                 html += `
                     <div class="info-card" style="animation-delay:${d()}s">
-                        <div class="info-card-icon">${b.icone || '✨'}</div>
+                        <div class="info-card-icon">${b.icone || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'}</div>
                         <div class="info-card-content">
                             <div class="info-card-title">${b.titulo}</div>
                             <div class="info-card-text">${b.texto}</div>
@@ -428,7 +423,7 @@
             info.dicas.forEach(tip => {
                 html += `
                     <div class="info-card" style="animation-delay:${d()}s">
-                        <div class="info-card-icon" style="background:rgba(74,217,164,0.08);border-color:rgba(74,217,164,0.12);">${tip.icone || '💡'}</div>
+                        <div class="info-card-icon" style="background:rgba(74,217,164,0.08);border-color:rgba(74,217,164,0.12);">${tip.icone || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 014 12.7V17H8v-2.3A7 7 0 0112 2z"/></svg>'}</div>
                         <div class="info-card-content">
                             <div class="info-card-title">${tip.titulo}</div>
                             <div class="info-card-text">${tip.texto}</div>
@@ -442,7 +437,7 @@
         if (info.curiosidade) {
             html += `
                 <div class="curiosity-card" style="animation-delay:${d()}s">
-                    <div class="curiosity-icon">💎</div>
+                    <div class="curiosity-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="6 3 18 3 22 9 12 22 2 9"/></svg></div>
                     <div class="curiosity-text">${info.curiosidade}</div>
                 </div>
             `;
@@ -456,7 +451,7 @@
     function renderError(msg) {
         document.getElementById('mainContent').innerHTML = `
             <div class="error-container">
-                <div class="error-icon">⚠️</div>
+                <div class="error-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
                 <div class="error-text">${msg || 'Nao foi possivel carregar as informacoes.'}</div>
                 <button class="retry-btn" onclick="loadInfo()">Tentar novamente</button>
             </div>
