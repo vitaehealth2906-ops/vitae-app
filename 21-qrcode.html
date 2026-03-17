@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VITAE — QR Code</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Inter',sans-serif; }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#0A0A0A;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#0A0A0A; border-radius:0 0 20px 20px; z-index:10; }
+
+        .header {
+            position:absolute; top:58px; left:28px; right:28px;
+            display:flex; align-items:center; z-index:5;
+        }
+        .back-btn {
+            width:40px; height:40px; border-radius:12px;
+            background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; font-size:18px; color:rgba(255,255,255,0.5);
+        }
+        .header-title {
+            flex:1; text-align:center;
+            font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:#fff;
+        }
+
+        .content {
+            height:100%; overflow-y:auto; padding:110px 28px 40px;
+            display:flex; flex-direction:column; align-items:center;
+        }
+
+        .qr-container {
+            background:#fff; border-radius:20px; padding:24px;
+            margin-bottom:24px;
+            box-shadow:0 8px 40px rgba(197,165,90,0.15);
+        }
+        #qrcode { width:220px; height:220px; }
+        #qrcode img { border-radius:4px; }
+
+        .qr-name {
+            font-family:'Playfair Display',serif;
+            font-size:22px; font-weight:700; color:#fff;
+            text-align:center; margin-bottom:4px;
+        }
+        .qr-sub {
+            font-size:13px; color:rgba(255,255,255,0.35);
+            text-align:center; margin-bottom:32px;
+        }
+
+        .share-btns { display:flex; flex-direction:column; gap:12px; width:100%; }
+        .share-btn {
+            width:100%; padding:16px;
+            border-radius:16px; border:none;
+            font-family:'Inter',sans-serif; font-size:15px; font-weight:600;
+            cursor:pointer; transition:all 0.2s;
+            display:flex; align-items:center; justify-content:center; gap:10px;
+        }
+        .share-btn.primary {
+            background:linear-gradient(135deg, #C5A55A, #D4B96A); color:#0A0A0A;
+        }
+        .share-btn.whatsapp {
+            background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25);
+            color:#25D366;
+        }
+        .share-btn.copy {
+            background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+            color:rgba(255,255,255,0.6);
+        }
+        .share-btn:hover { transform:translateY(-1px); }
+
+        .info-note {
+            margin-top:24px; padding:16px;
+            background:rgba(74,217,164,0.06);
+            border:1px solid rgba(74,217,164,0.12);
+            border-radius:14px;
+            font-size:12px; color:rgba(255,255,255,0.4);
+            line-height:1.5; text-align:center;
+        }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+
+    <div class="header">
+        <div class="back-btn" onclick="window.location.href='08-perfil.html'">‹</div>
+        <div class="header-title">QR Code</div>
+        <div style="width:40px;"></div>
+    </div>
+
+    <div class="content">
+        <div class="qr-container">
+            <div id="qrcode"></div>
+        </div>
+
+        <div class="qr-name" id="qrName">Carregando...</div>
+        <div class="qr-sub">Mostre este QR Code para seu médico</div>
+
+        <div class="share-btns">
+            <button class="share-btn primary" onclick="downloadQR()">📥 Salvar imagem</button>
+            <button class="share-btn whatsapp" onclick="shareWhatsApp()">📱 Compartilhar via WhatsApp</button>
+            <button class="share-btn copy" onclick="copyLink()">📋 Copiar link</button>
+        </div>
+
+        <div class="info-note">
+            Este QR Code contém seus dados de saúde essenciais.<br>
+            Compartilhe apenas com profissionais de confiança.
+        </div>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+    let qrData = {};
+
+    async function init() {
+        try {
+            const data = await vitaeAPI.getQrData();
+            qrData = data;
+
+            document.getElementById('qrName').textContent = data.usuario.nome || 'Paciente';
+
+            // Build QR content
+            const qrContent = JSON.stringify({
+                vitae: true,
+                id: data.usuario.id,
+                nome: data.usuario.nome,
+                sangue: data.perfil.tipoSanguineo || '',
+                alergias: (data.alergias || []).map(a => a.nome),
+                medicamentos: (data.medicamentos || []).map(m => m.nome),
+                emergencia: data.perfil.contatoEmergenciaNome ? {
+                    nome: data.perfil.contatoEmergenciaNome,
+                    tel: data.perfil.contatoEmergenciaTel
+                } : null,
+            });
+
+            new QRCode(document.getElementById('qrcode'), {
+                text: qrContent,
+                width: 220,
+                height: 220,
+                colorDark: '#0A0A0A',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M,
+            });
+        } catch (e) {
+            document.getElementById('qrName').textContent = 'Erro ao carregar dados';
+        }
+    }
+
+    function downloadQR() {
+        const canvas = document.querySelector('#qrcode canvas');
+        if (canvas) {
+            const link = document.createElement('a');
+            link.download = 'vitae-rg-saude.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    }
+
+    function shareWhatsApp() {
+        const nome = qrData.usuario?.nome || 'Paciente';
+        const msg = encodeURIComponent(`${nome} compartilhou o RG da Saúde VITAE. Baixe o app para visualizar: https://vitaehealth2906-ops.github.io/vitae-app/`);
+        window.open(`https://wa.me/?text=${msg}`, '_blank');
+    }
+
+    function copyLink() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Link copiado!');
+        });
+    }
+
+    init();
+</script>
+</body>
+</html>

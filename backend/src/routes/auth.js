@@ -23,6 +23,7 @@ const cadastroSchema = z.object({
     'Celular deve estar no formato +55DDXXXXXXXXX',
   ),
   senha: z.string().min(8, 'Senha deve ter no minimo 8 caracteres'),
+  tipo: z.enum(['PACIENTE', 'MEDICO']).optional(),
 });
 
 const verificarSmsSchema = z.object({
@@ -103,7 +104,7 @@ function gerarCodigo6Digitos() {
 
 router.post('/cadastro', validate(cadastroSchema), async (req, res, next) => {
   try {
-    const { nome, email, celular, senha } = req.body;
+    const { nome, email, celular, senha, tipo } = req.body;
 
     // Verificar unicidade de email e celular
     const existente = await prisma.usuario.findFirst({
@@ -127,6 +128,7 @@ router.post('/cadastro', validate(cadastroSchema), async (req, res, next) => {
         email,
         celular,
         senhaHash,
+        tipo: tipo || 'PACIENTE',
         status: 'ATIVO',
         perfilSaude: {
           create: {},
@@ -144,6 +146,7 @@ router.post('/cadastro', validate(cadastroSchema), async (req, res, next) => {
         id: usuario.id,
         nome: usuario.nome,
         email: usuario.email,
+        tipo: usuario.tipo || 'PACIENTE',
       },
     });
   } catch (err) {
@@ -208,6 +211,7 @@ router.post('/verificar-sms', validate(verificarSmsSchema), async (req, res, nex
         id: usuario.id,
         nome: usuario.nome,
         email: usuario.email,
+        tipo: usuario.tipo || 'PACIENTE',
       },
     });
   } catch (err) {
@@ -254,6 +258,7 @@ router.post('/login', validate(loginSchema), async (req, res, next) => {
         id: usuario.id,
         nome: usuario.nome,
         email: usuario.email,
+        tipo: usuario.tipo || 'PACIENTE',
       },
     });
   } catch (err) {
@@ -311,6 +316,7 @@ router.post('/login-social', validate(loginSocialSchema), async (req, res, next)
         id: usuario.id,
         nome: usuario.nome,
         email: usuario.email,
+        tipo: usuario.tipo || 'PACIENTE',
       },
     });
   } catch (err) {

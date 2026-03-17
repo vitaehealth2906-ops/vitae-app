@@ -14,6 +14,12 @@ const scoresRoutes = require('./routes/scores');
 const checkinRoutes = require('./routes/checkin');
 const notificacoesRoutes = require('./routes/notificacoes');
 const pdfRoutes = require('./routes/pdf');
+const medicoRoutes = require('./routes/medico');
+const preConsultaRoutes = require('./routes/pre-consulta');
+const agendamentoRoutes = require('./routes/agendamento');
+const autorizacaoRoutes = require('./routes/autorizacao');
+const consentimentoRoutes = require('./routes/consentimento');
+const timelineRoutes = require('./routes/timeline');
 
 // ── App ────────────────────────────────────────────────
 const app = express();
@@ -49,6 +55,12 @@ app.use('/scores', scoresRoutes);
 app.use('/checkin', checkinRoutes);
 app.use('/notificacoes', notificacoesRoutes);
 app.use('/pdf', pdfRoutes);
+app.use('/medico', medicoRoutes);
+app.use('/pre-consulta', preConsultaRoutes);
+app.use('/agendamento', agendamentoRoutes);
+app.use('/autorizacao', autorizacaoRoutes);
+app.use('/consentimento', consentimentoRoutes);
+app.use('/timeline', timelineRoutes);
 
 // ── 404 para rotas nao encontradas ────────────────────
 app.use((_req, res) => {

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VITAE — Dashboard Médico</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Inter',sans-serif; }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#0A0A0A;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#0A0A0A; border-radius:0 0 20px 20px; z-index:10; }
+
+        .content { height:100%; overflow-y:auto; padding:62px 20px 100px; scrollbar-width:none; }
+        .content::-webkit-scrollbar { display:none; }
+
+        .greeting { margin-bottom:24px; }
+        .greeting-text { font-size:14px; color:rgba(255,255,255,0.35); }
+        .greeting-name { font-family:'Playfair Display',serif; font-size:26px; font-weight:700; color:#fff; }
+
+        .stats-row { display:flex; gap:10px; margin-bottom:24px; }
+        .stat-card {
+            flex:1; padding:18px 14px;
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+            border-radius:18px; text-align:center;
+        }
+        .stat-number { font-family:'DM Mono',monospace; font-size:28px; font-weight:700; color:#C5A55A; }
+        .stat-label { font-size:11px; color:rgba(255,255,255,0.35); margin-top:4px; }
+
+        .section-title {
+            font-family:'Playfair Display',serif;
+            font-size:18px; font-weight:700; color:#fff;
+            margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;
+        }
+        .section-link { font-size:13px; font-weight:500; color:#C5A55A; cursor:pointer; }
+
+        .create-btn {
+            width:100%; padding:18px;
+            background:linear-gradient(135deg, #C5A55A, #D4B96A);
+            border:none; border-radius:16px;
+            font-family:'Inter',sans-serif; font-size:16px; font-weight:700;
+            color:#0A0A0A; cursor:pointer; margin-bottom:24px;
+            transition:all 0.25s;
+        }
+        .create-btn:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(197,165,90,0.3); }
+
+        .pc-card {
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+            border-radius:18px; padding:16px; margin-bottom:12px; cursor:pointer;
+            transition:all 0.2s;
+        }
+        .pc-card:hover { border-color:rgba(197,165,90,0.2); }
+        .pc-header { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+        .pc-avatar { width:40px; height:40px; border-radius:50%; background:rgba(74,217,164,0.08); display:flex; align-items:center; justify-content:center; font-size:18px; }
+        .pc-name { font-size:15px; font-weight:600; color:#fff; }
+        .pc-date { font-size:12px; color:rgba(255,255,255,0.25); }
+        .pc-status { font-size:11px; font-weight:600; padding:4px 10px; border-radius:8px; margin-left:auto; }
+        .pc-status.pendente { color:#C5A55A; background:rgba(197,165,90,0.1); }
+        .pc-status.respondida { color:#4AD9A4; background:rgba(74,217,164,0.1); }
+
+        .empty-state { text-align:center; padding:32px 20px; color:rgba(255,255,255,0.2); font-size:14px; }
+
+        /* Modal for creating pre-consulta */
+        .modal-overlay {
+            position:absolute; top:0; left:0; right:0; bottom:0;
+            background:rgba(0,0,0,0.6); z-index:50;
+            opacity:0; pointer-events:none; transition:opacity 0.3s;
+        }
+        .modal-overlay.active { opacity:1; pointer-events:all; }
+        .modal {
+            position:absolute; bottom:0; left:0; right:0;
+            background:#1A1A1A; border-radius:24px 24px 0 0;
+            padding:24px; transform:translateY(100%); transition:transform 0.35s;
+        }
+        .modal-overlay.active .modal { transform:translateY(0); }
+        .modal-title { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:#fff; margin-bottom:16px; }
+        .field { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+        .field-label { font-size:12px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; }
+        .field-input {
+            width:100%; padding:14px 16px; background:rgba(255,255,255,0.06);
+            border:1px solid rgba(255,255,255,0.08); border-radius:12px;
+            font-family:'Inter',sans-serif; font-size:14px; color:#fff; outline:none;
+        }
+        .field-input::placeholder { color:rgba(255,255,255,0.2); }
+        .modal-btn {
+            width:100%; padding:16px; background:linear-gradient(135deg, #C5A55A, #D4B96A);
+            border:none; border-radius:16px; font-family:'Inter',sans-serif;
+            font-size:15px; font-weight:700; color:#0A0A0A; cursor:pointer;
+        }
+
+        .link-box {
+            display:none; margin-top:16px; padding:16px;
+            background:rgba(74,217,164,0.06); border:1px solid rgba(74,217,164,0.15);
+            border-radius:14px;
+        }
+        .link-url { font-family:'DM Mono',monospace; font-size:12px; color:#4AD9A4; word-break:break-all; margin-bottom:12px; }
+        .link-actions { display:flex; gap:8px; }
+        .link-btn {
+            flex:1; padding:10px; border-radius:12px; border:none;
+            font-family:'Inter',sans-serif; font-size:13px; font-weight:600; cursor:pointer;
+        }
+        .link-btn.copy { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.6); }
+        .link-btn.whatsapp { background:rgba(37,211,102,0.1); color:#25D366; }
+
+        /* Tab bar */
+        .tab-bar {
+            position:absolute; bottom:0; left:0; right:0; height:86px; padding:0 24px;
+            background:linear-gradient(to top, #0A0A0A 60%, transparent);
+            display:flex; align-items:center; justify-content:space-around; z-index:20;
+        }
+        .tab { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:8px 16px; }
+        .tab-icon { font-size:22px; opacity:0.4; }
+        .tab-label { font-size:10px; font-weight:600; color:rgba(255,255,255,0.3); }
+        .tab.active .tab-icon { opacity:1; }
+        .tab.active .tab-label { color:#C5A55A; }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+
+    <div class="content">
+        <div class="greeting">
+            <div class="greeting-text">Bem-vindo(a),</div>
+            <div class="greeting-name" id="docName">Dr(a). ...</div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-number" id="statPacientes">0</div>
+                <div class="stat-label">Pacientes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statPendentes">0</div>
+                <div class="stat-label">Pendentes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statRespondidas">0</div>
+                <div class="stat-label">Respondidas</div>
+            </div>
+        </div>
+
+        <button class="create-btn" onclick="openModal()">+ Nova Pré-Consulta</button>
+
+        <div class="section-title">
+            Pré-Consultas Recentes
+            <span class="section-link" onclick="loadPreConsultas()">Atualizar</span>
+        </div>
+
+        <div id="pcList">
+            <div class="empty-state">Nenhuma pré-consulta ainda.<br>Crie uma para começar!</div>
+        </div>
+    </div>
+
+    <!-- Create pre-consulta modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-title">Nova Pré-Consulta</div>
+            <div class="field">
+                <div class="field-label">Nome do paciente</div>
+                <input class="field-input" id="pcNome" placeholder="Nome completo">
+            </div>
+            <div class="field">
+                <div class="field-label">WhatsApp do paciente</div>
+                <input class="field-input" id="pcTel" placeholder="+5511999999999">
+            </div>
+            <div class="field">
+                <div class="field-label">Email do paciente (opcional)</div>
+                <input class="field-input" id="pcEmail" placeholder="paciente@email.com">
+            </div>
+            <button class="modal-btn" id="createBtn" onclick="criarPreConsulta()">Gerar link</button>
+
+            <div class="link-box" id="linkBox">
+                <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:8px;">Link gerado:</div>
+                <div class="link-url" id="linkUrl"></div>
+                <div class="link-actions">
+                    <button class="link-btn copy" onclick="copyLink()">📋 Copiar</button>
+                    <button class="link-btn whatsapp" id="whatsappBtn" onclick="sendWhatsApp()">📱 WhatsApp</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-bar">
+        <div class="tab active">
+            <div class="tab-icon">🏠</div>
+            <div class="tab-label">Dashboard</div>
+        </div>
+        <div class="tab" onclick="loadPreConsultas()">
+            <div class="tab-icon">📋</div>
+            <div class="tab-label">Consultas</div>
+        </div>
+        <div class="tab" onclick="vitaeAPI.logout()">
+            <div class="tab-icon">🚪</div>
+            <div class="tab-label">Sair</div>
+        </div>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+    let generatedLink = '';
+    let generatedWhatsApp = '';
+
+    function openModal() { document.getElementById('modalOverlay').classList.add('active'); }
+    function closeModal() {
+        document.getElementById('modalOverlay').classList.remove('active');
+        document.getElementById('linkBox').style.display = 'none';
+    }
+
+    async function loadDashboard() {
+        try {
+            const [dashData, medico] = await Promise.all([
+                vitaeAPI.getDashboardMedico(),
+                vitaeAPI.getPerfilMedico(),
+            ]);
+            document.getElementById('docName').textContent = 'Dr(a). ' + (medico.medico.usuario.nome || '');
+            document.getElementById('statPacientes').textContent = dashData.totalPacientes;
+            document.getElementById('statPendentes').textContent = dashData.preConsultasPendentes;
+            document.getElementById('statRespondidas').textContent = dashData.preConsultasRespondidas;
+        } catch (e) {
+            console.log('Erro dashboard:', e.message);
+        }
+    }
+
+    async function loadPreConsultas() {
+        try {
+            const data = await vitaeAPI.listarPreConsultas();
+            const pcs = data.preConsultas || [];
+            if (pcs.length === 0) return;
+
+            const list = document.getElementById('pcList');
+            list.innerHTML = pcs.map(pc => {
+                const dt = new Date(pc.criadoEm).toLocaleDateString('pt-BR');
+                return `
+                <div class="pc-card" onclick="${pc.status === 'RESPONDIDA' ? `window.location.href='25-summary.html?id=${pc.id}'` : ''}">
+                    <div class="pc-header">
+                        <div class="pc-avatar">👤</div>
+                        <div>
+                            <div class="pc-name">${pc.pacienteNome}</div>
+                            <div class="pc-date">${dt}</div>
+                        </div>
+                        <span class="pc-status ${pc.status.toLowerCase()}">${pc.status === 'RESPONDIDA' ? 'Respondida' : 'Pendente'}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (e) {
+            console.log('Erro:', e.message);
+        }
+    }
+
+    async function criarPreConsulta() {
+        const nome = document.getElementById('pcNome').value.trim();
+        const tel = document.getElementById('pcTel').value.trim();
+        const email = document.getElementById('pcEmail').value.trim();
+
+        if (!nome) return alert('Nome do paciente é obrigatório');
+
+        document.getElementById('createBtn').textContent = 'Gerando...';
+        try {
+            const data = await vitaeAPI.criarPreConsulta({
+                pacienteNome: nome,
+                pacienteTel: tel || undefined,
+                pacienteEmail: email || undefined,
+            });
+
+            generatedLink = data.link;
+            generatedWhatsApp = data.whatsappLink;
+
+            document.getElementById('linkUrl').textContent = data.link;
+            document.getElementById('linkBox').style.display = 'block';
+            document.getElementById('createBtn').textContent = 'Gerar link';
+
+            loadDashboard();
+            loadPreConsultas();
+        } catch (e) {
+            alert(e.message);
+            document.getElementById('createBtn').textContent = 'Gerar link';
+        }
+    }
+
+    function copyLink() {
+        navigator.clipboard.writeText(generatedLink).then(() => alert('Link copiado!'));
+    }
+
+    function sendWhatsApp() {
+        if (generatedWhatsApp) window.open(generatedWhatsApp, '_blank');
+        else alert('WhatsApp não disponível (telefone não informado)');
+    }
+
+    loadDashboard();
+    loadPreConsultas();
+</script>
+</body>
+</html>

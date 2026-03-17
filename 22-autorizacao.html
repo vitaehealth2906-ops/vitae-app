@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VITAE — Autorizações</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Inter',sans-serif; }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#0A0A0A;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#0A0A0A; border-radius:0 0 20px 20px; z-index:10; }
+        .header { position:absolute; top:58px; left:28px; right:28px; display:flex; align-items:center; z-index:5; }
+        .back-btn { width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:18px; color:rgba(255,255,255,0.5); }
+        .header-title { flex:1; text-align:center; font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:#fff; }
+
+        .content { height:100%; overflow-y:auto; padding:110px 28px 40px; }
+
+        .add-btn {
+            width:100%; padding:16px; margin-bottom:20px;
+            background:linear-gradient(135deg, #C5A55A, #D4B96A);
+            border:none; border-radius:16px;
+            font-family:'Inter',sans-serif; font-size:15px; font-weight:700;
+            color:#0A0A0A; cursor:pointer;
+        }
+
+        .auth-card {
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+            border-radius:18px; padding:18px; margin-bottom:12px;
+        }
+        .auth-header { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+        .auth-avatar { width:40px; height:40px; border-radius:50%; background:rgba(74,144,226,0.1); display:flex; align-items:center; justify-content:center; font-size:18px; }
+        .auth-name { font-size:15px; font-weight:600; color:#fff; }
+        .auth-spec { font-size:12px; color:rgba(255,255,255,0.3); }
+        .auth-status { font-size:11px; font-weight:600; padding:4px 10px; border-radius:8px; }
+        .auth-status.active { color:#4AD9A4; background:rgba(74,217,164,0.1); }
+        .auth-status.expired { color:#D94452; background:rgba(217,68,82,0.1); }
+        .auth-actions { display:flex; gap:8px; margin-top:12px; }
+        .auth-action-btn {
+            flex:1; padding:10px; border-radius:12px; border:none;
+            font-family:'Inter',sans-serif; font-size:13px; font-weight:600;
+            cursor:pointer;
+        }
+        .auth-action-btn.revoke { background:rgba(217,68,82,0.1); color:#D94452; }
+
+        .empty-state { text-align:center; padding:40px 20px; color:rgba(255,255,255,0.25); font-size:14px; }
+        .empty-state .icon { font-size:48px; margin-bottom:16px; }
+
+        /* Modal */
+        .modal-overlay {
+            position:absolute; top:0; left:0; right:0; bottom:0;
+            background:rgba(0,0,0,0.6); z-index:50;
+            opacity:0; pointer-events:none; transition:opacity 0.3s;
+        }
+        .modal-overlay.active { opacity:1; pointer-events:all; }
+        .modal {
+            position:absolute; bottom:0; left:0; right:0;
+            background:#1A1A1A; border-radius:24px 24px 0 0;
+            padding:24px; max-height:60%;
+            transform:translateY(100%); transition:transform 0.35s;
+        }
+        .modal-overlay.active .modal { transform:translateY(0); }
+        .modal-title { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:#fff; margin-bottom:16px; }
+        .modal-field { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+        .modal-label { font-size:12px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; }
+        .modal-input {
+            width:100%; padding:14px 16px; background:rgba(255,255,255,0.06);
+            border:1px solid rgba(255,255,255,0.08); border-radius:12px;
+            font-family:'Inter',sans-serif; font-size:14px; color:#fff; outline:none;
+        }
+        .modal-input::placeholder { color:rgba(255,255,255,0.2); }
+        .modal-btn {
+            width:100%; padding:16px; background:linear-gradient(135deg, #C5A55A, #D4B96A);
+            border:none; border-radius:16px; font-family:'Inter',sans-serif;
+            font-size:15px; font-weight:700; color:#0A0A0A; cursor:pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="header">
+        <div class="back-btn" onclick="window.location.href='08-perfil.html'">‹</div>
+        <div class="header-title">Autorizações</div>
+        <div style="width:40px;"></div>
+    </div>
+
+    <div class="content">
+        <button class="add-btn" onclick="openModal()">+ Autorizar médico</button>
+        <div id="authList">
+            <div class="empty-state" id="emptyState">
+                <div class="icon">🔐</div>
+                <div>Você ainda não autorizou nenhum médico.<br>Toque em "Autorizar médico" para começar.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-title">Autorizar Médico</div>
+            <div class="modal-field">
+                <div class="modal-label">CRM do médico</div>
+                <input class="modal-input" id="crmInput" placeholder="Ex: 123456">
+            </div>
+            <div class="modal-field">
+                <div class="modal-label">Duração (dias)</div>
+                <input class="modal-input" id="duracaoInput" type="number" placeholder="30" value="30">
+            </div>
+            <button class="modal-btn" onclick="autorizar()">Autorizar acesso</button>
+        </div>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+    function openModal() { document.getElementById('modalOverlay').classList.add('active'); }
+    function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+
+    async function loadAutorizacoes() {
+        try {
+            const data = await vitaeAPI.listarAutorizacoes();
+            const auths = data.autorizacoes || [];
+            if (auths.length === 0) return;
+
+            document.getElementById('emptyState').style.display = 'none';
+            const list = document.getElementById('authList');
+            list.innerHTML = auths.map(a => `
+                <div class="auth-card">
+                    <div class="auth-header">
+                        <div class="auth-avatar">⚕️</div>
+                        <div style="flex:1;">
+                            <div class="auth-name">Dr(a). ${a.medico.usuario.nome}</div>
+                            <div class="auth-spec">${a.medico?.especialidade || ''}</div>
+                        </div>
+                        <span class="auth-status ${a.ativo ? 'active' : 'expired'}">${a.ativo ? 'Ativo' : 'Revogado'}</span>
+                    </div>
+                    ${a.ativo ? `
+                    <div class="auth-actions">
+                        <button class="auth-action-btn revoke" onclick="revogar('${a.id}')">Revogar acesso</button>
+                    </div>` : ''}
+                </div>
+            `).join('');
+        } catch (e) {
+            console.log('Erro:', e.message);
+        }
+    }
+
+    async function autorizar() {
+        const crm = document.getElementById('crmInput').value.trim();
+        const duracao = parseInt(document.getElementById('duracaoInput').value) || 30;
+        if (!crm) return alert('Informe o CRM do médico');
+
+        try {
+            await vitaeAPI.autorizarMedico({ medicoCrm: crm, duracaoDias: duracao });
+            closeModal();
+            loadAutorizacoes();
+            alert('Médico autorizado com sucesso!');
+        } catch (e) {
+            alert(e.message);
+        }
+    }
+
+    async function revogar(id) {
+        if (!confirm('Revogar acesso deste médico?')) return;
+        try {
+            await vitaeAPI.revogarAutorizacao(id);
+            loadAutorizacoes();
+        } catch (e) {
+            alert(e.message);
+        }
+    }
+
+    loadAutorizacoes();
+</script>
+</body>
+</html>

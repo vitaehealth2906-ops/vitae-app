@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VITAE — Quiz</title>
+    <title>VITAE — RG da Saúde</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -28,16 +28,12 @@
             font-size:13px; font-weight:600; color:rgba(255,255,255,0.5);
             z-index:11;
         }
-
-        /* Entrance curtain */
         .entrance-curtain {
             position:absolute; top:0; left:0; width:100%; height:100%;
             background:#0A0A0A; z-index:30; pointer-events:none;
             animation: curtainOpen 0.8s ease 0.1s forwards;
         }
         @keyframes curtainOpen { 0%{opacity:1} 100%{opacity:0} }
-
-        /* Exit curtain */
         .exit-curtain {
             position:absolute; top:0; left:0; width:100%; height:100%;
             background:#0A0A0A; opacity:0; z-index:30; pointer-events:none;
@@ -45,7 +41,6 @@
         }
         .exit-curtain.active { opacity:1; }
 
-        /* ===== Quiz header ===== */
         .quiz-header {
             position:absolute; top:58px; left:28px; right:28px;
             display:flex; align-items:center; justify-content:space-between;
@@ -66,20 +61,18 @@
         }
         .step-indicator span { color:#C5A55A; }
 
-        /* ===== Progress bar ===== */
         .progress-bar {
             position:absolute; top:108px; left:28px; right:28px;
             height:3px; background:rgba(255,255,255,0.06);
             border-radius:2px; z-index:5; overflow:hidden;
         }
         .progress-fill {
-            height:100%; width:20%;
+            height:100%; width:25%;
             background:linear-gradient(90deg, #C5A55A, #D4B96A);
             border-radius:2px;
             transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* ===== Step container ===== */
         .quiz-container {
             position:absolute; top:130px; bottom:0; left:0; right:0;
             overflow:hidden;
@@ -91,85 +84,53 @@
             opacity:0; transform:translateX(80px);
             transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
             pointer-events:none;
+            overflow-y:auto;
         }
-        .step.active {
-            opacity:1; transform:translateX(0);
-            pointer-events:all;
-        }
-        .step.before {
-            opacity:0; transform:translateX(-80px);
-        }
+        .step.active { opacity:1; transform:translateX(0); pointer-events:all; }
+        .step.before { opacity:0; transform:translateX(-80px); }
 
-        /* ===== Step titles ===== */
         .step-title {
             font-family:'Playfair Display', serif;
             font-size:28px; font-weight:700;
             color:#fff; line-height:1.3;
             margin-bottom:8px;
         }
-        .step-title span {
-            color:#C5A55A; font-style:italic;
-        }
+        .step-title span { color:#C5A55A; font-style:italic; }
         .step-subtitle {
             font-size:14px; color:rgba(255,255,255,0.3);
             margin-bottom:24px;
         }
 
-        /* ===== STEP 1 — Gender ===== */
-        .gender-cards {
-            display:flex; flex-direction:column;
-            gap:14px; margin-top:32px;
-        }
+        /* Gender cards */
+        .gender-cards { display:flex; flex-direction:column; gap:14px; margin-top:12px; }
         .gender-card {
             display:flex; align-items:center; gap:20px;
             padding:22px 24px;
             background:rgba(255,255,255,0.03);
             border:1.5px solid rgba(255,255,255,0.08);
-            border-radius:20px;
-            cursor:pointer;
+            border-radius:20px; cursor:pointer;
             transition:all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .gender-card:hover {
-            background:rgba(255,255,255,0.05);
-            border-color:rgba(255,255,255,0.12);
-        }
+        .gender-card:hover { background:rgba(255,255,255,0.05); }
         .gender-card:active { transform:scale(0.97); }
         .gender-card.selected {
             border-color:#C5A55A;
             background:rgba(197,165,90,0.06);
             box-shadow:0 0 28px rgba(197,165,90,0.12);
-            transform:scale(1.02);
         }
         .gender-icon-wrap {
-            width:56px; height:56px; border-radius:50%;
+            width:48px; height:48px; border-radius:50%;
             background:rgba(255,255,255,0.04);
             border:1px solid rgba(255,255,255,0.08);
             display:flex; align-items:center; justify-content:center;
-            flex-shrink:0; transition:all 0.35s;
+            flex-shrink:0; font-size:22px;
         }
         .gender-card.selected .gender-icon-wrap {
             background:rgba(197,165,90,0.1);
             border-color:rgba(197,165,90,0.3);
         }
-        .gender-icon-wrap svg {
-            color:rgba(255,255,255,0.35);
-            transition:color 0.35s;
-        }
-        .gender-card.selected .gender-icon-wrap svg {
-            color:#C5A55A;
-        }
-        .gender-info { display:flex; flex-direction:column; gap:2px; }
-        .gender-label {
-            font-size:17px; font-weight:600;
-            color:rgba(255,255,255,0.6);
-            transition:color 0.35s;
-        }
+        .gender-label { font-size:17px; font-weight:600; color:rgba(255,255,255,0.6); }
         .gender-card.selected .gender-label { color:#fff; }
-        .gender-desc {
-            font-size:12px; color:rgba(255,255,255,0.2);
-            transition:color 0.35s;
-        }
-        .gender-card.selected .gender-desc { color:rgba(197,165,90,0.5); }
         .gender-card .check-circle {
             margin-left:auto; width:24px; height:24px;
             border-radius:50%; border:1.5px solid rgba(255,255,255,0.1);
@@ -179,36 +140,26 @@
         .gender-card.selected .check-circle {
             border-color:#C5A55A; background:#C5A55A;
         }
-        .gender-card .check-circle svg {
-            opacity:0; transition:opacity 0.2s;
-        }
-        .gender-card.selected .check-circle svg {
-            opacity:1;
-        }
+        .gender-card .check-circle::after { content:''; }
+        .gender-card.selected .check-circle::after { content:'✓'; color:#0A0A0A; font-size:14px; font-weight:700; }
 
-        /* ===== STEP 2 — Date Picker ===== */
-        .picker-section { margin-top:20px; flex:1; display:flex; flex-direction:column; }
+        /* Date picker */
+        .picker-section { margin-top:8px; flex:1; display:flex; flex-direction:column; }
         .picker-container {
             position:relative; display:flex;
-            width:100%; height:220px;
-            margin:16px 0 32px;
+            width:100%; height:220px; margin:16px 0 24px;
         }
         .picker-column {
             flex:1; height:100%;
-            overflow-y:scroll;
-            scroll-snap-type:y mandatory;
+            overflow-y:scroll; scroll-snap-type:y mandatory;
             -webkit-overflow-scrolling:touch;
-            scrollbar-width:none; -ms-overflow-style:none;
+            scrollbar-width:none;
         }
         .picker-column::-webkit-scrollbar { display:none; }
         .picker-item {
-            height:44px; display:flex;
-            align-items:center; justify-content:center;
-            font-size:18px; font-weight:600;
-            color:rgba(255,255,255,0.65);
-            scroll-snap-align:center;
-            user-select:none; cursor:grab;
-            transition:color 0.2s;
+            height:44px; display:flex; align-items:center; justify-content:center;
+            font-size:18px; font-weight:600; color:rgba(255,255,255,0.65);
+            scroll-snap-align:center; user-select:none; cursor:grab;
         }
         .picker-item.spacer { visibility:hidden; }
         .picker-highlight {
@@ -217,126 +168,169 @@
             border-top:1px solid rgba(197,165,90,0.2);
             border-bottom:1px solid rgba(197,165,90,0.2);
             background:rgba(197,165,90,0.04);
-            border-radius:10px;
-            pointer-events:none; z-index:1;
+            border-radius:10px; pointer-events:none; z-index:1;
         }
-        .picker-fade {
-            position:absolute; left:0; right:0;
-            height:88px; pointer-events:none; z-index:2;
-        }
-        .picker-fade.top {
-            top:0;
-            background:linear-gradient(to bottom, #0A0A0A 15%, transparent);
-        }
-        .picker-fade.bottom {
-            bottom:0;
-            background:linear-gradient(to top, #0A0A0A 15%, transparent);
-        }
-        .picker-col-label {
-            display:flex; justify-content:space-around;
-            margin-bottom:8px;
-        }
+        .picker-fade { position:absolute; left:0; right:0; height:88px; pointer-events:none; z-index:2; }
+        .picker-fade.top { top:0; background:linear-gradient(to bottom, #0A0A0A 15%, transparent); }
+        .picker-fade.bottom { bottom:0; background:linear-gradient(to top, #0A0A0A 15%, transparent); }
+        .picker-col-label { display:flex; justify-content:space-around; margin-bottom:8px; }
         .picker-col-label span {
-            flex:1; text-align:center;
-            font-size:11px; font-weight:700;
-            color:rgba(197,165,90,0.35);
-            letter-spacing:1.5px; text-transform:uppercase;
+            flex:1; text-align:center; font-size:11px; font-weight:700;
+            color:rgba(197,165,90,0.35); letter-spacing:1.5px; text-transform:uppercase;
         }
 
-        /* ===== STEPS 3 & 4 — Sliders ===== */
-        .slider-section {
-            flex:1; display:flex; flex-direction:column;
-            align-items:center; justify-content:center;
-            padding-bottom:40px;
-        }
-        .value-display {
-            display:flex; flex-direction:column;
-            align-items:center; position:relative;
-            margin-bottom:48px;
-        }
+        /* Sliders */
+        .slider-section { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding-bottom:20px; }
+        .value-display { display:flex; flex-direction:column; align-items:center; position:relative; margin-bottom:48px; }
         .value-glow {
-            position:absolute; width:180px; height:180px;
-            border-radius:50%;
+            position:absolute; width:180px; height:180px; border-radius:50%;
             background:radial-gradient(circle, rgba(197,165,90,0.07) 0%, transparent 70%);
             top:50%; left:50%; transform:translate(-50%,-50%);
         }
         .value-number {
-            font-family:'Playfair Display', serif;
-            font-size:80px; font-weight:800;
-            color:#fff; line-height:1;
-            position:relative; z-index:1;
-            transition:transform 0.1s ease;
+            font-family:'Playfair Display', serif; font-size:80px; font-weight:800;
+            color:#fff; line-height:1; position:relative; z-index:1;
         }
         .value-unit {
-            font-family:'Inter', sans-serif;
-            font-size:16px; font-weight:600;
-            color:rgba(197,165,90,0.45);
-            letter-spacing:3px; text-transform:uppercase;
-            margin-top:6px; position:relative; z-index:1;
+            font-size:16px; font-weight:600; color:rgba(197,165,90,0.45);
+            letter-spacing:3px; text-transform:uppercase; margin-top:6px; position:relative; z-index:1;
         }
-        .slider-wrap {
-            width:100%; padding:0 8px;
-        }
+        .slider-wrap { width:100%; padding:0 8px; }
         .slider-track {
             position:relative; width:100%; height:6px;
-            background:rgba(255,255,255,0.06);
-            border-radius:3px; cursor:pointer;
+            background:rgba(255,255,255,0.06); border-radius:3px; cursor:pointer;
         }
         .slider-fill {
-            position:absolute; left:0; top:0;
-            height:100%; border-radius:3px;
+            position:absolute; left:0; top:0; height:100%; border-radius:3px;
             background:linear-gradient(90deg, rgba(197,165,90,0.3), #C5A55A);
             pointer-events:none;
         }
         .slider-thumb {
-            position:absolute; top:50%;
-            width:30px; height:30px;
+            position:absolute; top:50%; width:30px; height:30px;
             background:linear-gradient(135deg, #C5A55A, #D4B96A);
-            border-radius:50%;
-            transform:translate(-50%,-50%);
+            border-radius:50%; transform:translate(-50%,-50%);
             box-shadow:0 2px 12px rgba(197,165,90,0.35), 0 0 0 4px rgba(197,165,90,0.1);
             pointer-events:none;
-            transition:box-shadow 0.2s;
         }
-        .slider-thumb.active {
-            box-shadow:0 2px 16px rgba(197,165,90,0.5), 0 0 0 8px rgba(197,165,90,0.12);
+        .slider-labels { display:flex; justify-content:space-between; margin-top:28px; }
+        .slider-labels span { font-size:12px; font-weight:500; color:rgba(255,255,255,0.15); }
+
+        /* Form fields (for picker triggers and text inputs) */
+        .field { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+        .field-label {
+            font-size:12px; font-weight:600;
+            color:rgba(255,255,255,0.4);
+            letter-spacing:0.5px; text-transform:uppercase;
         }
-        .slider-ticks {
-            position:relative; width:100%;
-            height:16px; margin-top:8px;
+        .field-input {
+            width:100%; padding:16px 18px;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:14px;
+            font-family:'Inter',sans-serif; font-size:15px; font-weight:500;
+            color:#fff; outline:none;
+            transition:all 0.3s ease;
         }
-        .slider-tick {
-            position:absolute; bottom:0;
-            width:1px; height:8px;
-            background:rgba(255,255,255,0.08);
-            transform:translateX(-50%);
+        .field-input::placeholder { color:rgba(255,255,255,0.2); }
+        .field-input:focus { border-color:rgba(197,165,90,0.3); }
+
+        .picker-field {
+            width:100%; padding:16px 18px;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:14px;
+            font-family:'Inter',sans-serif; font-size:15px; font-weight:500;
+            color:rgba(255,255,255,0.2);
+            cursor:pointer; transition:all 0.3s ease;
+            display:flex; align-items:center; justify-content:space-between;
         }
-        .slider-tick.major {
-            height:14px;
-            background:rgba(255,255,255,0.12);
+        .picker-field.has-value { color:#fff; }
+        .picker-field:hover { border-color:rgba(255,255,255,0.15); }
+        .picker-field .arrow { color:rgba(255,255,255,0.2); font-size:18px; }
+
+        /* Picker Modal (bottom sheet) */
+        .picker-modal-overlay {
+            position:absolute; top:0; left:0; right:0; bottom:0;
+            background:rgba(0,0,0,0.6);
+            z-index:50; opacity:0; pointer-events:none;
+            transition:opacity 0.3s;
         }
-        .slider-tick-label {
-            position:absolute; top:18px;
-            transform:translateX(-50%);
-            font-size:10px; font-weight:500;
-            color:rgba(255,255,255,0.15);
+        .picker-modal-overlay.active { opacity:1; pointer-events:all; }
+
+        .picker-modal {
+            position:absolute; bottom:0; left:0; right:0;
+            background:#1A1A1A;
+            border-radius:24px 24px 0 0;
+            padding:20px 24px 40px;
+            max-height:70%;
+            overflow-y:auto;
+            z-index:51;
+            transform:translateY(100%);
+            transition:transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .slider-labels {
-            display:flex; justify-content:space-between;
-            margin-top:28px;
-        }
-        .slider-labels span {
-            font-size:12px; font-weight:500;
-            color:rgba(255,255,255,0.15);
+        .picker-modal-overlay.active .picker-modal {
+            transform:translateY(0);
         }
 
-        /* ===== STEP 5 — Family History ===== */
-        .condition-section {
-            flex:1; display:flex; flex-direction:column;
+        .picker-modal-header {
+            display:flex; align-items:center; justify-content:space-between;
+            margin-bottom:16px;
         }
+        .picker-modal-title {
+            font-family:'Playfair Display', serif;
+            font-size:20px; font-weight:700; color:#fff;
+        }
+        .picker-modal-close {
+            width:32px; height:32px; border-radius:50%;
+            background:rgba(255,255,255,0.06);
+            border:none; color:rgba(255,255,255,0.5);
+            font-size:18px; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+        }
+
+        .picker-search {
+            width:100%; padding:12px 16px;
+            background:rgba(255,255,255,0.06);
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:12px; font-family:'Inter',sans-serif;
+            font-size:14px; color:#fff; outline:none;
+            margin-bottom:16px;
+        }
+        .picker-search::placeholder { color:rgba(255,255,255,0.25); }
+
+        .picker-options { display:flex; flex-direction:column; gap:4px; }
+        .picker-option {
+            padding:14px 16px;
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:12px; cursor:pointer;
+            font-size:14px; color:rgba(255,255,255,0.7);
+            transition:all 0.2s;
+            display:flex; align-items:center; justify-content:space-between;
+        }
+        .picker-option:hover { background:rgba(255,255,255,0.06); }
+        .picker-option.selected {
+            border-color:#C5A55A;
+            background:rgba(197,165,90,0.08);
+            color:#fff;
+        }
+        .picker-option.selected::after { content:'✓'; color:#C5A55A; font-weight:700; }
+
+        /* Buttons */
+        .btn-next {
+            width:100%; padding:18px;
+            background:linear-gradient(135deg, #C5A55A, #D4B96A);
+            border:none; border-radius:16px;
+            font-family:'Inter',sans-serif; font-size:16px; font-weight:700;
+            color:#0A0A0A; cursor:pointer; letter-spacing:0.5px;
+            transition:all 0.25s ease; margin-top:auto; flex-shrink:0;
+        }
+        .btn-next:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(197,165,90,0.3); }
+        .btn-next:active { transform:scale(0.98); }
+
+        /* Condition cards (reused from original) */
         .condition-grid {
-            display:grid;
-            grid-template-columns:1fr 1fr;
+            display:grid; grid-template-columns:1fr 1fr;
             gap:12px; margin-top:8px;
         }
         .condition-card {
@@ -345,70 +339,27 @@
             gap:10px; padding:20px 12px;
             background:rgba(255,255,255,0.03);
             border:1.5px solid rgba(255,255,255,0.08);
-            border-radius:18px;
-            cursor:pointer;
+            border-radius:18px; cursor:pointer;
             transition:all 0.3s ease;
         }
-        .condition-card:hover {
-            background:rgba(255,255,255,0.05);
-            border-color:rgba(255,255,255,0.12);
-        }
+        .condition-card:hover { background:rgba(255,255,255,0.05); }
         .condition-card:active { transform:scale(0.96); }
         .condition-card.selected {
             border-color:#C5A55A;
             background:rgba(197,165,90,0.06);
-            box-shadow:0 0 20px rgba(197,165,90,0.08);
         }
-        .condition-icon {
-            width:40px; height:40px; border-radius:12px;
-            display:flex; align-items:center; justify-content:center;
-            transition:all 0.3s;
-        }
-        .condition-icon svg {
-            color:rgba(255,255,255,0.3);
-            transition:color 0.3s;
-        }
-        .condition-card.selected .condition-icon svg {
-            color:#C5A55A;
-        }
+        .condition-icon { font-size:24px; }
         .condition-label {
             font-size:13px; font-weight:600;
-            color:rgba(255,255,255,0.5);
-            text-align:center;
-            transition:color 0.3s;
+            color:rgba(255,255,255,0.5); text-align:center;
         }
         .condition-card.selected .condition-label { color:#fff; }
         .condition-card.none-card.selected {
             border-color:#4AD9A4;
             background:rgba(74,217,164,0.06);
         }
-        .condition-card.none-card.selected .condition-icon svg {
-            color:#4AD9A4;
-        }
-        .condition-card.none-card.selected .condition-label {
-            color:#4AD9A4;
-        }
-
-        /* ===== Buttons ===== */
-        .btn-next {
-            width:100%; padding:18px;
-            background:linear-gradient(135deg, #C5A55A, #D4B96A);
-            border:none; border-radius:16px;
-            font-family:'Inter',sans-serif;
-            font-size:16px; font-weight:700;
-            color:#0A0A0A; cursor:pointer;
-            letter-spacing:0.5px;
-            transition:all 0.25s ease;
-            margin-top:auto;
-            flex-shrink:0;
-        }
-        .btn-next:hover {
-            transform:translateY(-2px);
-            box-shadow:0 8px 32px rgba(197,165,90,0.3);
-        }
-        .btn-next:active { transform:scale(0.98); }
+        .condition-card.none-card.selected .condition-label { color:#4AD9A4; }
     </style>
-    <link rel="stylesheet" href="/vitae-light.css">
 </head>
 <body>
 <div class="phone">
@@ -417,213 +368,166 @@
     <div class="entrance-curtain"></div>
     <div class="exit-curtain" id="exitCurtain"></div>
 
-    <!-- Header -->
     <div class="quiz-header">
         <div class="back-btn" onclick="goBack()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M15 18L9 12L15 6"/>
-            </svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18L9 12L15 6"/></svg>
         </div>
-        <div class="step-indicator">Passo <span id="stepNum">1</span> de 5</div>
+        <div class="step-indicator">Passo <span id="stepNum">1</span> de 4</div>
     </div>
 
-    <!-- Progress bar -->
     <div class="progress-bar">
         <div class="progress-fill" id="progressFill"></div>
     </div>
 
-    <!-- Quiz steps -->
     <div class="quiz-container">
 
-        <!-- ===== STEP 0: Gender ===== -->
+        <!-- STEP 0: Gender + Birth Date + Height/Weight -->
         <div class="step active" id="step0">
-            <div class="step-title">Qual é o seu <span>gênero</span>?</div>
-            <div class="step-subtitle">Isso nos ajuda a personalizar sua experiência</div>
-            <div class="gender-cards">
-                <!-- Masculino -->
-                <div class="gender-card" onclick="selectGender(this)">
-                    <div class="gender-icon-wrap">
-                        <svg width="28" height="28" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="19" cy="29" r="12"/>
-                            <path d="M28 20L40 8M40 8H30M40 8V18"/>
-                        </svg>
-                    </div>
-                    <div class="gender-info">
-                        <div class="gender-label">Masculino</div>
-                    </div>
-                    <div class="check-circle">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                    </div>
-                </div>
-                <!-- Feminino -->
-                <div class="gender-card" onclick="selectGender(this)">
-                    <div class="gender-icon-wrap">
-                        <svg width="28" height="28" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="24" cy="18" r="12"/>
-                            <path d="M24 30V44M18 37H30"/>
-                        </svg>
-                    </div>
-                    <div class="gender-info">
-                        <div class="gender-label">Feminino</div>
-                    </div>
-                    <div class="check-circle">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                    </div>
-                </div>
-                <!-- Outro -->
-                <div class="gender-card" onclick="selectGender(this)">
-                    <div class="gender-icon-wrap">
-                        <svg width="28" height="28" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="24" cy="24" r="12"/>
-                            <path d="M24 6V12M24 36V42M6 24H12M36 24H42"/>
-                        </svg>
-                    </div>
-                    <div class="gender-info">
-                        <div class="gender-label">Outro</div>
-                    </div>
-                    <div class="check-circle">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                    </div>
+            <div class="step-title">Dados <span>básicos</span></div>
+            <div class="step-subtitle">Informações essenciais do seu RG da Saúde</div>
+
+            <div class="field">
+                <div class="field-label">Sexo</div>
+                <div class="picker-field" id="sexoField" onclick="openPicker('sexo')">
+                    Selecione... <span class="arrow">›</span>
                 </div>
             </div>
+
+            <div class="field">
+                <div class="field-label">Data de Nascimento</div>
+                <input class="field-input" type="date" id="nascimentoInput" style="color-scheme:dark;">
+            </div>
+
+            <div style="display:flex; gap:12px;">
+                <div class="field" style="flex:1;">
+                    <div class="field-label">Altura (cm)</div>
+                    <input class="field-input" type="number" id="alturaInput" placeholder="170" min="50" max="250">
+                </div>
+                <div class="field" style="flex:1;">
+                    <div class="field-label">Peso (kg)</div>
+                    <input class="field-input" type="number" id="pesoInput" placeholder="70" min="20" max="300" step="0.1">
+                </div>
+            </div>
+
+            <div class="field">
+                <div class="field-label">CPF</div>
+                <input class="field-input" type="text" id="cpfInput" placeholder="000.000.000-00" maxlength="14" oninput="formatCPF(this)">
+            </div>
+
+            <button class="btn-next" onclick="goToStep(1)">Próximo</button>
         </div>
 
-        <!-- ===== STEP 1: Birth Date ===== -->
+        <!-- STEP 1: Blood Type + Conditions + Surgeries -->
         <div class="step" id="step1">
-            <div class="step-title">Quando você <span>nasceu</span>?</div>
-            <div class="step-subtitle">Role para selecionar a data</div>
-            <div class="picker-section">
-                <div class="picker-col-label">
-                    <span>Dia</span><span>Mês</span><span>Ano</span>
+            <div class="step-title">Saúde <span>geral</span></div>
+            <div class="step-subtitle">Informações importantes para emergências</div>
+
+            <div class="field">
+                <div class="field-label">Tipo Sanguíneo</div>
+                <div class="picker-field" id="tipoSangueField" onclick="openPicker('tipoSangue')">
+                    Selecione... <span class="arrow">›</span>
                 </div>
-                <div class="picker-container">
-                    <div class="picker-highlight"></div>
-                    <div class="picker-column" id="dayCol"></div>
-                    <div class="picker-column" id="monthCol"></div>
-                    <div class="picker-column" id="yearCol"></div>
-                    <div class="picker-fade top"></div>
-                    <div class="picker-fade bottom"></div>
-                </div>
-                <button class="btn-next" onclick="goToStep(2)">Próximo</button>
             </div>
+
+            <div class="field">
+                <div class="field-label">Condições Crônicas</div>
+                <div class="picker-field" id="condicoesField" onclick="openPicker('condicoes')">
+                    Selecione... <span class="arrow">›</span>
+                </div>
+            </div>
+
+            <div class="field">
+                <div class="field-label">Cirurgias Anteriores</div>
+                <div class="picker-field" id="cirurgiasField" onclick="openPicker('cirurgias')">
+                    Nenhuma <span class="arrow">›</span>
+                </div>
+            </div>
+
+            <div class="field">
+                <div class="field-label">Plano de Saúde</div>
+                <div class="picker-field" id="planoField" onclick="openPicker('plano')">
+                    Selecione... <span class="arrow">›</span>
+                </div>
+            </div>
+
+            <div class="field" id="carteirinhaField" style="display:none;">
+                <div class="field-label">Nº da Carteirinha</div>
+                <input class="field-input" type="text" id="carteirinhaInput" placeholder="Número do plano">
+            </div>
+
+            <button class="btn-next" onclick="goToStep(2)">Próximo</button>
         </div>
 
-        <!-- ===== STEP 2: Height ===== -->
+        <!-- STEP 2: Family History -->
         <div class="step" id="step2">
-            <div class="step-title">Qual é a sua <span>altura</span>?</div>
-            <div class="slider-section">
-                <div class="value-display">
-                    <div class="value-glow"></div>
-                    <div class="value-number" id="heightVal">170</div>
-                    <div class="value-unit">cm</div>
-                </div>
-                <div class="slider-wrap" id="heightSlider">
-                    <div class="slider-track" id="heightTrack">
-                        <div class="slider-fill" id="heightFill"></div>
-                        <div class="slider-thumb" id="heightThumb"></div>
-                    </div>
-                    <div class="slider-ticks" id="heightTicks"></div>
-                    <div class="slider-labels"><span>140 cm</span><span>220 cm</span></div>
-                </div>
-                <button class="btn-next" style="margin-top:48px" onclick="goToStep(3)">Próximo</button>
-            </div>
-        </div>
-
-        <!-- ===== STEP 3: Weight ===== -->
-        <div class="step" id="step3">
-            <div class="step-title">Qual é o seu <span>peso</span>?</div>
-            <div class="slider-section">
-                <div class="value-display">
-                    <div class="value-glow"></div>
-                    <div class="value-number" id="weightVal">70</div>
-                    <div class="value-unit">kg</div>
-                </div>
-                <div class="slider-wrap" id="weightSlider">
-                    <div class="slider-track" id="weightTrack">
-                        <div class="slider-fill" id="weightFill"></div>
-                        <div class="slider-thumb" id="weightThumb"></div>
-                    </div>
-                    <div class="slider-ticks" id="weightTicks"></div>
-                    <div class="slider-labels"><span>40 kg</span><span>180 kg</span></div>
-                </div>
-                <button class="btn-next" style="margin-top:48px" onclick="goToStep(4)">Próximo</button>
-            </div>
-        </div>
-
-        <!-- ===== STEP 4: Family History ===== -->
-        <div class="step" id="step4">
             <div class="step-title"><span>Histórico</span> familiar</div>
             <div class="step-subtitle">Alguém da sua família tem ou já teve:</div>
-            <div class="condition-section">
-                <div class="condition-grid" id="conditionGrid">
-                    <!-- Diabetes -->
-                    <div class="condition-card" onclick="toggleCondition(this)">
-                        <div class="condition-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-                            </svg>
-                        </div>
-                        <div class="condition-label">Diabetes</div>
-                    </div>
-                    <!-- Hipertensão -->
-                    <div class="condition-card" onclick="toggleCondition(this)">
-                        <div class="condition-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                            </svg>
-                        </div>
-                        <div class="condition-label">Hipertensão</div>
-                    </div>
-                    <!-- Câncer -->
-                    <div class="condition-card" onclick="toggleCondition(this)">
-                        <div class="condition-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <circle cx="12" cy="12" r="6"/>
-                                <circle cx="12" cy="12" r="2"/>
-                            </svg>
-                        </div>
-                        <div class="condition-label">Câncer</div>
-                    </div>
-                    <!-- Doença cardíaca -->
-                    <div class="condition-card" onclick="toggleCondition(this)">
-                        <div class="condition-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                            </svg>
-                        </div>
-                        <div class="condition-label">Doença cardíaca</div>
-                    </div>
-                    <!-- Depressão -->
-                    <div class="condition-card" onclick="toggleCondition(this)">
-                        <div class="condition-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-                            </svg>
-                        </div>
-                        <div class="condition-label">Depressão</div>
-                    </div>
-                    <!-- Nenhuma -->
-                    <div class="condition-card none-card" onclick="toggleNone(this)">
-                        <div class="condition-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                                <polyline points="9 12 11 14 15 10"/>
-                            </svg>
-                        </div>
-                        <div class="condition-label">Nenhuma</div>
-                    </div>
+
+            <div class="condition-grid">
+                <div class="condition-card" onclick="toggleCondition(this)">
+                    <div class="condition-icon">💉</div>
+                    <div class="condition-label">Diabetes</div>
                 </div>
-                <button class="btn-next" style="margin-top:28px" onclick="conclude()">Concluir</button>
+                <div class="condition-card" onclick="toggleCondition(this)">
+                    <div class="condition-icon">❤️</div>
+                    <div class="condition-label">Hipertensão</div>
+                </div>
+                <div class="condition-card" onclick="toggleCondition(this)">
+                    <div class="condition-icon">🎗️</div>
+                    <div class="condition-label">Câncer</div>
+                </div>
+                <div class="condition-card" onclick="toggleCondition(this)">
+                    <div class="condition-icon">🫀</div>
+                    <div class="condition-label">Doença cardíaca</div>
+                </div>
+                <div class="condition-card" onclick="toggleCondition(this)">
+                    <div class="condition-icon">🧠</div>
+                    <div class="condition-label">Depressão</div>
+                </div>
+                <div class="condition-card none-card" onclick="toggleNone(this)">
+                    <div class="condition-icon">✅</div>
+                    <div class="condition-label">Nenhuma</div>
+                </div>
             </div>
+
+            <button class="btn-next" style="margin-top:28px" onclick="goToStep(3)">Próximo</button>
         </div>
 
+        <!-- STEP 3: Emergency Contact -->
+        <div class="step" id="step3">
+            <div class="step-title">Contato de <span>emergência</span></div>
+            <div class="step-subtitle">Para quem devemos ligar em caso de emergência?</div>
+
+            <div class="field">
+                <div class="field-label">Nome do contato</div>
+                <input class="field-input" type="text" id="emergenciaNome" placeholder="Nome completo">
+            </div>
+
+            <div class="field">
+                <div class="field-label">Telefone do contato</div>
+                <input class="field-input" type="tel" id="emergenciaTel" placeholder="(11) 99999-9999">
+            </div>
+
+            <div style="padding:20px; background:rgba(74,217,164,0.06); border:1px solid rgba(74,217,164,0.15); border-radius:16px; margin:16px 0;">
+                <div style="font-size:14px; font-weight:600; color:#4AD9A4; margin-bottom:4px;">Quase lá!</div>
+                <div style="font-size:13px; color:rgba(255,255,255,0.4); line-height:1.5;">Seu RG da Saúde será gerado com todas as informações que você preencheu. Você poderá editar depois.</div>
+            </div>
+
+            <button class="btn-next" onclick="conclude()">Criar meu RG da Saúde</button>
+        </div>
+
+    </div>
+
+    <!-- Picker modals -->
+    <div class="picker-modal-overlay" id="pickerOverlay" onclick="closePicker()">
+        <div class="picker-modal" onclick="event.stopPropagation()">
+            <div class="picker-modal-header">
+                <div class="picker-modal-title" id="pickerTitle">Selecione</div>
+                <button class="picker-modal-close" onclick="closePicker()">✕</button>
+            </div>
+            <input class="picker-search" id="pickerSearch" placeholder="Buscar..." oninput="filterPickerOptions()">
+            <div class="picker-options" id="pickerOptions"></div>
+        </div>
     </div>
 </div>
 
@@ -631,16 +535,33 @@
 <script>
     // ===== State =====
     let currentStep = 0;
-    const totalSteps = 5;
-    const steps = [0,1,2,3,4].map(i => document.getElementById('step' + i));
+    const totalSteps = 4;
+    const steps = [0,1,2,3].map(i => document.getElementById('step'+i));
     const progressFill = document.getElementById('progressFill');
     const stepNum = document.getElementById('stepNum');
+
+    // Form data
+    const formData = {
+        genero: '',
+        dataNascimento: '',
+        alturaCm: null,
+        pesoKg: null,
+        cpf: '',
+        tipoSanguineo: '',
+        condicoes: '',
+        cirurgias: [],
+        planoSaude: '',
+        carteirinhaPlano: '',
+        historicoFamiliar: [],
+        contatoEmergenciaNome: '',
+        contatoEmergenciaTel: '',
+    };
 
     // ===== Navigation =====
     function goToStep(newStep) {
         if (newStep < 0 || newStep >= totalSteps) return;
         steps.forEach((s, i) => {
-            s.classList.remove('active', 'before');
+            s.classList.remove('active','before');
             if (i < newStep) s.classList.add('before');
             else if (i === newStep) s.classList.add('active');
         });
@@ -650,215 +571,245 @@
     }
 
     function goBack() {
-        if (currentStep === 0) {
-            window.location.href = '03-cadastro.html';
+        if (currentStep === 0) window.location.href = '03-cadastro.html';
+        else goToStep(currentStep - 1);
+    }
+
+    // ===== CPF formatter =====
+    function formatCPF(el) {
+        let v = el.value.replace(/\D/g,'');
+        if (v.length > 11) v = v.slice(0,11);
+        if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+        else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+        else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+        el.value = v;
+    }
+
+    // ===== Picker system =====
+    let currentPickerType = '';
+    let pickerMulti = false;
+    let pickerSelected = [];
+
+    const pickerConfigs = {
+        sexo: {
+            title: 'Sexo',
+            multi: false,
+            search: false,
+            options: ['Masculino', 'Feminino', 'Outro'],
+        },
+        tipoSangue: {
+            title: 'Tipo Sanguíneo',
+            multi: false,
+            search: false,
+            options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Não sei'],
+        },
+        condicoes: {
+            title: 'Condições Crônicas',
+            multi: true,
+            search: true,
+            options: ['Diabetes tipo 1', 'Diabetes tipo 2', 'Hipertensão', 'Asma', 'Ansiedade', 'Depressão', 'Hipotireoidismo', 'Hipertireoidismo', 'Artrite', 'Fibromialgia', 'Enxaqueca', 'Epilepsia', 'Doença celíaca', 'Lúpus', 'Doença de Crohn', 'Colite ulcerativa', 'DPOC', 'Insuficiência cardíaca', 'Arritmia', 'Nenhuma'],
+        },
+        cirurgias: {
+            title: 'Cirurgias Anteriores',
+            multi: true,
+            search: true,
+            options: ['Apendicectomia', 'Amigdalectomia', 'Cesariana', 'Colecistectomia', 'Hérnia', 'Artroscopia', 'Cirurgia cardíaca', 'Cirurgia bariátrica', 'Rinoplastia', 'Mastectomia', 'Histerectomia', 'Prostatectomia', 'Cirurgia de coluna', 'Cirurgia ocular', 'Outra', 'Nenhuma'],
+        },
+        plano: {
+            title: 'Plano de Saúde',
+            multi: false,
+            search: true,
+            options: ['SUS', 'Amil', 'Bradesco Saúde', 'SulAmérica', 'Unimed', 'NotreDame Intermédica', 'Hapvida', 'Porto Seguro', 'Prevent Senior', 'Care Plus', 'Cassi', 'Geap', 'Allianz', 'MetLife', 'Outro', 'Nenhum'],
+        },
+    };
+
+    function openPicker(type) {
+        const config = pickerConfigs[type];
+        currentPickerType = type;
+        pickerMulti = config.multi;
+
+        document.getElementById('pickerTitle').textContent = config.title;
+        document.getElementById('pickerSearch').style.display = config.search ? 'block' : 'none';
+        document.getElementById('pickerSearch').value = '';
+
+        // Get current selections
+        if (type === 'sexo') pickerSelected = formData.genero ? [formData.genero] : [];
+        else if (type === 'tipoSangue') pickerSelected = formData.tipoSanguineo ? [formData.tipoSanguineo] : [];
+        else if (type === 'condicoes') pickerSelected = formData.condicoes ? formData.condicoes.split(', ').filter(Boolean) : [];
+        else if (type === 'cirurgias') pickerSelected = [...formData.cirurgias];
+        else if (type === 'plano') pickerSelected = formData.planoSaude ? [formData.planoSaude] : [];
+
+        renderPickerOptions(config.options);
+        document.getElementById('pickerOverlay').classList.add('active');
+    }
+
+    function renderPickerOptions(options) {
+        const container = document.getElementById('pickerOptions');
+        container.innerHTML = '';
+        options.forEach(opt => {
+            const div = document.createElement('div');
+            div.className = 'picker-option' + (pickerSelected.includes(opt) ? ' selected' : '');
+            div.textContent = opt;
+            div.onclick = () => selectPickerOption(opt, div);
+            container.appendChild(div);
+        });
+    }
+
+    function filterPickerOptions() {
+        const query = document.getElementById('pickerSearch').value.toLowerCase();
+        const config = pickerConfigs[currentPickerType];
+        const filtered = config.options.filter(o => o.toLowerCase().includes(query));
+        renderPickerOptions(filtered);
+    }
+
+    function selectPickerOption(value, el) {
+        if (pickerMulti) {
+            if (value === 'Nenhuma' || value === 'Nenhum') {
+                pickerSelected = [value];
+                document.querySelectorAll('.picker-option').forEach(o => o.classList.remove('selected'));
+                el.classList.add('selected');
+            } else {
+                pickerSelected = pickerSelected.filter(v => v !== 'Nenhuma' && v !== 'Nenhum');
+                if (pickerSelected.includes(value)) {
+                    pickerSelected = pickerSelected.filter(v => v !== value);
+                    el.classList.remove('selected');
+                } else {
+                    pickerSelected.push(value);
+                    el.classList.add('selected');
+                }
+                document.querySelectorAll('.picker-option').forEach(o => {
+                    if (o.textContent === 'Nenhuma' || o.textContent === 'Nenhum') o.classList.remove('selected');
+                });
+            }
         } else {
-            goToStep(currentStep - 1);
+            pickerSelected = [value];
+            document.querySelectorAll('.picker-option').forEach(o => o.classList.remove('selected'));
+            el.classList.add('selected');
+            setTimeout(() => closePicker(), 200);
         }
     }
 
-    // ===== STEP 0: Gender =====
-    function selectGender(card) {
-        document.querySelectorAll('.gender-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        setTimeout(() => goToStep(1), 550);
-    }
+    function closePicker() {
+        document.getElementById('pickerOverlay').classList.remove('active');
 
-    // ===== STEP 1: Date Picker =====
-    const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        const displayVal = pickerSelected.length > 0 ? pickerSelected.join(', ') : '';
 
-    function populateColumn(colId, items, defaultIdx) {
-        const col = document.getElementById(colId);
-        // Top spacers
-        for (let i = 0; i < 2; i++) {
-            const s = document.createElement('div');
-            s.className = 'picker-item spacer';
-            col.appendChild(s);
-        }
-        // Items
-        items.forEach(item => {
-            const el = document.createElement('div');
-            el.className = 'picker-item';
-            el.textContent = item;
-            col.appendChild(el);
-        });
-        // Bottom spacers
-        for (let i = 0; i < 2; i++) {
-            const s = document.createElement('div');
-            s.className = 'picker-item spacer';
-            col.appendChild(s);
-        }
-        // Scroll to default
-        setTimeout(() => { col.scrollTop = defaultIdx * 44; }, 50);
-
-        // Mouse drag support
-        let isDrag = false, startY, startScroll;
-        col.addEventListener('mousedown', e => {
-            isDrag = true;
-            startY = e.clientY;
-            startScroll = col.scrollTop;
-            col.style.scrollSnapType = 'none';
-            col.style.cursor = 'grabbing';
-            e.preventDefault();
-        });
-        document.addEventListener('mousemove', e => {
-            if (!isDrag) return;
-            col.scrollTop = startScroll + (startY - e.clientY);
-        });
-        document.addEventListener('mouseup', () => {
-            if (!isDrag) return;
-            isDrag = false;
-            col.style.scrollSnapType = 'y mandatory';
-            col.style.cursor = 'grab';
-            const idx = Math.round(col.scrollTop / 44);
-            col.scrollTo({ top: idx * 44, behavior: 'smooth' });
-        });
-    }
-
-    // Populate
-    const dayItems = Array.from({length:31}, (_, i) => i + 1);
-    const yearItems = Array.from({length:96}, (_, i) => 2025 - i);
-    populateColumn('dayCol', dayItems, 14);   // Default: 15
-    populateColumn('monthCol', months, 0);    // Default: Jan
-    populateColumn('yearCol', yearItems, 18); // Default: 2007
-
-    // ===== STEPS 2 & 3: Sliders =====
-    function initSlider(config) {
-        const { trackId, fillId, thumbId, displayId, min, max, defaultVal } = config;
-        const track = document.getElementById(trackId);
-        const fill = document.getElementById(fillId);
-        const thumb = document.getElementById(thumbId);
-        const display = document.getElementById(displayId);
-        let value = defaultVal;
-        let dragging = false;
-
-        function update(clientX) {
-            const rect = track.getBoundingClientRect();
-            let pct = (clientX - rect.left) / rect.width;
-            pct = Math.max(0, Math.min(1, pct));
-            value = Math.round(min + pct * (max - min));
-            fill.style.width = (pct * 100) + '%';
-            thumb.style.left = (pct * 100) + '%';
-            display.textContent = value;
-        }
-
-        function setDefault() {
-            const pct = (defaultVal - min) / (max - min);
-            fill.style.width = (pct * 100) + '%';
-            thumb.style.left = (pct * 100) + '%';
-            display.textContent = defaultVal;
-        }
-        setDefault();
-
-        track.addEventListener('mousedown', e => {
-            dragging = true;
-            thumb.classList.add('active');
-            update(e.clientX);
-        });
-        document.addEventListener('mousemove', e => {
-            if (dragging) update(e.clientX);
-        });
-        document.addEventListener('mouseup', () => {
-            if (dragging) { dragging = false; thumb.classList.remove('active'); }
-        });
-
-        track.addEventListener('touchstart', e => {
-            dragging = true;
-            thumb.classList.add('active');
-            update(e.touches[0].clientX);
-        }, { passive: true });
-        document.addEventListener('touchmove', e => {
-            if (dragging) update(e.touches[0].clientX);
-        }, { passive: true });
-        document.addEventListener('touchend', () => {
-            if (dragging) { dragging = false; thumb.classList.remove('active'); }
-        });
-    }
-
-    // Create tick marks
-    function createTicks(containerId, min, max, majorStep) {
-        const container = document.getElementById(containerId);
-        for (let v = min; v <= max; v += majorStep) {
-            const pct = (v - min) / (max - min) * 100;
-            const tick = document.createElement('div');
-            tick.className = 'slider-tick major';
-            tick.style.left = pct + '%';
-            container.appendChild(tick);
-            const label = document.createElement('div');
-            label.className = 'slider-tick-label';
-            label.style.left = pct + '%';
-            label.textContent = v;
-            container.appendChild(label);
+        if (currentPickerType === 'sexo') {
+            formData.genero = pickerSelected[0] || '';
+            const field = document.getElementById('sexoField');
+            field.innerHTML = (displayVal || 'Selecione...') + ' <span class="arrow">›</span>';
+            if (displayVal) field.classList.add('has-value'); else field.classList.remove('has-value');
+        } else if (currentPickerType === 'tipoSangue') {
+            formData.tipoSanguineo = pickerSelected[0] || '';
+            const field = document.getElementById('tipoSangueField');
+            field.innerHTML = (displayVal || 'Selecione...') + ' <span class="arrow">›</span>';
+            if (displayVal) field.classList.add('has-value'); else field.classList.remove('has-value');
+        } else if (currentPickerType === 'condicoes') {
+            formData.condicoes = displayVal;
+            const field = document.getElementById('condicoesField');
+            field.innerHTML = (displayVal || 'Selecione...') + ' <span class="arrow">›</span>';
+            if (displayVal) field.classList.add('has-value'); else field.classList.remove('has-value');
+        } else if (currentPickerType === 'cirurgias') {
+            formData.cirurgias = [...pickerSelected];
+            const field = document.getElementById('cirurgiasField');
+            field.innerHTML = (displayVal || 'Nenhuma') + ' <span class="arrow">›</span>';
+            if (displayVal && displayVal !== 'Nenhuma') field.classList.add('has-value'); else field.classList.remove('has-value');
+        } else if (currentPickerType === 'plano') {
+            formData.planoSaude = pickerSelected[0] || '';
+            const field = document.getElementById('planoField');
+            field.innerHTML = (displayVal || 'Selecione...') + ' <span class="arrow">›</span>';
+            if (displayVal) field.classList.add('has-value'); else field.classList.remove('has-value');
+            // Show carteirinha field if has plan
+            document.getElementById('carteirinhaField').style.display =
+                (formData.planoSaude && formData.planoSaude !== 'SUS' && formData.planoSaude !== 'Nenhum') ? 'flex' : 'none';
         }
     }
 
-    initSlider({ trackId:'heightTrack', fillId:'heightFill', thumbId:'heightThumb', displayId:'heightVal', min:140, max:220, defaultVal:170 });
-    initSlider({ trackId:'weightTrack', fillId:'weightFill', thumbId:'weightThumb', displayId:'weightVal', min:40, max:180, defaultVal:70 });
-    createTicks('heightTicks', 140, 220, 20);
-    createTicks('weightTicks', 40, 180, 20);
-
-    // ===== STEP 4: Family History =====
+    // ===== Conditions (family history) =====
     function toggleCondition(card) {
         card.classList.toggle('selected');
-        // Deselect "Nenhuma" if another is selected
         const noneCard = document.querySelector('.none-card');
-        if (card.classList.contains('selected')) {
-            noneCard.classList.remove('selected');
-        }
+        if (card.classList.contains('selected')) noneCard.classList.remove('selected');
     }
 
     function toggleNone(card) {
         const isNow = !card.classList.contains('selected');
-        // Deselect all other conditions
         document.querySelectorAll('.condition-card:not(.none-card)').forEach(c => c.classList.remove('selected'));
         card.classList.toggle('selected', isNow);
     }
+
+    // ===== Blood type mapping =====
+    const bloodTypeMap = {
+        'A+': 'A_POS', 'A-': 'A_NEG', 'B+': 'B_POS', 'B-': 'B_NEG',
+        'AB+': 'AB_POS', 'AB-': 'AB_NEG', 'O+': 'O_POS', 'O-': 'O_NEG',
+    };
+
+    const genderMap = {
+        'Masculino': 'MASCULINO', 'Feminino': 'FEMININO', 'Outro': 'OUTRO',
+    };
 
     // ===== Conclude =====
     async function conclude() {
         document.getElementById('exitCurtain').classList.add('active');
 
-        // Coletar dados do quiz
-        const genderCard = document.querySelector('.gender-card.selected');
-        const genero = genderCard ? genderCard.querySelector('.gender-label').textContent : '';
+        // Collect all data
+        const nascInput = document.getElementById('nascimentoInput').value;
+        const alturaVal = parseInt(document.getElementById('alturaInput').value) || null;
+        const pesoVal = parseFloat(document.getElementById('pesoInput').value) || null;
+        const cpfVal = document.getElementById('cpfInput').value.replace(/\D/g,'');
+        const carteirinha = document.getElementById('carteirinhaInput').value.trim();
+        const emergNome = document.getElementById('emergenciaNome').value.trim();
+        const emergTel = document.getElementById('emergenciaTel').value.trim();
 
-        // Data de nascimento
-        const dayCol = document.getElementById('dayCol');
-        const monthCol = document.getElementById('monthCol');
-        const yearCol = document.getElementById('yearCol');
-        const dia = Math.round(dayCol.scrollTop / 44) + 1;
-        const mes = Math.round(monthCol.scrollTop / 44) + 1;
-        const anoIdx = Math.round(yearCol.scrollTop / 44);
-        const ano = 2025 - anoIdx;
-        const nascimento = new Date(ano, mes - 1, dia);
-
-        // Altura e peso
-        const altura = parseInt(document.getElementById('heightVal').textContent) || 170;
-        const peso = parseInt(document.getElementById('weightVal').textContent) || 70;
-
-        // Historico familiar
-        const condicoes = [];
+        // Family history
+        const famHistory = [];
         document.querySelectorAll('.condition-card.selected:not(.none-card)').forEach(c => {
-            condicoes.push(c.querySelector('.condition-label').textContent);
+            famHistory.push(c.querySelector('.condition-label').textContent);
         });
 
-        // Salvar no backend se logado
+        // Build profile data
+        const profileData = {};
+
+        if (formData.genero) profileData.genero = genderMap[formData.genero] || 'NAO_INFORMADO';
+        if (nascInput) profileData.dataNascimento = nascInput;
+        if (alturaVal) profileData.alturaCm = alturaVal;
+        if (pesoVal) profileData.pesoKg = pesoVal;
+        if (cpfVal && cpfVal.length === 11) profileData.cpf = cpfVal;
+        if (formData.tipoSanguineo && bloodTypeMap[formData.tipoSanguineo]) {
+            profileData.tipoSanguineo = bloodTypeMap[formData.tipoSanguineo];
+        }
+        if (formData.condicoes && formData.condicoes !== 'Nenhuma') profileData.condicoes = formData.condicoes;
+        if (formData.cirurgias.length > 0 && !formData.cirurgias.includes('Nenhuma')) {
+            profileData.cirurgias = formData.cirurgias;
+        }
+        if (formData.planoSaude && formData.planoSaude !== 'Nenhum') profileData.planoSaude = formData.planoSaude;
+        if (carteirinha) profileData.carteirinhaPlano = carteirinha;
+        if (famHistory.length > 0) profileData.historicoFamiliar = famHistory;
+        if (emergNome) profileData.contatoEmergenciaNome = emergNome;
+        if (emergTel) profileData.contatoEmergenciaTel = emergTel;
+
+        // Save to backend
         if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
             try {
-                await vitaeAPI.atualizarPerfil({
-                    genero: genero.toLowerCase(),
-                    dataNascimento: nascimento.toISOString(),
-                    altura,
-                    peso,
-                    historicoFamiliar: condicoes.join(', ')
-                });
+                await vitaeAPI.atualizarPerfil(profileData);
             } catch (e) {
-                console.log('Erro ao salvar quiz:', e.message);
+                console.log('Erro ao salvar RG:', e.message);
+            }
+        }
+
+        // Register LGPD consents
+        if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
+            try {
+                await vitaeAPI.registrarConsentimento({ tipo: 'TERMOS_USO', aceito: true });
+                await vitaeAPI.registrarConsentimento({ tipo: 'POLITICA_PRIVACIDADE', aceito: true });
+                await vitaeAPI.registrarConsentimento({ tipo: 'PROCESSAMENTO_IA', aceito: true });
+            } catch (e) {
+                console.log('Erro ao registrar consentimentos:', e.message);
             }
         }
 
         setTimeout(() => {
-            window.location.href = '06-concluido.html';
+            window.location.href = '08-perfil.html';
         }, 800);
     }
 </script>

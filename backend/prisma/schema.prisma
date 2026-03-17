@@ -21,12 +21,14 @@ model Usuario {
   provider        String?
   providerId      String?  @map("provider_id")
   fotoUrl         String?  @map("foto_url")
+  tipo            String   @default("PACIENTE") // PACIENTE ou MEDICO
   status          String   @default("PENDENTE")
   criadoEm        DateTime @default(now()) @map("criado_em")
   atualizadoEm    DateTime @updatedAt @map("atualizado_em")
   ultimoLogin     DateTime? @map("ultimo_login")
 
   perfilSaude     PerfilSaude?
+  medico          Medico?
   exames          Exame[]
   medicamentos    Medicamento[]
   alergias        Alergia[]
@@ -34,6 +36,9 @@ model Usuario {
   checkins        CheckinSemanal[]
   notificacoes    Notificacao[]
   refreshTokens   RefreshToken[]
+  autorizacoesComoP  AutorizacaoAcesso[] @relation("paciente_autorizacoes")
+  agendamentos       Agendamento[]
+  consentimentos     Consentimento[]
 
   @@map("usuarios")
 }
@@ -59,6 +64,10 @@ model PerfilSaude {
   nomePai           String?  @map("nome_pai")
   telPai            String?  @map("tel_pai")
   condicoes         String?
+  cpf               String?  @unique
+  cirurgias         String[] @default([])
+  planoSaude        String?  @map("plano_saude")
+  carteirinhaPlano  String?  @map("carteirinha_plano")
   atualizadoEm      DateTime @updatedAt @map("atualizado_em")
 
   usuario           Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -233,4 +242,104 @@ model RefreshToken {
   usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
+}
+
+// ---- MEDICOS ----
+model Medico {
+  id              String   @id @default(uuid())
+  usuarioId       String   @unique @map("usuario_id")
+  crm             String   @unique
+  ufCrm           String   @map("uf_crm")
+  especialidade   String
+  clinica         String?
+  enderecoClinica String?  @map("endereco_clinica")
+  telefoneClinica String?  @map("telefone_clinica")
+  ativo           Boolean  @default(true)
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+
+  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  preConsultas    PreConsulta[]
+  autorizacoes    AutorizacaoAcesso[] @relation("medico_autorizacoes")
+
+  @@map("medicos")
+}
+
+// ---- PRE-CONSULTAS ----
+model PreConsulta {
+  id              String   @id @default(uuid())
+  medicoId        String   @map("medico_id")
+  pacienteNome    String   @map("paciente_nome")
+  pacienteTel     String?  @map("paciente_tel")
+  pacienteEmail   String?  @map("paciente_email")
+  linkToken       String   @unique @map("link_token")
+  status          String   @default("PENDENTE") // PENDENTE, RESPONDIDA, EXPIRADA
+  respostas       Json?    // respostas do formulário do paciente
+  audioUrl        String?  @map("audio_url")
+  transcricao     String?  @db.Text
+  summaryIA       String?  @map("summary_ia") @db.Text
+  summaryJson     Json?    @map("summary_json")
+  expiraEm        DateTime @map("expira_em")
+  respondidaEm    DateTime? @map("respondida_em")
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+
+  medico          Medico   @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+
+  @@map("pre_consultas")
+}
+
+// ---- AUTORIZACOES DE ACESSO ----
+model AutorizacaoAcesso {
+  id              String   @id @default(uuid())
+  pacienteId      String   @map("paciente_id")
+  medicoId        String   @map("medico_id")
+  tipoAcesso      String   @default("LEITURA") // LEITURA, COMPLETO
+  categorias      String[] @default(["exames", "perfil"]) // quais dados o médico pode ver
+  ativo           Boolean  @default(true)
+  expiraEm        DateTime? @map("expira_em")
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  revogadoEm      DateTime? @map("revogado_em")
+
+  paciente        Usuario  @relation("paciente_autorizacoes", fields: [pacienteId], references: [id], onDelete: Cascade)
+  medico          Medico   @relation("medico_autorizacoes", fields: [medicoId], references: [id], onDelete: Cascade)
+
+  @@map("autorizacoes_acesso")
+}
+
+// ---- AGENDAMENTOS ----
+model Agendamento {
+  id              String   @id @default(uuid())
+  usuarioId       String   @map("usuario_id")
+  titulo          String
+  tipo            String   // EXAME, CONSULTA, RETORNO
+  local           String?
+  medico          String?
+  observacoes     String?  @db.Text
+  dataHora        DateTime @map("data_hora")
+  lembrete        Boolean  @default(true)
+  lembreteEnviado Boolean  @default(false) @map("lembrete_enviado")
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+
+  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("agendamentos")
+}
+
+// ---- CONSENTIMENTOS (LGPD) ----
+model Consentimento {
+  id              String   @id @default(uuid())
+  usuarioId       String   @map("usuario_id")
+  tipo            String   // TERMOS_USO, POLITICA_PRIVACIDADE, COMPARTILHAMENTO_MEDICO, PROCESSAMENTO_IA
+  versao          String   @default("1.0")
+  aceito          Boolean  @default(true)
+  ipAddress       String?  @map("ip_address")
+  userAgent       String?  @map("user_agent")
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  revogadoEm      DateTime? @map("revogado_em")
+
+  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("consentimentos")
 }

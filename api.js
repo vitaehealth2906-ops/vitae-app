@@ -129,10 +129,10 @@ async function refreshTokens() {
 
 const vitaeAPI = {
   // Auth
-  async cadastro(nome, email, celular, senha) {
+  async cadastro(nome, email, celular, senha, tipo) {
     const data = await apiRequest('/auth/cadastro', {
       method: 'POST',
-      body: { nome, email, celular, senha },
+      body: { nome, email, celular, senha, tipo },
     });
     return data;
   },
@@ -262,6 +262,111 @@ const vitaeAPI = {
   // Notificacoes
   async getNotificacoes() {
     return apiRequest('/notificacoes');
+  },
+
+  // Medico
+  async cadastroMedico(dados) {
+    return apiRequest('/medico', { method: 'POST', body: dados });
+  },
+
+  async getPerfilMedico() {
+    return apiRequest('/medico');
+  },
+
+  async atualizarMedico(dados) {
+    return apiRequest('/medico', { method: 'PUT', body: dados });
+  },
+
+  async getPacientesMedico() {
+    return apiRequest('/medico/pacientes');
+  },
+
+  async getDashboardMedico() {
+    return apiRequest('/medico/dashboard');
+  },
+
+  // Pre-consulta
+  async criarPreConsulta(dados) {
+    return apiRequest('/pre-consulta', { method: 'POST', body: dados });
+  },
+
+  async listarPreConsultas() {
+    return apiRequest('/pre-consulta');
+  },
+
+  async getPreConsulta(id) {
+    return apiRequest(`/pre-consulta/${id}`);
+  },
+
+  async getPreConsultaPorToken(token) {
+    return apiRequest(`/pre-consulta/t/${token}`);
+  },
+
+  async responderPreConsulta(token, dados) {
+    return apiRequest(`/pre-consulta/t/${token}/responder`, {
+      method: 'POST',
+      body: dados,
+    });
+  },
+
+  // Agendamento
+  async criarAgendamento(dados) {
+    return apiRequest('/agendamento', { method: 'POST', body: dados });
+  },
+
+  async listarAgendamentos() {
+    return apiRequest('/agendamento');
+  },
+
+  async getProximoAgendamento() {
+    return apiRequest('/agendamento/proximo');
+  },
+
+  async atualizarAgendamento(id, dados) {
+    return apiRequest(`/agendamento/${id}`, { method: 'PUT', body: dados });
+  },
+
+  async deletarAgendamento(id) {
+    return apiRequest(`/agendamento/${id}`, { method: 'DELETE' });
+  },
+
+  // Autorizacao
+  async autorizarMedico(dados) {
+    return apiRequest('/autorizacao', { method: 'POST', body: dados });
+  },
+
+  async listarAutorizacoes() {
+    return apiRequest('/autorizacao');
+  },
+
+  async revogarAutorizacao(id) {
+    return apiRequest(`/autorizacao/${id}`, { method: 'DELETE' });
+  },
+
+  async getQrData() {
+    return apiRequest('/autorizacao/qr-data');
+  },
+
+  // Consentimento
+  async registrarConsentimento(dados) {
+    return apiRequest('/consentimento', { method: 'POST', body: dados });
+  },
+
+  async listarConsentimentos() {
+    return apiRequest('/consentimento');
+  },
+
+  async revogarConsentimento(id) {
+    return apiRequest(`/consentimento/${id}`, { method: 'DELETE' });
+  },
+
+  async getStatusConsentimentos() {
+    return apiRequest('/consentimento/status');
+  },
+
+  // Timeline
+  async getTimeline() {
+    return apiRequest('/timeline');
   },
 
   // Helpers

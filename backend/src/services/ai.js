@@ -562,6 +562,79 @@ Regras:
   }
 }
 
+/**
+ * Gera o One Minute Summary da pre-consulta usando IA.
+ *
+ * @param {string} pacienteNome - Nome do paciente.
+ * @param {object} respostas - Respostas do formulario de pre-consulta.
+ * @param {string} transcricao - Transcricao do audio (se houver).
+ * @returns {object} { summaryTexto, blocos, alertas }
+ */
+async function gerarSummaryPreConsulta(pacienteNome, respostas, transcricao) {
+  const dadosPaciente = Object.entries(respostas || {})
+    .filter(([, v]) => v && v.trim && v.trim().length > 0)
+    .map(([k, v]) => `- ${k}: ${v}`)
+    .join('\n');
+
+  const userPrompt = `Gere um resumo clinico conciso (One Minute Summary) para o medico, baseado nas informacoes da pre-consulta do paciente ${pacienteNome}.
+
+Dados do formulario:
+${dadosPaciente}
+
+${transcricao ? `Transcricao do audio do paciente:\n"${transcricao}"` : ''}
+
+Retorne EXCLUSIVAMENTE um JSON valido:
+{
+  "summaryTexto": "string (resumo corrido de 3-5 frases para o medico ler em 1 minuto)",
+  "blocos": [
+    {
+      "titulo": "string (ex: 'Queixa Principal', 'Sintomas', 'Medicamentos', 'Alergias', 'Historico')",
+      "conteudo": "string (resumo objetivo deste bloco)",
+      "prioridade": "string ('alta', 'media', 'baixa')"
+    }
+  ],
+  "alertas": [
+    {
+      "tipo": "string ('URGENTE', 'ATENCAO', 'INFO')",
+      "mensagem": "string (alerta clinico relevante)"
+    }
+  ],
+  "perguntasSugeridas": [
+    "string (perguntas que o medico poderia fazer ao paciente durante a consulta)"
+  ]
+}
+
+Regras:
+- O summaryTexto deve ser direto, clinico e objetivo — para o medico ler em menos de 1 minuto.
+- Gere de 3 a 6 blocos organizados por relevancia clinica.
+- Gere alertas apenas se houver informacoes que exijam atencao (interacoes, sintomas graves, etc.).
+- Gere 2-4 perguntas sugeridas baseadas nos dados fornecidos.
+- Use linguagem tecnica apropriada para medicos.
+- NAO faca diagnosticos. Organize e resuma as informacoes do paciente.`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2048,
+    system:
+      'Voce e um assistente clinico da plataforma VITAE. Sua funcao e organizar informacoes de pre-consulta ' +
+      'em resumos concisos para medicos. Use linguagem tecnica apropriada. NAO faca diagnosticos — ' +
+      'apenas organize e resuma os dados reportados pelo paciente.',
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+
+  const conteudo = response.content[0].text.trim();
+
+  try {
+    return JSON.parse(conteudo);
+  } catch {
+    const jsonMatch = conteudo.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[1].trim());
+    }
+    throw new Error('Falha ao gerar summary da pre-consulta. Tente novamente.');
+  }
+}
+
 module.exports = {
   estruturarExame,
   estruturarExameDeArquivo,
@@ -569,4 +642,5 @@ module.exports = {
   calcularIdadeBiologica,
   gerarMelhorias,
   gerarInfoSubstancia,
+  gerarSummaryPreConsulta,
 };

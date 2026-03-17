@@ -45,6 +45,13 @@ const atualizarPerfilSchema = z.object({
     .optional(),
   fuma: z.boolean().optional(),
   alcool: z.enum(['NUNCA', 'RARAMENTE', 'SOCIALMENTE', 'FREQUENTEMENTE', 'DIARIAMENTE']).optional(),
+  cpf: z.string().regex(/^\d{11}$/, 'CPF deve ter 11 digitos').optional(),
+  cirurgias: z.array(z.string()).optional(),
+  planoSaude: z.string().optional(),
+  carteirinhaPlano: z.string().optional(),
+  condicoes: z.string().optional(),
+  contatoEmergenciaNome: z.string().optional(),
+  contatoEmergenciaTel: z.string().optional(),
 });
 
 // ---------------------------------------------------------------------------

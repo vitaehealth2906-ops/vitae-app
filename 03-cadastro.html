@@ -359,15 +359,22 @@
 
         try {
             if (isLogin) {
-                await vitaeAPI.login(emailInput.value.trim(), senhaInput.value);
-                window.location.href = '08-perfil.html';
+                const loginResult = await vitaeAPI.login(emailInput.value.trim(), senhaInput.value);
+                const u = loginResult.usuario || {};
+                if (u.tipo === 'MEDICO') {
+                    window.location.href = '20-medico-dashboard.html';
+                } else {
+                    window.location.href = '08-perfil.html';
+                }
             } else {
                 const celFormatado = formatCelular(celularInput.value);
+                const tipoEscolhido = localStorage.getItem('vitae_tipo_escolhido') || 'PACIENTE';
                 const result = await vitaeAPI.cadastro(
                     nomeInput.value.trim(),
                     emailInput.value.trim(),
                     celFormatado,
-                    senhaInput.value
+                    senhaInput.value,
+                    tipoEscolhido
                 );
                 // Cadastro ja retorna tokens — login automatico
                 if (result.token) {
@@ -375,7 +382,11 @@
                     if (result.refreshToken) localStorage.setItem('vitae_refresh_token', result.refreshToken);
                     if (result.usuario) localStorage.setItem('vitae_usuario', JSON.stringify(result.usuario));
                 }
-                window.location.href = '05-quiz.html';
+                if (tipoEscolhido === 'MEDICO') {
+                    window.location.href = '20-medico-cadastro.html';
+                } else {
+                    window.location.href = '05-quiz.html';
+                }
             }
         } catch (err) {
             const errorMsg = document.getElementById('errorMsg');
@@ -428,7 +439,12 @@
 
     // Se ja esta logado, redirecionar
     if (vitaeAPI.isLoggedIn()) {
-        window.location.href = '08-perfil.html';
+        const u = vitaeAPI.getUsuario();
+        if (u && u.tipo === 'MEDICO') {
+            window.location.href = '20-medico-dashboard.html';
+        } else {
+            window.location.href = '08-perfil.html';
+        }
     }
 </script>
 </body>
