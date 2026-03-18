@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VITAE — Meu RG da Saúde</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg:#0A0A0A;
@@ -41,113 +41,86 @@
         }
         .content::-webkit-scrollbar { display:none; }
 
-        /* ===== RG Card — Premium (igual preview) ===== */
-        .rg-card-wrap {
-            position:relative;
-            border-radius:22px;
-            padding:2px;
-            margin-bottom:20px;
-            overflow:hidden;
+        /* ===== HOVER 3D + FLIP CARD ===== */
+        .hover-3d {
+            display:inline-grid; width:100%;
+            perspective:40rem;
+            --transform:0,0; --shadow:0rem 0rem 0rem;
+            --ease:linear(0,0.931 13.8%,1.196 21.4%,1.343 29.8%,1.378 36%,1.365 43.2%,1.059 78%,1);
+            filter:
+                drop-shadow(var(--shadow) 0.1rem #00000008)
+                drop-shadow(var(--shadow) 0.25rem #00000008)
+                drop-shadow(var(--shadow) 0.4rem #00000008);
+            transition:filter ease-out 400ms;
+            cursor:pointer; margin-bottom:20px;
         }
-        .rg-card-wrap::before {
-            content:'';
-            position:absolute;
-            inset:-60%;
-            background:conic-gradient(from 0deg, transparent 0deg, rgba(197,165,90,0) 120deg, rgba(197,165,90,0.9) 180deg, rgba(197,165,90,0) 240deg, transparent 360deg);
-            animation:rgSpin 3s linear infinite;
+        .hover-3d > :nth-child(n+2) { isolation:isolate; z-index:1; scale:1.2; }
+        .hover-3d > :first-child {
+            overflow:visible; grid-area:1/1/4/4;
+            transform:rotate3d(var(--transform),0,10deg);
+            transition:transform var(--ease) 500ms, scale var(--ease) 500ms, outline-color ease-out 500ms;
+            outline:0.5px solid transparent; outline-offset:-1px; position:relative; width:100%;
         }
-        @keyframes rgSpin {
-            from { transform:rotate(0deg); }
-            to   { transform:rotate(360deg); }
+        .hover-3d:hover { --ease:linear(0,0.708 15.2%,0.927 23.6%,1.067 33%,1.12 41%,1.13 50.2%,1.019 83.2%,1); }
+        .hover-3d:hover > :first-child { outline-color:rgba(0,0,0,0.06); scale:1.02; }
+        .hover-3d > :nth-child(2){grid-area:1/1/2/2} .hover-3d > :nth-child(3){grid-area:1/2/2/3}
+        .hover-3d > :nth-child(4){grid-area:1/3/2/4} .hover-3d > :nth-child(5){grid-area:2/1/3/2}
+        .hover-3d > :nth-child(6){grid-area:2/3/3/4} .hover-3d > :nth-child(7){grid-area:3/1/4/2}
+        .hover-3d > :nth-child(8){grid-area:3/2/4/3} .hover-3d > :nth-child(9){grid-area:3/3/4/4}
+        .hover-3d:has(> :nth-child(2):hover){--transform:-1,1;--shadow:-0.3rem -0.3rem}
+        .hover-3d:has(> :nth-child(3):hover){--transform:-1,0;--shadow:0rem -0.3rem}
+        .hover-3d:has(> :nth-child(4):hover){--transform:-1,-1;--shadow:0.3rem -0.3rem}
+        .hover-3d:has(> :nth-child(5):hover){--transform:0,1;--shadow:-0.3rem 0rem}
+        .hover-3d:has(> :nth-child(6):hover){--transform:0,-1;--shadow:0.3rem 0rem}
+        .hover-3d:has(> :nth-child(7):hover){--transform:1,1;--shadow:-0.3rem 0.3rem}
+        .hover-3d:has(> :nth-child(8):hover){--transform:1,0;--shadow:0rem 0.3rem}
+        .hover-3d:has(> :nth-child(9):hover){--transform:1,-1;--shadow:0.3rem 0.3rem}
+
+        .card-flipper {
+            width:100%; height:188px; position:relative;
+            transform-style:preserve-3d;
+            transition:transform 0.7s cubic-bezier(0.4,0,0.2,1);
         }
-        .rg-card {
-            background:linear-gradient(145deg, rgba(30,25,18,0.98), rgba(20,16,10,0.98));
-            border:none;
-            border-radius:20px;
-            padding:24px;
-            position:relative;
-            overflow:hidden;
-            box-shadow:0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(197,165,90,0.1);
+        .card-flipper.flipped { transform:rotateY(180deg); }
+        .card-face {
+            position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+            background:#fdfdfd; color:#111; border-radius:16px;
+            box-shadow:0 1px 4px rgba(0,0,0,0.08);
+            font-family:'Space Mono',monospace;
         }
-        .rg-card::before {
-            content:'';
-            position:absolute; inset:0;
-            background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>"),radial-gradient(circle at 85% 15%, rgba(197,165,90,0.07) 0%, transparent 55%);
-            background-size:200px 200px, cover;
-            opacity:0.08;
-            pointer-events:none;
-            border-radius:20px;
+        .card-face::after {
+            content:''; position:absolute; inset:0; border-radius:16px; pointer-events:none; z-index:1;
+            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            background-repeat:repeat; mix-blend-mode:multiply;
         }
-        .rg-card::after {
-            content:'';
-            position:absolute;
-            top:0; left:-160%;
-            width:70%; height:100%;
-            background:linear-gradient(108deg, transparent 30%, rgba(255,255,255,0.11) 50%, rgba(255,255,255,0.05) 56%, transparent 70%);
-            animation:rgShimmer 5s ease-in-out infinite;
-            pointer-events:none;
+        .card-face::before {
+            content:''; position:absolute; inset:0; border-radius:16px; pointer-events:none; z-index:1;
+            background:linear-gradient(165deg, rgba(255,255,255,0.5) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.02) 100%);
         }
-        @keyframes rgShimmer {
-            0%,15%  { left:-160%; }
-            42%,100% { left:200%; }
+        .card-back-face { transform:rotateY(180deg); }
+
+        /* Front */
+        .front-body { padding:1.3rem 1.5rem; display:flex; flex-direction:column; height:100%; position:relative; overflow:hidden; }
+        .card-brand { font-weight:700; font-size:0.6rem; letter-spacing:0.06em; color:#111; z-index:2; position:relative; display:flex; align-items:center; }
+        .card-brand-vitae { font-weight:400; opacity:0.4; margin-left:0.1rem; }
+        .front-name-wrap { margin-top:auto; z-index:2; position:relative; }
+        .front-label { font-size:0.48rem; color:#aaa; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.12rem; }
+        .front-value { font-size:0.85rem; color:#222; font-weight:700; letter-spacing:0.02em; }
+        .front-cpf { font-size:0.5rem; color:#bbb; letter-spacing:0.05em; margin-top:0.15rem; }
+        .front-emblem {
+            position:absolute; right:-2.5rem; top:50%; transform:translateY(-50%);
+            width:17rem; height:17rem; opacity:0.08; pointer-events:none;
         }
-        .rg-card-header {
-            display:flex; justify-content:space-between;
-            align-items:center; margin-bottom:16px;
-        }
-        .rg-card-brand {
-            font-family:'DM Mono',monospace;
-            font-size:10px; letter-spacing:0.2em;
-            color:var(--gold); text-transform:uppercase; font-weight:400;
-        }
-        .rg-card-status {
-            font-size:10px; font-weight:600;
-            color:var(--green);
-            background:rgba(74,217,164,0.1);
-            border:1px solid rgba(74,217,164,0.2);
-            padding:3px 10px; border-radius:20px;
-            display:flex; align-items:center; gap:5px;
-        }
-        .rg-card-status::before {
-            content:''; width:5px; height:5px;
-            border-radius:50%; background:var(--green);
-        }
-        .rg-card-name {
-            font-family:'Playfair Display',serif;
-            font-size:28px; font-weight:700; color:#fff;
-            margin-bottom:4px; text-transform:capitalize;
-        }
-        .rg-card-cpf {
-            font-family:'DM Mono',monospace;
-            font-size:12px; color:rgba(255,255,255,0.35);
-            letter-spacing:0.05em; margin-bottom:18px;
-        }
-        .rg-card-footer {
-            display:flex; align-items:flex-end;
-            justify-content:space-between;
-        }
-        .rg-card-fields {
-            display:flex; gap:24px;
-        }
-        .rg-field-label {
-            font-size:9px; text-transform:uppercase;
-            letter-spacing:0.1em; color:rgba(255,255,255,0.3);
-            margin-bottom:3px;
-        }
-        .rg-field-value {
-            font-size:13px; font-weight:600;
-            color:rgba(255,255,255,0.7);
-        }
-        .rg-card-qr {
-            width:52px; height:52px;
-            background:rgba(197,165,90,0.1);
-            border:1px solid rgba(197,165,90,0.2);
-            border-radius:10px;
-            display:flex; align-items:center; justify-content:center;
-            cursor:pointer; transition:all 0.2s;
-        }
-        .rg-card-qr:hover { background:rgba(197,165,90,0.15); }
-        .rg-card-qr svg { opacity:0.6; }
+
+        /* Back */
+        .back-inner { display:flex; flex-direction:column; height:100%; }
+        .gradient-bar { width:100%; height:1.7rem; background:linear-gradient(90deg,#86efac,#7dd3fc); border-radius:16px 16px 0 0; }
+        .back-content { padding:0.75rem 1.4rem 0.9rem; display:flex; flex-direction:column; flex:1; }
+        .fields-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem 1rem; }
+        .c-field-label { font-size:0.42rem; color:#aaa; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.06rem; }
+        .c-field-value { font-size:0.58rem; color:#222; font-weight:700; letter-spacing:0.02em; }
+        .field-full { grid-column:1/-1; }
+        .flip-hint-label { font-size:0.42rem; color:#ccc; letter-spacing:0.1em; text-transform:uppercase; text-align:center; margin-top:auto; padding-top:0.4rem; }
 
         /* ===== Action buttons ===== */
         .action-row {
@@ -312,42 +285,71 @@
 
     <div class="content">
 
-        <!-- RG Card — Premium (igual preview) -->
-        <div class="rg-card-wrap">
-        <div class="rg-card" onclick="navigateTo('editar')" style="cursor:pointer;">
-            <div class="rg-card-header">
-                <div class="rg-card-brand">VITAE · RG DA SAÚDE</div>
-                <div class="rg-card-status" id="rgStatus">Ativo</div>
-            </div>
-            <div class="rg-card-name" id="rgName">Carregando...</div>
-            <div class="rg-card-cpf" id="rgCpf">—</div>
-            <div class="rg-card-footer">
-                <div class="rg-card-fields">
-                    <div>
-                        <div class="rg-field-label">Tipo sanguíneo</div>
-                        <div class="rg-field-value" id="rgBlood">—</div>
-                    </div>
-                    <div>
-                        <div class="rg-field-label">Idade</div>
-                        <div class="rg-field-value" id="rgIdade">—</div>
-                    </div>
-                    <div>
-                        <div class="rg-field-label">Alergias</div>
-                        <div class="rg-field-value" id="rgAlergias">—</div>
+        <!-- RG Card — White 3D Flip -->
+        <div class="hover-3d" onclick="document.querySelector('.card-flipper').classList.toggle('flipped')">
+            <div class="card-flipper">
+
+                <!-- FRENTE -->
+                <div class="card-face">
+                    <div class="front-body">
+                        <div class="card-brand">REGISTRO NACIONAL DA SAÚDE <span class="card-brand-vitae">— VITAE</span></div>
+                        <svg class="front-emblem" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+                            <defs><linearGradient id="cg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs>
+                            <circle cx="150" cy="150" r="130" fill="none" stroke="url(#cg1)" stroke-width="3"/>
+                            <circle cx="150" cy="150" r="120" fill="none" stroke="url(#cg1)" stroke-width="1.5"/>
+                            <ellipse cx="150" cy="150" rx="80" ry="120" fill="none" stroke="url(#cg1)" stroke-width="1.8"/>
+                            <ellipse cx="150" cy="150" rx="40" ry="120" fill="none" stroke="url(#cg1)" stroke-width="1.5"/>
+                            <ellipse cx="150" cy="150" rx="120" ry="80" fill="none" stroke="url(#cg1)" stroke-width="1.8"/>
+                            <ellipse cx="150" cy="150" rx="120" ry="45" fill="none" stroke="url(#cg1)" stroke-width="1.5"/>
+                            <line x1="30" y1="150" x2="270" y2="150" stroke="url(#cg1)" stroke-width="1.2"/>
+                            <line x1="150" y1="30" x2="150" y2="270" stroke="url(#cg1)" stroke-width="1.2"/>
+                            <rect x="125" y="95" width="50" height="110" rx="6" fill="url(#cg1)"/>
+                            <rect x="95" y="125" width="110" height="50" rx="6" fill="url(#cg1)"/>
+                        </svg>
+                        <div class="front-name-wrap">
+                            <div class="front-label">Nome</div>
+                            <div class="front-value" id="rgName">Carregando...</div>
+                            <div class="front-cpf" id="rgCpf">—</div>
+                        </div>
                     </div>
                 </div>
-                <div class="rg-card-qr" onclick="navigateTo('qrcode')">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C5A55A" stroke-width="1.5">
-                        <rect x="3" y="3" width="7" height="7" rx="1"/>
-                        <rect x="14" y="3" width="7" height="7" rx="1"/>
-                        <rect x="3" y="14" width="7" height="7" rx="1"/>
-                        <rect x="14" y="14" width="3" height="3"/>
-                        <line x1="21" y1="14" x2="21" y2="21"/>
-                        <line x1="14" y1="21" x2="21" y2="21"/>
-                    </svg>
+
+                <!-- VERSO -->
+                <div class="card-face card-back-face">
+                    <div class="back-inner">
+                        <div class="gradient-bar"></div>
+                        <div class="back-content">
+                            <div class="fields-grid">
+                                <div>
+                                    <div class="c-field-label">Tipo Sanguíneo</div>
+                                    <div class="c-field-value" id="rgBlood">—</div>
+                                </div>
+                                <div>
+                                    <div class="c-field-label">Idade</div>
+                                    <div class="c-field-value" id="rgIdade">—</div>
+                                </div>
+                                <div>
+                                    <div class="c-field-label">Plano de Saúde</div>
+                                    <div class="c-field-value" id="rgPlano">—</div>
+                                </div>
+                                <div>
+                                    <div class="c-field-label">Alergias</div>
+                                    <div class="c-field-value" id="rgAlergias">—</div>
+                                </div>
+                                <div class="field-full">
+                                    <div class="c-field-label">Contato de Emergência</div>
+                                    <div class="c-field-value" id="rgEmergContact">—</div>
+                                </div>
+                            </div>
+                            <div class="flip-hint-label">toque para virar</div>
+                        </div>
+                    </div>
                 </div>
+
             </div>
-        </div>
+            <!-- 8 hover zones -->
+            <div></div><div></div><div></div><div></div>
+            <div></div><div></div><div></div><div></div>
         </div>
 
         <!-- Action buttons -->
@@ -529,7 +531,13 @@
             if (perfil.contatoEmergenciaNome) {
                 document.getElementById('emergName').textContent = perfil.contatoEmergenciaNome;
                 document.getElementById('emergTel').textContent = perfil.contatoEmergenciaTel || '—';
+                const rgEC = document.getElementById('rgEmergContact');
+                if (rgEC) rgEC.textContent = perfil.contatoEmergenciaNome + (perfil.contatoEmergenciaTel ? ' · ' + perfil.contatoEmergenciaTel : '');
             }
+
+            // Plano de saúde no verso do cartão
+            const rgPlanoEl = document.getElementById('rgPlano');
+            if (rgPlanoEl) rgPlanoEl.textContent = perfil.planoSaude || '—';
 
             // Conditions & surgeries
             const items = [];
