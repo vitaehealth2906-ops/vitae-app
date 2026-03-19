@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VITAE — One Minute Summary (Demo)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Inter',sans-serif; }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#0A0A0A;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#0A0A0A; border-radius:0 0 20px 20px; z-index:10; }
+        .header { position:absolute; top:58px; left:28px; right:28px; display:flex; align-items:center; z-index:5; }
+        .back-btn { width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:18px; color:rgba(255,255,255,0.5); }
+        .header-title { flex:1; text-align:center; font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:#fff; }
+
+        .content { height:100%; overflow-y:auto; padding:110px 24px 40px; scrollbar-width:none; }
+        .content::-webkit-scrollbar { display:none; }
+
+        .patient-bar {
+            display:flex; align-items:center; gap:12px;
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+            border-radius:16px; padding:14px 16px; margin-bottom:20px;
+        }
+        .patient-avatar { width:40px; height:40px; border-radius:50%; background:rgba(74,217,164,0.08); display:flex; align-items:center; justify-content:center; font-size:18px; }
+        .patient-name { font-size:15px; font-weight:600; color:#fff; }
+        .patient-date { font-size:12px; color:rgba(255,255,255,0.25); }
+
+        /* TTS button */
+        .tts-btn {
+            width:100%; padding:14px; margin-bottom:20px;
+            background:rgba(74,144,226,0.08); border:1px solid rgba(74,144,226,0.2);
+            border-radius:16px; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; gap:10px;
+            font-family:'Inter',sans-serif; font-size:14px; font-weight:600;
+            color:#4A90E2; transition:all 0.2s;
+        }
+        .tts-btn:hover { background:rgba(74,144,226,0.12); }
+        .tts-btn.playing { border-color:#4AD9A4; color:#4AD9A4; background:rgba(74,217,164,0.08); }
+
+        /* Summary text */
+        .summary-box {
+            background:rgba(197,165,90,0.04);
+            border:1px solid rgba(197,165,90,0.12);
+            border-radius:18px; padding:18px;
+            margin-bottom:20px;
+        }
+        .summary-label { font-size:11px; font-weight:700; color:#C5A55A; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; }
+        .summary-text { font-size:14px; color:rgba(255,255,255,0.7); line-height:1.6; }
+
+        /* Blocks */
+        .block {
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+            border-radius:18px; padding:16px; margin-bottom:12px;
+        }
+        .block-header { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+        .block-priority { width:8px; height:8px; border-radius:50%; }
+        .block-priority.alta { background:#D94452; }
+        .block-priority.media { background:#C5A55A; }
+        .block-priority.baixa { background:#4AD9A4; }
+        .block-title { font-size:14px; font-weight:600; color:#fff; }
+        .block-content { font-size:13px; color:rgba(255,255,255,0.5); line-height:1.5; }
+
+        /* Alerts */
+        .alert {
+            display:flex; align-items:flex-start; gap:10px;
+            padding:14px; border-radius:14px; margin-bottom:10px;
+        }
+        .alert.URGENTE { background:rgba(217,68,82,0.08); border:1px solid rgba(217,68,82,0.2); }
+        .alert.ATENCAO { background:rgba(197,165,90,0.08); border:1px solid rgba(197,165,90,0.2); }
+        .alert.INFO { background:rgba(74,144,226,0.08); border:1px solid rgba(74,144,226,0.2); }
+        .alert-icon { flex-shrink:0; margin-top:2px; }
+        .alert-text { font-size:13px; color:rgba(255,255,255,0.6); line-height:1.4; }
+
+        /* Questions */
+        .questions-title { font-size:14px; font-weight:600; color:#fff; margin:16px 0 10px; }
+        .question {
+            padding:10px 14px;
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+            border-radius:12px; margin-bottom:8px;
+            font-size:13px; color:rgba(255,255,255,0.5);
+        }
+    </style>
+    <link rel="stylesheet" href="vitae-glass.css">
+    <link rel="stylesheet" href="vitae-light.css">
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="header">
+        <div class="back-btn" onclick="window.location.href='20-medico-dashboard.html'">‹</div>
+        <div class="header-title">One Minute Summary</div>
+        <div style="width:40px;"></div>
+    </div>
+
+    <div class="content">
+        <!-- Patient bar -->
+        <div class="patient-bar">
+            <div class="patient-avatar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(74,217,164,0.6)" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div>
+                <div class="patient-name">Mariana Silva Costa</div>
+                <div class="patient-date">Respondida em 19/03/2026</div>
+            </div>
+        </div>
+
+        <!-- TTS -->
+        <button class="tts-btn" id="ttsBtn" onclick="toggleTTS()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg> Ouvir resumo
+        </button>
+
+        <!-- Summary -->
+        <div class="summary-box">
+            <div class="summary-label">Resumo</div>
+            <div class="summary-text">Paciente feminina, 36 anos, hipertensa em uso de Losartana, apresenta dor torácica ao esforço com dispneia e taquicardia há 3 semanas, com piora progressiva. Histórico familiar significativo para doença cardiovascular — pai faleceu de infarto aos 58 anos, mãe hipertensa e diabética, avô com AVC. Perfil lipídico recente mostrou LDL elevado (168 mg/dL). Relata estresse ocupacional intenso com mudança de emprego, jornadas de 12h, piora da alimentação e sono de 5-7h. Faz uso eventual de Rivotril para insônia. Consumo elevado de cafeína (3-5 xícaras/dia). Alérgica a Dipirona (urticária) e frutos do mar (angioedema). Quadro clínico sugere investigação cardiológica prioritária com estratificação de risco cardiovascular.</div>
+        </div>
+
+        <!-- Blocks -->
+        <div class="block">
+            <div class="block-header">
+                <div class="block-priority alta"></div>
+                <div class="block-title">Queixa Principal — Dor Torácica ao Esforço</div>
+            </div>
+            <div class="block-content">Dor no peito ao subir escadas e exercício, com falta de ar e taquicardia. Evolução de 3 semanas com piora progressiva. Padrão compatível com angina de esforço — requer investigação urgente.</div>
+        </div>
+
+        <div class="block">
+            <div class="block-header">
+                <div class="block-priority alta"></div>
+                <div class="block-title">Fatores de Risco Cardiovascular</div>
+            </div>
+            <div class="block-content">Hipertensão arterial diagnosticada em 2021. LDL elevado 168mg/dL. Pai faleceu de IAM aos 58 anos. Mãe com DM2 + HAS. Avô com AVC. Estresse ocupacional severo. Múltiplos fatores de risco cumulativos.</div>
+        </div>
+
+        <div class="block">
+            <div class="block-header">
+                <div class="block-priority media"></div>
+                <div class="block-title">Medicamentos e Interações</div>
+            </div>
+            <div class="block-content">Losartana 50mg (manhã), Vitamina D 4000UI, Ômega 3 1000mg, Rivotril 0,5mg (SOS). Avaliar: dose de Losartana pode ser insuficiente. Uso de benzodiazepínico para insônia merece atenção — considerar alternativas.</div>
+        </div>
+
+        <div class="block">
+            <div class="block-header">
+                <div class="block-priority media"></div>
+                <div class="block-title">Estilo de Vida e Estresse</div>
+            </div>
+            <div class="block-content">Mudança de emprego há 2 meses com jornada de 12h/dia. Alimentação piorou (fast-food). Sono 5-7h. Cafeína 3-5 xícaras/dia. Exercício leve (caminhada 2x/sem). Fatores modificáveis que contribuem para o quadro.</div>
+        </div>
+
+        <div class="block">
+            <div class="block-header">
+                <div class="block-priority baixa"></div>
+                <div class="block-title">Alergias</div>
+            </div>
+            <div class="block-content">Dipirona — urticária generalizada. Camarão — angioedema (inchaço labial + dispneia). Evitar AINEs derivados de pirazolona. Ter adrenalina disponível em caso de exposição acidental a frutos do mar.</div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="alert URGENTE">
+            <div class="alert-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D94452" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div class="alert-text"><strong style="color:#D94452;">URGENTE:</strong> Dor torácica de esforço + histórico familiar de IAM precoce + LDL elevado = alto risco cardiovascular. Priorizar teste ergométrico ou cintilografia miocárdica.</div>
+        </div>
+
+        <div class="alert ATENCAO">
+            <div class="alert-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C5A55A" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="alert-text"><strong style="color:#C5A55A;">ATENÇÃO:</strong> Paciente relata uso de Rivotril para dormir. Avaliar dependência e considerar alternativas não-benzodiazepínicas (melatonina, higiene do sono, trazodona).</div>
+        </div>
+
+        <div class="alert INFO">
+            <div class="alert-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A90E2" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </div>
+            <div class="alert-text"><strong style="color:#4A90E2;">INFO:</strong> Paciente gostaria de discutir necessidade de teste de esforço e possível impacto do Rivotril no coração.</div>
+        </div>
+
+        <!-- Suggested questions -->
+        <div class="questions-title">Perguntas sugeridas</div>
+        <div class="question">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(197,165,90,0.6)" stroke-width="2" stroke-linecap="round" style="display:inline; vertical-align:middle; margin-right:6px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            A dor irradia para braço esquerdo, mandíbula ou costas?
+        </div>
+        <div class="question">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(197,165,90,0.6)" stroke-width="2" stroke-linecap="round" style="display:inline; vertical-align:middle; margin-right:6px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Tem sentido palpitações ou tontura em repouso?
+        </div>
+        <div class="question">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(197,165,90,0.6)" stroke-width="2" stroke-linecap="round" style="display:inline; vertical-align:middle; margin-right:6px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Com que frequência usa o Rivotril? Já tentou parar?
+        </div>
+        <div class="question">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(197,165,90,0.6)" stroke-width="2" stroke-linecap="round" style="display:inline; vertical-align:middle; margin-right:6px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Está tomando a Losartana regularmente? Mede a pressão em casa?
+        </div>
+
+        <div style="height:30px;"></div>
+    </div>
+</div>
+
+<script>
+    const summaryText = 'Paciente feminina, 36 anos, hipertensa em uso de Losartana, apresenta dor torácica ao esforço com dispneia e taquicardia há 3 semanas, com piora progressiva. Histórico familiar significativo para doença cardiovascular. Pai faleceu de infarto aos 58 anos, mãe hipertensa e diabética, avô com AVC. Perfil lipídico recente mostrou LDL elevado, 168 miligramas por decilitro. Relata estresse ocupacional intenso com mudança de emprego, jornadas de 12 horas, piora da alimentação e sono de 5 a 7 horas. Faz uso eventual de Rivotril para insônia. Consumo elevado de cafeína. Alérgica a Dipirona e frutos do mar. Quadro clínico sugere investigação cardiológica prioritária com estratificação de risco cardiovascular.';
+    let isSpeaking = false;
+
+    function toggleTTS() {
+        const btn = document.getElementById('ttsBtn');
+        if (isSpeaking) {
+            speechSynthesis.cancel();
+            isSpeaking = false;
+            btn.classList.remove('playing');
+            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg> Ouvir resumo';
+            return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(summaryText);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 0.95;
+
+        utterance.onstart = () => {
+            isSpeaking = true;
+            btn.classList.add('playing');
+            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Parar';
+        };
+
+        utterance.onend = () => {
+            isSpeaking = false;
+            btn.classList.remove('playing');
+            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg> Ouvir resumo';
+        };
+
+        speechSynthesis.speak(utterance);
+    }
+</script>
+</body>
+</html>

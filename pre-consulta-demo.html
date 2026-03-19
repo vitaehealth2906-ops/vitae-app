@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VITAE — Pré-Consulta (Demo)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Inter',sans-serif; }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#0A0A0A;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(197,165,90,0.15), 0 0 0 3px #1a1a1a, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        @media(max-width:430px){ .phone{border-radius:0;height:100vh;} }
+        .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#0A0A0A; border-radius:0 0 20px 20px; z-index:10; }
+
+        .content { height:100%; overflow-y:auto; padding:52px 20px 40px; scrollbar-width:none; }
+        .content::-webkit-scrollbar { display:none; }
+
+        /* Header */
+        .pc-header { text-align:center; margin-bottom:20px; }
+        .pc-logo { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:#C5A55A; letter-spacing:2px; }
+        .pc-sub { font-size:11px; color:rgba(255,255,255,0.3); margin-top:2px; font-family:'DM Mono',monospace; letter-spacing:.1em; text-transform:uppercase; }
+
+        .welcome-card {
+            background:rgba(197,165,90,0.06); border:1px solid rgba(197,165,90,0.15);
+            border-radius:16px; padding:16px; margin-bottom:20px;
+        }
+        .welcome-name { font-size:16px; font-weight:600; color:#fff; margin-bottom:4px; }
+        .welcome-doc { font-size:12px; color:rgba(255,255,255,0.4); }
+
+        /* Seções */
+        .section { margin-bottom:20px; }
+        .section-title {
+            font-family:'DM Mono',monospace; font-size:10px; font-weight:500;
+            color:rgba(197,165,90,0.7); text-transform:uppercase; letter-spacing:.15em;
+            margin-bottom:12px; display:flex; align-items:center; gap:8px;
+        }
+        .section-title::after { content:''; flex:1; height:1px; background:rgba(197,165,90,0.12); }
+        .section-card {
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07);
+            border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:14px;
+        }
+
+        /* Fields */
+        .field { display:flex; flex-direction:column; gap:6px; }
+        .field-label { font-size:11px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.5px; }
+        .field-label .req { color:#D94452; }
+        .field-hint { font-size:11px; color:rgba(255,255,255,0.25); line-height:1.4; margin-top:2px; }
+        .field-input, .field-textarea, .field-select {
+            width:100%; padding:12px 14px;
+            background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+            border-radius:12px; font-family:'Inter',sans-serif; font-size:14px; color:#fff; outline:none;
+            appearance:none; -webkit-appearance:none;
+        }
+        .field-input::placeholder, .field-textarea::placeholder { color:rgba(255,255,255,0.2); }
+        .field-textarea { min-height:76px; resize:vertical; }
+        .field-input:focus, .field-textarea:focus, .field-select:focus { border-color:rgba(197,165,90,0.3); }
+        .field-select option { background:#1a1a1a; color:#fff; }
+        .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+        /* Aviso de destaque */
+        .field-warn {
+            background:rgba(217,68,82,0.06); border:1px solid rgba(217,68,82,0.15);
+            border-radius:10px; padding:10px 12px;
+            font-size:12px; color:rgba(255,255,255,0.6); line-height:1.5;
+        }
+        .field-warn strong { color:#D94452; }
+
+        /* Checkboxes */
+        .check-item {
+            display:flex; align-items:center; gap:12px; padding:12px;
+            background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06);
+            border-radius:12px; cursor:pointer;
+        }
+        .check-item input[type=checkbox] { width:18px; height:18px; accent-color:#C5A55A; flex-shrink:0; cursor:pointer; }
+        .check-item-label { font-size:13px; color:rgba(255,255,255,0.7); line-height:1.4; }
+        .check-item-label small { display:block; font-size:11px; color:rgba(255,255,255,0.3); margin-top:2px; }
+
+        /* Tags pré-preenchidas */
+        .prefill-tags { display:flex; flex-wrap:wrap; gap:6px; }
+        .prefill-tag {
+            padding:5px 10px; border-radius:20px;
+            background:rgba(197,165,90,0.08); border:1px solid rgba(197,165,90,0.2);
+            font-size:12px; color:rgba(255,255,255,0.7); font-family:'DM Mono',monospace;
+        }
+        .prefill-note { font-size:11px; color:rgba(255,255,255,0.25); margin-bottom:8px; }
+
+        /* Hábitos radio */
+        .radio-group { display:flex; gap:6px; flex-wrap:wrap; }
+        .radio-opt { position:relative; }
+        .radio-opt input { position:absolute; opacity:0; width:0; height:0; }
+        .radio-opt label {
+            padding:7px 12px; border-radius:20px; cursor:pointer;
+            background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+            font-size:12px; color:rgba(255,255,255,0.5); display:block; transition:all .2s;
+        }
+        .radio-opt input:checked + label {
+            background:rgba(197,165,90,0.12); border-color:rgba(197,165,90,0.3);
+            color:rgba(197,165,90,0.9);
+        }
+
+        /* Submit */
+        .btn-submit {
+            width:100%; padding:18px;
+            background:linear-gradient(135deg, #C5A55A, #D4B96A);
+            border:none; border-radius:16px;
+            font-family:'Inter',sans-serif; font-size:16px; font-weight:700;
+            color:#0A0A0A; cursor:pointer; margin-top:8px; transition:all .2s;
+        }
+        .btn-submit:active { transform:scale(.98); }
+
+        /* Telas de estado */
+        .overlay-screen {
+            display:none; position:absolute; top:0; left:0; right:0; bottom:0;
+            background:#0A0A0A; z-index:50;
+            flex-direction:column; align-items:center; justify-content:center; padding:40px;
+            text-align:center;
+        }
+        .overlay-screen.active { display:flex; }
+        .overlay-icon { width:56px; height:56px; margin-bottom:20px; color:#C5A55A; }
+        .overlay-title { font-family:'Playfair Display',serif; font-size:24px; font-weight:700; color:#fff; margin-bottom:8px; }
+        .overlay-sub { font-size:14px; color:rgba(255,255,255,0.4); line-height:1.6; }
+
+        /* Spinner */
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .spinner { width:40px; height:40px; border:3px solid rgba(197,165,90,0.2); border-top-color:#C5A55A; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:16px; }
+    </style>
+    <link rel="stylesheet" href="vitae-light.css">
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+
+    <!-- ═══ FORMULÁRIO ═══ -->
+    <div class="content" id="formContent">
+        <div class="pc-header">
+            <div class="pc-logo">VITAE</div>
+            <div class="pc-sub">Pré-Consulta Médica</div>
+        </div>
+
+        <div class="welcome-card">
+            <div class="welcome-name">Olá, Mariana Silva!</div>
+            <div class="welcome-doc">Consulta com Dr(a). Ricardo Mendes — Cardiologia</div>
+        </div>
+
+        <!-- ─── 1. IDENTIFICAÇÃO ─── -->
+        <div class="section">
+            <div class="section-title">1. Sua identificação</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Nome completo</div>
+                    <input class="field-input" value="Mariana Silva Costa">
+                </div>
+                <div class="field">
+                    <div class="field-label">Data de nascimento</div>
+                    <input class="field-input" type="date" value="1989-06-15">
+                </div>
+                <div class="field">
+                    <div class="field-label">CPF</div>
+                    <input class="field-input" value="387.451.298-70">
+                </div>
+                <div class="field">
+                    <div class="field-label">Telefone</div>
+                    <input class="field-input" value="(11) 98745-3210">
+                </div>
+                <div class="field">
+                    <div class="field-label">E-mail</div>
+                    <input class="field-input" type="email" value="mariana.silva@email.com">
+                </div>
+                <div class="field">
+                    <div class="field-label">Sexo biológico</div>
+                    <select class="field-select">
+                        <option value="">Selecione</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="feminino" selected>Feminino</option>
+                        <option value="outro">Outro</option>
+                        <option value="nao_informado">Prefiro não informar</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 2. MOTIVO DA CONSULTA ─── -->
+        <div class="section">
+            <div class="section-title">2. Motivo da consulta</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Queixa principal <span class="req">*</span></div>
+                    <textarea class="field-textarea">Dores no peito ao fazer exercício físico, especialmente ao subir escadas. Sinto falta de ar e o coração acelerado. Começou há umas 3 semanas e está piorando.</textarea>
+                </div>
+                <div class="field">
+                    <div class="field-label">Há quanto tempo?</div>
+                    <input class="field-input" value="3 semanas">
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 3. MEDICAMENTOS E SUPLEMENTOS ─── -->
+        <div class="section">
+            <div class="section-title">3. Medicamentos e suplementos</div>
+            <div class="section-card">
+                <div class="field-warn">
+                    <strong>Atenção:</strong> Inclua <strong>suplementos, vitaminas, injetáveis para emagrecer</strong> (Ozempic, Mounjaro, Wegovy), fitoterápicos e qualquer outro produto — eles são medicamentos e o médico precisa saber.
+                </div>
+                <div>
+                    <div class="prefill-note">Medicamentos já cadastrados no Vitae:</div>
+                    <div class="prefill-tags">
+                        <span class="prefill-tag">Losartana 50mg</span>
+                        <span class="prefill-tag">Vitamina D 4000UI</span>
+                        <span class="prefill-tag">Ômega 3 1000mg</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Medicamentos, suplementos e vitaminas</div>
+                    <textarea class="field-textarea" placeholder="Adicione outros medicamentos não listados acima...">Losartana 50mg (1x/dia manhã)
+Vitamina D 4000UI/dia
+Ômega 3 1000mg/dia
+Rivotril 0,5mg (quando necessário para dormir)</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 4. ALERGIAS E REAÇÕES ─── -->
+        <div class="section">
+            <div class="section-title">4. Alergias e reações adversas</div>
+            <div class="section-card">
+                <div>
+                    <div class="prefill-note">Alergias já cadastradas no Vitae:</div>
+                    <div class="prefill-tags">
+                        <span class="prefill-tag">Dipirona</span>
+                        <span class="prefill-tag">Camarão</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Alergias conhecidas</div>
+                    <input class="field-input" value="Dipirona, Camarão">
+                </div>
+                <div class="field">
+                    <div class="field-label">Reações adversas a medicamentos</div>
+                    <textarea class="field-textarea" style="min-height:64px;">Tomei Dipirona e tive urticária generalizada. Camarão causa inchaço nos lábios e falta de ar.</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 5. DOENÇAS E INTERNAÇÕES ─── -->
+        <div class="section">
+            <div class="section-title">5. Doenças e internações</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Doenças atuais e condições crônicas</div>
+                    <textarea class="field-textarea">Hipertensão arterial (diagnosticada em 2021)
+Ansiedade generalizada</textarea>
+                </div>
+                <div class="field">
+                    <div class="field-label">Doenças anteriores e internações relevantes</div>
+                    <textarea class="field-textarea" style="min-height:64px;">Pneumonia em 2019 (internada 4 dias no Hospital Albert Einstein)</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 6. CIRURGIAS E PROCEDIMENTOS ─── -->
+        <div class="section">
+            <div class="section-title">6. Cirurgias e procedimentos</div>
+            <div class="section-card">
+                <div class="field-warn">
+                    <strong>Lembre-se:</strong> Procedimentos estéticos também contam — botox, preenchimentos, implantes, rinoplastia, lipoaspiração, etc.
+                </div>
+                <div>
+                    <div class="prefill-note">Cirurgias cadastradas no Vitae:</div>
+                    <div class="prefill-tags">
+                        <span class="prefill-tag">Apendicectomia (2015)</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Cirurgias e procedimentos realizados</div>
+                    <textarea class="field-textarea">Apendicectomia (2015)
+Preenchimento labial com ácido hialurônico (2023)</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 7. HISTÓRIA FAMILIAR ─── -->
+        <div class="section">
+            <div class="section-title">7. História familiar</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Doenças hereditárias na família</div>
+                    <textarea class="field-textarea" style="min-height:64px;">Pai faleceu de infarto aos 58 anos.
+Mãe tem diabetes tipo 2 e hipertensão.
+Avô materno teve AVC.</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 8. HÁBITOS E ROTINA ─── -->
+        <div class="section">
+            <div class="section-title">8. Hábitos e contexto de vida</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Tabagismo</div>
+                    <div class="radio-group">
+                        <div class="radio-opt"><input type="radio" name="tabagismo" id="tab0" value="nunca" checked><label for="tab0">Nunca fumei</label></div>
+                        <div class="radio-opt"><input type="radio" name="tabagismo" id="tab1" value="ex"><label for="tab1">Ex-fumante</label></div>
+                        <div class="radio-opt"><input type="radio" name="tabagismo" id="tab2" value="sim"><label for="tab2">Fumo atualmente</label></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Álcool</div>
+                    <div class="radio-group">
+                        <div class="radio-opt"><input type="radio" name="alcool" id="alc0" value="nunca"><label for="alc0">Nunca</label></div>
+                        <div class="radio-opt"><input type="radio" name="alcool" id="alc1" value="socialmente" checked><label for="alc1">Socialmente</label></div>
+                        <div class="radio-opt"><input type="radio" name="alcool" id="alc2" value="frequente"><label for="alc2">Com frequência</label></div>
+                        <div class="radio-opt"><input type="radio" name="alcool" id="alc3" value="diario"><label for="alc3">Diariamente</label></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Exercício físico</div>
+                    <div class="radio-group">
+                        <div class="radio-opt"><input type="radio" name="exercicio" id="ex0" value="sedentario"><label for="ex0">Sedentário</label></div>
+                        <div class="radio-opt"><input type="radio" name="exercicio" id="ex1" value="leve" checked><label for="ex1">Leve (1-2x/sem)</label></div>
+                        <div class="radio-opt"><input type="radio" name="exercicio" id="ex2" value="moderado"><label for="ex2">Moderado (3-4x)</label></div>
+                        <div class="radio-opt"><input type="radio" name="exercicio" id="ex3" value="intenso"><label for="ex3">Intenso (5x+)</label></div>
+                    </div>
+                    <input class="field-input" value="Caminhada no parque, 2x por semana" style="margin-top:8px;">
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <div class="field-label">Cafeína (xícaras/dia)</div>
+                        <div class="radio-group">
+                            <div class="radio-opt"><input type="radio" name="cafeina" id="caf0" value="nenhuma"><label for="caf0">Nenhuma</label></div>
+                            <div class="radio-opt"><input type="radio" name="cafeina" id="caf1" value="1-2"><label for="caf1">1-2</label></div>
+                            <div class="radio-opt"><input type="radio" name="cafeina" id="caf2" value="3-5" checked><label for="caf2">3-5</label></div>
+                            <div class="radio-opt"><input type="radio" name="cafeina" id="caf3" value="6+"><label for="caf3">6+</label></div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Horas de sono/noite</div>
+                        <div class="radio-group">
+                            <div class="radio-opt"><input type="radio" name="sono" id="son0" value="menos5"><label for="son0">&lt;5h</label></div>
+                            <div class="radio-opt"><input type="radio" name="sono" id="son1" value="5-7" checked><label for="son1">5-7h</label></div>
+                            <div class="radio-opt"><input type="radio" name="sono" id="son2" value="7-9"><label for="son2">7-9h</label></div>
+                            <div class="radio-opt"><input type="radio" name="sono" id="son3" value="mais9"><label for="son3">9h+</label></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Mudanças recentes na rotina</div>
+                    <textarea class="field-textarea" style="min-height:60px;">Mudei de emprego há 2 meses, estresse muito alto. Trabalhando 12h/dia. Comendo mais fast-food por falta de tempo.</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 9. EXAMES ANTERIORES ─── -->
+        <div class="section">
+            <div class="section-title">9. Exames anteriores</div>
+            <div class="section-card">
+                <div>
+                    <div class="prefill-note">Exames no Vitae relacionados:</div>
+                    <div class="prefill-tags">
+                        <span class="prefill-tag">Hemograma Completo</span>
+                        <span class="prefill-tag">Perfil Lipídico</span>
+                        <span class="prefill-tag">Glicemia</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Exames anteriores relevantes</div>
+                    <textarea class="field-textarea" style="min-height:64px;">Hemograma completo (jan/2026) — normal
+Perfil lipídico (jan/2026) — colesterol LDL elevado 168mg/dL
+Glicemia (jan/2026) — normal
+Eletrocardiograma (set/2025) — sem alterações</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 10. MOBILIDADE E ACESSIBILIDADE ─── -->
+        <div class="section">
+            <div class="section-title">10. Mobilidade e acessibilidade</div>
+            <div class="section-card">
+                <div class="prefill-note" style="color:rgba(255,255,255,0.35); font-size:12px; margin-bottom:4px;">
+                    Essas informações ajudam a clínica a se preparar para receber você da melhor forma.
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="cadeirante">
+                    <label class="check-item-label" for="cadeirante">Uso cadeira de rodas ou tenho dificuldade de locomoção</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="defVisual">
+                    <label class="check-item-label" for="defVisual">Deficiência visual</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="defAuditiva">
+                    <label class="check-item-label" for="defAuditiva">Deficiência auditiva / surdez</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="defCognitiva">
+                    <label class="check-item-label" for="defCognitiva">Deficiência cognitiva ou dificuldade de comunicação</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="autismo">
+                    <label class="check-item-label" for="autismo">Autismo ou condição do neurodesenvolvimento</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="limitacaoPosCircurgia">
+                    <label class="check-item-label" for="limitacaoPosCircurgia">
+                        Limitação gerada por cirurgia ou procedimento
+                        <small>Descreva no campo abaixo se necessário</small>
+                    </label>
+                </div>
+                <div class="field">
+                    <div class="field-label">Outras informações de acessibilidade</div>
+                    <textarea class="field-textarea" placeholder="Descreva qualquer outra necessidade especial para o atendimento..." style="min-height:56px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 11. CONSENTIMENTOS ─── -->
+        <div class="section">
+            <div class="section-title">11. Consentimentos</div>
+            <div class="section-card">
+                <div class="check-item">
+                    <input type="checkbox" id="consentPriv" checked>
+                    <label class="check-item-label" for="consentPriv">
+                        Aceito a Política de Privacidade do Vitae
+                        <small>Meus dados são protegidos nos termos da LGPD</small>
+                    </label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="consentContato" checked>
+                    <label class="check-item-label" for="consentContato">
+                        Autorizo o contato pelo médico e pela clínica
+                        <small>Por telefone, e-mail ou WhatsApp</small>
+                    </label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="consentComp" checked>
+                    <label class="check-item-label" for="consentComp">
+                        Autorizo o compartilhamento das minhas informações com a equipe de saúde responsável
+                        <small>Médicos, enfermeiros e equipe administrativa desta consulta</small>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="field">
+            <div class="field-label">Observações adicionais</div>
+            <textarea class="field-textarea">Gostaria de discutir se preciso fazer um teste de esforço. Também gostaria de saber se o Rivotril pode afetar o coração.</textarea>
+        </div>
+
+        <button class="btn-submit" onclick="enviarDemo()">Enviar pré-consulta</button>
+        <div style="height:20px;"></div>
+    </div>
+
+    <!-- Loading -->
+    <div class="overlay-screen" id="loadingScreen">
+        <div class="spinner"></div>
+        <div class="overlay-title" style="font-size:18px;">Enviando...</div>
+        <div class="overlay-sub">A IA está preparando o resumo para o seu médico</div>
+    </div>
+
+    <!-- Sucesso -->
+    <div class="overlay-screen" id="successScreen">
+        <svg class="overlay-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div class="overlay-title">Pré-consulta enviada!</div>
+        <div class="overlay-sub">Seu médico receberá um resumo completo antes da consulta.<br><br>Pode fechar esta página.</div>
+    </div>
+</div>
+
+<script>
+function enviarDemo() {
+    document.getElementById('loadingScreen').classList.add('active');
+    setTimeout(() => {
+        document.getElementById('loadingScreen').classList.remove('active');
+        document.getElementById('successScreen').classList.add('active');
+    }, 2500);
+}
+</script>
+</body>
+</html>
