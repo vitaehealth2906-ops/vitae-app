@@ -4,7 +4,7 @@ const { z } = require('zod');
 const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
-const { gerarSummaryPreConsulta, gerarAudioElevenLabs } = require('../services/ai');
+const { gerarSummaryPreConsulta, gerarAudioElevenLabs, verificarCompletudeTopicos } = require('../services/ai');
 const { enviarEmailPreConsultaRespondida } = require('../services/email');
 const { enviarSMSConfirmacaoPreConsulta } = require('../services/sms');
 
@@ -333,6 +333,32 @@ router.post('/:id/tts', verificarAuth, async (req, res, next) => {
     } catch (ttsErr) {
       return res.status(503).json({ erro: ttsErr.message });
     }
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /t/:token/verificar — Verificar completude dos tópicos (público)
+// ---------------------------------------------------------------------------
+
+router.post('/t/:token/verificar', async (req, res, next) => {
+  try {
+    const preConsulta = await prisma.preConsulta.findUnique({
+      where: { linkToken: req.params.token },
+    });
+
+    if (!preConsulta) {
+      return res.status(404).json({ erro: 'Pre-consulta nao encontrada' });
+    }
+
+    const { transcricao } = req.body;
+    if (!transcricao || transcricao.trim().length === 0) {
+      return res.status(400).json({ erro: 'Transcricao vazia' });
+    }
+
+    const resultado = await verificarCompletudeTopicos(transcricao);
+    return res.status(200).json(resultado);
   } catch (err) {
     next(err);
   }

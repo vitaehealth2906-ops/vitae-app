@@ -309,6 +309,13 @@ const vitaeAPI = {
     });
   },
 
+  async verificarTranscricao(token, transcricao) {
+    return apiRequest(`/pre-consulta/t/${token}/verificar`, {
+      method: 'POST',
+      body: { transcricao },
+    });
+  },
+
   // Agendamento
   async criarAgendamento(dados) {
     return apiRequest('/agendamento', { method: 'POST', body: dados });

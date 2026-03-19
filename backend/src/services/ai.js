@@ -724,6 +724,74 @@ async function gerarAudioElevenLabs(textoVoz) {
   return Buffer.from(arrayBuffer);
 }
 
+/**
+ * Verifica se a transcricao do audio cobre todos os topicos obrigatorios.
+ *
+ * @param {string} transcricao - Texto transcrito do audio do paciente.
+ * @returns {object} { completo, topicosEncontrados, topicosAusentes, mensagem }
+ */
+async function verificarCompletudeTopicos(transcricao) {
+  if (!transcricao || transcricao.trim().length < 10) {
+    return {
+      completo: false,
+      topicosEncontrados: [],
+      topicosAusentes: ['Motivo da consulta', 'Medicamentos', 'Alergias', 'Doenças', 'Cirurgias', 'Histórico familiar', 'Hábitos', 'Exames recentes'],
+      mensagem: 'A gravação está muito curta. Por favor, fale mais sobre seus sintomas e histórico.',
+      qualidadeAudio: 'ruim',
+    };
+  }
+
+  const userPrompt = `Analise esta transcrição de um paciente respondendo uma pré-consulta médica por áudio.
+
+Transcrição:
+"${transcricao}"
+
+Verifique se o paciente mencionou os seguintes tópicos obrigatórios:
+1. Motivo da consulta / queixa principal (o que está sentindo, por que veio)
+2. Há quanto tempo tem os sintomas
+3. Medicamentos, suplementos ou vitaminas em uso
+4. Alergias conhecidas
+5. Doenças atuais ou internações anteriores
+6. Cirurgias ou procedimentos realizados
+7. Histórico familiar (doenças na família)
+8. Hábitos (fumo, álcool, exercício, sono)
+9. Exames recentes
+
+IMPORTANTE: Seja razoável. Se o paciente disse "não tomo nenhum medicamento", isso CONTA como ter mencionado medicamentos. Se disse "não tenho alergia", conta como ter coberto alergias. O que importa é que o paciente ABORDOU o tópico, mesmo que a resposta seja negativa.
+
+Retorne EXCLUSIVAMENTE um JSON válido:
+{
+  "completo": boolean,
+  "topicosEncontrados": ["string (nome do tópico coberto)"],
+  "topicosAusentes": ["string (nome do tópico não mencionado)"],
+  "mensagem": "string (mensagem amigável para o paciente: se completo, parabenize e diga que pode enviar. Se incompleto, liste o que falta de forma gentil e peça para gravar novamente incluindo esses tópicos.)",
+  "qualidadeAudio": "string ('boa' se a transcrição faz sentido clínico, 'razoavel' se falta clareza, 'ruim' se muito curto ou incoerente)"
+}`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1024,
+    system: 'Voce e um assistente de triagem da plataforma VITAE. Analisa transcricoes de audio de pacientes para verificar se cobriram todos os topicos necessarios para uma pre-consulta medica. Seja gentil e encorajador.',
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+
+  const conteudo = response.content[0].text.trim();
+
+  try {
+    return JSON.parse(conteudo);
+  } catch {
+    const jsonMatch = conteudo.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) return JSON.parse(jsonMatch[1].trim());
+    return {
+      completo: true,
+      topicosEncontrados: [],
+      topicosAusentes: [],
+      mensagem: 'Não foi possível verificar os tópicos. Você pode enviar mesmo assim.',
+      qualidadeAudio: 'razoavel',
+    };
+  }
+}
+
 module.exports = {
   estruturarExame,
   estruturarExameDeArquivo,
@@ -733,4 +801,5 @@ module.exports = {
   gerarInfoSubstancia,
   gerarSummaryPreConsulta,
   gerarAudioElevenLabs,
+  verificarCompletudeTopicos,
 };
