@@ -112,6 +112,59 @@
         }
         .btn-submit:active { transform:scale(.98); }
 
+        /* ── Choice screen ── */
+        .choice-screen { display:flex; flex-direction:column; align-items:center; padding:40px 0 0; }
+        .choice-title { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:#fff; margin-bottom:4px; text-align:center; }
+        .choice-sub { font-size:13px; color:rgba(255,255,255,0.35); margin-bottom:32px; text-align:center; line-height:1.5; }
+        .choice-card {
+            width:100%; padding:24px 20px; border-radius:20px; cursor:pointer;
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07);
+            display:flex; align-items:center; gap:16px; margin-bottom:14px; transition:all .2s;
+        }
+        .choice-card:hover { background:rgba(255,255,255,0.05); border-color:rgba(197,165,90,0.2); }
+        .choice-card:active { transform:scale(.98); }
+        .choice-card-icon { width:52px; height:52px; border-radius:16px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+        .choice-card-icon.audio { background:rgba(197,165,90,0.1); }
+        .choice-card-icon.form { background:rgba(74,217,164,0.08); }
+        .choice-card-icon svg { width:24px; height:24px; }
+        .choice-card-text { flex:1; }
+        .choice-card-title { font-size:16px; font-weight:700; color:#fff; margin-bottom:3px; }
+        .choice-card-desc { font-size:12px; color:rgba(255,255,255,0.35); line-height:1.4; }
+        .choice-card-badge { padding:4px 10px; border-radius:20px; font-size:10px; font-weight:700; background:rgba(197,165,90,0.12); color:#C5A55A; letter-spacing:.05em; white-space:nowrap; }
+
+        /* ── Audio recorder screen ── */
+        .audio-screen { display:none; }
+        .audio-screen.active { display:block; }
+        .audio-center { display:flex; flex-direction:column; align-items:center; padding:60px 0 0; }
+        .audio-timer { font-family:'DM Mono',monospace; font-size:48px; font-weight:500; color:#fff; letter-spacing:2px; margin-bottom:8px; }
+        .audio-status { font-size:13px; color:rgba(255,255,255,0.3); margin-bottom:40px; font-family:'DM Mono',monospace; letter-spacing:.05em; }
+        .audio-status.recording { color:#D94452; }
+        .rec-btn {
+            width:88px; height:88px; border-radius:50%; border:none; cursor:pointer;
+            background:linear-gradient(135deg, #C5A55A, #D4B96A);
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 8px 32px rgba(197,165,90,0.3); transition:all .2s; margin-bottom:16px;
+        }
+        .rec-btn:active { transform:scale(.92); }
+        .rec-btn.recording { background:linear-gradient(135deg, #D94452, #E05565); box-shadow:0 8px 32px rgba(217,68,82,0.3); animation:pulse-rec 1.5s ease-in-out infinite; }
+        .rec-btn svg { width:32px; height:32px; }
+        @keyframes pulse-rec { 0%,100%{box-shadow:0 8px 32px rgba(217,68,82,0.3)} 50%{box-shadow:0 8px 48px rgba(217,68,82,0.5)} }
+        .rec-hint { font-size:12px; color:rgba(255,255,255,0.25); margin-bottom:40px; }
+        .transcript-box { display:none; width:100%; margin-top:24px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:16px; padding:16px; max-height:200px; overflow-y:auto; }
+        .transcript-box.active { display:block; }
+        .transcript-label { font-size:10px; font-weight:600; color:rgba(197,165,90,0.6); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+        .transcript-text { font-size:14px; color:rgba(255,255,255,0.6); line-height:1.5; }
+        .audio-actions { display:none; width:100%; gap:10px; flex-direction:column; margin-top:24px; }
+        .audio-actions.active { display:flex; }
+        .audio-action-btn {
+            width:100%; padding:16px; border-radius:14px; border:none; cursor:pointer;
+            font-family:'Inter',sans-serif; font-size:15px; font-weight:600;
+            display:flex; align-items:center; justify-content:center; gap:10px; transition:all .15s;
+        }
+        .audio-action-btn:active { transform:scale(.98); }
+        .audio-action-btn.primary { background:linear-gradient(135deg, #C5A55A, #D4B96A); color:#0A0A0A; }
+        .audio-action-btn.secondary { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.6); }
+
         /* Telas de estado */
         .overlay-screen {
             display:none; position:absolute; top:0; left:0; right:0; bottom:0;
@@ -134,8 +187,86 @@
 <div class="phone">
     <div class="notch"></div>
 
+    <!-- ═══ TELA DE ESCOLHA ═══ -->
+    <div class="content" id="choiceContent">
+        <div class="pc-header">
+            <div class="pc-logo">VITAE</div>
+            <div class="pc-sub">Pré-Consulta Médica</div>
+        </div>
+
+        <div class="welcome-card">
+            <div class="welcome-name">Olá, Mariana Silva!</div>
+            <div class="welcome-doc">Consulta com Dr(a). Ricardo Mendes — Cardiologia</div>
+        </div>
+
+        <div class="choice-screen">
+            <div class="choice-title">Como prefere responder?</div>
+            <div class="choice-sub">Escolha a forma mais confortável para você</div>
+
+            <div class="choice-card" onclick="escolherAudio()">
+                <div class="choice-card-icon audio">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#C5A55A" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                </div>
+                <div class="choice-card-text">
+                    <div class="choice-card-title">Gravar áudio</div>
+                    <div class="choice-card-desc">Fale naturalmente sobre seus sintomas e histórico. A IA transcreve tudo automaticamente.</div>
+                </div>
+                <div class="choice-card-badge">Rápido</div>
+            </div>
+
+            <div class="choice-card" onclick="escolherFormulario()">
+                <div class="choice-card-icon form">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#4AD9A4" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </div>
+                <div class="choice-card-text">
+                    <div class="choice-card-title">Preencher formulário</div>
+                    <div class="choice-card-desc">Responda campo por campo com calma. Ideal se preferir digitar.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ TELA DE ÁUDIO ═══ -->
+    <div class="content audio-screen" id="audioContent">
+        <div class="pc-header">
+            <div class="pc-logo">VITAE</div>
+            <div class="pc-sub">Pré-Consulta por Áudio</div>
+        </div>
+
+        <div class="audio-center">
+            <div class="audio-timer" id="audioTimer">00:00</div>
+            <div class="audio-status" id="audioStatus">Toque para gravar</div>
+
+            <button class="rec-btn" id="recBtn" onclick="toggleRecording()">
+                <svg id="recIconMic" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                <svg id="recIconStop" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none;"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            </button>
+            <div class="rec-hint" id="recHint">Conte ao médico seus sintomas, medicamentos, alergias e o que te trouxe aqui</div>
+
+            <div class="transcript-box" id="transcriptBox">
+                <div class="transcript-label">Transcrição em tempo real</div>
+                <div class="transcript-text" id="transcriptText"></div>
+            </div>
+
+            <div class="audio-actions" id="audioActions">
+                <button class="audio-action-btn primary" onclick="enviarDemo()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Enviar para o médico
+                </button>
+                <button class="audio-action-btn secondary" onclick="regravarAudio()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+                    Gravar novamente
+                </button>
+                <button class="audio-action-btn secondary" onclick="voltarEscolha()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                    Voltar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══ FORMULÁRIO ═══ -->
-    <div class="content" id="formContent">
+    <div class="content" id="formContent" style="display:none;">
         <div class="pc-header">
             <div class="pc-logo">VITAE</div>
             <div class="pc-sub">Pré-Consulta Médica</div>
@@ -469,6 +600,113 @@ Eletrocardiograma (set/2025) — sem alterações</textarea>
 </div>
 
 <script>
+// ── Choice ──
+function escolherAudio() {
+    document.getElementById('choiceContent').style.display = 'none';
+    document.getElementById('audioContent').classList.add('active');
+}
+function escolherFormulario() {
+    document.getElementById('choiceContent').style.display = 'none';
+    document.getElementById('formContent').style.display = 'block';
+}
+function voltarEscolha() {
+    document.getElementById('audioContent').classList.remove('active');
+    document.getElementById('formContent').style.display = 'none';
+    document.getElementById('choiceContent').style.display = 'block';
+    resetAudioState();
+}
+
+// ── Audio recording ──
+let isRecording = false, recordingStartTime = null, timerInterval = null;
+let mediaRecorder = null, audioChunks = [], recognition = null;
+let fullTranscript = '';
+
+function resetAudioState() {
+    if (isRecording) stopRecording();
+    fullTranscript = '';
+    audioChunks = [];
+    document.getElementById('audioTimer').textContent = '00:00';
+    document.getElementById('audioStatus').textContent = 'Toque para gravar';
+    document.getElementById('audioStatus').classList.remove('recording');
+    document.getElementById('transcriptBox').classList.remove('active');
+    document.getElementById('audioActions').classList.remove('active');
+    document.getElementById('recHint').style.display = '';
+    document.getElementById('recBtn').classList.remove('recording');
+    document.getElementById('recIconMic').style.display = '';
+    document.getElementById('recIconStop').style.display = 'none';
+}
+
+async function toggleRecording() {
+    if (isRecording) stopRecording();
+    else await startRecording();
+}
+
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = () => stream.getTracks().forEach(t => t.stop());
+        mediaRecorder.start();
+        isRecording = true;
+        recordingStartTime = Date.now();
+
+        document.getElementById('recBtn').classList.add('recording');
+        document.getElementById('recIconMic').style.display = 'none';
+        document.getElementById('recIconStop').style.display = '';
+        document.getElementById('audioStatus').textContent = 'Gravando...';
+        document.getElementById('audioStatus').classList.add('recording');
+        document.getElementById('recHint').style.display = 'none';
+        document.getElementById('transcriptBox').classList.add('active');
+        timerInterval = setInterval(updateTimer, 1000);
+        startSpeechRecognition();
+    } catch (err) {
+        alert('Não foi possível acessar o microfone.');
+    }
+}
+
+function stopRecording() {
+    isRecording = false;
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    if (recognition) { recognition.stop(); recognition = null; }
+    clearInterval(timerInterval);
+    document.getElementById('recBtn').classList.remove('recording');
+    document.getElementById('recIconMic').style.display = '';
+    document.getElementById('recIconStop').style.display = 'none';
+    document.getElementById('audioStatus').textContent = 'Gravação finalizada';
+    document.getElementById('audioStatus').classList.remove('recording');
+    document.getElementById('audioActions').classList.add('active');
+}
+
+function updateTimer() {
+    const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+    document.getElementById('audioTimer').textContent =
+        String(Math.floor(elapsed/60)).padStart(2,'0') + ':' + String(elapsed%60).padStart(2,'0');
+}
+
+function startSpeechRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    recognition = new SR();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) fullTranscript += event.results[i][0].transcript + ' ';
+            else interim += event.results[i][0].transcript;
+        }
+        document.getElementById('transcriptText').textContent = fullTranscript + interim || 'Ouvindo...';
+    };
+    recognition.onend = () => { if (isRecording && recognition) try { recognition.start(); } catch(e) {} };
+    recognition.onerror = () => {};
+    recognition.start();
+}
+
+function regravarAudio() { resetAudioState(); }
+
 function enviarDemo() {
     document.getElementById('loadingScreen').classList.add('active');
     setTimeout(() => {
