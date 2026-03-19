@@ -128,39 +128,30 @@
         @keyframes spin { to { transform:rotate(360deg); } }
         .spinner { width:40px; height:40px; border:3px solid rgba(197,165,90,0.2); border-top-color:#C5A55A; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:16px; }
 
-        /* ── Choice screen ── */
-        .choice-screen { display:flex; flex-direction:column; align-items:center; padding:40px 0 0; }
-        .choice-title { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:#fff; margin-bottom:4px; text-align:center; }
-        .choice-sub { font-size:13px; color:rgba(255,255,255,0.35); margin-bottom:32px; text-align:center; line-height:1.5; }
-
-        .choice-card {
-            width:100%; padding:24px 20px; border-radius:20px; cursor:pointer;
-            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07);
-            display:flex; align-items:center; gap:16px; margin-bottom:14px;
-            transition:all .2s;
+        /* ── Toggle pill ── */
+        .toggle-wrap { display:flex; justify-content:center; margin-bottom:24px; }
+        .toggle-pill {
+            display:flex; border-radius:14px; overflow:hidden;
+            background:rgba(0,0,0,0.04); border:1px solid rgba(0,0,0,0.08);
+            padding:3px;
         }
-        .choice-card:hover { background:rgba(255,255,255,0.05); border-color:rgba(197,165,90,0.2); }
-        .choice-card:active { transform:scale(.98); }
-        .choice-card-icon {
-            width:52px; height:52px; border-radius:16px; flex-shrink:0;
-            display:flex; align-items:center; justify-content:center;
+        .toggle-opt {
+            padding:10px 20px; border-radius:11px; cursor:pointer;
+            font-family:'Inter',sans-serif; font-size:13px; font-weight:600;
+            color:rgba(17,24,39,0.4); background:transparent;
+            border:none; transition:all .2s; white-space:nowrap;
         }
-        .choice-card-icon.audio { background:rgba(197,165,90,0.1); }
-        .choice-card-icon.form { background:rgba(74,217,164,0.08); }
-        .choice-card-icon svg { width:24px; height:24px; }
-        .choice-card-text { flex:1; }
-        .choice-card-title { font-size:16px; font-weight:700; color:#fff; margin-bottom:3px; }
-        .choice-card-desc { font-size:12px; color:rgba(255,255,255,0.35); line-height:1.4; }
-        .choice-card-badge {
-            padding:4px 10px; border-radius:20px; font-size:10px; font-weight:700;
-            background:rgba(197,165,90,0.12); color:#C5A55A; letter-spacing:.05em;
-            white-space:nowrap;
+        .toggle-opt.active {
+            background:#fff; color:#111827;
+            box-shadow:0 2px 8px rgba(0,0,0,0.08);
         }
 
-        /* ── Audio recorder screen ── */
-        .audio-screen { display:none; }
-        .audio-screen.active { display:block; }
-        .audio-center { display:flex; flex-direction:column; align-items:center; padding:60px 0 0; }
+        /* ── Audio recorder ── */
+        .audio-panel { display:none; }
+        .audio-panel.active { display:block; }
+        .form-panel { display:none; }
+        .form-panel.active { display:block; }
+        .audio-center { display:flex; flex-direction:column; align-items:center; padding:32px 0 0; }
 
         .audio-timer {
             font-family:'DM Mono',monospace; font-size:48px; font-weight:500;
@@ -228,86 +219,8 @@
 <div class="phone">
     <div class="notch"></div>
 
-    <!-- ═══ TELA DE ESCOLHA ═══ -->
-    <div class="content" id="choiceContent">
-        <div class="pc-header">
-            <div class="pc-logo">VITAE</div>
-            <div class="pc-sub">Pré-Consulta Médica</div>
-        </div>
-
-        <div class="welcome-card">
-            <div class="welcome-name" id="choiceWelcomeName">Olá!</div>
-            <div class="welcome-doc" id="choiceWelcomeDoc">Preencha as informações antes da sua consulta</div>
-        </div>
-
-        <div class="choice-screen">
-            <div class="choice-title">Como prefere responder?</div>
-            <div class="choice-sub">Escolha a forma mais confortável para você</div>
-
-            <div class="choice-card" onclick="escolherAudio()">
-                <div class="choice-card-icon audio">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#C5A55A" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                </div>
-                <div class="choice-card-text">
-                    <div class="choice-card-title" style="color:#111827;">Gravar áudio</div>
-                    <div class="choice-card-desc" style="color:rgba(17,24,39,0.5);">Fale naturalmente sobre seus sintomas e histórico. A IA transcreve tudo automaticamente.</div>
-                </div>
-                <div class="choice-card-badge">Rápido</div>
-            </div>
-
-            <div class="choice-card" onclick="escolherFormulario()">
-                <div class="choice-card-icon form">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#4AD9A4" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                </div>
-                <div class="choice-card-text">
-                    <div class="choice-card-title" style="color:#111827;">Preencher formulário</div>
-                    <div class="choice-card-desc" style="color:rgba(17,24,39,0.5);">Responda campo por campo com calma. Ideal se preferir digitar.</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══ TELA DE ÁUDIO ═══ -->
-    <div class="content audio-screen" id="audioContent">
-        <div class="pc-header">
-            <div class="pc-logo">VITAE</div>
-            <div class="pc-sub">Pré-Consulta por Áudio</div>
-        </div>
-
-        <div class="audio-center">
-            <div class="audio-timer" id="audioTimer">00:00</div>
-            <div class="audio-status" id="audioStatus">Toque para gravar</div>
-
-            <button class="rec-btn" id="recBtn" onclick="toggleRecording()">
-                <svg id="recIconMic" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                <svg id="recIconStop" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none;"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-            </button>
-            <div class="rec-hint" id="recHint">Conte ao médico seus sintomas, medicamentos, alergias e o que te trouxe aqui</div>
-
-            <div class="transcript-box" id="transcriptBox">
-                <div class="transcript-label">Transcrição em tempo real</div>
-                <div class="transcript-text" id="transcriptText"></div>
-            </div>
-
-            <div class="audio-actions" id="audioActions">
-                <button class="audio-action-btn primary" onclick="enviarAudio()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                    Enviar para o médico
-                </button>
-                <button class="audio-action-btn secondary" onclick="regravarAudio()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-                    Gravar novamente
-                </button>
-                <button class="audio-action-btn secondary" onclick="voltarEscolha()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-                    Voltar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══ FORMULÁRIO ═══ -->
-    <div class="content" id="formContent" style="display:none;">
+    <!-- ═══ CONTEÚDO PRINCIPAL ═══ -->
+    <div class="content" id="mainContent">
         <div class="pc-header">
             <div class="pc-logo">VITAE</div>
             <div class="pc-sub">Pré-Consulta Médica</div>
@@ -317,6 +230,47 @@
             <div class="welcome-name" id="welcomeName">Olá!</div>
             <div class="welcome-doc" id="welcomeDoc">Preencha as informações antes da sua consulta</div>
         </div>
+
+        <!-- Toggle -->
+        <div class="toggle-wrap">
+            <div class="toggle-pill">
+                <button class="toggle-opt active" id="toggleAudio" onclick="switchTab('audio')" style="color:#111827;">Gravar áudio</button>
+                <button class="toggle-opt" id="toggleForm" onclick="switchTab('form')" style="color:rgba(17,24,39,0.4);">Preencher formulário</button>
+            </div>
+        </div>
+
+        <!-- ═══ PAINEL DE ÁUDIO ═══ -->
+        <div class="audio-panel active" id="audioPanel">
+            <div class="audio-center">
+                <div class="audio-timer" id="audioTimer" style="color:#111827;">00:00</div>
+                <div class="audio-status" id="audioStatus" style="color:rgba(17,24,39,0.35);">Toque para gravar</div>
+
+                <button class="rec-btn" id="recBtn" onclick="toggleRecording()">
+                    <svg id="recIconMic" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    <svg id="recIconStop" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none;"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                </button>
+                <div class="rec-hint" id="recHint" style="color:rgba(17,24,39,0.3);">Conte ao médico seus sintomas, medicamentos, alergias e o que te trouxe aqui</div>
+
+                <div class="transcript-box" id="transcriptBox">
+                    <div class="transcript-label">Transcrição em tempo real</div>
+                    <div class="transcript-text" id="transcriptText"></div>
+                </div>
+
+                <div class="audio-actions" id="audioActions">
+                    <button class="audio-action-btn primary" onclick="enviarAudio()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        Enviar para o médico
+                    </button>
+                    <button class="audio-action-btn secondary" onclick="regravarAudio()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+                        Gravar novamente
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ PAINEL DE FORMULÁRIO ═══ -->
+        <div class="form-panel" id="formPanel">
 
         <!-- ─── 1. IDENTIFICAÇÃO ─── -->
         <div class="section">
@@ -611,7 +565,8 @@
 
         <button class="btn-submit" onclick="enviar()">Enviar pré-consulta</button>
         <div style="height:20px;"></div>
-    </div>
+        </div><!-- /form-panel -->
+    </div><!-- /mainContent -->
 
     <!-- Loading -->
     <div class="overlay-screen" id="loadingScreen">
@@ -651,22 +606,30 @@ let timerInterval = null;
 let fullTranscript = '';
 let interimTranscript = '';
 
-// ── Choice screen ──
-function escolherAudio() {
-    document.getElementById('choiceContent').style.display = 'none';
-    document.getElementById('audioContent').classList.add('active');
-}
+// ── Tab switching ──
+function switchTab(tab) {
+    const audioPanel = document.getElementById('audioPanel');
+    const formPanel = document.getElementById('formPanel');
+    const toggleAudio = document.getElementById('toggleAudio');
+    const toggleForm = document.getElementById('toggleForm');
 
-function escolherFormulario() {
-    document.getElementById('choiceContent').style.display = 'none';
-    document.getElementById('formContent').style.display = 'block';
-}
-
-function voltarEscolha() {
-    document.getElementById('audioContent').classList.remove('active');
-    document.getElementById('formContent').style.display = 'none';
-    document.getElementById('choiceContent').style.display = 'block';
-    resetAudioState();
+    if (tab === 'audio') {
+        audioPanel.classList.add('active');
+        formPanel.classList.remove('active');
+        toggleAudio.classList.add('active');
+        toggleAudio.style.color = '#111827';
+        toggleForm.classList.remove('active');
+        toggleForm.style.color = 'rgba(17,24,39,0.4)';
+    } else {
+        // Stop recording if switching away from audio
+        if (isRecording) stopRecording();
+        audioPanel.classList.remove('active');
+        formPanel.classList.add('active');
+        toggleForm.classList.add('active');
+        toggleForm.style.color = '#111827';
+        toggleAudio.classList.remove('active');
+        toggleAudio.style.color = 'rgba(17,24,39,0.4)';
+    }
 }
 
 function resetAudioState() {
@@ -836,11 +799,6 @@ async function init() {
     try {
         const data = await vitaeAPI.getPreConsultaPorToken(token);
 
-        // Update choice screen
-        document.getElementById('choiceWelcomeName').textContent = `Olá, ${data.pacienteNome}!`;
-        document.getElementById('choiceWelcomeDoc').textContent = `Consulta com Dr(a). ${data.medicoNome} — ${data.especialidade}`;
-
-        // Update form screen
         document.getElementById('welcomeName').textContent = `Olá, ${data.pacienteNome}!`;
         document.getElementById('welcomeDoc').textContent = `Consulta com Dr(a). ${data.medicoNome} — ${data.especialidade}`;
 
