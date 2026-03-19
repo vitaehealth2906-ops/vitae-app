@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VITAE · Mapa de Telas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080808; --border: rgba(255,255,255,0.07);
+      --green: #22c55e; --green-dim: rgba(34,197,94,0.12);
+      --gold: #c5a55a; --blue: #4A90E2;
+      --text: #f0f4f8; --text-mid: rgba(240,244,248,0.55); --text-dim: rgba(240,244,248,0.22);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); font-family:'Inter',sans-serif; color:var(--text); min-height:100vh; }
+
+    /* TOP BAR */
+    .topbar {
+      position:sticky; top:0; z-index:200;
+      background:rgba(8,8,8,0.92); border-bottom:1px solid var(--border);
+      padding:0 28px; display:flex; align-items:center; gap:16px; height:54px;
+    }
+    .logo { font-size:13px; font-weight:800; white-space:nowrap; flex-shrink:0; }
+    .logo .vi { color:var(--green); }
+    .logo .sub { font-weight:400; color:var(--text-mid); }
+    .sep { color:var(--border); margin:0 4px; }
+    .divider { width:1px; height:18px; background:var(--border); flex-shrink:0; }
+    .filters { display:flex; gap:4px; }
+    .fpill {
+      padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600;
+      border:1px solid var(--border); background:transparent; color:var(--text-mid);
+      cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.14s; white-space:nowrap;
+    }
+    .fpill.active { background:var(--green-dim); border-color:rgba(34,197,94,0.30); color:var(--green); }
+    .fpill:hover:not(.active) { background:rgba(255,255,255,0.04); color:var(--text); }
+    .search-wrap { position:relative; margin-left:auto; flex-shrink:0; }
+    .search-ico { position:absolute; left:9px; top:50%; transform:translateY(-50%); width:12px; height:12px; color:var(--text-dim); pointer-events:none; }
+    .search-input {
+      background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:7px;
+      padding:5px 10px 5px 27px; font-family:'Inter',sans-serif; font-size:12px; color:var(--text);
+      width:170px; outline:none; transition:border-color 0.15s;
+    }
+    .search-input::placeholder { color:var(--text-dim); }
+    .search-input:focus { border-color:rgba(34,197,94,0.28); }
+    .count-badge { font-size:11px; font-weight:600; color:var(--text-dim); white-space:nowrap; flex-shrink:0; }
+
+    /* MAIN */
+    .main { padding:24px 28px 64px; }
+
+    /* SECTION */
+    .sec-header {
+      display:flex; align-items:center; gap:8px;
+      margin:32px 0 16px; padding-bottom:10px; border-bottom:1px solid var(--border);
+      font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.8px; color:var(--text-dim);
+    }
+    .sec-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+    .sec-dot.patient { background:var(--green); }
+    .sec-dot.doctor  { background:var(--blue); }
+    .sec-dot.public  { background:var(--gold); }
+    .sec-dot.preview { background:rgba(255,255,255,0.28); }
+    .sec-count { font-size:10px; font-weight:600; color:var(--text-dim); margin-left:auto; }
+
+    /* GRID */
+    .cards-row { display:flex; flex-wrap:wrap; gap:16px; }
+
+    /* CARD */
+    .card { display:flex; flex-direction:column; gap:8px; }
+    .card.hidden { display:none; }
+    .card-top { display:flex; align-items:center; justify-content:space-between; padding:0 1px; }
+    .card-num { font-size:9px; font-weight:700; color:var(--text-dim); letter-spacing:0.5px; }
+    .card-tag { font-size:8px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; padding:2px 5px; border-radius:4px; }
+    .card-tag.patient { background:rgba(34,197,94,0.10); color:#4ade80; }
+    .card-tag.doctor  { background:rgba(74,144,226,0.10); color:#60a5fa; }
+    .card-tag.public  { background:rgba(197,165,90,0.10); color:#c5a55a; }
+    .card-tag.preview { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.35); }
+
+    /* PHONE */
+    .phone-outer {
+      background:#181818; border-radius:20px; padding:3px; cursor:pointer;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 12px 36px rgba(0,0,0,0.5);
+      transition:box-shadow 0.18s, transform 0.18s;
+    }
+    .card:hover .phone-outer {
+      box-shadow: 0 0 0 1.5px rgba(34,197,94,0.38), 0 18px 48px rgba(0,0,0,0.6);
+      transform:translateY(-3px);
+    }
+    .phone-viewport {
+      width:173px; height:375px; overflow:hidden;
+      border-radius:17px; background:#111; position:relative;
+      contain:layout paint; /* isolate rendering */
+    }
+
+    /* Skeleton shimmer while iframe loads */
+    .phone-viewport.loading::before {
+      content:''; position:absolute; inset:0; z-index:3; border-radius:17px;
+      background: linear-gradient(110deg, #111 30%, #1e1e1e 50%, #111 70%);
+      background-size:200% 100%;
+      animation:shimmer 1.4s ease infinite;
+    }
+    .phone-viewport.loading::after {
+      content:''; position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      width:20px; height:20px; z-index:4;
+      border:2px solid rgba(255,255,255,0.08);
+      border-top-color:rgba(34,197,94,0.5);
+      border-radius:50%;
+      animation:spin 0.8s linear infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    @keyframes spin { to{transform:translate(-50%,-50%) rotate(360deg)} }
+
+    .phone-viewport iframe {
+      width:393px; height:852px;
+      transform:scale(0.44); transform-origin:0 0;
+      border:none; pointer-events:none; display:block;
+      opacity:0; transition:opacity 0.3s;
+    }
+    .phone-viewport iframe.loaded { opacity:1; }
+
+    /* Hover overlay */
+    .phone-overlay {
+      position:absolute; inset:0; border-radius:17px;
+      background:rgba(0,0,0,0); display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:all 0.18s;
+      font-size:10px; font-weight:700; color:#fff; letter-spacing:0.3px;
+    }
+    .card:hover .phone-overlay { background:rgba(0,0,0,0.30); opacity:1; }
+
+    /* Auth badge */
+    .auth-badge {
+      position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.65); border:1px solid rgba(255,255,255,0.08);
+      border-radius:6px; padding:2px 7px;
+      font-size:8px; font-weight:600; color:rgba(255,255,255,0.38); white-space:nowrap; z-index:5;
+    }
+
+    /* CARD BOTTOM */
+    .card-bot { display:flex; align-items:center; justify-content:space-between; padding:0 1px; }
+    .card-name { font-size:10.5px; font-weight:600; color:var(--text); max-width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .open-btn {
+      font-size:9px; font-weight:700; color:var(--green);
+      text-decoration:none; padding:2px 7px; border-radius:5px;
+      background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.16);
+      transition:background 0.13s; flex-shrink:0;
+    }
+    .open-btn:hover { background:rgba(34,197,94,0.18); }
+
+    /* Step badge (onboarding) */
+    .step-badge {
+      display:inline-flex; align-items:center;
+      background:rgba(34,197,94,0.10); border:1px solid rgba(34,197,94,0.18);
+      border-radius:5px; padding:2px 7px;
+      font-size:8px; font-weight:700; color:var(--green); letter-spacing:0.5px;
+    }
+
+    /* Sub-section separator (full-width dentro do grid) */
+    .flow-sep {
+      width:100%; display:flex; align-items:center; gap:10px;
+      padding:20px 0 6px; margin-top:4px;
+      font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1.8px;
+      color:rgba(255,255,255,0.20);
+    }
+    .flow-sep::before, .flow-sep::after {
+      content:''; flex:1; height:1px; background:rgba(255,255,255,0.05);
+    }
+
+    /* Note badge (under card name) */
+    .note-badge {
+      font-size:8px; font-weight:600; color:rgba(197,165,90,0.85);
+      background:rgba(197,165,90,0.08); border:1px solid rgba(197,165,90,0.18);
+      border-radius:4px; padding:2px 6px; margin-top:2px; display:inline-block;
+    }
+    .card-bot-col { display:flex; flex-direction:column; gap:0; }
+
+    /* Doctor shared-steps banner */
+    .doctor-note {
+      width:100%; padding:10px 14px; margin-bottom:4px;
+      background:rgba(74,144,226,0.06); border:1px solid rgba(74,144,226,0.15);
+      border-radius:10px; font-size:10px; font-weight:600;
+      color:rgba(74,144,226,0.75); letter-spacing:0.3px;
+    }
+
+    /* Deprecated badge */
+    .dep-badge {
+      position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
+      background:rgba(100,100,100,0.55); border:1px solid rgba(255,255,255,0.08);
+      border-radius:6px; padding:2px 7px;
+      font-size:8px; font-weight:600; color:rgba(255,255,255,0.35); white-space:nowrap; z-index:5;
+    }
+
+    /* NO RESULTS */
+    .no-results { display:none; padding:80px 20px; text-align:center; color:var(--text-dim); font-size:14px; }
+
+    /* LIGHTBOX */
+    .lightbox {
+      display:none; position:fixed; inset:0; z-index:500;
+      background:rgba(0,0,0,0.82); align-items:center; justify-content:center;
+    }
+    .lightbox.open { display:flex; }
+    .lb-inner { position:relative; display:flex; flex-direction:column; align-items:center; gap:14px; }
+    .lb-label { font-size:13px; font-weight:600; color:var(--text); }
+    .lb-phone {
+      width:393px; height:852px; border-radius:52px; overflow:hidden; background:#0a0a0a;
+      box-shadow: 0 0 0 1px rgba(197,165,90,0.12), 0 0 0 3px #1a1a1a, 0 40px 100px rgba(0,0,0,0.9);
+    }
+    .lb-phone iframe { width:393px; height:852px; border:none; display:block; }
+    .lb-row { display:flex; gap:8px; }
+    .lb-btn {
+      padding:8px 18px; border-radius:9px; font-family:'Inter',sans-serif; font-size:12px; font-weight:600;
+      cursor:pointer; border:none; transition:opacity 0.13s;
+    }
+    .lb-btn.p { background:var(--green); color:#0a0a0a; }
+    .lb-btn.s { background:rgba(255,255,255,0.08); color:var(--text); border:1px solid rgba(255,255,255,0.10); }
+    .lb-btn:hover { opacity:0.85; }
+    .lb-x {
+      position:absolute; top:-14px; right:-14px; width:28px; height:28px; border-radius:50%;
+      background:rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.10);
+      color:var(--text); font-size:16px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:background 0.13s;
+    }
+    .lb-x:hover { background:rgba(255,255,255,0.18); }
+
+    /* FOOTER HINT */
+    .hint {
+      position:fixed; bottom:0; left:0; right:0;
+      background:rgba(8,8,8,0.95); border-top:1px solid var(--border);
+      padding:7px 28px; display:flex; align-items:center; gap:16px;
+      font-size:10.5px; color:var(--text-dim);
+    }
+    .hint b { color:var(--green); font-weight:600; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">V<span class="vi">I</span>TAE<span class="sep">·</span><span class="sub">Mapa de Telas</span></div>
+  <div class="divider"></div>
+  <div class="filters">
+    <button class="fpill active" onclick="setFilter('all',this)">Todas</button>
+    <button class="fpill" onclick="setFilter('patient',this)">📱 Paciente</button>
+    <button class="fpill" onclick="setFilter('doctor',this)">⚕️ Médico</button>
+    <button class="fpill" onclick="setFilter('public',this)">🌐 Público</button>
+    <button class="fpill" onclick="setFilter('preview',this)">🎨 Previews</button>
+  </div>
+  <div class="search-wrap">
+    <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="search-input" type="text" placeholder="Buscar…" oninput="applyFilters()">
+  </div>
+  <div class="count-badge" id="countBadge">—</div>
+</div>
+
+<div class="main">
+  <div class="sec-header" data-flow="patient"><span class="sec-dot patient"></span>Fluxo do Paciente<span class="sec-count" id="cnt-patient"></span></div>
+  <div class="cards-row" id="grid-patient"></div>
+
+  <div class="sec-header" data-flow="doctor"><span class="sec-dot doctor"></span>Fluxo do Médico<span class="sec-count" id="cnt-doctor"></span></div>
+  <div class="cards-row" id="grid-doctor"></div>
+
+  <div class="sec-header" data-flow="public"><span class="sec-dot public"></span>Páginas Públicas<span class="sec-count" id="cnt-public"></span></div>
+  <div class="cards-row" id="grid-public"></div>
+
+  <div class="sec-header" data-flow="preview"><span class="sec-dot preview"></span>Previews / Protótipos<span class="sec-count" id="cnt-preview"></span></div>
+  <div class="cards-row" id="grid-preview"></div>
+
+  <div class="no-results" id="noResults">Nenhuma tela encontrada.</div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <div class="lb-inner">
+    <div class="lb-label" id="lbLabel"></div>
+    <div class="lb-phone"><iframe id="lbFrame" src="" title="Preview"></iframe></div>
+    <div class="lb-row">
+      <button class="lb-btn p" onclick="window.open(document.getElementById('lbFrame').src,'_blank')">Abrir em nova aba ↗</button>
+      <button class="lb-btn s" onclick="closeLB()">Fechar</button>
+    </div>
+    <div class="lb-x" onclick="closeLB()">×</div>
+  </div>
+</div>
+
+<div class="hint"><b>Clique</b> no mockup para ver em tamanho real &nbsp;·&nbsp; <b>Abrir ↗</b> para interagir &nbsp;·&nbsp; Os previews carregam conforme você rola a página</div>
+
+<script>
+const SCREENS = [
+  // ── PASSOS COMPARTILHADOS (paciente e médico) ───────────────────────────
+  { step:1, num:'01', name:'Splash',              file:'01-splash.html',          flow:'patient', auth:false },
+  { step:2, num:'02', name:'Boas-vindas',         file:'02-slides.html',          flow:'patient', auth:false },
+  { step:3, num:'03', name:'Login / Cadastro',    file:'03-cadastro.html',        flow:'patient', auth:false, note:'Escolha Paciente ou Médico aqui' },
+  // separator — split point
+  { type:'sep', label:'↓ Caminho Paciente', flow:'patient' },
+  // ── PACIENTE · ONBOARDING (continuação) ────────────────────────────────
+  { step:4, num:'04', name:'Verificação SMS',     file:'04-verificacao.html',     flow:'patient', auth:false },
+  { step:5, num:'05', name:'Quiz de Saúde',       file:'05-quiz.html',            flow:'patient', auth:false },
+  { step:6, num:'06', name:'Perfil Criado!',      file:'06-concluido.html',       flow:'patient', auth:false },
+  { step:7, num:'07', name:'Conectar Wearable',   file:'07-wearable.html',        flow:'patient', auth:false },
+  // separator
+  { type:'sep', label:'App Principal', flow:'patient' },
+  // ── PACIENTE · APP PRINCIPAL ────────────────────────────────────────────
+  { num:'08', name:'RG de Saúde',            file:'08-perfil.html',              flow:'patient', auth:true  },
+  { num:'11', name:'Lista de Exames',        file:'11-exames-lista.html',        flow:'patient', auth:true  },
+  { num:'09', name:'Dados Pessoais',         file:'09-dados-pessoais.html',      flow:'patient', auth:true  },
+  { num:'15', name:'Bio Age (sem dados)',    file:'15-bioage-sem-dados.html',    flow:'patient', auth:true  },
+  { num:'16', name:'Medicamentos',           file:'16-medicamentos.html',        flow:'patient', auth:true  },
+  { num:'18', name:'Detalhe Medicamento',    file:'18-medicamento-detalhe.html', flow:'patient', auth:true  },
+  { num:'17', name:'Alergias',               file:'17-alergias.html',            flow:'patient', auth:true  },
+  { num:'19', name:'Detalhe Alergia',        file:'19-alergia-detalhe.html',     flow:'patient', auth:true  },
+  { num:'21', name:'QR Code / RG Digital',  file:'21-qrcode.html',              flow:'patient', auth:true  },
+  { num:'22', name:'Autorização Médica',     file:'22-autorizacao.html',         flow:'patient', auth:true  },
+  { num:'23', name:'Agendamentos',           file:'23-agendamentos.html',        flow:'patient', auth:true  },
+  { num:'24', name:'Timeline',               file:'24-timeline.html',            flow:'patient', auth:true  },
+  // separator
+  { type:'sep', label:'Recuperação de Acesso', flow:'patient' },
+  // ── PACIENTE · RECUPERAÇÃO ──────────────────────────────────────────────
+  { num:'14', name:'Esqueci a Senha',        file:'14-esqueci-senha.html',       flow:'patient', auth:false },
+  { num:'15', name:'Nova Senha',             file:'15-nova-senha.html',          flow:'patient', auth:false },
+  // ── MÉDICO · após etapas 1-3 compartilhadas ─────────────────────────────
+  { step:4, num:'20a',name:'Cadastro Médico',     file:'20-medico-cadastro.html', flow:'doctor',  auth:false },
+  { step:5, num:'20b',name:'Dashboard Médico',    file:'20-medico-dashboard.html',flow:'doctor',  auth:true  },
+  { step:6, num:'25', name:'One Minute Summary',  file:'25-summary.html',         flow:'doctor',  auth:true  },
+  { num:'·', name:'Pré-Consulta Paciente',        file:'pre-consulta.html',       flow:'doctor',  auth:false },
+  // ── PÚBLICO ─────────────────────────────────────────────────────────────
+  { num:'·',  name:'Escolha Perfil (fallback)',   file:'00-escolha.html',         flow:'public',  auth:false },
+  { num:'·',  name:'RG Público',                  file:'rg-publico.html',         flow:'public',  auth:false },
+  { num:'·',  name:'Exame Público',               file:'exame-publico.html',      flow:'public',  auth:false },
+  { num:'·',  name:'Termos de Uso',               file:'termos.html',             flow:'public',  auth:false },
+  { num:'·',  name:'LGPD',                        file:'lgpd.html',               flow:'public',  auth:false },
+  // ── PREVIEWS ─────────────────────────────────────────────────────────────
+  { num:'·',  name:'Insights v1',            file:'preview-insights.html',           flow:'preview', auth:false },
+  { num:'·',  name:'Insights (Normal)',      file:'preview-insights-normal.html',    flow:'preview', auth:false },
+  { num:'·',  name:'RG Saúde Preview',       file:'preview-rg-saude.html',           flow:'preview', auth:false },
+  { num:'·',  name:'Preview V3',             file:'preview-v3.html',                 flow:'preview', auth:false },
+  { num:'13', name:'Exame Detalhe (antigo)', file:'13-exame-detalhe.html',           flow:'preview', auth:false, dep:true },
+];
+
+const TAG = { patient:'Paciente', doctor:'Médico', public:'Público', preview:'Preview' };
+const GRIDS = { patient:'grid-patient', doctor:'grid-doctor', public:'grid-public', preview:'grid-preview' };
+
+/* ── BUILD CARDS (iframes sem src — carregam via IntersectionObserver) ── */
+function buildCard(s) {
+  const q = `${s.name} ${s.num} ${s.file}`.toLowerCase();
+  const topLeft = s.step
+    ? `<span class="step-badge">Passo ${s.step}</span>`
+    : `<span class="card-num">${s.num}</span>`;
+  const badge = s.dep
+    ? '<div class="dep-badge">🗄 versão antiga</div>'
+    : s.auth ? '<div class="auth-badge">⚠ requer login</div>' : '';
+  const noteBadge = s.note
+    ? `<span class="note-badge">↕ ${s.note}</span>`
+    : '';
+  return `
+    <div class="card" data-flow="${s.flow}" data-search="${q}">
+      <div class="card-top">
+        ${topLeft}
+        <span class="card-tag ${s.flow}">${TAG[s.flow]}</span>
+      </div>
+      <div class="phone-outer" onclick="openLB('${s.file}','${s.name.replace(/'/g,"\\'")}')">
+        <div class="phone-viewport loading">
+          <iframe data-src="${s.file}" title="${s.name}" sandbox="allow-scripts allow-same-origin"></iframe>
+          <div class="phone-overlay">🔍 Tamanho real</div>
+          ${badge}
+        </div>
+      </div>
+      <div class="card-bot">
+        <div class="card-bot-col">
+          <span class="card-name" title="${s.name}">${s.name}</span>
+          ${noteBadge}
+        </div>
+        <a class="open-btn" href="${s.file}" target="_blank" onclick="event.stopPropagation()">Abrir ↗</a>
+      </div>
+    </div>`;
+}
+
+function buildSep(s) {
+  const isSplit = s.label.includes('Caminho');
+  const style = isSplit ? 'color:rgba(34,197,94,0.55);' : '';
+  return `<div class="flow-sep" data-flow="${s.flow}" data-search="" style="${style}">${s.label}</div>`;
+}
+
+// Banner nota no topo do fluxo médico
+document.getElementById('grid-doctor').insertAdjacentHTML('afterbegin',
+  `<div class="doctor-note" data-flow="doctor">
+     ↑ Etapas 1, 2 e 3 são as mesmas do Paciente &nbsp;·&nbsp; Depois do cadastro, o médico segue este caminho:
+   </div>`
+);
+
+SCREENS.forEach(s => {
+  const grid = document.getElementById(GRIDS[s.flow]);
+  if (s.type === 'sep') {
+    grid.insertAdjacentHTML('beforeend', buildSep(s));
+  } else {
+    grid.insertAdjacentHTML('beforeend', buildCard(s));
+  }
+});
+
+/* ── LAZY LOAD com fila (máx 4 simultâneos) ── */
+const queue = [];
+let loading = 0;
+const MAX = 4;
+
+function processQueue() {
+  while (loading < MAX && queue.length > 0) {
+    const { iframe, viewport } = queue.shift();
+    loading++;
+    iframe.onload = () => {
+      loading--;
+      iframe.classList.add('loaded');
+      viewport.classList.remove('loading');
+      processQueue();
+    };
+    iframe.onerror = () => { loading--; processQueue(); };
+    iframe.src = iframe.dataset.src;
+  }
+}
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const viewport = entry.target;
+    const iframe = viewport.querySelector('iframe[data-src]');
+    if (iframe) {
+      queue.push({ iframe, viewport });
+      processQueue();
+    }
+    observer.unobserve(viewport);
+  });
+}, { rootMargin: '400px 0px' }); // pré-carrega 400px antes de entrar na tela
+
+document.querySelectorAll('.phone-viewport').forEach(vp => observer.observe(vp));
+
+/* ── FILTROS ── */
+let currentFlow = 'all';
+
+function setFilter(flow, el) {
+  currentFlow = flow;
+  document.querySelectorAll('.fpill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = document.querySelector('.search-input').value.toLowerCase().trim();
+  let total = 0;
+  const cnt = { patient:0, doctor:0, public:0, preview:0 };
+
+  document.querySelectorAll('.card').forEach(card => {
+    const flowOk   = currentFlow === 'all' || currentFlow === card.dataset.flow;
+    const searchOk = !q || card.dataset.search.includes(q);
+    const show = flowOk && searchOk;
+    card.classList.toggle('hidden', !show);
+    if (show) { total++; cnt[card.dataset.flow]++; }
+  });
+
+  // Separators and banners: visible only when section shown and no search active
+  document.querySelectorAll('.flow-sep, .doctor-note').forEach(el => {
+    const flowOk = currentFlow === 'all' || currentFlow === el.dataset.flow;
+    el.style.display = (flowOk && !q) ? '' : 'none';
+  });
+
+  ['patient','doctor','public','preview'].forEach(f => {
+    const hdr  = document.querySelector(`.sec-header[data-flow="${f}"]`);
+    const grid = document.getElementById('grid-' + f);
+    const c    = document.getElementById('cnt-' + f);
+    const show = cnt[f] > 0;
+    if (hdr)  hdr.style.display  = show ? '' : 'none';
+    if (grid) grid.style.display = show ? '' : 'none';
+    if (c)    c.textContent      = show ? `${cnt[f]} tela${cnt[f]>1?'s':''}` : '';
+  });
+
+  document.getElementById('countBadge').textContent = `${total} tela${total!==1?'s':''}`;
+  document.getElementById('noResults').style.display = total === 0 ? 'block' : 'none';
+}
+
+applyFilters();
+
+/* ── LIGHTBOX ── */
+function openLB(file, name) {
+  document.getElementById('lbFrame').src = file;
+  document.getElementById('lbLabel').textContent = name;
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLB() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lbFrame').src = '';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('lightbox').addEventListener('click', e => {
+  if (e.target === document.getElementById('lightbox')) closeLB();
+});
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLB(); });
+</script>
+</body>
+</html>
