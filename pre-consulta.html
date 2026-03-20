@@ -288,6 +288,16 @@
         .rec-send-btn svg { width:18px; height:18px; stroke:#fff; fill:none; }
     </style>
     <link rel="stylesheet" href="vitae-light.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.css">
+    <style>
+        .air-datepicker { --adp-font-family:'Inter',sans-serif; --adp-background-color:#fff; --adp-color:#111827; --adp-color-secondary:rgba(17,24,39,0.35); --adp-accent-color:#22c55e; --adp-color-current-date:#22c55e; --adp-cell-background-color-selected:#22c55e; --adp-cell-background-color-selected-hover:#16a34a; --adp-color-other-month:rgba(17,24,39,0.2); --adp-day-name-color:rgba(17,24,39,0.35); --adp-border-color:rgba(0,0,0,0.08); --adp-cell-border-radius:10px; --adp-pointer-size:0; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.12); border:1px solid rgba(0,0,0,0.06); z-index:100; }
+        .air-datepicker-nav { border-bottom:1px solid rgba(0,0,0,0.06); padding:12px 16px; }
+        .air-datepicker-nav--title { font-weight:600; font-size:14px; }
+        .air-datepicker-cell.-selected- { color:#fff !important; }
+        .air-datepicker-cell.-current- { color:#22c55e; }
+        .air-datepicker-buttons { border-top:1px solid rgba(0,0,0,0.06); padding:8px 16px; }
+        .air-datepicker-button { color:#22c55e !important; font-weight:600; }
+    </style>
 </head>
 <body>
 <div class="phone">
@@ -399,7 +409,8 @@
                 </div>
                 <div class="field">
                     <div class="field-label">Data de nascimento</div>
-                    <input class="field-input" id="dataNascimento" type="date">
+                    <input class="field-input" id="dataNascimento" type="text" placeholder="dd/mm/aaaa" autocomplete="off" inputmode="numeric" style="cursor:pointer;">
+                    <input type="hidden" id="dataNascimentoISO">
                 </div>
                 <div class="field">
                     <div class="field-label">CPF</div>
@@ -647,8 +658,38 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/locale/pt-BR.js"></script>
 <script src="api.js"></script>
 <script>
+// Air Datepicker for date of birth
+const dnEl = document.getElementById('dataNascimento');
+const dnISO = document.getElementById('dataNascimentoISO');
+if (dnEl && typeof AirDatepicker !== 'undefined') {
+    new AirDatepicker(dnEl, {
+        locale: typeof AirDatepickerPtBR !== 'undefined' ? AirDatepickerPtBR : undefined,
+        dateFormat: 'dd/MM/yyyy',
+        maxDate: new Date(),
+        minDate: new Date(1920, 0, 1),
+        startDate: new Date(1990, 0, 1),
+        view: 'years',
+        autoClose: true,
+        isMobile: window.innerWidth < 500,
+        buttons: ['clear'],
+        container: dnEl.closest('.phone') || document.body,
+        onSelect({date}) {
+            if (date) {
+                const y = date.getFullYear();
+                const m = String(date.getMonth()+1).padStart(2,'0');
+                const d = String(date.getDate()).padStart(2,'0');
+                dnISO.value = `${y}-${m}-${d}`;
+            } else {
+                dnISO.value = '';
+            }
+        }
+    });
+}
+
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
 
@@ -928,7 +969,12 @@ async function init() {
         if (data.perfilPaciente) {
             const p = data.perfilPaciente;
             if (p.nome) document.getElementById('nomeCompleto').value = p.nome;
-            if (p.dataNascimento) document.getElementById('dataNascimento').value = p.dataNascimento.slice(0,10);
+            if (p.dataNascimento) {
+                const isoDate = p.dataNascimento.slice(0,10);
+                document.getElementById('dataNascimentoISO').value = isoDate;
+                const [y,m,d] = isoDate.split('-');
+                document.getElementById('dataNascimento').value = `${d}/${m}/${y}`;
+            }
             if (p.cpf) document.getElementById('cpf').value = p.cpf;
             if (p.celular) document.getElementById('telefone').value = p.celular;
             if (p.email) document.getElementById('emailId').value = p.email;
@@ -1023,7 +1069,7 @@ async function enviar() {
     const respostas = {
         // Identificação
         nomeCompleto: document.getElementById('nomeCompleto').value.trim(),
-        dataNascimento: document.getElementById('dataNascimento').value,
+        dataNascimento: document.getElementById('dataNascimentoISO').value || document.getElementById('dataNascimento').value,
         cpf: document.getElementById('cpf').value.trim(),
         telefone: document.getElementById('telefone').value.trim(),
         email: document.getElementById('emailId').value.trim(),
