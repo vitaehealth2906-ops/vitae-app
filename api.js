@@ -161,6 +161,18 @@ const vitaeAPI = {
     return data;
   },
 
+  async loginSocial(provider, providerToken, nome, email) {
+    const data = await apiRequest('/auth/login-social', {
+      method: 'POST',
+      body: { provider, providerToken, nome, email },
+    });
+    if (data.token) {
+      setTokens(data.token, data.refreshToken);
+      setUsuario(data.usuario);
+    }
+    return data;
+  },
+
   // Perfil
   async getPerfil() {
     return apiRequest('/perfil');

@@ -291,6 +291,18 @@ router.post('/login-social', validate(loginSocialSchema), async (req, res, next)
       },
     });
 
+    if (!usuario && email) {
+      // Check if email already exists (user registered manually before)
+      usuario = await prisma.usuario.findUnique({ where: { email } });
+      if (usuario) {
+        // Link social provider to existing account
+        await prisma.usuario.update({
+          where: { id: usuario.id },
+          data: { provider, providerId },
+        });
+      }
+    }
+
     if (!usuario) {
       // Criar novo usuario via login social
       usuario = await prisma.usuario.create({
