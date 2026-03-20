@@ -368,8 +368,8 @@
             </div>
 
             <div class="add-form" id="addForm">
-                <div class="form-title">Novo <span>medicamento</span></div>
-                <div class="form-subtitle">Preencha as informacoes</div>
+                <div class="form-title" id="formTitle">Novo <span>medicamento</span></div>
+                <div class="form-subtitle" id="formSubtitle">Preencha as informacoes</div>
 
                 <div class="form-label">Nome</div>
                 <input class="form-input" id="medName" type="text" placeholder="Ex: Rivotril, Losartana...">
@@ -389,8 +389,8 @@
                 <input class="form-input" id="medTime" type="text" placeholder="Ex: 08:00" value="08:00">
 
                 <div class="form-row">
-                    <button class="btn-cancel" onclick="toggleForm()">Cancelar</button>
-                    <button class="btn-gold" onclick="submitMed()">Adicionar</button>
+                    <button class="btn-cancel" onclick="cancelEdit()">Cancelar</button>
+                    <button class="btn-gold" id="formSubmitBtn" onclick="submitMed()">Adicionar</button>
                 </div>
             </div>
         </div>
@@ -431,14 +431,47 @@
 <script>
     let medications = [];
     let formVisible = false;
+    let editingMedId = null;
 
     function toggleForm() {
+        editingMedId = null;
+        document.getElementById('formTitle').innerHTML = 'Novo <span>medicamento</span>';
+        document.getElementById('formSubtitle').textContent = 'Preencha as informacoes';
+        document.getElementById('formSubmitBtn').textContent = 'Adicionar';
+        document.getElementById('medName').value = '';
+        document.getElementById('medDosage').value = '';
+        document.getElementById('medFreq').value = '1x ao dia';
+        document.getElementById('medTime').value = '08:00';
         formVisible = !formVisible;
         document.getElementById('addForm').classList.toggle('visible', formVisible);
         document.getElementById('addToggle').style.display = formVisible ? 'none' : 'flex';
         if (formVisible) {
             setTimeout(() => document.getElementById('medName').focus(), 100);
         }
+    }
+
+    function cancelEdit() {
+        editingMedId = null;
+        formVisible = false;
+        document.getElementById('addForm').classList.remove('visible');
+        document.getElementById('addToggle').style.display = 'flex';
+    }
+
+    function openEditMed(id) {
+        const med = medications.find(m => m.id === id);
+        if (!med) return;
+        editingMedId = id;
+        document.getElementById('formTitle').innerHTML = 'Editar <span>medicamento</span>';
+        document.getElementById('formSubtitle').textContent = 'Altere as informacoes';
+        document.getElementById('formSubmitBtn').textContent = 'Salvar';
+        document.getElementById('medName').value = med.name;
+        document.getElementById('medDosage').value = med.dosage;
+        document.getElementById('medFreq').value = med.frequency || '1x ao dia';
+        document.getElementById('medTime').value = med.time || '08:00';
+        formVisible = true;
+        document.getElementById('addForm').classList.add('visible');
+        document.getElementById('addToggle').style.display = 'none';
+        setTimeout(() => document.getElementById('medDosage').focus(), 100);
     }
 
     async function submitMed() {
@@ -452,9 +485,16 @@
             return;
         }
         try {
-            await vitaeAPI.adicionarMedicamento({ nome: name, dosagem: dosage, frequencia: freq, horario: time });
-            await loadMeds();
-            showToast(name + ' adicionado');
+            if (editingMedId) {
+                await vitaeAPI.atualizarMedicamento(editingMedId, { nome: name, dosagem: dosage, frequencia: freq, horario: time });
+                await loadMeds();
+                showToast(name + ' atualizado');
+                editingMedId = null;
+            } else {
+                await vitaeAPI.adicionarMedicamento({ nome: name, dosagem: dosage, frequencia: freq, horario: time });
+                await loadMeds();
+                showToast(name + ' adicionado');
+            }
         } catch (e) {
             showToast('Erro: ' + e.message);
         }
@@ -553,10 +593,10 @@
     }
 
     function openMedDetail(name) {
-        document.getElementById('exitOverlay').classList.add('active');
-        setTimeout(() => {
-            window.location.href = '18-medicamento-detalhe.html?nome=' + encodeURIComponent(name) + '&from=meds';
-        }, 400);
+        const med = medications.find(m => m.name === name);
+        if (med) {
+            openEditMed(med.id);
+        }
     }
 
     // Navigation

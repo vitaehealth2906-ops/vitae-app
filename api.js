@@ -219,6 +219,10 @@ const vitaeAPI = {
     return apiRequest(`/medicamentos/${id}`, { method: 'DELETE' });
   },
 
+  async atualizarMedicamento(id, dados) {
+    return apiRequest(`/medicamentos/${id}`, { method: 'PUT', body: dados });
+  },
+
   async infoMedicamento(nome) {
     return apiRequest(`/medicamentos/info/${encodeURIComponent(nome)}`);
   },
