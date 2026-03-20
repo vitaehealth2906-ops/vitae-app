@@ -533,7 +533,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/locale/pt-BR.js"></script>
 <script src="api.js"></script>
 <script>
     // ===== State =====
@@ -546,30 +545,44 @@
     // Air Datepicker for date of birth
     const nascEl = document.getElementById('nascimentoInput');
     const nascISO = document.getElementById('nascimentoISO');
-    if (typeof AirDatepicker !== 'undefined') {
-        new AirDatepicker(nascEl, {
-            locale: AirDatepickerPtBR || undefined,
-            dateFormat: 'dd/MM/yyyy',
-            maxDate: new Date(),
-            minDate: new Date(1920, 0, 1),
-            startDate: new Date(1990, 0, 1),
-            view: 'years',
-            autoClose: true,
-            isMobile: window.innerWidth < 500,
-            buttons: ['clear', 'today'],
-            container: nascEl.closest('.phone') || document.body,
-            onSelect({date}) {
-                if (date) {
-                    const y = date.getFullYear();
-                    const m = String(date.getMonth()+1).padStart(2,'0');
-                    const d = String(date.getDate()).padStart(2,'0');
-                    nascISO.value = `${y}-${m}-${d}`;
-                } else {
-                    nascISO.value = '';
+    try {
+        if (typeof AirDatepicker !== 'undefined') {
+            const localePtBR = {
+                days: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
+                daysShort: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+                daysMin: ['Do','Se','Te','Qu','Qu','Se','Sá'],
+                months: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+                monthsShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+                today: 'Hoje',
+                clear: 'Limpar',
+                dateFormat: 'dd/MM/yyyy',
+                timeFormat: 'HH:mm',
+                firstDay: 0
+            };
+            new AirDatepicker(nascEl, {
+                locale: localePtBR,
+                dateFormat: 'dd/MM/yyyy',
+                maxDate: new Date(),
+                minDate: new Date(1920, 0, 1),
+                startDate: new Date(1990, 0, 1),
+                view: 'years',
+                autoClose: true,
+                isMobile: window.innerWidth < 500,
+                buttons: ['clear', 'today'],
+                container: nascEl.closest('.phone') || document.body,
+                onSelect({date}) {
+                    if (date) {
+                        const y = date.getFullYear();
+                        const m = String(date.getMonth()+1).padStart(2,'0');
+                        const d = String(date.getDate()).padStart(2,'0');
+                        nascISO.value = `${y}-${m}-${d}`;
+                    } else {
+                        nascISO.value = '';
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
+    } catch(e) { console.warn('Datepicker init error:', e); }
 
     // Form data
     const formData = {
