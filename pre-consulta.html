@@ -972,6 +972,29 @@ function startSpeechRecognition() {
     recognition.start();
 }
 
+// ── Supabase direct upload ──
+const SUPABASE_URL = 'https://zkpilzhyrhsptoujhflz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprcGlsemh5cmhzcHRvdWpoZmx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI1ODQ5MTIsImV4cCI6MjA1ODE2MDkxMn0.Yo990kgETdBLt1oXjot-BB9fkJC6IsGmjpcAzavu54c';
+
+async function uploadToSupabase(blob, folder, filename) {
+    const path = `${folder}/${Date.now()}-${filename}`;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/vitae/${path}`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': blob.type || 'application/octet-stream',
+            'x-upsert': 'true',
+        },
+        body: blob,
+    });
+    if (!res.ok) {
+        console.warn('Supabase upload failed:', await res.text());
+        return null;
+    }
+    return `${SUPABASE_URL}/storage/v1/object/public/vitae/${path}`;
+}
+
 // ── Send audio ──
 async function enviarAudio() {
     const transcricao = fullTranscript.trim();
@@ -981,29 +1004,24 @@ async function enviarAudio() {
     }
     document.getElementById('loadingScreen').classList.add('active');
     try {
-        // Convert audio to base64
-        let audioBase64 = null;
+        // Upload audio directly to Supabase
+        let audioUrl = null;
         if (audioBlob) {
-            const reader = new FileReader();
-            audioBase64 = await new Promise((resolve) => {
-                reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                reader.readAsDataURL(audioBlob);
-            });
+            audioUrl = await uploadToSupabase(audioBlob, 'audios', 'gravacao.webm');
         }
-        // Convert photo to base64
-        let fotoBase64 = null;
+        // Upload photo directly to Supabase
+        let fotoUrl = null;
         if (fotoBlob) {
-            const reader2 = new FileReader();
-            fotoBase64 = await new Promise((resolve) => {
-                reader2.onloadend = () => resolve(reader2.result.split(',')[1]);
-                reader2.readAsDataURL(fotoBlob);
-            });
+            fotoUrl = await uploadToSupabase(fotoBlob, 'fotos', 'foto.jpg');
         }
         await vitaeAPI.responderPreConsulta(token, {
-            respostas: { metodo: 'audio', queixaPrincipal: transcricao || '(áudio sem transcrição)' },
+            respostas: {
+                metodo: 'audio',
+                queixaPrincipal: transcricao || '(áudio sem transcrição)',
+                audioUrl: audioUrl,
+                fotoUrl: fotoUrl,
+            },
             transcricao: transcricao,
-            audioBase64: audioBase64,
-            fotoBase64: fotoBase64,
         });
         document.getElementById('loadingScreen').classList.remove('active');
         document.getElementById('successScreen').classList.add('active');

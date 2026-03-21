@@ -170,7 +170,12 @@
 
             // Audio player or TTS fallback
             let audioSection = '';
-            if (pc.audioUrl) {
+            const realAudioUrl = pc.audioUrl || (pc.respostas && pc.respostas.audioUrl) || null;
+            const realFotoUrl = pc.pacienteFotoUrl || (pc.respostas && pc.respostas.fotoUrl) || null;
+            if (realFotoUrl) {
+                document.getElementById('headerAvatar').innerHTML = `<img src="${realFotoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+            }
+            if (realAudioUrl) {
                 audioSection = `
                 <div class="audio-player" id="audioPlayer">
                     <button class="audio-play-btn" onclick="toggleAudio()">
@@ -181,7 +186,7 @@
                         <div class="audio-info-meta">${respondidaEm} · <span id="audioDuration">--:--</span></div>
                     </div>
                     <div class="audio-wave">${waveBars}</div>
-                    <audio id="patientAudio" src="${pc.audioUrl}" preload="metadata" onloadedmetadata="showDuration()"></audio>
+                    <audio id="patientAudio" src="${realAudioUrl}" preload="metadata" onloadedmetadata="showDuration()"></audio>
                 </div>`;
             } else {
                 audioSection = `
