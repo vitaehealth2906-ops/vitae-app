@@ -27,6 +27,8 @@ const criarPreConsultaSchema = z.object({
 const responderPreConsultaSchema = z.object({
   respostas: z.record(z.any()), // aceita qualquer estrutura — todos os campos do formulario
   transcricao: z.string().optional(),
+  audioBase64: z.string().optional(),
+  fotoBase64: z.string().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -281,7 +283,39 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
       return res.status(409).json({ erro: 'Pre-consulta ja respondida' });
     }
 
-    const { respostas, transcricao } = req.body;
+    const { respostas, transcricao, audioBase64, fotoBase64 } = req.body;
+
+    // Save audio from base64 if provided
+    let audioUrl = null;
+    if (audioBase64) {
+      try {
+        const audioBuffer = Buffer.from(audioBase64, 'base64');
+        audioUrl = await storage.upload({
+          buffer: audioBuffer,
+          nomeOriginal: `preconsulta-${preConsulta.id}.webm`,
+          mimetype: 'audio/webm',
+          pasta: 'audios',
+        });
+      } catch (e) {
+        console.error('[PRE-CONSULTA] Erro ao salvar audio:', e.message);
+      }
+    }
+
+    // Save photo from base64 if provided
+    let pacienteFotoUrl = null;
+    if (fotoBase64) {
+      try {
+        const fotoBuffer = Buffer.from(fotoBase64, 'base64');
+        pacienteFotoUrl = await storage.upload({
+          buffer: fotoBuffer,
+          nomeOriginal: `foto-${preConsulta.id}.jpg`,
+          mimetype: 'image/jpeg',
+          pasta: 'fotos',
+        });
+      } catch (e) {
+        console.error('[PRE-CONSULTA] Erro ao salvar foto:', e.message);
+      }
+    }
 
     // Gerar summary com IA
     let summaryIA = null;
@@ -298,16 +332,20 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
       console.error('[PRE-CONSULTA] Erro ao gerar summary IA:', aiErr.message);
     }
 
+    const updateData = {
+      respostas,
+      transcricao,
+      summaryIA,
+      summaryJson,
+      status: 'RESPONDIDA',
+      respondidaEm: new Date(),
+    };
+    if (audioUrl) updateData.audioUrl = audioUrl;
+    if (pacienteFotoUrl) updateData.pacienteFotoUrl = pacienteFotoUrl;
+
     const atualizada = await prisma.preConsulta.update({
       where: { id: preConsulta.id },
-      data: {
-        respostas,
-        transcricao,
-        summaryIA,
-        summaryJson,
-        status: 'RESPONDIDA',
-        respondidaEm: new Date(),
-      },
+      data: updateData,
     });
 
     // Notificacoes (fire-and-forget — nao bloqueia a resposta)

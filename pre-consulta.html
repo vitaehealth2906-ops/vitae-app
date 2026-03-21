@@ -981,9 +981,29 @@ async function enviarAudio() {
     }
     document.getElementById('loadingScreen').classList.add('active');
     try {
+        // Convert audio to base64
+        let audioBase64 = null;
+        if (audioBlob) {
+            const reader = new FileReader();
+            audioBase64 = await new Promise((resolve) => {
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(audioBlob);
+            });
+        }
+        // Convert photo to base64
+        let fotoBase64 = null;
+        if (fotoBlob) {
+            const reader2 = new FileReader();
+            fotoBase64 = await new Promise((resolve) => {
+                reader2.onloadend = () => resolve(reader2.result.split(',')[1]);
+                reader2.readAsDataURL(fotoBlob);
+            });
+        }
         await vitaeAPI.responderPreConsulta(token, {
             respostas: { metodo: 'audio', queixaPrincipal: transcricao || '(áudio sem transcrição)' },
             transcricao: transcricao,
+            audioBase64: audioBase64,
+            fotoBase64: fotoBase64,
         });
         document.getElementById('loadingScreen').classList.remove('active');
         document.getElementById('successScreen').classList.add('active');
