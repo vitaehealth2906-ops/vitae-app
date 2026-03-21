@@ -202,25 +202,33 @@
     let qrData = {};
 
     async function init() {
+        // Get user ID from localStorage (no backend needed)
+        const usuario = vitaeAPI.getUsuario();
+        const userId = usuario ? usuario.id : null;
+
+        if (!userId) {
+            document.getElementById('qrcode').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:240px;color:rgba(17,24,39,0.3);font-size:13px;text-align:center;padding:20px;">Faça login para ver seu QR Code.</div>';
+            return;
+        }
+
+        const baseUrl = window.location.origin + window.location.pathname.replace('21-qrcode.html', '');
+        const qrContent = baseUrl + 'rg-publico.html?id=' + userId;
+
+        new QRCode(document.getElementById('qrcode'), {
+            text: qrContent,
+            width: 240,
+            height: 240,
+            colorDark: '#0A0A0A',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M,
+        });
+
+        // Try to get full data for sharing (optional, won't block QR)
         try {
             const data = await vitaeAPI.getQrData();
             qrData = data;
-
-            // Build QR content — URL pública que abre o RG da Saúde
-            const baseUrl = window.location.origin + window.location.pathname.replace('21-qrcode.html', '');
-            const qrContent = baseUrl + 'rg-publico.html?id=' + data.usuario.id;
-
-            new QRCode(document.getElementById('qrcode'), {
-                text: qrContent,
-                width: 240,
-                height: 240,
-                colorDark: '#0A0A0A',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.M,
-            });
         } catch (e) {
-            console.log('Erro QR:', e.message);
-            document.getElementById('qrcode').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:240px;color:rgba(17,24,39,0.3);font-size:13px;text-align:center;padding:20px;">Erro ao carregar QR Code.<br>Tente recarregar a página.</div>';
+            qrData = { usuario: usuario };
         }
     }
 
