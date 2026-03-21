@@ -59,6 +59,9 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Version check endpoint
+app.get('/version', (_req, res) => res.json({ version: '2.1-audio-base64', timestamp: '2026-03-21T20:00:00Z' }));
+
 // ── Montagem das rotas ─────────────────────────────────
 app.use('/auth', authRoutes);
 app.use('/perfil', perfilRoutes);
