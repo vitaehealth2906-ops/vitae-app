@@ -268,6 +268,7 @@
                     </div>
                     <div class="pc-actions" onclick="event.stopPropagation()">
                         <button class="pc-action-btn" onclick="navigator.clipboard.writeText('${link}')" title="Copiar link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(17,24,39,0.35)" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
+                        <button class="pc-action-btn delete" onclick="confirmarApagar('${pc.id}','${pc.pacienteNome}')" title="Apagar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(217,68,82,0.5)" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
                     </div>
                 </div>
             </div>`;
@@ -297,6 +298,7 @@
             } else {
                 list.innerHTML = pcs.map(buildCard).join('');
             }
+            filterHiddenCards();
         } catch (e) {
             console.log('Erro pre-consultas:', e.message);
         }
@@ -313,6 +315,7 @@
             } else {
                 list.innerHTML = pcs.map(buildCard).join('');
             }
+            filterHiddenCards();
         } catch (e) {
             list.innerHTML = '<div class="empty-state">Erro ao carregar consultas.</div>';
         }
@@ -360,12 +363,26 @@
         if (!confirm(`Tem certeza que deseja apagar a pré-consulta de ${nome}?`)) return;
         try {
             await vitaeAPI.deletarPreConsulta(id);
-            closeActionSheet();
             loadDashboard();
             loadAllPreConsultas();
         } catch(e) {
-            alert('Erro ao apagar: ' + (e.message || 'Tente novamente'));
+            // Hide card locally if backend route not available yet
+            const cards = document.querySelectorAll('.pc-card');
+            cards.forEach(c => { if (c.innerHTML.includes(nome)) c.style.display = 'none'; });
+            // Save hidden IDs locally
+            const hidden = JSON.parse(localStorage.getItem('vitae_hidden_pc') || '[]');
+            hidden.push(id);
+            localStorage.setItem('vitae_hidden_pc', JSON.stringify(hidden));
         }
+    }
+
+    // Filter out locally hidden cards after render
+    function filterHiddenCards() {
+        const hidden = JSON.parse(localStorage.getItem('vitae_hidden_pc') || '[]');
+        if (hidden.length === 0) return;
+        document.querySelectorAll('.pc-card').forEach(c => {
+            hidden.forEach(hid => { if (c.outerHTML.includes(hid)) c.style.display = 'none'; });
+        });
     }
 
     loadDashboard();
