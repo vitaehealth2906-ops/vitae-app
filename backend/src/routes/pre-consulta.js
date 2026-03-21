@@ -446,4 +446,39 @@ router.post('/t/:token/verificar', async (req, res, next) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// DELETE /:id — Apagar pre-consulta (autenticado — medico)
+// ---------------------------------------------------------------------------
+
+router.delete('/:id', verificarAuth, async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) {
+      return res.status(403).json({ erro: 'Apenas medicos podem apagar pre-consultas' });
+    }
+
+    const preConsulta = await prisma.preConsulta.findFirst({
+      where: { id: req.params.id, medicoId: medico.id },
+    });
+
+    if (!preConsulta) {
+      return res.status(404).json({ erro: 'Pre-consulta nao encontrada' });
+    }
+
+    // Delete audio and photo from storage if they exist
+    if (preConsulta.audioUrl) {
+      storage.deletar(preConsulta.audioUrl).catch(() => {});
+    }
+    if (preConsulta.pacienteFotoUrl) {
+      storage.deletar(preConsulta.pacienteFotoUrl).catch(() => {});
+    }
+
+    await prisma.preConsulta.delete({ where: { id: req.params.id } });
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

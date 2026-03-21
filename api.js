@@ -341,6 +341,10 @@ const vitaeAPI = {
     });
   },
 
+  async deletarPreConsulta(id) {
+    return apiRequest(`/pre-consulta/${id}`, { method: 'DELETE' });
+  },
+
   async verificarTranscricao(token, transcricao) {
     return apiRequest(`/pre-consulta/t/${token}/verificar`, {
       method: 'POST',
