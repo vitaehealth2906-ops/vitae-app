@@ -325,6 +325,19 @@ const vitaeAPI = {
     });
   },
 
+  async responderPreConsultaComAudio(token, { respostas, transcricao, audioBlob }) {
+    const formData = new FormData();
+    formData.append('respostas', JSON.stringify(respostas));
+    formData.append('transcricao', transcricao || '');
+    if (audioBlob) {
+      formData.append('audio', audioBlob, 'gravacao.webm');
+    }
+    return apiRequest(`/pre-consulta/t/${token}/responder-audio`, {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
   async verificarTranscricao(token, transcricao) {
     return apiRequest(`/pre-consulta/t/${token}/verificar`, {
       method: 'POST',

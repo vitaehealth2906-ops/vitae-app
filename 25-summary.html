@@ -30,7 +30,32 @@
         .patient-name { font-size:15px; font-weight:600; color:#fff; }
         .patient-date { font-size:12px; color:rgba(255,255,255,0.25); }
 
-        /* TTS button */
+        /* Audio player */
+        .audio-player {
+            width:100%; padding:12px 16px; margin-bottom:20px;
+            background:rgba(0,153,196,0.04); border:1px solid rgba(0,153,196,0.12);
+            border-radius:16px;
+            display:flex; align-items:center; gap:12px;
+        }
+        .audio-play-btn {
+            width:42px; height:42px; border-radius:50%; flex-shrink:0;
+            background:linear-gradient(135deg, #00B4D8, #007A9E);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; border:none; box-shadow:0 4px 16px rgba(0,153,196,0.25);
+        }
+        .audio-play-btn svg { width:18px; height:18px; stroke:#fff; fill:none; }
+        .audio-info { flex:1; min-width:0; }
+        .audio-info-name { font-size:13px; font-weight:600; color:#111827; }
+        .audio-info-meta { font-size:11px; color:rgba(17,24,39,0.40); margin-top:2px; }
+        .audio-wave {
+            width:80px; height:28px; flex-shrink:0;
+            display:flex; align-items:center; gap:2px;
+        }
+        .audio-wave-bar {
+            width:3px; border-radius:2px;
+            background:rgba(0,153,196,0.3);
+        }
+        /* TTS fallback button */
         .tts-btn {
             width:100%; padding:14px; margin-bottom:20px;
             background:rgba(74,144,226,0.08); border:1px solid rgba(74,144,226,0.2);
@@ -132,10 +157,36 @@
             document.getElementById('headerPatientName').textContent = pc.pacienteNome;
             document.getElementById('headerPatient').style.display = 'flex';
 
-            let html = `
+            // Generate waveform bars
+            const waveBars = Array.from({length:18}, () => {
+                const h = Math.floor(Math.random() * 18) + 6;
+                return `<div class="audio-wave-bar" style="height:${h}px"></div>`;
+            }).join('');
+
+            // Audio player or TTS fallback
+            let audioSection = '';
+            if (pc.audioUrl) {
+                audioSection = `
+                <div class="audio-player" id="audioPlayer">
+                    <button class="audio-play-btn" onclick="toggleAudio()">
+                        <svg id="audioPlayIcon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </button>
+                    <div class="audio-info">
+                        <div class="audio-info-name">${pc.pacienteNome}</div>
+                        <div class="audio-info-meta">${respondidaEm} · <span id="audioDuration">--:--</span></div>
+                    </div>
+                    <div class="audio-wave">${waveBars}</div>
+                    <audio id="patientAudio" src="${pc.audioUrl}" preload="metadata" onloadedmetadata="showDuration()"></audio>
+                </div>`;
+            } else {
+                audioSection = `
                 <button class="tts-btn" id="ttsBtn" onclick="toggleTTS()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg> Ouvir resumo
-                </button>
+                </button>`;
+            }
+
+            let html = `
+                ${audioSection}
 
                 <div class="summary-box">
                     <div class="summary-label">Resumo</div>
@@ -237,6 +288,35 @@
         };
 
         speechSynthesis.speak(utterance);
+    }
+
+    // Audio player functions
+    let audioPlaying = false;
+    function showDuration() {
+        const audio = document.getElementById('patientAudio');
+        if (audio && audio.duration && isFinite(audio.duration)) {
+            const m = Math.floor(audio.duration / 60);
+            const s = Math.floor(audio.duration % 60);
+            document.getElementById('audioDuration').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+    }
+    function toggleAudio() {
+        const audio = document.getElementById('patientAudio');
+        const icon = document.getElementById('audioPlayIcon');
+        if (!audio) return;
+        if (audioPlaying) {
+            audio.pause();
+            audioPlaying = false;
+            icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+        } else {
+            audio.play();
+            audioPlaying = true;
+            icon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+        }
+        audio.onended = () => {
+            audioPlaying = false;
+            icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+        };
     }
 
     init();

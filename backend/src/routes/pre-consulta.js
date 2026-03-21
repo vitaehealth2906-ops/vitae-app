@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
+const multer = require('multer');
 const { z } = require('zod');
 const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
@@ -7,6 +8,9 @@ const { validate } = require('../middleware/validate');
 const { gerarSummaryPreConsulta, gerarAudioElevenLabs, verificarCompletudeTopicos } = require('../services/ai');
 const { enviarEmailPreConsultaRespondida } = require('../services/email');
 const { enviarSMSConfirmacaoPreConsulta } = require('../services/sms');
+const storage = require('../services/storage');
+
+const audioUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 const router = express.Router();
 
@@ -173,6 +177,68 @@ router.get('/t/:token', async (req, res, next) => {
 // ---------------------------------------------------------------------------
 // POST /t/:token/responder — Paciente responde pre-consulta (publico)
 // ---------------------------------------------------------------------------
+
+// POST /t/:token/responder-audio — Paciente responde com audio (publico)
+router.post('/t/:token/responder-audio', audioUpload.single('audio'), async (req, res, next) => {
+  try {
+    const preConsulta = await prisma.preConsulta.findUnique({
+      where: { linkToken: req.params.token },
+      include: { medico: { include: { usuario: { select: { nome: true, email: true } } } } },
+    });
+    if (!preConsulta) return res.status(404).json({ erro: 'Pre-consulta nao encontrada' });
+    if (preConsulta.expiraEm < new Date()) return res.status(410).json({ erro: 'Link expirado' });
+    if (preConsulta.status === 'RESPONDIDA') return res.status(409).json({ erro: 'Pre-consulta ja respondida' });
+
+    const respostas = req.body.respostas ? JSON.parse(req.body.respostas) : { metodo: 'audio' };
+    const transcricao = req.body.transcricao || '';
+
+    // Save audio to storage
+    let audioUrl = null;
+    if (req.file) {
+      audioUrl = await storage.upload({
+        buffer: req.file.buffer,
+        nomeOriginal: `preconsulta-${preConsulta.id}.webm`,
+        mimetype: req.file.mimetype || 'audio/webm',
+        pasta: 'audios',
+      });
+    }
+
+    // Generate AI summary
+    let summaryIA = null;
+    let summaryJson = null;
+    try {
+      const resultado = await gerarSummaryPreConsulta(preConsulta.pacienteNome, respostas, transcricao);
+      summaryIA = resultado.summaryTexto;
+      summaryJson = resultado;
+    } catch (aiErr) {
+      console.error('[PRE-CONSULTA] Erro ao gerar summary IA:', aiErr.message);
+    }
+
+    const atualizada = await prisma.preConsulta.update({
+      where: { id: preConsulta.id },
+      data: { respostas, transcricao, audioUrl, summaryIA, summaryJson, status: 'RESPONDIDA', respondidaEm: new Date() },
+    });
+
+    // Notifications
+    const nomeMedico = preConsulta.medico.usuario.nome;
+    const emailMedico = preConsulta.medico.usuario.email;
+    const nomePaciente = preConsulta.pacienteNome;
+    const baseUrl = process.env.FRONTEND_URL || 'https://vitaehealth2906-ops.github.io/vitae-app';
+    if (emailMedico) {
+      enviarEmailPreConsultaRespondida(emailMedico, nomeMedico, nomePaciente, summaryIA, `${baseUrl}/20-medico-dashboard.html`)
+        .catch(e => console.error('[EMAIL] Erro:', e.message));
+    }
+    const celularPaciente = respostas?.celular || preConsulta.pacienteTel;
+    if (celularPaciente) {
+      enviarSMSConfirmacaoPreConsulta(celularPaciente, nomePaciente, nomeMedico)
+        .catch(e => console.error('[SMS] Erro:', e.message));
+    }
+
+    return res.status(200).json({ preConsulta: atualizada });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (req, res, next) => {
   try {
