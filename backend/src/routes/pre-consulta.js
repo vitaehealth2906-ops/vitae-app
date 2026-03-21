@@ -179,7 +179,10 @@ router.get('/t/:token', async (req, res, next) => {
 // ---------------------------------------------------------------------------
 
 // POST /t/:token/responder-audio — Paciente responde com audio (publico)
-router.post('/t/:token/responder-audio', audioUpload.single('audio'), async (req, res, next) => {
+router.post('/t/:token/responder-audio', audioUpload.fields([
+  { name: 'audio', maxCount: 1 },
+  { name: 'foto', maxCount: 1 },
+]), async (req, res, next) => {
   try {
     const preConsulta = await prisma.preConsulta.findUnique({
       where: { linkToken: req.params.token },
@@ -194,12 +197,25 @@ router.post('/t/:token/responder-audio', audioUpload.single('audio'), async (req
 
     // Save audio to storage
     let audioUrl = null;
-    if (req.file) {
+    const audioFile = req.files && req.files.audio && req.files.audio[0];
+    if (audioFile) {
       audioUrl = await storage.upload({
-        buffer: req.file.buffer,
+        buffer: audioFile.buffer,
         nomeOriginal: `preconsulta-${preConsulta.id}.webm`,
-        mimetype: req.file.mimetype || 'audio/webm',
+        mimetype: audioFile.mimetype || 'audio/webm',
         pasta: 'audios',
+      });
+    }
+
+    // Save photo to storage
+    let pacienteFotoUrl = null;
+    const fotoFile = req.files && req.files.foto && req.files.foto[0];
+    if (fotoFile) {
+      pacienteFotoUrl = await storage.upload({
+        buffer: fotoFile.buffer,
+        nomeOriginal: `foto-${preConsulta.id}.jpg`,
+        mimetype: fotoFile.mimetype || 'image/jpeg',
+        pasta: 'fotos',
       });
     }
 
@@ -216,7 +232,7 @@ router.post('/t/:token/responder-audio', audioUpload.single('audio'), async (req
 
     const atualizada = await prisma.preConsulta.update({
       where: { id: preConsulta.id },
-      data: { respostas, transcricao, audioUrl, summaryIA, summaryJson, status: 'RESPONDIDA', respondidaEm: new Date() },
+      data: { respostas, transcricao, audioUrl, pacienteFotoUrl, summaryIA, summaryJson, status: 'RESPONDIDA', respondidaEm: new Date() },
     });
 
     // Notifications

@@ -325,12 +325,15 @@ const vitaeAPI = {
     });
   },
 
-  async responderPreConsultaComAudio(token, { respostas, transcricao, audioBlob }) {
+  async responderPreConsultaComAudio(token, { respostas, transcricao, audioBlob, fotoBlob }) {
     const formData = new FormData();
     formData.append('respostas', JSON.stringify(respostas));
     formData.append('transcricao', transcricao || '');
     if (audioBlob) {
       formData.append('audio', audioBlob, 'gravacao.webm');
+    }
+    if (fotoBlob) {
+      formData.append('foto', fotoBlob, 'foto.jpg');
     }
     return apiRequest(`/pre-consulta/t/${token}/responder-audio`, {
       method: 'POST',
