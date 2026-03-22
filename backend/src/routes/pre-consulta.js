@@ -9,6 +9,7 @@ const { gerarSummaryPreConsulta, gerarAudioElevenLabs, verificarCompletudeTopico
 const { enviarEmailPreConsultaRespondida } = require('../services/email');
 const { enviarSMSConfirmacaoPreConsulta } = require('../services/sms');
 const storage = require('../services/storage');
+const { transcreverAudio } = require('../services/transcription');
 
 const audioUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
@@ -317,6 +318,22 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
       }
     }
 
+    // If browser transcription is empty but we have audio, use Whisper
+    let finalTranscricao = transcricao;
+    const finalAudioUrlForWhisper = audioUrl || (respostas && respostas.audioUrl) || null;
+    if ((!finalTranscricao || finalTranscricao === '(áudio sem transcrição)') && finalAudioUrlForWhisper) {
+      console.log('[PRE-CONSULTA] Browser transcription empty, trying Whisper...');
+      try {
+        const whisperText = await transcreverAudio(finalAudioUrlForWhisper);
+        if (whisperText) {
+          finalTranscricao = whisperText;
+          console.log('[PRE-CONSULTA] Whisper transcription success:', whisperText.substring(0, 100));
+        }
+      } catch (whisperErr) {
+        console.error('[PRE-CONSULTA] Whisper failed:', whisperErr.message);
+      }
+    }
+
     // Gerar summary com IA
     let summaryIA = null;
     let summaryJson = null;
@@ -324,7 +341,7 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
       const resultado = await gerarSummaryPreConsulta(
         preConsulta.pacienteNome,
         respostas,
-        transcricao
+        finalTranscricao
       );
       summaryIA = resultado.summaryTexto;
       summaryJson = resultado;
@@ -334,7 +351,7 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
 
     const updateData = {
       respostas,
-      transcricao,
+      transcricao: finalTranscricao || transcricao,
       summaryIA,
       summaryJson,
       status: 'RESPONDIDA',
