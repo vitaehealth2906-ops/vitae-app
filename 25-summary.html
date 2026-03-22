@@ -130,9 +130,10 @@
             <div class="patient-avatar" id="headerAvatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(0,153,196,0.6)" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
             <div><div class="patient-name" id="headerPatientName"></div></div>
         </div>
+        <div id="headerAudioSlot"></div>
     </div>
 
-    <div class="content" id="mainContent" style="padding-top:280px;">
+    <div class="content" id="mainContent" style="padding-top:240px;">
         <div class="loading" id="loadingState">Carregando resumo...</div>
     </div>
 </div>
@@ -195,9 +196,10 @@
                 </button>`;
             }
 
-            let html = `
-                ${audioSection}
+            // Put audio player in the fixed header, not in scrollable content
+            document.getElementById('headerAudioSlot').innerHTML = audioSection;
 
+            let html = `
                 <div class="summary-box">
                     <div class="summary-label">Resumo</div>
                     <div class="summary-text">${summaryText}</div>
@@ -266,6 +268,14 @@
             }
 
             document.getElementById('mainContent').innerHTML = html;
+
+            // Auto-adjust padding to match actual header height
+            setTimeout(() => {
+                const header = document.querySelector('.header');
+                if (header) {
+                    document.getElementById('mainContent').style.paddingTop = (header.offsetHeight + 16) + 'px';
+                }
+            }, 100);
         } catch (e) {
             document.getElementById('loadingState').textContent = 'Erro: ' + e.message;
         }
