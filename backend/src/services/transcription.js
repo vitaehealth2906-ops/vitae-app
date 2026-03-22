@@ -35,8 +35,10 @@ async function transcreverAudio(audioUrl) {
     const audioBuffer = await downloadFile(audioUrl);
     console.log('[TRANSCRIPTION] Audio size:', audioBuffer.length, 'bytes');
 
-    // Create a File-like object for the OpenAI API
-    const file = new File([audioBuffer], 'audio.webm', { type: 'audio/webm' });
+    // Detect format from URL extension
+    const ext = audioUrl.match(/\.(webm|mp4|ogg|wav|m4a)/) ? audioUrl.match(/\.(webm|mp4|ogg|wav|m4a)/)[1] : 'webm';
+    const mimeMap = { webm: 'audio/webm', mp4: 'audio/mp4', ogg: 'audio/ogg', wav: 'audio/wav', m4a: 'audio/mp4' };
+    const file = new File([audioBuffer], `audio.${ext}`, { type: mimeMap[ext] || 'audio/webm' });
 
     console.log('[TRANSCRIPTION] Sending to Whisper...');
     const response = await openai.audio.transcriptions.create({
