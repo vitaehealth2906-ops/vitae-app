@@ -340,8 +340,11 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
       status: 'RESPONDIDA',
       respondidaEm: new Date(),
     };
-    if (audioUrl) updateData.audioUrl = audioUrl;
-    if (pacienteFotoUrl) updateData.pacienteFotoUrl = pacienteFotoUrl;
+    // Check audioUrl from base64 upload OR from respostas (Supabase direct upload)
+    const finalAudioUrl = audioUrl || (respostas && respostas.audioUrl) || null;
+    const finalFotoUrl = pacienteFotoUrl || (respostas && respostas.fotoUrl) || null;
+    if (finalAudioUrl) updateData.audioUrl = finalAudioUrl;
+    if (finalFotoUrl) updateData.pacienteFotoUrl = finalFotoUrl;
 
     const atualizada = await prisma.preConsulta.update({
       where: { id: preConsulta.id },
