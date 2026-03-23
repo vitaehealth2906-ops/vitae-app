@@ -779,7 +779,15 @@
         const profileData = {};
 
         if (formData.genero) profileData.genero = genderMap[formData.genero] || 'NAO_INFORMADO';
-        if (nascInput) profileData.dataNascimento = nascInput;
+        if (nascInput) {
+            // Ensure date is in YYYY-MM-DD format
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(nascInput)) {
+                const [dd, mm, yyyy] = nascInput.split('/');
+                profileData.dataNascimento = `${yyyy}-${mm}-${dd}`;
+            } else {
+                profileData.dataNascimento = nascInput;
+            }
+        }
         if (alturaVal) profileData.alturaCm = alturaVal;
         if (pesoVal) profileData.pesoKg = pesoVal;
         if (cpfVal && cpfVal.length === 11) profileData.cpf = cpfVal;
@@ -803,10 +811,9 @@
                 await vitaeAPI.atualizarPerfil(profileData);
                 saveSuccess = true;
             } catch (e) {
-                console.error('Erro ao salvar RG:', e.message);
-                alert('Erro ao salvar seus dados. Verifique sua conexão e tente novamente.');
+                console.error('Erro ao salvar RG:', e.message, e);
+                alert('Erro ao salvar seus dados: ' + (e.message || 'Verifique sua conexão e tente novamente.'));
                 document.querySelector('.conclusion-screen').style.display = 'none';
-                document.querySelector('.step[data-step="6"]').style.display = '';
                 return;
             }
         }
