@@ -806,17 +806,21 @@
 
         // Save to backend — wait for confirmation before redirecting
         let saveSuccess = false;
-        if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
-            try {
-                await vitaeAPI.atualizarPerfil(profileData);
-                saveSuccess = true;
-            } catch (e) {
-                console.error('Erro ao salvar RG:', e);
-                const errorMsg = e.message || 'Erro desconhecido';
-                alert('Erro ao salvar: ' + errorMsg + '\n\nDados enviados: ' + JSON.stringify(profileData).substring(0, 200));
-                document.querySelector('.conclusion-screen').style.display = 'none';
-                return;
-            }
+        const isLogged = typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn();
+        console.log('[QUIZ] isLoggedIn:', isLogged, 'profileData:', JSON.stringify(profileData));
+        if (!isLogged) {
+            alert('Você não está logado. Faça login novamente.');
+            window.location.href = '03-cadastro.html';
+            return;
+        }
+        try {
+            await vitaeAPI.atualizarPerfil(profileData);
+            saveSuccess = true;
+        } catch (e) {
+            console.error('[QUIZ] Erro ao salvar:', e);
+            alert('Erro ao salvar: ' + (e.message || 'Desconhecido') + '\n\nDados: ' + JSON.stringify(profileData).substring(0, 300));
+            document.querySelector('.conclusion-screen').style.display = 'none';
+            return;
         }
 
         // Register LGPD consents (non-blocking — don't prevent redirect)
