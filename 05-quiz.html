@@ -778,15 +778,24 @@
         // Build profile data
         const profileData = {};
 
-        if (formData.genero) profileData.genero = genderMap[formData.genero] || 'NAO_INFORMADO';
-        if (nascInput) {
-            // Ensure date is in YYYY-MM-DD format
-            if (/^\d{2}\/\d{2}\/\d{4}$/.test(nascInput)) {
-                const [dd, mm, yyyy] = nascInput.split('/');
-                profileData.dataNascimento = `${yyyy}-${mm}-${dd}`;
-            } else {
-                profileData.dataNascimento = nascInput;
+        // genero always included — prevents "empty profile" redirect loop
+        profileData.genero = genderMap[formData.genero] || 'NAO_INFORMADO';
+
+        // dataNascimento: use ISO field from datepicker first, else convert dd/mm/yyyy
+        const nascISO = document.getElementById('nascimentoISO');
+        if (nascISO && nascISO.value && /^\d{4}-\d{2}-\d{2}$/.test(nascISO.value)) {
+            profileData.dataNascimento = nascISO.value;
+        } else if (nascInput) {
+            // Handle dd/mm/yyyy (with 1 or 2 digit day/month)
+            const parts = nascInput.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (parts) {
+                const dd = parts[1].padStart(2, '0');
+                const mm = parts[2].padStart(2, '0');
+                profileData.dataNascimento = `${parts[3]}-${mm}-${dd}`;
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(nascInput)) {
+                profileData.dataNascimento = nascInput; // already YYYY-MM-DD
             }
+            // If invalid format, skip dataNascimento (don't send bad data)
         }
         if (alturaVal) profileData.alturaCm = alturaVal;
         if (pesoVal) profileData.pesoKg = pesoVal;
@@ -818,8 +827,18 @@
             saveSuccess = true;
         } catch (e) {
             console.error('[QUIZ] Erro ao salvar:', e);
-            alert('Erro ao salvar: ' + (e.message || 'Desconhecido') + '\n\nDados: ' + JSON.stringify(profileData).substring(0, 300));
-            document.querySelector('.conclusion-screen').style.display = 'none';
+            const errMsg = e.message || 'Erro de conexão';
+            // Show error in UI
+            const btn = document.querySelector('#step2 .btn-next');
+            if (btn) {
+                btn.textContent = 'Erro ao salvar — tente novamente';
+                btn.style.background = '#D94452';
+                setTimeout(() => {
+                    btn.textContent = 'Criar meu RG da Saúde';
+                    btn.style.background = '';
+                }, 4000);
+            }
+            alert('Não foi possível salvar: ' + errMsg);
             return;
         }
 
