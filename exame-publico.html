@@ -1,309 +1,1098 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VITAE — Exame Detalhado</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        :root { --bg:#FFFFFF; --gold:#0099C4; --green:#4AD9A4; --red:#D94452; --amber:#C9924A; }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:#F0F4F8; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Inter',sans-serif; }
-        .phone {
-            width:393px; max-width:100vw; min-height:100vh; background:#FFFFFF;
-            overflow-y:auto; position:relative;
-        }
-        @media (min-width:394px) {
-            .phone {
-                height:852px; max-height:100vh; border-radius:52px; overflow:hidden;
-                box-shadow: 0 0 0 1px rgba(0,153,196,0.15), 0 0 0 3px #e5e7eb, 0 30px 80px rgba(0,0,0,0.12);
-                overflow-y:auto;
-            }
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VitaID — Exame</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --gold:#0099C4;--gold-l:#38BDF8;--gold-d:#007A9E;
+      --green:#4AD9A4;--red:#D94452;--amber:#C9924A;
+      --ink:#111827;--ink2:rgba(17,24,39,.80);--ink3:rgba(17,24,39,.55);--ink4:rgba(17,24,39,.38);
+      --blur:blur(20px);
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#F0F4F8;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;font-family:'Inter',sans-serif}
+    .phone{width:393px;max-width:100vw;min-height:100vh;background:#F8FAFB;position:relative;overflow:hidden}
+    @media(min-width:394px){
+      .phone{height:852px;max-height:100vh;border-radius:52px;overflow:hidden;
+        box-shadow:0 0 0 1px rgba(0,153,196,.12),0 0 0 3px #e5e7eb,0 30px 80px rgba(0,0,0,.15)}
+    }
 
-        /* Header */
-        .header {
-            display:flex; align-items:center; padding:52px 20px 16px; gap:12px;
-            position:sticky; top:0; z-index:10;
-            background:linear-gradient(to bottom, #FFFFFF 72%, transparent);
-        }
-        .back-btn {
-            width:40px; height:40px; border-radius:12px;
-            background:rgba(0,0,0,0.03); border:1px solid rgba(0,0,0,0.08);
-            display:flex; align-items:center; justify-content:center;
-            font-size:20px; color:rgba(17,24,39,0.5); text-decoration:none;
-            flex-shrink:0; transition:all .2s;
-        }
-        .back-btn:hover { background:rgba(0,0,0,0.06); }
-        .header-title { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:#111827; }
+    /* ── SCREENS ── */
+    .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;background:#F8FAFB;
+      transition:transform .42s cubic-bezier(.77,0,.18,1);will-change:transform}
+    .screen.active{transform:translateX(0)}
+    .screen.left{transform:translateX(-100%)}
+    .screen.right{transform:translateX(100%)}
 
-        /* Content */
-        .content { padding:0 20px 52px; }
+    /* ── TOPBAR ── */
+    .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;padding:52px 18px 12px;gap:12px;
+      background:linear-gradient(to bottom,#F8FAFB 72%,transparent)}
+    .topbar-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:#111827;flex:1}
+    .back-btn{width:40px;height:40px;border-radius:12px;flex-shrink:0;
+      background:rgba(0,0,0,.05);border:1px solid rgba(0,0,0,.08);color:rgba(17,24,39,.55);
+      font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
+    .back-btn:active{background:rgba(0,0,0,.09)}
+    .top-action{padding:8px 14px;border-radius:12px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;
+      color:#007A9E;background:rgba(0,153,196,.08);border:1px solid rgba(0,153,196,.25);cursor:pointer;transition:all .2s}
+    .top-action:active{background:rgba(0,153,196,.15)}
+    .sec-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+      color:rgba(17,24,39,.42);padding:16px 20px 8px}
 
-        /* Hero Card */
-        .hero-card {
-            background:#FFFFFF;
-            border:1px solid rgba(0,0,0,.08); border-radius:22px;
-            padding:22px 20px; margin-bottom:20px; position:relative; overflow:hidden;
-            box-shadow:0 4px 24px rgba(0,0,0,.06);
-        }
-        .hero-card::before {
-            content:''; position:absolute; top:0; left:0; right:0; height:1px;
-            background:linear-gradient(90deg,transparent,rgba(0,153,196,.2),transparent);
-        }
-        .hero-card::after {
-            content:''; position:absolute; top:0; right:0; width:200px; height:200px;
-            background:radial-gradient(circle,rgba(0,153,196,.04) 0%,transparent 70%);
-            pointer-events:none;
-        }
-        .hero-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; position:relative; z-index:1; }
-        .hero-meta { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:.12em; color:rgba(0,153,196,.7); text-transform:uppercase; margin-bottom:4px; }
-        .hero-name { font-size:15px; font-weight:600; color:#111827; line-height:1.3; margin-bottom:6px; }
-        .hero-score-row { display:flex; align-items:flex-end; gap:3px; justify-content:flex-end; }
-        .hero-score { font-family:'Playfair Display',serif; font-size:42px; font-weight:600; color:var(--gold); line-height:.88; }
-        .hero-max { font-family:'DM Mono',monospace; font-size:11px; color:rgba(0,153,196,.5); padding-bottom:4px; }
-        .hero-status { font-size:11px; color:rgba(17,24,39,.4); margin-top:3px; text-align:right; }
-        .hero-bottom { position:relative; z-index:1; margin-top:16px; }
-        .pdf-btn {
-            display:inline-flex; align-items:center; gap:8px; padding:10px 18px;
-            border-radius:12px; background:linear-gradient(135deg,var(--gold),#0099C4);
-            color:#FFFFFF; font-size:12px; font-weight:700; text-decoration:none;
-            letter-spacing:.04em; text-transform:uppercase;
-        }
+    /* ── GLASS CARDS ── */
+    .gc{position:relative;border-radius:22px;margin:0 18px 12px;
+      background:#FFFFFF;border:1px solid rgba(0,0,0,.07);box-shadow:0 2px 10px rgba(0,0,0,.04)}
+    .gc-s{position:relative;border-radius:18px;margin:0 18px 10px;
+      background:rgba(0,0,0,.025);border:1px solid rgba(0,0,0,.06)}
+    .gi{border-radius:21px;padding:18px 20px;position:relative}
+    .gi::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:none}
 
-        /* Status tag */
-        .status-tag { display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
-        .status-tag.ok { background:rgba(74,217,164,.1); color:var(--green); border:1px solid rgba(74,217,164,.2); }
-        .status-tag.warn { background:rgba(0,153,196,.1); color:var(--amber); border:1px solid rgba(0,153,196,.2); }
-        .status-tag.crit { background:rgba(217,68,82,.1); color:var(--red); border:1px solid rgba(217,68,82,.2); }
+    /* ── HERO CARD ── */
+    .gc-hero{position:relative;border-radius:22px;margin:0 18px 14px;
+      background:#FFFFFF;border:1px solid rgba(0,153,196,.14);box-shadow:0 4px 20px rgba(0,0,0,.06)}
+    .gi-dark{border-radius:21px;padding:18px 20px;position:relative;overflow:hidden;background:none}
+    .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:relative;z-index:1}
+    .hero-left{flex:1;min-width:0}
+    .hero-meta{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;color:rgba(17,24,39,.42);text-transform:uppercase;margin-bottom:4px}
+    .hero-name{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:#111827;line-height:1.3}
+    .hero-right{flex-shrink:0;text-align:right}
+    .hero-score-row{display:flex;align-items:flex-end;gap:3px;justify-content:flex-end}
+    .hero-score{font-family:'Playfair Display',serif;font-size:42px;font-weight:600;color:#0099C4;line-height:.88}
+    .hero-max{font-family:'DM Mono',monospace;font-size:11px;color:rgba(17,24,39,.35);padding-bottom:4px;letter-spacing:.06em}
+    .hero-status{font-family:'Inter',sans-serif;font-size:11px;font-weight:400;color:rgba(17,24,39,.50);margin-top:2px;text-align:right}
+    .hero-bottom{position:relative;z-index:1;margin-top:12px}
+    .hero-cta{padding:10px 18px;border-radius:12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
+      letter-spacing:.04em;text-transform:uppercase;text-align:center;cursor:pointer;border:none;transition:all .2s;
+      display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+    .hero-cta.primary{background:linear-gradient(135deg,#00B4D8,#007A9E);color:#0f172a;box-shadow:0 4px 16px rgba(0,153,196,.25)}
+    .hero-cta:active{transform:scale(.96)}
 
-        /* Section title */
-        .section-title {
-            font-family:'Playfair Display',serif; font-size:16px; font-weight:700; color:#111827;
-            margin:20px 0 10px; display:flex; align-items:center; gap:8px;
-        }
+    /* ── NARRATIVE ── */
+    .narr-card{margin:0 18px 12px;padding:18px 20px;border-radius:18px;
+      background:rgba(0,153,196,.04);border:1px solid rgba(0,153,196,.12)}
+    .narr-txt{font-family:'Inter',sans-serif;font-size:14px;font-weight:400;color:rgba(17,24,39,.72);line-height:1.65}
+    .narr-txt strong{font-weight:600;color:#111827}
 
-        /* Biomarker items */
-        .bio-item {
-            display:flex; align-items:center; gap:10px; padding:12px 14px;
-            border-radius:14px; margin-bottom:8px;
-            background:rgba(0,0,0,.02); border:1px solid rgba(0,0,0,.07);
-        }
-        .bio-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-        .bio-dot.ok { background:var(--green); }
-        .bio-dot.warn { background:var(--amber); }
-        .bio-dot.crit { background:var(--red); }
-        .bio-name { flex:1; font-size:13px; color:rgba(17,24,39,.75); }
-        .bio-val { font-family:'DM Mono',monospace; font-size:11px; color:rgba(17,24,39,.40); margin-right:6px; }
-        .bio-cls { font-size:10px; font-weight:600; padding:2px 8px; border-radius:8px; flex-shrink:0; }
-        .bio-cls.ok { background:rgba(74,217,164,.1); color:var(--green); }
-        .bio-cls.warn { background:rgba(0,153,196,.1); color:var(--amber); }
-        .bio-cls.crit { background:rgba(217,68,82,.1); color:var(--red); }
+    /* ── STATUS BOXES ── */
+    .status-boxes-wrap{margin:0 18px 14px}
+    .status-boxes-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:rgba(17,24,39,.38);text-transform:uppercase;margin-bottom:10px}
+    .status-boxes{display:flex;gap:10px}
+    .status-box{display:flex;align-items:center;border-radius:14px;cursor:pointer;overflow:hidden;height:48px;
+      opacity:0;animation:boxSlide .45s ease both;transition:all .3s}
+    .status-box:active{transform:scale(.96)}
+    @keyframes boxSlide{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
+    .status-box-count{font-family:'DM Mono',monospace;font-size:18px;font-weight:600;min-width:42px;
+      display:flex;align-items:center;justify-content:center;height:100%;letter-spacing:-.02em}
+    .status-box-text{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:0 16px 0 12px;letter-spacing:.02em}
+    .status-box.ok{background:rgba(74,217,164,.08);border:1.5px solid rgba(74,217,164,.2)}
+    .status-box.ok .status-box-count{color:var(--green);border-right:1.5px solid rgba(74,217,164,.2)}
+    .status-box.ok .status-box-text{color:var(--green)}
+    .status-box.warn{background:rgba(0,153,196,.08);border:1.5px solid rgba(0,153,196,.2)}
+    .status-box.warn .status-box-count{color:var(--amber);border-right:1.5px solid rgba(0,153,196,.2)}
+    .status-box.warn .status-box-text{color:var(--amber)}
+    .status-box.crit{background:rgba(217,68,82,.08);border:1.5px solid rgba(217,68,82,.2)}
+    .status-box.crit .status-box-count{color:var(--red);border-right:1.5px solid rgba(217,68,82,.2)}
+    .status-box.crit .status-box-text{color:var(--red)}
 
-        /* System group label */
-        .sys-group { margin-bottom:4px; }
-        .sys-group-label {
-            font-family:'DM Mono',monospace; font-size:10px; font-weight:600;
-            color:rgba(17,24,39,.30); letter-spacing:.1em; text-transform:uppercase;
-            margin:14px 0 6px;
-        }
+    /* ── BIOLIST ── */
+    .biolist-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#111827;
+      margin:10px 20px 4px;opacity:0;animation:fadeUp .4s ease .1s both}
+    .biolist-sub{font-family:'Inter',sans-serif;font-size:13px;font-weight:400;color:rgba(17,24,39,.50);
+      margin:0 20px 18px;opacity:0;animation:fadeUp .4s ease .15s both}
+    .biolist-item{display:flex;align-items:center;gap:12px;padding:14px 18px;margin:0 14px 8px;
+      border-radius:14px;cursor:pointer;background:#FFFFFF;border:1px solid rgba(0,0,0,.07);
+      transition:all .25s;opacity:0;animation:fadeUp .4s ease both}
+    .biolist-item:active{transform:scale(.98)}
+    .biolist-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .biolist-dot.ok{background:var(--green)}
+    .biolist-dot.warn{background:var(--amber)}
+    .biolist-dot.crit{background:var(--red)}
+    .biolist-name{font-family:'Inter',sans-serif;font-size:14px;font-weight:400;color:#111827;flex:1}
+    .biolist-val{font-family:'DM Mono',monospace;font-size:12px;color:rgba(17,24,39,.50)}
+    .biolist-arrow{color:rgba(17,24,39,.22);font-size:14px;margin-left:4px}
 
-        /* AI Insights */
-        .insight-card {
-            background:rgba(0,153,196,.04); border:1px solid rgba(0,153,196,.12);
-            border-radius:16px; padding:14px 16px; margin-bottom:10px;
-        }
-        .insight-title { font-size:13px; font-weight:600; color:#111827; margin-bottom:4px; }
-        .insight-text { font-size:13px; color:rgba(17,24,39,.55); line-height:1.55; }
+    /* ── SIST HEADER ── */
+    .sist-header{padding:0 22px 6px;font-family:'Playfair Display',serif;font-size:30px;font-weight:500;color:#111827}
+    .sist-sub{font-family:'Inter',sans-serif;font-size:13px;font-weight:300;color:rgba(17,24,39,.60);padding:0 22px 14px;line-height:1.6}
 
-        /* Alerts */
-        .alert-card { display:flex; align-items:flex-start; gap:10px; padding:13px 14px; border-radius:14px; margin-bottom:8px; }
-        .alert-card.URGENTE { background:rgba(217,68,82,.08); border:1px solid rgba(217,68,82,.2); }
-        .alert-card.ATENCAO { background:rgba(0,153,196,.08); border:1px solid rgba(0,153,196,.2); }
-        .alert-card.INFO { background:rgba(74,144,226,.08); border:1px solid rgba(74,144,226,.2); }
-        .alert-icon { flex-shrink:0; margin-top:2px; }
-        .alert-text { font-size:13px; color:rgba(17,24,39,.55); line-height:1.4; }
+    /* ── MARKER SCREEN ── */
+    .mk-val-row{display:flex;align-items:flex-end;gap:5px;margin-bottom:6px}
+    .mk-val{font-family:'Playfair Display',serif;font-size:72px;font-weight:600;line-height:.9}
+    .mk-val.crit{color:var(--red)}.mk-val.warn{color:var(--amber)}.mk-val.ok{color:var(--green)}
+    .mk-unit{font-family:'DM Mono',monospace;font-size:12px;color:rgba(17,24,39,.38);letter-spacing:.08em;padding-bottom:6px}
+    .mk-ey{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(17,24,39,.40);margin-bottom:5px}
+    .mk-name{font-family:'Playfair Display',serif;font-size:13px;font-weight:300;font-style:italic;color:rgba(17,24,39,.60);margin-bottom:12px}
+    .mk-ref-row{display:flex;gap:10px;align-items:center}
+    .mk-ref{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.09em;color:rgba(17,24,39,.38);text-transform:uppercase}
+    .badge{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.06em;padding:3px 9px;border-radius:20px}
+    .badge.crit{background:rgba(184,92,74,.1);color:var(--red);border:1px solid rgba(184,92,74,.18)}
+    .badge.warn{background:rgba(0,153,196,.1);color:var(--amber);border:1px solid rgba(0,153,196,.18)}
+    .badge.ok{background:rgba(125,158,122,.1);color:var(--green);border:1px solid rgba(125,158,122,.18)}
 
-        /* Footer */
-        .footer-note { text-align:center; padding:24px 0 4px; font-size:11px; color:rgba(17,24,39,.25); line-height:1.6; }
-        .footer-note a { color:var(--gold); text-decoration:none; }
+    /* ── SPECTRUM ── */
+    .spec-label{font-family:'Playfair Display',serif;font-size:14px;font-style:italic;font-weight:400;color:rgba(17,24,39,.70);margin-bottom:13px}
+    .spec-track{height:8px;border-radius:4px;
+      background:linear-gradient(to right,#B85C4A 0%,#C9924A 28%,#7D9E7A 52%,#7D9E7A 72%,#C9924A 87%,#B85C4A 100%);
+      position:relative;margin-bottom:6px;box-shadow:inset 0 1px 3px rgba(28,24,16,.1)}
+    .spec-needle{position:absolute;top:50%;transform:translate(-50%,-50%);width:20px;height:20px;
+      background:#1e293b;border-radius:50%;border:1.5px solid rgba(0,153,196,.45);
+      box-shadow:0 0 0 3px rgba(0,153,196,.15),0 3px 8px rgba(0,0,0,.14);
+      transition:left 1.4s cubic-bezier(.77,0,.18,1)}
+    .spec-zones{display:flex;justify-content:space-between}
+    .sz{font-family:'DM Mono',monospace;font-size:7px;color:rgba(17,24,39,.40);letter-spacing:.06em}
 
-        /* Loading/error */
-        .loading { text-align:center; padding:80px 20px; color:rgba(17,24,39,.35); font-size:14px; }
-        .loading-spinner { width:40px; height:40px; border:3px solid rgba(0,153,196,.15); border-top-color:#0099C4; border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
-        @keyframes spin { to { transform:rotate(360deg); } }
-    @media(max-width:480px){body{padding:0!important;background:inherit!important}.phone{width:100vw!important;height:100vh!important;height:100svh!important;max-width:100vw!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}.notch,.status{display:none!important}}</style>
+    /* ── MEANING ── */
+    .mn-ey{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:#007A9E;margin-bottom:8px}
+    .mn-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:500;color:#111827;margin-bottom:8px;line-height:1.3}
+    .mn-body{font-family:'Inter',sans-serif;font-size:13px;font-weight:300;color:rgba(17,24,39,.62);line-height:1.7}
+    .mn-body strong{font-weight:400;color:#111827}
+
+    /* ── OTC ── */
+    .otc-gc{position:relative;border-radius:18px;margin:0 18px 8px;
+      background:rgba(74,217,164,.03);border:1px solid rgba(74,217,164,.1)}
+    .otc-gi{border-radius:17px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start}
+    .otc-iw{width:40px;height:40px;flex-shrink:0;border-radius:12px;background:rgba(74,217,164,.06);
+      border:1px solid rgba(74,217,164,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+    .otc-type{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.08em;color:var(--green)}
+    .otc-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:500;color:#111827;margin-bottom:3px}
+    .otc-desc{font-family:'Inter',sans-serif;font-size:12px;font-weight:300;color:rgba(17,24,39,.58);line-height:1.6}
+
+    /* ── MELHORIAS PRIORITY CARD ── */
+    .gc-priority{position:relative;border-radius:22px;margin:6px 18px 16px;
+      background:#FFFFFF;border:1.5px solid rgba(0,153,196,.16);box-shadow:0 4px 20px rgba(0,0,0,.06)}
+    .gi-priority{border-radius:21px;padding:24px;position:relative;overflow:hidden;
+      background:linear-gradient(135deg,rgba(0,153,196,.05),rgba(56,189,248,.04))}
+    .gi-priority::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(0,153,196,.12),transparent)}
+    .pc-ey{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.20em;text-transform:uppercase;color:rgba(17,24,39,.38);margin-bottom:10px}
+    .pc-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:500;color:#111827;margin-bottom:7px;line-height:1.2}
+    .pc-body{font-family:'Inter',sans-serif;font-size:13px;font-weight:300;color:rgba(17,24,39,.60);line-height:1.65;margin-bottom:18px}
+    .pc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+    .pc-tag{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.08em;padding:4px 10px;border-radius:20px;
+      background:rgba(0,153,196,.08);color:#007A9E;border:1px solid rgba(0,153,196,.20)}
+    .pc-btn{width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,#00B4D8,#007A9E);
+      color:#0f172a;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;
+      text-transform:uppercase;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(0,153,196,.25);transition:all .25s}
+    .pc-btn:active{transform:scale(.98)}
+
+    /* ── FORECAST VISUAL ── */
+    .fv-label-row{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:rgba(17,24,39,.35);margin-bottom:8px}
+    .fv-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .fv-time{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:rgba(17,24,39,.30);width:48px;flex-shrink:0;text-align:right}
+    .fv-spec{flex:1;position:relative}
+    .fv-track{height:6px;border-radius:3px;
+      background:linear-gradient(to right,#B85C4A 0%,#C9924A 28%,#7D9E7A 52%,#7D9E7A 72%,#C9924A 87%,#B85C4A 100%);opacity:.5}
+    .fv-pin{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;
+      background:#1e293b;border-radius:50%;border:1.5px solid rgba(0,153,196,.35);
+      box-shadow:0 0 0 2.5px rgba(0,153,196,.15),0 2px 8px rgba(0,0,0,.2);transition:left 1.4s cubic-bezier(.77,0,.18,1)}
+    .fv-val{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.04em;width:60px;flex-shrink:0}
+    .fv-val.bad{color:var(--red)}.fv-val.good{color:var(--green);font-weight:400}
+
+    /* ── REC ITEMS ── */
+    .rec-section{padding:0 20px;display:flex;flex-direction:column}
+    .rec-item-gc{position:relative;border-radius:20px;margin-bottom:10px;
+      background:#FFFFFF;border:1px solid rgba(0,0,0,.07);cursor:pointer;transition:all .2s}
+    .rec-item-gc:active{transform:scale(.983)}
+    .rec-gi{border-radius:19px;padding:16px 18px}
+    .ri-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:10px}
+    .ri-icon{width:38px;height:38px;border-radius:11px;background:rgba(0,153,196,.06);
+      border:1px solid rgba(0,153,196,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .ri-text{flex:1}
+    .ri-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:500;color:#111827;margin-bottom:3px;line-height:1.2}
+    .ri-sub{font-family:'Inter',sans-serif;font-size:12px;font-weight:300;color:rgba(17,24,39,.55);line-height:1.55}
+
+    /* ── ACTION INSIGHT CARDS ── */
+    .action-list{display:flex;flex-direction:column;gap:10px;padding:0 18px;margin-bottom:12px}
+    .action-item{border-radius:20px;overflow:hidden;transition:box-shadow .35s ease;
+      background:#FFFFFF;border:1px solid rgba(0,0,0,.07)}
+    .action-item.expanded{box-shadow:0 6px 24px rgba(0,0,0,.08)}
+    .action-item.crit-item{border-left:3px solid rgba(217,68,82,.4)}
+    .action-item.warn-item{border-left:3px solid rgba(0,153,196,.35)}
+    .action-item.ok-item{border-left:3px solid rgba(74,217,164,.3)}
+    .action-header{display:flex;align-items:center;padding:14px 14px 14px 16px;gap:10px;cursor:pointer}
+    .action-main{flex:1}
+    .action-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:500;color:#111827;margin-bottom:5px;line-height:1.2}
+    .action-chips{display:flex;gap:7px;flex-wrap:wrap}
+    .achip{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.04em;padding:4px 10px;border-radius:20px;
+      background:rgba(0,153,196,.07);color:#007A9E;border:1px solid rgba(0,153,196,.18)}
+    .action-chevron{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+      background:rgba(0,153,196,.07);color:#007A9E;border:1px solid rgba(0,153,196,.18);
+      transition:transform .42s cubic-bezier(.77,0,.18,1),background .25s}
+    .action-chevron svg{display:block;flex-shrink:0}
+    .action-item.expanded .action-chevron{transform:rotate(90deg);background:rgba(0,153,196,.14)}
+    .action-body{max-height:0;overflow:hidden;transition:max-height .52s cubic-bezier(.77,0,.18,1)}
+    .action-item.expanded .action-body{max-height:680px}
+    .action-body-pad{padding:0 10px 14px;display:flex;flex-direction:column;gap:7px}
+    .aec-inner{border-radius:14px;padding:12px 14px;
+      background:rgba(0,0,0,.025);border:1px solid rgba(0,0,0,.06);
+      opacity:0;transform:translateY(8px);transition:opacity .3s ease,transform .3s ease}
+    .action-item.expanded .aec-inner:nth-child(1){opacity:1;transform:translateY(0);transition-delay:.07s}
+    .action-item.expanded .aec-inner:nth-child(2){opacity:1;transform:translateY(0);transition-delay:.14s}
+    .aec-dark{background:linear-gradient(135deg,rgba(0,153,196,.07),rgba(56,189,248,.06))!important;border-color:rgba(0,153,196,.14)!important}
+    .aec-timeline{background:linear-gradient(135deg,rgba(56,189,248,.06),rgba(0,153,196,.05))!important;border-color:rgba(56,189,248,.14)!important}
+    .aec-val-pill{display:inline-flex;align-items:center;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.07em;border-radius:20px;padding:3px 10px;margin-bottom:10px}
+    .aec-val-pill.crit{background:rgba(184,92,74,.1);color:var(--red);border:1px solid rgba(184,92,74,.2)}
+    .aec-val-pill.warn{background:rgba(0,153,196,.1);color:var(--amber);border:1px solid rgba(0,153,196,.2)}
+    .aec-val-pill.norm{background:rgba(0,0,0,.05);color:rgba(17,24,39,.72);border:1px solid rgba(0,0,0,.10)}
+    .aec-action-lbl{font-family:'Inter',sans-serif;font-size:16px;font-weight:600;letter-spacing:.01em;color:#007A9E;margin-bottom:10px}
+    .aec-action-txt{font-family:'Inter',sans-serif;font-size:14px;font-weight:400;color:rgba(17,24,39,.78);line-height:1.55}
+    .atl-header{font-family:'Inter',sans-serif;font-size:16px;font-weight:600;letter-spacing:.01em;color:#007A9E;margin-bottom:16px}
+    .atl-track-wrap{position:relative;height:46px;margin-bottom:16px}
+    .atl-line-bg{position:absolute;top:50%;left:10px;right:10px;height:3px;background:rgba(0,0,0,.08);border-radius:2px;transform:translateY(-50%)}
+    .atl-line-fill{position:absolute;top:50%;left:10px;height:3px;
+      background:linear-gradient(to right,#B85C4A,#C9924A,#0099C4);border-radius:2px;transform:translateY(-50%);
+      transition:width .6s cubic-bezier(.77,0,.18,1);box-shadow:0 0 10px rgba(0,153,196,.25)}
+    .atl-dots{position:absolute;top:0;left:0;right:0;height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 10px}
+    .atl-milestone{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
+    .atl-dot{width:17px;height:17px;border-radius:50%;border:2px solid rgba(0,0,0,.10);background:#F0F4F8;transition:all .35s cubic-bezier(.34,1.56,.64,1)}
+    .atl-milestone.ms-active .atl-dot{background:#0099C4;border-color:#0099C4;box-shadow:0 0 0 4px rgba(0,153,196,.15);transform:scale(1.12)}
+    .atl-ms-time{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:rgba(17,24,39,.30);transition:color .25s}
+    .atl-milestone.ms-active .atl-ms-time{color:#007A9E}
+    .atl-ben-wrap{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+    .atl-ben-chip{font-family:'Inter',sans-serif;font-size:13px;font-weight:300;color:rgba(17,24,39,.72);line-height:1.5}
+    .atl-start-msg{font-family:'Inter',sans-serif;font-size:13px;font-weight:300;color:rgba(17,24,39,.42);line-height:1.5}
+    .atl-ideal-badge{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;
+      align-self:flex-start;background:rgba(0,153,196,.10);color:#007A9E;border:1px solid rgba(0,153,196,.25);
+      padding:4px 10px;border-radius:20px;margin-top:2px}
+    .atl-footer{display:flex;gap:6px;flex-wrap:wrap;padding-top:11px;border-top:1px solid rgba(0,0,0,.07)}
+    .atl-foot-chip{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;padding:5px 12px;border-radius:20px;
+      background:rgba(0,153,196,.08);color:#007A9E;border:1px solid rgba(0,153,196,.25)}
+    .ab-cta{display:inline-flex;align-self:stretch;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:14px;
+      font-family:'Inter',sans-serif;font-size:13px;font-weight:700;letter-spacing:.04em;cursor:pointer;
+      color:#0f172a;background:linear-gradient(135deg,#00B4D8,#007A9E);border:none;
+      box-shadow:0 4px 20px rgba(0,153,196,.25);
+      opacity:0;transform:translateY(4px);transition:opacity .3s ease .28s,transform .3s ease .28s}
+    .ab-cta:active{opacity:.88}
+    .action-item.expanded .ab-cta{opacity:1;transform:translateY(0)}
+    .ok-action-item{border-radius:18px;padding:14px 16px;background:rgba(74,217,164,.04);border:1px solid rgba(74,217,164,.12)}
+    .ok-action-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:500;color:#111827;margin-bottom:4px}
+    .ok-action-sub{font-family:'Inter',sans-serif;font-size:12px;font-weight:300;color:rgba(17,24,39,.55);line-height:1.55}
+    .celebrate-banner{border-radius:18px;padding:14px 16px;margin-bottom:10px;
+      background:rgba(0,153,196,.04);border:1px solid rgba(0,153,196,.15)}
+    .cb-row{display:flex;align-items:center;gap:12px}
+    .cb-icon{flex-shrink:0}
+    .cb-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:500;color:#111827;margin-bottom:2px;line-height:1.2}
+    .cb-sub{font-family:'Inter',sans-serif;font-size:12px;font-weight:300;color:rgba(17,24,39,.55);line-height:1.5}
+
+    /* ── SKELETON ── */
+    .skel{background:linear-gradient(90deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.09) 50%,rgba(0,0,0,.05) 100%);
+      background-size:200%;animation:skelAnim 1.4s ease-in-out infinite;border-radius:8px}
+    @keyframes skelAnim{0%{background-position:200%}100%{background-position:-200%}}
+
+    /* ── LOADING ── */
+    .loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:60px 20px}
+    .loading-ring{width:48px;height:48px;border-radius:50%;border:2px solid rgba(0,153,196,.12);border-top-color:#0099C4;animation:spinRing 1s linear infinite}
+
+    /* ── TOAST ── */
+    .toast{position:absolute;top:68px;left:50%;transform:translateX(-50%) translateY(-10px);
+      background:rgba(255,255,255,.97);backdrop-filter:var(--blur);border:1px solid rgba(0,0,0,.09);
+      border-radius:14px;padding:12px 20px;display:flex;align-items:center;gap:10px;z-index:60;
+      opacity:0;pointer-events:none;transition:all .4s cubic-bezier(.34,1.56,.64,1);box-shadow:0 12px 40px rgba(0,0,0,.12)}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .toast-text{font-family:'Inter',sans-serif;font-size:13px;color:#111827;font-weight:300}
+
+    /* ── ANIMATIONS ── */
+    .fade{animation:fadeUp .5s ease both}
+    .d1{animation-delay:.04s}.d2{animation-delay:.10s}.d3{animation-delay:.17s}
+    .d4{animation-delay:.24s}.d5{animation-delay:.32s}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes spinRing{to{transform:rotate(360deg)}}
+  </style>
 </head>
 <body>
 <div class="phone">
-    <div class="header">
-        <a class="back-btn" id="backBtn" href="#">‹</a>
-        <div class="header-title">Exame Detalhado</div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"><span class="toast-text" id="toastText"></span></div>
+
+  <!-- ══ OVERVIEW ══ -->
+  <div class="screen active" id="s-overview">
+    <div class="topbar">
+      <button class="back-btn" id="backBtn" onclick="goBack()">‹</button>
+      <button class="top-action" onclick="push('s-melhorias')">Ver melhorias</button>
     </div>
-    <div class="content" id="mainContent">
-        <div class="loading">
-            <div class="loading-spinner"></div>
-            Carregando exame...
-        </div>
+    <div id="heroCard" class="fade d1"></div>
+    <div id="sysGrid"></div>
+    <div id="insightsWrap" style="padding:0 18px;margin-bottom:12px"></div>
+    <div style="height:30px"></div>
+  </div>
+
+  <!-- ══ MARCADOR ══ -->
+  <div class="screen right" id="s-marker">
+    <div class="topbar">
+      <button class="back-btn" onclick="pop()">‹</button>
     </div>
+    <div id="markerContent"></div>
+    <div style="height:30px"></div>
+  </div>
+
+  <!-- ══ MELHORIAS ══ -->
+  <div class="screen right" id="s-melhorias">
+    <div class="topbar">
+      <button class="back-btn" onclick="pop()">‹</button>
+      <span class="topbar-title" style="font-size:21px">Melhorias</span>
+    </div>
+    <div id="melhoriaContent"></div>
+    <div style="height:30px"></div>
+  </div>
+
+  <!-- ══ BIOLIST ══ -->
+  <div class="screen right" id="s-biolist">
+    <div class="topbar">
+      <button class="back-btn" onclick="pop()">‹</button>
+    </div>
+    <div id="biolistContent"></div>
+    <div style="height:30px"></div>
+  </div>
+
 </div>
 
 <script>
-    const API_URL = ['localhost','127.0.0.1'].includes(window.location.hostname) || window.location.protocol === 'file:'
-        ? 'http://localhost:3002'
-        : 'https://vitae-app-production.up.railway.app';
+// ══════════════════════════════
+// API URL
+// ══════════════════════════════
+const API_URL = (window.location.hostname === 'localhost' || window.location.protocol === 'file:')
+  ? 'http://localhost:3000'
+  : 'https://vitae-api-production.up.railway.app';
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('user');
-    const examId = urlParams.get('exam');
+// ══════════════════════════════
+// URL PARAMS
+// ══════════════════════════════
+const urlParams = new URLSearchParams(window.location.search);
+const EXAM_USER_ID = urlParams.get('user') || '';
+const EXAM_ID      = urlParams.get('exam') || '';
 
-    document.getElementById('backBtn').href = userId ? `rg-publico.html?id=${userId}` : 'javascript:history.back()';
+// ══════════════════════════════
+// NAVIGATION
+// ══════════════════════════════
+const stack = ['s-overview'];
+let animating = false;
 
-    const clsMap = { NORMAL:'ok', ATENCAO:'warn', CRITICO:'crit' };
-    const clsLabel = { NORMAL:'Normal', ATENCAO:'Atenção', CRITICO:'Crítico' };
+function push(id) {
+  if (animating) return;
+  animating = true;
+  const from = document.getElementById(stack[stack.length - 1]);
+  const to   = document.getElementById(id);
+  stack.push(id);
+  from.className = 'screen left';
+  to.className   = 'screen active';
+  triggerFades(to);
+  setTimeout(() => animating = false, 450);
+}
 
-    async function load() {
-        if (!userId || !examId) { showError('Link inválido.'); return; }
-        try {
-            const res = await fetch(`${API_URL}/autorizacao/exame-publico/${userId}/${examId}`);
-            if (!res.ok) throw new Error('Exame não encontrado');
-            const { exame } = await res.json();
-            render(exame);
-        } catch (e) {
-            showError(e.message || 'Erro ao carregar exame');
-        }
+function pop() {
+  if (stack.length <= 1 || animating) return;
+  animating = true;
+  const from = document.getElementById(stack.pop());
+  const to   = document.getElementById(stack[stack.length - 1]);
+  from.className = 'screen right';
+  to.className   = 'screen active';
+  triggerFades(to);
+  setTimeout(() => animating = false, 450);
+}
+
+function triggerFades(el) {
+  el.querySelectorAll('.fade').forEach(e => { e.style.animation='none'; e.offsetHeight; e.style.animation=''; });
+}
+
+function goBack() {
+  if (stack.length > 1) { pop(); return; }
+  if (EXAM_USER_ID) window.location.href = 'rg-publico.html?id=' + EXAM_USER_ID;
+  else window.history.back();
+}
+
+// ══════════════════════════════
+// TOAST
+// ══════════════════════════════
+let toastTimer;
+function showToast(txt) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastText').textContent = txt;
+  clearTimeout(toastTimer);
+  t.classList.add('show');
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ══════════════════════════════
+// HELPERS
+// ══════════════════════════════
+function toNomeAmigavel(nome) {
+  if (!nome) return 'Exame de Saúde';
+  const n = nome.toLowerCase().trim();
+  if (n.includes('multiplo') || n === 'múltiplos' || n === 'multiplos') return 'Painel Completo de Saúde';
+  if (n.includes('hemograma')) return 'Exame de Sangue Completo';
+  if (n.includes('lipidogram') || (n.includes('lipid') && !n.includes('vitamina'))) return 'Perfil do Coração';
+  if (n.includes('glicemia') && n.includes('hba') || n.includes('glicada')) return 'Controle de Açúcar no Sangue';
+  if (n.includes('glicemia') || n.includes('glicose')) return 'Nível de Açúcar no Sangue';
+  if (n.includes('tsh') || n.includes('tireoide') || n.includes('tirói')) return 'Função da Tireoide';
+  if (n.includes('testosterona')) return 'Hormônios Masculinos';
+  if (n.includes('hormonal') || n.includes('estradiol') || n.includes('progesterona')) return 'Perfil Hormonal';
+  if (n.includes('vitamina')) return 'Vitaminas e Minerais';
+  if (n.includes('urina')) return 'Exame de Urina';
+  if (n.includes('renal') || n.includes('rim')) return 'Função dos Rins';
+  if (n.includes('hepat') || n.includes('figado') || n.includes('tgo') || n.includes('tgp')) return 'Função do Fígado';
+  if (n.includes('check') || n.includes('painel') || n.includes('completo')) return 'Painel Completo de Saúde';
+  return nome;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return `${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function formatDateFull(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  return `${d.getDate()} de ${months[d.getMonth()]}, ${d.getFullYear()}`;
+}
+
+function calcScore(params) {
+  if (!params || !params.length) return '--';
+  const normals = params.filter(p => {
+    const c = (p.classificacao || '').toUpperCase();
+    return c === 'NORMAL' || c === '';
+  }).length;
+  return (normals / params.length * 10).toFixed(1);
+}
+
+function classToNeedle(cl) {
+  if (!cl) return 52;
+  const c = cl.toUpperCase();
+  if (c === 'CRITICO') return 8;
+  if (c === 'BAIXO') return 18;
+  if (c === 'ALTO') return 84;
+  return 52;
+}
+
+function apiStatusClass(s) {
+  if (!s) return 'ok';
+  const u = s.toUpperCase();
+  if (u === 'CRITICO') return 'crit';
+  if (u === 'ATENCAO') return 'warn';
+  return 'ok';
+}
+
+function escapeJson(obj) {
+  return JSON.stringify(obj).replace(/"/g, '&quot;');
+}
+
+// ══════════════════════════════
+// SYSTEM MAPPING
+// ══════════════════════════════
+const SYSTEM_MAP = {
+  'hemoglobina':'Cardio','hematocrito':'Cardio','eritrocitos':'Cardio','leucocitos':'Imunidade',
+  'plaquetas':'Imunidade','neutrofilos':'Imunidade','linfocitos':'Imunidade',
+  'colesterol':'Cardio','ldl':'Cardio','hdl':'Cardio','triglicerides':'Cardio',
+  'vitamina d':'Nutricional','vitamina b12':'Nutricional','vitamina c':'Nutricional',
+  'ferritina':'Nutricional','ferro':'Nutricional','calcio':'Nutricional',
+  'magnesio':'Nutricional','zinco':'Nutricional','fosforo':'Nutricional',
+  'potassio':'Nutricional','sodio':'Nutricional',
+  'glicose':'Metabolico','glicemia':'Metabolico','hemoglobina glicada':'Metabolico',
+  'insulina':'Metabolico','ureia':'Metabolico','creatinina':'Metabolico',
+  'acido urico':'Metabolico','alt':'Metabolico','ast':'Metabolico','tgo':'Metabolico','tgp':'Metabolico',
+  'tsh':'Hormonal','t3':'Hormonal','t4':'Hormonal','testosterona':'Hormonal',
+  'estradiol':'Hormonal','cortisol':'Hormonal','progesterona':'Hormonal',
+  'dhea':'Hormonal','fsh':'Hormonal','lh':'Hormonal',
+};
+const SYSTEM_FRIENDLY_PT = { Cardio:'coração', Metabolico:'metabolismo', Imunidade:'defesas do corpo', Nutricional:'nutrição', Hormonal:'hormônios', Geral:'saúde geral' };
+
+function getSystem(paramName) {
+  if (!paramName) return 'Geral';
+  const key = paramName.toLowerCase().trim();
+  for (const k in SYSTEM_MAP) { if (key.includes(k)) return SYSTEM_MAP[k]; }
+  return 'Geral';
+}
+
+// ══════════════════════════════
+// MARKER INFO
+// ══════════════════════════════
+const MARKER_INFO = {
+  'vitamina d':     { title:'A vitamina D controla energia e imunidade', body:'Com nível baixo, é comum sentir <strong>cansaço, falta de foco e humor mais baixo</strong>. No Brasil, deficiência é muito comum mesmo com sol abundante.', recs:[{name:'Vitamina D3 + K2',desc:'Disponível em farmácias sem receita. K2 melhora a absorção. Níveis normalizam em 60–90 dias.'},{name:'20 min de sol direto',desc:'Braços e pernas expostos entre 10h e 14h. Complementa o suplemento.'}] },
+  'vitamina b12':   { title:'Vitamina B12 é essencial para o sistema nervoso', body:'Falta de B12 causa <strong>formigamento nas mãos, esquecimento e cansaço extremo</strong>. Vegetarianos e veganos têm maior risco.', recs:[{name:'Suplemento de B12',desc:'Prefira metilcobalamina. 500mcg/dia é suficiente para a maioria.'},{name:'Ovos, carnes e laticínios',desc:'Para veganos, suplementação é obrigatória.'}] },
+  'ferritina':      { title:'Ferritina é a reserva de ferro do seu corpo', body:'Níveis baixos causam <strong>fadiga intensa, queda de cabelo e dificuldade de concentrar</strong>.', recs:[{name:'Bisglicinato de Ferro',desc:'Menos efeitos gástricos. Tome em jejum com vitamina C.'},{name:'Feijão e carne vermelha',desc:'3× por semana aumenta o ferro alimentar.'}] },
+  'hemoglobina':    { title:'Hemoglobina transporta oxigênio no sangue', body:'Quando baixa, o corpo recebe <strong>menos oxigênio nos tecidos</strong>, causando cansaço e falta de ar.', recs:[{name:'Investigar causa',desc:'Hemoglobina baixa pode ter várias origens. Consulte um médico.'},{name:'Alimentos ricos em ferro',desc:'Carne vermelha, fígado, feijão e vegetais verde-escuros.'}] },
+  'leucocitos':     { title:'Leucócitos são as células de defesa do seu corpo', body:'Quando elevados, indicam <strong>infecção ou inflamação</strong>. Quando baixos, o sistema imunológico está enfraquecido.', recs:[{name:'Sono e recuperação',desc:'7–8h por noite é essencial para o sistema imunológico.'},{name:'Vitamina C e Zinco',desc:'Apoiam a produção dos leucócitos.'}] },
+  'plaquetas':      { title:'Plaquetas controlam a coagulação do sangue', body:'Muito baixas causam <strong>sangramento excessivo</strong>. Muito altas aumentam o risco de coágulos.', recs:[] },
+  'colesterol':     { title:'Colesterol total: o equilíbrio entre HDL e LDL importa', body:'O desequilíbrio entre o "bom" (HDL) e o "ruim" (LDL) <strong>aumenta riscos cardiovasculares</strong>.', recs:[{name:'Exercício aeróbico',desc:'30 min por dia eleva o HDL e reduz o LDL.'},{name:'Ômega 3',desc:'2–4g de EPA+DHA por dia melhora o perfil lipídico.'}] },
+  'ldl':            { title:'LDL é o "colesterol ruim"', body:'Acúmulo de LDL nas artérias aumenta o risco de <strong>infarto e AVC</strong>.', recs:[{name:'Exercício aeróbico',desc:'30 min por dia reduz LDL naturalmente.'},{name:'Ômega 3',desc:'Dose eficaz: 2–4g de EPA+DHA por dia.'}] },
+  'hdl':            { title:'HDL é o "colesterol bom" — quanto mais, melhor', body:'O HDL <strong>remove o colesterol ruim das artérias</strong>.', recs:[{name:'Exercício físico regular',desc:'É a intervenção mais eficaz para elevar o HDL.'},{name:'Gorduras do bem',desc:'Abacate, azeite de oliva, oleaginosas e peixes gordurosos.'}] },
+  'triglicerides':  { title:'Triglicérides altos são um sinal de alerta', body:'Triglicérides elevados refletem <strong>excesso de açúcar, álcool e carboidratos refinados</strong> na dieta.', recs:[{name:'Reduzir açúcar e álcool',desc:'São as principais causas de triglicérides altos.'},{name:'Ômega 3',desc:'Reduz triglicérides de forma comprovada.'}] },
+  'glicose':        { title:'Glicose é o combustível do cérebro e dos músculos', body:'Valores elevados em jejum indicam <strong>resistência à insulina</strong>. Mudanças de hábito <strong>revertem completamente</strong> nesta fase.', recs:[{name:'Caminhar após refeições',desc:'15–20 min pós-refeição reduz o pico de glicose em até 30%.'},{name:'Reduzir carboidratos simples',desc:'Substituir refinados por integrais reduz a glicemia rapidamente.'}] },
+  'glicemia':       { title:'Glicemia mede o açúcar no sangue agora', body:'Valores elevados em jejum indicam <strong>resistência à insulina</strong>.', recs:[{name:'Caminhar após refeições',desc:'15–20 min pós-refeição reduz o pico de glicose em até 30%.'},{name:'Reduzir carboidratos simples',desc:'Trocar refinados por integrais é a mudança com maior impacto.'}] },
+  'hemoglobina glicada': { title:'HbA1c mostra sua média de açúcar nos últimos 3 meses', body:'É o exame mais honesto sobre diabetes: <strong>não dá para burlar</strong> com um dia de dieta.', recs:[{name:'Alimentação de baixo índice glicêmico',desc:'Vegetais, proteínas e carboidratos integrais.'},{name:'Exercício físico regular',desc:'Aumenta a sensibilidade à insulina.'}] },
+  'tsh':            { title:'TSH controla toda a tireoide', body:'A tireoide regula <strong>metabolismo, energia, peso e humor</strong>.', recs:[{name:'Consultar endocrinologista',desc:'Desequilíbrio da tireoide requer avaliação médica.'},{name:'Selênio e Zinco',desc:'Castanha do Pará (1–2 por dia) é rica em selênio.'}] },
+  'testosterona':   { title:'Testosterona afeta energia, músculo, libido e humor', body:'Baixa em homens causa <strong>fadiga, perda de músculo e irritabilidade</strong>.', recs:[{name:'Treino de força',desc:'Musculação 3×/semana é o estímulo mais eficaz naturalmente.'},{name:'Sono de qualidade',desc:'80% da testosterona é produzida durante o sono.'}] },
+  'estradiol':      { title:'Estradiol é o principal hormônio feminino', body:'Regula o <strong>ciclo menstrual, fertilidade, densidade óssea e humor</strong>.', recs:[] },
+  'cortisol':       { title:'Cortisol é o hormônio do estresse', body:'Cronicamente elevado aumenta gordura abdominal e enfraquece o sistema imunológico.', recs:[{name:'Meditação e respiração',desc:'10 min por dia reduz o cortisol de forma mensurável.'},{name:'Exercício moderado',desc:'Caminhadas e yoga têm efeito redutor.'}] },
+  'ureia':          { title:'Ureia avalia o funcionamento dos rins', body:'Ureia elevada pode indicar <strong>desidratação, excesso de proteína ou sobrecarga renal</strong>.', recs:[{name:'Hidratação adequada',desc:'2–3 litros de água por dia.'},{name:'Proteína moderada',desc:'Excesso de proteína sobrecarrega os rins.'}] },
+  'creatinina':     { title:'Creatinina mede a filtragem dos rins', body:'Elevada indica que os <strong>rins estão com dificuldade de filtrar</strong> o sangue.', recs:[{name:'Hidratação',desc:'A medida mais simples para preservar a função renal.'}] },
+  'acido urico':    { title:'Ácido úrico alto causa gota e inflama as articulações', body:'Acúmulo de ácido úrico cristaliza nas articulações, causando <strong>dor intensa e inflamação</strong>.', recs:[{name:'Reduzir carne vermelha e álcool',desc:'São as principais fontes de purinas.'},{name:'Hidratação',desc:'Água ajuda a eliminar o ácido úrico pelos rins.'}] },
+  'alt':            { title:'ALT/TGP indica a saúde do fígado', body:'Elevada indica que as células do fígado estão se rompendo — sinal de <strong>inflamação hepática</strong>.', recs:[{name:'Reduzir álcool',desc:'É a causa mais comum de ALT elevada.'},{name:'Perder peso gradualmente',desc:'Gordura no fígado melhora com redução de peso.'}] },
+  'ast':            { title:'AST/TGO indica dano em fígado e músculos', body:'Elevada junto com ALT indica <strong>problema hepático</strong>.', recs:[] },
+  'tgo':            { title:'TGO (AST) indica dano em fígado e músculos', body:'Elevada junto com TGP indica <strong>problema hepático</strong>.', recs:[] },
+  'tgp':            { title:'TGP (ALT) indica a saúde do fígado', body:'Elevada indica inflamação das células do fígado.', recs:[] },
+  'calcio':         { title:'Cálcio mantém ossos fortes e músculos funcionando', body:'Baixo cálcio causa <strong>câimbras, ossos frágeis e problemas cardíacos</strong>.', recs:[{name:'Laticínios e vegetais verdes',desc:'Leite, iogurte, brócolis e couve são fontes ricas.'},{name:'Vitamina D3',desc:'Sem vitamina D, o cálcio não é absorvido corretamente.'}] },
+  'magnesio':       { title:'Magnésio regula mais de 300 reações no corpo', body:'Deficiência causa <strong>câimbras, insônia, ansiedade e dor de cabeça</strong>.', recs:[{name:'Magnésio dimalato ou bisglicinato',desc:'300–400mg antes de dormir melhora o sono.'},{name:'Sementes e castanhas',desc:'Semente de abóbora, amêndoas e castanha de caju.'}] },
+  'sodio':          { title:'Sódio regula a pressão e o equilíbrio hídrico', body:'Alto sódio contribui para <strong>hipertensão e retenção de líquidos</strong>.', recs:[] },
+  'potassio':       { title:'Potássio é essencial para o coração e músculos', body:'Níveis baixos causam <strong>fraqueza muscular, câimbras e arritmias</strong>.', recs:[{name:'Banana, batata e abacate',desc:'Fontes ricas em potássio.'}] },
+};
+
+function getMeaningShort(nomeLower) {
+  for (const k in MARKER_INFO) { if (nomeLower.includes(k)) return MARKER_INFO[k].body; }
+  return null;
+}
+
+function getRecsForParam(nomeLower) {
+  for (const k in MARKER_INFO) { if (nomeLower.includes(k) && MARKER_INFO[k].recs.length > 0) return MARKER_INFO[k].recs; }
+  return [];
+}
+
+// ══════════════════════════════
+// TIMELINE DATA
+// ══════════════════════════════
+const TIMELINE_DATA = {
+  'vitamina d':{'labels':['Hoje','30 dias','60 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Mais disposição e energia ao longo do dia'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Mais disposição e energia ao longo do dia','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Sono mais reparador e profundo','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 017 7"/></svg> Foco e memória melhorados']],'ideal':[null,null,'Nível ideal em 60 dias ✓'],'footer':['Fácil','~R$30/mês','Sem receita']},
+  'vitamina b12':{'labels':['Hoje','30 dias','60 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 017 7"/></svg> Menos esquecimento e mais foco'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 017 7"/></svg> Menos esquecimento e mais foco','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Mais energia e disposição diária','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 11V6a2 2 0 00-4 0v5"/><path d="M14 10V4a2 2 0 00-4 0v6"/><path d="M10 10.5V5a2 2 0 00-4 0v9"/></svg> Redução do formigamento']],'ideal':[null,null,'Nível ideal em 60 dias ✓'],'footer':['Fácil','Sem receita']},
+  'ferritina':{'labels':['Hoje','30 dias','45 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Menos cansaço físico e muscular'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Menos cansaço físico e muscular','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5 21v-2a7 7 0 0114 0v2"/></svg> Redução perceptível da queda de cabelo','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 017 7"/></svg> Mais foco e clareza mental']],'ideal':[null,null,'Nível ideal em 45 dias ✓'],'footer':['Fácil','Sem receita']},
+  'hemoglobina':{'labels':['Hoje','45 dias','90 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Menos cansaço e falta de ar'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Menos cansaço e falta de ar','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Melhor circulação e oxigenação','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Mais energia para atividades']],'ideal':[null,null,'Nível ideal em 90 dias ✓'],'footer':['Médio','Consulta necessária']},
+  'colesterol':{'labels':['Hoje','30 dias','90 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Colesterol LDL começando a cair'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Perfil lipídico melhorado','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Menos risco cardiovascular','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Mais energia e disposição']],'ideal':[null,null,'Perfil lipídico normalizado ✓'],'footer':['Médio','Hábitos + suplemento']},
+  'ldl':{'labels':['Hoje','30 dias','90 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> LDL começando a reduzir'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> LDL dentro do ideal','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Risco cardiovascular reduzido','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Mais energia e bem-estar']],'ideal':[null,null,'LDL normalizado ✓'],'footer':['Médio','Exercício + dieta']},
+  'glicose':{'labels':['Hoje','2 semanas','30 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Menos picos de cansaço pós-refeição'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Energia mais estável ao longo do dia','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 017 7"/></svg> Mais foco e clareza mental','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Menos vontade de doces']],'ideal':[null,null,'Glicemia normalizada ✓'],'footer':['Fácil','Hábitos alimentares']},
+  'glicemia':{'labels':['Hoje','2 semanas','30 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Menos picos de cansaço pós-refeição'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Energia mais estável','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 017 7"/></svg> Mais foco e clareza mental']],'ideal':[null,null,'Glicemia normalizada ✓'],'footer':['Fácil','Hábitos alimentares']},
+  'tsh':{'labels':['Hoje','30 dias','90 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Mais energia e disposição'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Mais energia e disposição','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Sono mais reparador','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 017 7"/></svg> Metabolismo normalizado']],'ideal':[null,null,'TSH normalizado ✓'],'footer':['Médio','Consulta necessária']},
+  'testosterona':{'labels':['Hoje','30 dias','60 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Mais energia e disposição para treinar'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Mais força e massa muscular','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Mais disposição e libido']],'ideal':[null,null,'Nível ideal em 60 dias ✓'],'footer':['Médio','Avaliação médica']},
+  'cortisol':{'labels':['Hoje','2 semanas','30 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Sono começando a melhorar'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Sono mais reparador','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg> Menos ansiedade e estresse']],'ideal':[null,null,'Cortisol normalizado ✓'],'footer':['Fácil','Hábitos + meditação']},
+  'triglicerides':{'labels':['Hoje','30 dias','60 dias'],'benefits':[null,['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Triglicérides começando a cair'],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Perfil lipídico melhorado','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Mais energia e bem-estar']],'ideal':[null,null,'Nível ideal em 60 dias ✓'],'footer':['Fácil','Dieta + Ômega 3']},
+};
+
+function getTimelineData(param) {
+  return TIMELINE_DATA[(param.nome || '').toLowerCase()] || {
+    labels: ['Hoje', '30 dias', '60 dias'],
+    benefits: [null, ['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Primeiros resultados visíveis'], ['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Melhora no bem-estar geral', '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Mais energia e disposição']],
+    ideal: [null, null, 'Nível ideal em 60 dias ✓'],
+    footer: ['Ver protocolo']
+  };
+}
+
+// ══════════════════════════════
+// ACTION CARDS
+// ══════════════════════════════
+const MILESTONES = {};
+
+function toggleItem(id) {
+  document.getElementById(id).classList.toggle('expanded');
+}
+
+function selectMilestone(id, ms, e) {
+  if (e) e.stopPropagation();
+  const data = MILESTONES[id];
+  if (!data) return;
+  document.querySelectorAll('#atl-card-' + id + ' .atl-milestone').forEach((m, i) => {
+    m.classList.toggle('ms-active', i === ms);
+  });
+  document.getElementById('atl-fill-' + id).style.width = data.fillPct[ms];
+  const benWrap = document.getElementById('atl-ben-' + id);
+  if (!data.benefits[ms]) {
+    benWrap.innerHTML = '<span class="atl-start-msg">Primeiro resultado aparece em ~30 dias</span>';
+  } else {
+    const chips = data.benefits[ms].map(b => `<span class="atl-ben-chip">${b}</span>`).join('');
+    const ideal = data.ideal[ms] ? `<span class="atl-ideal-badge">${data.ideal[ms]}</span>` : '';
+    benWrap.innerHTML = chips + ideal;
+  }
+}
+
+function sanitizeId(nome) {
+  return (nome || '').replace(/[^a-zA-Z0-9]/g, '');
+}
+
+function buildActionCard(param, idx) {
+  const tlId   = sanitizeId(param.nome) + idx;
+  const cls    = (param.classificacao || '').toUpperCase();
+  const isCrit = cls === 'CRITICO';
+  const dir    = cls === 'BAIXO' ? 'abaixo' : 'acima';
+  const itemCls = isCrit ? 'crit-item' : 'warn-item';
+  const pillCls = isCrit ? 'crit' : 'warn';
+  const info   = MARKER_INFO[(param.nome || '').toLowerCase()];
+  let acaoTxt  = 'Consulte seu médico para avaliar o tratamento adequado.';
+  if (info && info.recs && info.recs.length > 0) {
+    acaoTxt = `<strong>${info.recs[0].name}:</strong> ${info.recs[0].desc}`;
+  }
+  const tl      = getTimelineData(param);
+  const fillPct = ['0%', '50%', '100%'];
+  MILESTONES[tlId] = { fillPct, benefits: tl.benefits, ideal: tl.ideal };
+  const defBen   = (tl.benefits[2] || []).map(b => `<span class="atl-ben-chip">${b}</span>`).join('');
+  const defIdeal = tl.ideal[2] ? `<span class="atl-ideal-badge">${tl.ideal[2]}</span>` : '';
+  const footerChips = (tl.footer || []).map(f => `<span class="atl-foot-chip">${f}</span>`).join('');
+  const pillTxt = param.valor
+    ? `${cls === 'BAIXO' ? '↓' : '↑'} ${param.valor}${param.unidade ? ' ' + param.unidade : ''}${param.valorReferencia ? ' · ideal ' + param.valorReferencia : ''}`
+    : `${dir} do ideal`;
+
+  return `
+  <div class="action-item ${itemCls}" id="ac-${tlId}" onclick="toggleItem('ac-${tlId}')">
+    <div class="action-header">
+      <div class="action-main">
+        <div class="action-title">${param.nome} ${dir} do ideal</div>
+        <div class="action-chips">
+          <span class="achip">${isCrit ? 'Ação necessária' : 'Monitorar'}</span>
+          <span class="achip">${isCrit ? 'Urgente' : 'Fácil'}</span>
+        </div>
+      </div>
+      <div class="action-chevron"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M3.5 2L6.5 5L3.5 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="action-body">
+      <div class="action-body-pad">
+        <div class="aec-inner aec-dark">
+          <div class="aec-val-pill ${pillCls}">${pillTxt}</div>
+          <div class="aec-action-lbl">O que fazer</div>
+          <div class="aec-action-txt">${acaoTxt}</div>
+        </div>
+        <div class="aec-inner aec-timeline" id="atl-card-${tlId}">
+          <div class="atl-header">O que você vai ganhar</div>
+          <div class="atl-track-wrap">
+            <div class="atl-line-bg"></div>
+            <div class="atl-line-fill" id="atl-fill-${tlId}" style="width:100%"></div>
+            <div class="atl-dots">
+              <div class="atl-milestone" onclick="selectMilestone('${tlId}',0,event)"><div class="atl-dot"></div><div class="atl-ms-time">${tl.labels[0]}</div></div>
+              <div class="atl-milestone" onclick="selectMilestone('${tlId}',1,event)"><div class="atl-dot"></div><div class="atl-ms-time">${tl.labels[1]}</div></div>
+              <div class="atl-milestone ms-active" onclick="selectMilestone('${tlId}',2,event)"><div class="atl-dot"></div><div class="atl-ms-time">${tl.labels[2]}</div></div>
+            </div>
+          </div>
+          <div class="atl-ben-wrap" id="atl-ben-${tlId}">${defBen}${defIdeal}</div>
+          <div class="atl-footer">${footerChips}</div>
+        </div>
+        <button class="ab-cta" onclick="event.stopPropagation();push('s-melhorias')">Ver protocolo completo →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildOkCard(count) {
+  return `
+  <div class="ok-action-item">
+    <div class="ok-action-title">✓ ${count} marcador${count !== 1 ? 'es' : ''} saudáve${count !== 1 ? 'is' : 'l'}</div>
+    <div class="ok-action-sub">Todos dentro da faixa ideal. Continue assim.</div>
+  </div>`;
+}
+
+// ══════════════════════════════
+// STATE & RENDER
+// ══════════════════════════════
+let currentExam = null;
+
+function renderHeroCard(exame) {
+  const params = exame.parametros || [];
+  const score  = calcScore(params);
+  const sCls   = apiStatusClass(exame.statusGeral);
+  const statusLabel = { ok: 'Normal', warn: 'Atenção', crit: 'Atenção' };
+  const name   = toNomeAmigavel(exame.tipoExame);
+  const date   = formatDate(exame.dataExame || exame.criadoEm);
+  const lab    = exame.laboratorio || '';
+  const meta   = [date, lab].filter(Boolean).join(' · ');
+
+  document.getElementById('heroCard').innerHTML = `
+    <div class="gc-hero">
+      <div class="gi-dark" style="padding:18px 20px">
+        <div class="hero-top">
+          <div class="hero-left">
+            <div class="hero-meta">${meta}</div>
+            <div class="hero-name">${name}</div>
+          </div>
+          <div class="hero-right">
+            <div class="hero-score-row">
+              <div class="hero-score" id="heroScore">${score}</div>
+              <div class="hero-max">/10</div>
+            </div>
+            <div class="hero-status">${statusLabel[sCls] || 'Analisado'}</div>
+          </div>
+        </div>
+        <div class="hero-bottom">
+          ${exame.arquivoUrl
+            ? `<a class="hero-cta primary" href="${exame.arquivoUrl}" target="_blank" rel="noopener" style="text-decoration:none">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+                Abrir exame original
+              </a>`
+            : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderOverview() {
+  if (!currentExam) return;
+  const params = currentExam.parametros || [];
+
+  const allNormal  = params.every(p => { const c = (p.classificacao||'').toUpperCase(); return c === 'NORMAL' || c === ''; });
+  const critSys    = params.find(p => (p.classificacao||'').toUpperCase() === 'CRITICO');
+  const warnParam  = params.find(p => { const c = (p.classificacao||'').toUpperCase(); return c === 'ALTO' || c === 'BAIXO' || c === 'ATENCAO'; });
+
+  let explanation = '';
+  if (currentExam.resumoIA) {
+    explanation = currentExam.resumoIA;
+  } else if (allNormal) {
+    explanation = `Esse exame avaliou <strong>${params.length} marcadores</strong> e todos estão dentro da faixa ideal. Seus sistemas estão funcionando bem.`;
+  } else if (critSys) {
+    const sys = getSystem(critSys.nome);
+    const area = SYSTEM_FRIENDLY_PT[sys] || sys;
+    explanation = `Esse exame analisou <strong>${params.length} marcadores</strong>. A maioria está bem, mas alguns relacionados ao seu <strong>${area}</strong> precisam de atenção. Toque nos marcadores abaixo para entender cada um.`;
+  } else if (warnParam) {
+    const sys  = getSystem(warnParam.nome);
+    const area = SYSTEM_FRIENDLY_PT[sys] || sys;
+    explanation = `Esse exame analisou <strong>${params.length} marcadores</strong>. Quase tudo está dentro do esperado, mas alguns valores ligados ao <strong>${area}</strong> merecem atenção.`;
+  } else {
+    explanation = `Esse exame avaliou <strong>${params.length} marcadores</strong> do seu corpo. Toque nos biomarcadores abaixo para entender o que cada um significa.`;
+  }
+
+  const okParams   = params.filter(p => { const c = (p.classificacao||'').toUpperCase(); return c === 'NORMAL' || c === ''; });
+  const warnParams = params.filter(p => { const c = (p.classificacao||'').toUpperCase(); return c === 'ALTO' || c === 'BAIXO' || c === 'ATENCAO'; });
+  const critParams = params.filter(p => (p.classificacao||'').toUpperCase() === 'CRITICO');
+
+  const boxesHtml = `
+    <div class="status-box ok" style="animation-delay:.3s" onclick="openBiolist('ok')">
+      <div class="status-box-count">${okParams.length}</div>
+      <div class="status-box-text">bom</div>
+    </div>
+    ${warnParams.length > 0 ? `<div class="status-box warn" style="animation-delay:.4s" onclick="openBiolist('warn')">
+      <div class="status-box-count">${warnParams.length}</div>
+      <div class="status-box-text">médio</div>
+    </div>` : ''}
+    ${critParams.length > 0 ? `<div class="status-box crit" style="animation-delay:.5s" onclick="openBiolist('crit')">
+      <div class="status-box-count">${critParams.length}</div>
+      <div class="status-box-text">ruim</div>
+    </div>` : ''}`;
+
+  document.getElementById('sysGrid').innerHTML = `
+    <div class="narr-card fade d2">
+      <div class="narr-txt">${explanation}</div>
+    </div>
+    <div class="status-boxes-wrap fade d3">
+      <div class="status-boxes-label">Biomarcadores</div>
+      <div class="status-boxes">${boxesHtml}</div>
+    </div>`;
+
+  // Action insight cards
+  const crits   = params.filter(p => (p.classificacao || '').toUpperCase() === 'CRITICO');
+  const warns   = params.filter(p => { const c = (p.classificacao || '').toUpperCase(); return c === 'ALTO' || c === 'BAIXO'; });
+  const normals = params.filter(p => { const c = (p.classificacao || '').toUpperCase(); return c === 'NORMAL' || c === ''; });
+
+  const toResolve = [...crits.slice(0, 2), ...warns.slice(0, 1)];
+  let actionItems = '';
+  if (toResolve.length === 0 && normals.length > 0) {
+    actionItems = `<div class="celebrate-banner">
+      <div class="cb-row">
+        <div class="cb-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2" stroke-linecap="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg></div>
+        <div>
+          <div class="cb-title">${normals.length} marcadores saudáveis</div>
+          <div class="cb-sub">Seu corpo está em equilíbrio. Continue com os hábitos que te trouxeram até aqui.</div>
+        </div>
+      </div>
+    </div>`;
+  } else {
+    toResolve.forEach((p, i) => { actionItems += buildActionCard(p, i); });
+    if (normals.length > 0) actionItems += buildOkCard(normals.length);
+  }
+
+  document.getElementById('insightsWrap').innerHTML =
+    `<div class="action-list">${actionItems}</div>`;
+
+  renderMelhorias();
+}
+
+// ══════════════════════════════
+// BIOLIST SCREEN
+// ══════════════════════════════
+function openBiolist(status) {
+  if (!currentExam) return;
+  const params = currentExam.parametros || [];
+  let filtered, title, sub, dotCls;
+  if (status === 'ok') {
+    filtered = params.filter(p => { const c = (p.classificacao||'').toUpperCase(); return c === 'NORMAL' || c === ''; });
+    title = 'Biomarcadores bons'; sub = 'Todos dentro da faixa ideal'; dotCls = 'ok';
+  } else if (status === 'warn') {
+    filtered = params.filter(p => { const c = (p.classificacao||'').toUpperCase(); return c === 'ALTO' || c === 'BAIXO' || c === 'ATENCAO'; });
+    title = 'Biomarcadores médios'; sub = 'Merecem um olhar mais atento'; dotCls = 'warn';
+  } else {
+    filtered = params.filter(p => (p.classificacao||'').toUpperCase() === 'CRITICO');
+    title = 'Biomarcadores ruins'; sub = 'Precisam de atenção'; dotCls = 'crit';
+  }
+
+  let html = `<div class="biolist-title">${title}</div>`;
+  html += `<div class="biolist-sub">${filtered.length} biomarcador${filtered.length !== 1 ? 'es' : ''} · ${sub}</div>`;
+  filtered.forEach((p, i) => {
+    html += `
+      <div class="biolist-item" style="animation-delay:${0.15 + i * 0.05}s" onclick='openMarker(${escapeJson(p)})'>
+        <div class="biolist-dot ${dotCls}"></div>
+        <div class="biolist-name">${p.nome || '--'}</div>
+        <div class="biolist-val">${p.valor || '--'} ${p.unidade || ''}</div>
+        <div class="biolist-arrow">›</div>
+      </div>`;
+  });
+
+  document.getElementById('biolistContent').innerHTML = html;
+  push('s-biolist');
+}
+
+// ══════════════════════════════
+// MARKER SCREEN
+// ══════════════════════════════
+function openMarker(paramOrStr) {
+  const p = typeof paramOrStr === 'string' ? JSON.parse(paramOrStr) : paramOrStr;
+  renderMarker(p);
+  push('s-marker');
+}
+
+function renderMarker(p) {
+  if (!p) return;
+  const cl       = (p.classificacao || '').toUpperCase();
+  const valCls   = cl === 'CRITICO' ? 'crit' : (cl === 'ALTO' || cl === 'BAIXO') ? 'warn' : 'ok';
+  const badgeLabel = cl === 'CRITICO' ? 'Crítico' : cl === 'BAIXO' ? 'Abaixo do ideal' : cl === 'ALTO' ? 'Acima do ideal' : 'Normal';
+  const needlePos  = classToNeedle(cl);
+  const sys        = getSystem(p.nome);
+
+  const nome  = (p.nome || '').toLowerCase();
+  let meaning = { title: `${p.nome} afeta sua saúde`, body: `Valor encontrado: <strong>${p.valor} ${p.unidade || ''}</strong>. Referência: ${p.valorReferencia || 'ver laudo do laboratório'}.` };
+  if (p.explicacao_simples) {
+    meaning = { title: p.impacto_pessoal || `${p.nome} afeta sua saúde`, body: p.explicacao_simples };
+  } else {
+    for (const k in MARKER_INFO) {
+      if (nome.includes(k)) { meaning = { title: MARKER_INFO[k].title, body: MARKER_INFO[k].body }; break; }
     }
+  }
 
-    function showError(msg) {
-        document.getElementById('mainContent').innerHTML = `
-            <div style="text-align:center;padding:80px 20px;color:rgba(17,24,39,.40);font-size:14px;line-height:1.8;">
-                ${msg}<br><br>
-                <a href="${userId ? 'rg-publico.html?id=' + userId : 'javascript:history.back()'}"
-                   style="color:#0099C4;text-decoration:none;font-weight:600;">← Voltar ao RG</a>
-            </div>`;
-    }
+  let recs = [];
+  if (p.dicas) {
+    const dicas = Array.isArray(p.dicas) ? p.dicas : [p.dicas];
+    recs = dicas.map(d => ({ name: p.nome, desc: d }));
+  } else {
+    recs = getRecsForParam(nome);
+  }
 
-    function svgIcon(color, d) {
-        return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-    }
+  const recsHtml = recs.map(r => `
+    <div class="otc-gc">
+      <div class="otc-gi">
+        <div class="otc-iw">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <div class="otc-type">Dica</div>
+        </div>
+        <div>
+          <div class="otc-name">${r.name}</div>
+          <div class="otc-desc">${r.desc}</div>
+        </div>
+      </div>
+    </div>`).join('');
 
-    function render(e) {
-        const params = e.parametros || [];
-        const total = params.length;
-        const normalCount = params.filter(p => p.classificacao === 'NORMAL').length;
-        const critCount  = params.filter(p => p.classificacao === 'CRITICO').length;
-        const warnCount  = params.filter(p => p.classificacao === 'ATENCAO').length;
-        const score = total > 0 ? (normalCount / total * 10).toFixed(1) : '--';
-        const analise = e.analise || {};
-        const dt = e.dataExame ? new Date(e.dataExame).toLocaleDateString('pt-BR') : '—';
-        const sCls = critCount > 0 ? 'crit' : warnCount > 0 ? 'warn' : 'ok';
-        const statusLabel = { ok:'Normal', warn:'Atenção', crit:'Crítico' }[sCls];
+  document.getElementById('markerContent').innerHTML = `
+    <div class="gc fade d1">
+      <div class="gi">
+        <div class="mk-ey">Sistema ${sys}</div>
+        <div class="mk-name">${p.nome}</div>
+        <div class="mk-val-row">
+          <div class="mk-val ${valCls}">${p.valor || '--'}</div>
+          <div class="mk-unit">${p.unidade || ''}</div>
+        </div>
+        <div class="mk-ref-row">
+          <div class="mk-ref">${p.valorReferencia ? 'Ref: ' + p.valorReferencia : ''}</div>
+          <div class="badge ${valCls}">${badgeLabel}</div>
+        </div>
+      </div>
+    </div>
+    <div class="gc-s fade d2">
+      <div class="gi">
+        <div class="spec-label">Onde você está na escala</div>
+        <div class="spec-track"><div class="spec-needle" style="left:${needlePos}%"></div></div>
+        <div class="spec-zones">
+          <span class="sz">Crítico</span><span class="sz">Baixo</span><span class="sz">Normal</span><span class="sz">Ótimo</span><span class="sz">Alto</span>
+        </div>
+      </div>
+    </div>
+    <div class="gc-s fade d3">
+      <div class="gi">
+        <div class="mn-ey">O que isso significa</div>
+        <div class="mn-title">${meaning.title}</div>
+        <div class="mn-body">${meaning.body}</div>
+      </div>
+    </div>
+    ${recsHtml ? `<div class="sec-label fade d4">O que fazer</div>${recsHtml}` : ''}`;
+}
 
-        // Group params by sistema, sort problem systems first
-        const groups = {};
-        params.forEach(p => {
-            const sys = p.sistema || 'Geral';
-            if (!groups[sys]) groups[sys] = [];
-            groups[sys].push(p);
-        });
-        const sysOrder = Object.keys(groups).sort((a, b) => {
-            const rank = g => g.some(p => p.classificacao === 'CRITICO') ? 0
-                           : g.some(p => p.classificacao === 'ATENCAO')  ? 1 : 2;
-            return rank(groups[a]) - rank(groups[b]);
-        });
+// ══════════════════════════════
+// MELHORIAS SCREEN
+// ══════════════════════════════
+function renderMelhorias() {
+  if (!currentExam) return;
+  const params = currentExam.parametros || [];
 
-        let html = '';
+  const critParam = params.find(p => (p.classificacao || '').toUpperCase() === 'CRITICO')
+    || params.find(p => { const c = (p.classificacao || '').toUpperCase(); return c === 'ALTO' || c === 'BAIXO'; });
 
-        // ── Hero ──
-        html += `
-            <div class="hero-card">
-                <div class="hero-top">
-                    <div>
-                        <div class="hero-meta">${dt}${e.laboratorio ? ' · ' + e.laboratorio : ''}</div>
-                        <div class="hero-name">${e.tipoExame || e.nomeArquivo || 'Exame'}</div>
-                        <span class="status-tag ${sCls}">${statusLabel}</span>
-                    </div>
-                    <div style="text-align:right;flex-shrink:0;">
-                        <div class="hero-score-row">
-                            <div class="hero-score">${score}</div>
-                            <div class="hero-max">/10</div>
-                        </div>
-                        <div class="hero-status">${normalCount} de ${total} normais</div>
-                    </div>
-                </div>
-                ${e.arquivoUrl ? `
-                <div class="hero-bottom">
-                    <a class="pdf-btn" href="${e.arquivoUrl}" target="_blank" rel="noopener">
-                        ${svgIcon('currentColor','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/>')}
-                        Baixar PDF
-                    </a>
-                </div>` : ''}
-            </div>`;
+  let html = '';
 
-        // ── Biomarcadores ──
-        if (params.length > 0) {
-            html += `<div class="section-title">${svgIcon('#4AD9A4','<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>')} Biomarcadores</div>`;
-            sysOrder.forEach(sys => {
-                html += `<div class="sys-group"><div class="sys-group-label">${sys}</div>`;
-                groups[sys].forEach(p => {
-                    const cls = clsMap[p.classificacao] || 'ok';
-                    const val = [p.valor, p.unidade].filter(Boolean).join(' ');
-                    html += `
-                        <div class="bio-item">
-                            <div class="bio-dot ${cls}"></div>
-                            <div class="bio-name">${p.nome}</div>
-                            <div class="bio-val">${val}</div>
-                            <div class="bio-cls ${cls}">${clsLabel[p.classificacao] || p.classificacao}</div>
-                        </div>`;
-                });
-                html += `</div>`;
-            });
-        }
+  if (critParam) {
+    const cl     = (critParam.classificacao || '').toUpperCase();
+    const dir    = cl === 'BAIXO' ? 'abaixo' : cl === 'ALTO' ? 'acima' : '';
+    const needle = classToNeedle(cl);
+    const tags   = ['Mais energia', 'Melhor saúde', 'Qualidade de vida'].map(t => `<span class="pc-tag">${t}</span>`).join('');
+    html += `
+      <div class="gc-priority fade d1">
+        <div class="gi-priority">
+          <div class="pc-ey">Prioridade principal</div>
+          <div class="pc-title">Resolver ${critParam.nome}</div>
+          <div class="pc-body">Seu ${critParam.nome} está ${dir || 'fora do padrão'}: ${critParam.valor} ${critParam.unidade || ''}. ${critParam.valorReferencia ? 'O ideal é ' + critParam.valorReferencia + '.' : ''} Corrigir isso pode trazer impacto visível na sua energia e bem-estar.</div>
+          <div class="pc-tags">${tags}</div>
+          <div class="fv-label-row">Trajetória esperada com intervenção</div>
+          <div class="fv-row">
+            <div class="fv-time">Agora</div>
+            <div class="fv-spec"><div class="fv-track"></div><div class="fv-pin" style="left:${needle}%"></div></div>
+            <div class="fv-val bad">${critParam.valor} ${critParam.unidade || ''}</div>
+          </div>
+          <div class="fv-row" style="margin-top:6px">
+            <div class="fv-time">30 dias</div>
+            <div class="fv-spec"><div class="fv-track"></div><div class="fv-pin" style="left:${Math.min(needle + 20, 55)}%"></div></div>
+            <div class="fv-val" style="color:var(--amber);font-family:'DM Mono',monospace;font-size:9px;width:60px">Melhorando</div>
+          </div>
+          <div class="fv-row">
+            <div class="fv-time">90 dias</div>
+            <div class="fv-spec"><div class="fv-track"></div><div class="fv-pin" style="left:55%"></div></div>
+            <div class="fv-val good">Nível ideal ✓</div>
+          </div>
+          <div style="margin-top:18px"></div>
+          <button class="pc-btn" onclick='openMarker(${escapeJson(critParam)})'>Ver como resolver →</button>
+        </div>
+      </div>`;
+  } else {
+    html += `
+      <div class="gc-priority fade d1">
+        <div class="gi-priority">
+          <div class="pc-ey">Parabéns</div>
+          <div class="pc-title">Todos os marcadores normais</div>
+          <div class="pc-body">Seu exame está dentro dos parâmetros ideais. Continue com os hábitos que te trouxeram até aqui.</div>
+          <div class="pc-tags"><span class="pc-tag">Saúde ótima</span><span class="pc-tag">Continue assim</span></div>
+        </div>
+      </div>`;
+  }
 
-        // ── O que fazer (melhoriasIA) ──
-        const melhorias = analise.melhoriasIA || [];
-        if (melhorias.length > 0) {
-            html += `<div class="section-title">${svgIcon('#0099C4','<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>')} O que fazer</div>`;
-            melhorias.forEach(m => {
-                const titulo = m.titulo || m.parametro || '';
-                const texto  = m.acao || m.descricao || m.texto || '';
-                html += `
-                    <div class="insight-card">
-                        ${titulo ? `<div class="insight-title">${titulo}</div>` : ''}
-                        <div class="insight-text">${texto}</div>
-                    </div>`;
-            });
-        }
+  const warnParams = params.filter(p => {
+    const c = (p.classificacao || '').toUpperCase();
+    return (c === 'ALTO' || c === 'BAIXO') && p !== critParam;
+  });
 
-        // ── Alertas ──
-        const alertas = analise.alertas || [];
-        if (alertas.length > 0) {
-            const icons = {
-                URGENTE: svgIcon('#D94452','<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'),
-                ATENCAO: svgIcon('#F0A050','<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'),
-                INFO:    svgIcon('#4A90E2','<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'),
-            };
-            html += `<div class="section-title">${svgIcon('#F0A050','<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>')} Alertas Clínicos</div>`;
-            alertas.forEach(a => {
-                const tipo = a.tipo || 'INFO';
-                html += `
-                    <div class="alert-card ${tipo}">
-                        <div class="alert-icon">${icons[tipo] || icons.INFO}</div>
-                        <div class="alert-text">${a.mensagem || a.texto || ''}</div>
-                    </div>`;
-            });
-        }
+  if (warnParams.length > 0) {
+    html += '<div class="sec-label fade d2">Outras melhorias</div><div class="rec-section fade d2">';
+    warnParams.slice(0, 3).forEach(p => {
+      const cl  = (p.classificacao || '').toUpperCase();
+      const dir = cl === 'BAIXO' ? 'abaixo' : 'acima';
+      html += `
+        <div class="rec-item-gc" onclick='openMarker(${escapeJson(p)})'>
+          <div class="rec-gi">
+            <div class="ri-top">
+              <div class="ri-icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#007A9E" stroke-width="1.5" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+              </div>
+              <div class="ri-text">
+                <div class="ri-title">${p.nome} ${dir} do ideal</div>
+                <div class="ri-sub">${p.valor} ${p.unidade || ''} — ${p.valorReferencia ? 'Ref: ' + p.valorReferencia : 'Monitorar'}. Clique para ver como melhorar.</div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+  }
 
-        html += `
-            <div class="footer-note">
-                Dados compartilhados via <a href="https://vitaehealth2906-ops.github.io/vitae-app/">VITAE</a><br>
-                RG da Saúde Digital
-            </div>`;
+  html += `
+    <div class="sec-label fade d4">Hábitos gerais de saúde</div>
+    <div class="otc-gc fade d4">
+      <div class="otc-gi">
+        <div class="otc-iw">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+          <div class="otc-type">Grátis</div>
+        </div>
+        <div>
+          <div class="otc-name">Exercício e sono</div>
+          <div class="otc-desc">30 min de caminhada por dia + 7-8h de sono melhoram praticamente todos os marcadores de saúde.</div>
+        </div>
+      </div>
+    </div>
+    <div class="otc-gc fade d5" style="margin-bottom:20px">
+      <div class="otc-gi">
+        <div class="otc-iw">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"><path d="M12 22V12m0 0C12 6 7 4 7 4s0 5 5 8zm0 0c0-6 5-8 5-8s0 5-5 8"/></svg>
+          <div class="otc-type">Grátis</div>
+        </div>
+        <div>
+          <div class="otc-name">Hidratação adequada</div>
+          <div class="otc-desc">2 litros de água por dia melhoram transporte de nutrientes, função renal e energia celular.</div>
+        </div>
+      </div>
+    </div>`;
 
-        document.getElementById('mainContent').innerHTML = html;
-    }
+  document.getElementById('melhoriaContent').innerHTML = html;
+}
 
-    load();
+// ══════════════════════════════
+// SKELETON WHILE LOADING
+// ══════════════════════════════
+function renderSkeleton() {
+  document.getElementById('heroCard').innerHTML = `
+    <div class="gc-hero">
+      <div class="gi-dark" style="padding:18px 20px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div style="flex:1">
+            <div class="skel" style="height:12px;width:60%;margin-bottom:8px"></div>
+            <div class="skel" style="height:16px;width:80%"></div>
+          </div>
+          <div style="text-align:right">
+            <div class="skel" style="height:44px;width:60px;margin-bottom:6px"></div>
+            <div class="skel" style="height:12px;width:50px;margin-left:auto"></div>
+          </div>
+        </div>
+        <div style="margin-top:14px">
+          <div class="skel" style="height:36px;width:140px;border-radius:10px"></div>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('sysGrid').innerHTML = `
+    <div class="narr-card">
+      <div class="skel" style="height:16px;width:82%;margin-bottom:8px;border-radius:6px"></div>
+      <div class="skel" style="height:14px;width:58%;border-radius:6px"></div>
+    </div>`;
+}
+
+// ══════════════════════════════
+// INIT — fetch public exam
+// ══════════════════════════════
+async function init() {
+  if (!EXAM_ID || !EXAM_USER_ID) {
+    document.getElementById('sysGrid').innerHTML = `
+      <div style="padding:40px 20px;text-align:center;font-family:'Inter',sans-serif;font-size:14px;color:rgba(17,24,39,.45)">
+        Parâmetros de exame não encontrados.
+      </div>`;
+    return;
+  }
+
+  renderSkeleton();
+
+  try {
+    const res = await fetch(`${API_URL}/autorizacao/exame-publico/${EXAM_USER_ID}/${EXAM_ID}`);
+    if (!res.ok) throw new Error('Exame não encontrado');
+    const data = await res.json();
+    currentExam = data.exame || data;
+    renderHeroCard(currentExam);
+    renderOverview();
+  } catch (err) {
+    document.getElementById('sysGrid').innerHTML = `
+      <div style="padding:40px 20px;text-align:center;font-family:'Inter',sans-serif;font-size:14px;color:rgba(17,24,39,.45)">
+        Não foi possível carregar o exame. Tente novamente.
+      </div>`;
+    console.error('[exame-publico] erro:', err.message);
+  }
+}
+
+init();
 </script>
 </body>
 </html>
