@@ -286,6 +286,66 @@
         }
         .rec-send-btn:active { transform:scale(.98); }
         .rec-send-btn svg { width:18px; height:18px; stroke:#fff; fill:none; }
+
+        /* ── Dynamic template fields ── */
+        .tpl-field { display:flex; flex-direction:column; gap:6px; margin-bottom:18px; }
+        .tpl-field:last-child { margin-bottom:0; }
+        .tpl-field .field-label { font-size:11px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.5px; }
+        .tpl-field .field-label .req { color:#D94452; }
+
+        /* Yes/No pill buttons */
+        .yesno-group { display:flex; gap:8px; }
+        .yesno-btn {
+            flex:1; padding:12px 16px; border-radius:24px; cursor:pointer;
+            background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+            font-family:'Inter',sans-serif; font-size:14px; font-weight:500;
+            color:rgba(255,255,255,0.5); text-align:center; transition:all .2s;
+            -webkit-appearance:none; appearance:none;
+        }
+        .yesno-btn.selected {
+            background:rgba(0,153,196,0.15); border-color:rgba(0,153,196,0.4);
+            color:#0099C4; font-weight:600;
+        }
+
+        /* Slider / scale */
+        .scale-wrap { display:flex; flex-direction:column; gap:6px; }
+        .scale-labels { display:flex; justify-content:space-between; font-size:11px; color:rgba(255,255,255,0.3); font-family:'DM Mono',monospace; }
+        .scale-value { text-align:center; font-size:18px; font-weight:700; color:#0099C4; font-family:'DM Mono',monospace; margin-bottom:2px; }
+        .scale-input {
+            -webkit-appearance:none; appearance:none; width:100%; height:6px;
+            border-radius:3px; background:rgba(255,255,255,0.08); outline:none;
+        }
+        .scale-input::-webkit-slider-thumb {
+            -webkit-appearance:none; appearance:none; width:22px; height:22px;
+            border-radius:50%; background:linear-gradient(135deg,#00B4D8,#007A9E);
+            cursor:pointer; box-shadow:0 2px 8px rgba(0,153,196,0.3);
+        }
+        .scale-input::-moz-range-thumb {
+            width:22px; height:22px; border-radius:50%; border:none;
+            background:linear-gradient(135deg,#00B4D8,#007A9E);
+            cursor:pointer; box-shadow:0 2px 8px rgba(0,153,196,0.3);
+        }
+
+        /* Upload area */
+        .upload-area {
+            width:100%; padding:24px 16px; border-radius:12px; cursor:pointer;
+            border:2px dashed rgba(255,255,255,0.12); background:rgba(255,255,255,0.02);
+            display:flex; flex-direction:column; align-items:center; gap:8px;
+            transition:all .2s; text-align:center;
+        }
+        .upload-area:hover { border-color:rgba(0,153,196,0.3); background:rgba(0,153,196,0.03); }
+        .upload-area svg { width:28px; height:28px; stroke:rgba(255,255,255,0.2); fill:none; }
+        .upload-area .upload-text { font-size:13px; color:rgba(255,255,255,0.4); }
+        .upload-area.has-file { border-color:rgba(0,153,196,0.3); background:rgba(0,153,196,0.04); }
+        .upload-area.has-file svg { stroke:#0099C4; }
+        .upload-area.has-file .upload-text { color:#0099C4; }
+
+        /* Date input for template */
+        .field-input[type="date"] { color-scheme:dark; }
+
+        /* Template section wrapper */
+        .tpl-section { margin-bottom:20px; }
+        .tpl-section .section-card { display:flex; flex-direction:column; gap:0; padding:16px; }
     </style>
     <link rel="stylesheet" href="vitae-light.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.css">
@@ -414,6 +474,33 @@
         <!-- ═══ PAINEL DE FORMULÁRIO ═══ -->
         <div class="form-panel" id="formPanel">
 
+        <!-- Dynamic template questions (rendered by JS when templatePerguntas exists) -->
+        <div id="templateFormWrap" style="display:none;">
+            <div class="tpl-section">
+                <div class="section-title">Perguntas do médico</div>
+                <div class="section-card" id="templateFieldsContainer"></div>
+            </div>
+
+            <!-- Consent for template mode -->
+            <div class="section">
+                <div class="section-title">Consentimento</div>
+                <div class="section-card">
+                    <div class="check-item">
+                        <input type="checkbox" id="consentAllTpl">
+                        <label class="check-item-label" for="consentAllTpl">
+                            Aceito a Política de Privacidade, autorizo o contato pelo médico/clínica e o compartilhamento dos meus dados com a equipe de saúde responsável
+                            <small>Dados protegidos nos termos da LGPD</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-submit" onclick="enviarTemplate()">Enviar pré-consulta</button>
+            <div style="height:20px;"></div>
+        </div>
+
+        <!-- ═══ FORMULÁRIO PADRÃO (11 seções) ═══ -->
+        <div id="defaultFormWrap">
         <!-- ─── 1. IDENTIFICAÇÃO ─── -->
         <div class="section">
             <div class="section-title">1. Sua identificação</div>
@@ -648,6 +735,7 @@
 
         <button class="btn-submit" onclick="enviar()">Enviar pré-consulta</button>
         <div style="height:20px;"></div>
+        </div><!-- /defaultFormWrap -->
         </div><!-- /form-panel -->
     </div><!-- /mainContent -->
 
@@ -1047,6 +1135,199 @@ document.getElementById('tabagismo').addEventListener('change', function() {
     if (!show) detail.value = '';
 });
 
+// ── Template questions state ──
+let templatePerguntas = null;
+let templateAnswers = {};
+let templateUploadFiles = {};
+
+function renderTemplateQuestions(perguntas) {
+    const container = document.getElementById('templateFieldsContainer');
+    container.innerHTML = '';
+    templateAnswers = {};
+    templateUploadFiles = {};
+
+    perguntas.forEach((q, idx) => {
+        const div = document.createElement('div');
+        div.className = 'tpl-field';
+
+        const reqMark = q.obrigatoria ? ' <span class="req">*</span>' : '';
+        const labelHtml = `<div class="field-label">${q.texto}${reqMark}</div>`;
+
+        switch (q.tipo) {
+            case 'text':
+                div.innerHTML = labelHtml +
+                    `<textarea class="field-textarea" id="tpl_${q.id}" placeholder="Digite sua resposta..."></textarea>`;
+                break;
+
+            case 'yesno':
+                div.innerHTML = labelHtml +
+                    `<div class="yesno-group">
+                        <button type="button" class="yesno-btn" data-qid="${q.id}" data-val="sim" onclick="selectYesNo(this)">Sim</button>
+                        <button type="button" class="yesno-btn" data-qid="${q.id}" data-val="nao" onclick="selectYesNo(this)">Não</button>
+                    </div>`;
+                break;
+
+            case 'single_select':
+                let optsHtml = '<option value="">Selecione</option>';
+                (q.opcoes || []).forEach(opt => {
+                    optsHtml += `<option value="${opt}">${opt}</option>`;
+                });
+                div.innerHTML = labelHtml +
+                    `<select class="field-select" id="tpl_${q.id}">${optsHtml}</select>`;
+                break;
+
+            case 'scale': {
+                const min = q.min != null ? q.min : 0;
+                const max = q.max != null ? q.max : 10;
+                const mid = Math.round((min + max) / 2);
+                div.innerHTML = labelHtml +
+                    `<div class="scale-wrap">
+                        <div class="scale-value" id="tpl_${q.id}_val">${mid}</div>
+                        <input type="range" class="scale-input" id="tpl_${q.id}" min="${min}" max="${max}" value="${mid}"
+                            oninput="document.getElementById('tpl_${q.id}_val').textContent=this.value">
+                        <div class="scale-labels"><span>${min}</span><span>${max}</span></div>
+                    </div>`;
+                templateAnswers[q.id] = String(mid);
+                break;
+            }
+
+            case 'upload':
+                div.innerHTML = labelHtml +
+                    `<div class="upload-area" id="tpl_${q.id}_area" onclick="document.getElementById('tpl_${q.id}').click()">
+                        <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <div class="upload-text" id="tpl_${q.id}_text">Toque para enviar foto</div>
+                    </div>
+                    <input type="file" id="tpl_${q.id}" accept="image/*" capture="environment" style="display:none;" onchange="handleTemplateUpload('${q.id}', this)">`;
+                break;
+
+            case 'date':
+                div.innerHTML = labelHtml +
+                    `<input type="date" class="field-input" id="tpl_${q.id}">`;
+                break;
+
+            default:
+                div.innerHTML = labelHtml +
+                    `<input type="text" class="field-input" id="tpl_${q.id}" placeholder="Digite sua resposta...">`;
+                break;
+        }
+
+        container.appendChild(div);
+    });
+}
+
+function selectYesNo(btn) {
+    const qid = btn.getAttribute('data-qid');
+    const val = btn.getAttribute('data-val');
+    // Deselect siblings
+    btn.parentElement.querySelectorAll('.yesno-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    templateAnswers[qid] = val;
+}
+
+function handleTemplateUpload(qid, input) {
+    if (input.files && input.files[0]) {
+        templateUploadFiles[qid] = input.files[0];
+        const area = document.getElementById(`tpl_${qid}_area`);
+        area.classList.add('has-file');
+        document.getElementById(`tpl_${qid}_text`).textContent = input.files[0].name;
+    }
+}
+
+function collectTemplateAnswers() {
+    const answers = {};
+    templatePerguntas.forEach(q => {
+        if (q.tipo === 'yesno') {
+            answers[q.id] = templateAnswers[q.id] || '';
+        } else if (q.tipo === 'upload') {
+            // Handled separately via upload
+            answers[q.id] = templateUploadFiles[q.id] ? '(arquivo enviado)' : '';
+        } else if (q.tipo === 'scale') {
+            const el = document.getElementById(`tpl_${q.id}`);
+            answers[q.id] = el ? el.value : '';
+        } else {
+            const el = document.getElementById(`tpl_${q.id}`);
+            answers[q.id] = el ? el.value.trim() : '';
+        }
+    });
+    return answers;
+}
+
+function validateTemplateAnswers(answers) {
+    for (const q of templatePerguntas) {
+        if (q.obrigatoria && (!answers[q.id] || answers[q.id] === '')) {
+            return q.texto;
+        }
+    }
+    return null;
+}
+
+async function enviarTemplate() {
+    const answers = collectTemplateAnswers();
+    const missing = validateTemplateAnswers(answers);
+    if (missing) {
+        alert(`Por favor, preencha o campo obrigatório: "${missing}"`);
+        return;
+    }
+
+    const consentEl = document.getElementById('consentAllTpl');
+    if (!consentEl.checked) {
+        alert('Por favor, aceite os termos de consentimento para continuar.');
+        return;
+    }
+
+    document.getElementById('loadingScreen').classList.add('active');
+
+    try {
+        // Upload any photo files
+        for (const qid of Object.keys(templateUploadFiles)) {
+            const file = templateUploadFiles[qid];
+            const url = await uploadToSupabase(file, 'fotos-template', `tpl_${qid}.jpg`);
+            if (url) answers[qid] = url;
+        }
+
+        // Upload face photo if present
+        let fotoUrl = null;
+        if (fotoBlob) {
+            fotoUrl = await uploadToSupabase(fotoBlob, 'fotos', 'foto.jpg');
+        }
+
+        await vitaeAPI.responderPreConsulta(token, {
+            respostas: {
+                metodo: 'formulario_template',
+                fotoUrl: fotoUrl,
+                ...answers,
+            },
+        });
+        document.getElementById('loadingScreen').classList.remove('active');
+        document.getElementById('successScreen').classList.add('active');
+    } catch (e) {
+        document.getElementById('loadingScreen').classList.remove('active');
+        alert('Erro ao enviar: ' + (e.message || 'Tente novamente.'));
+    }
+}
+
+function updateTopicListForTemplate(perguntas) {
+    const topicList = document.getElementById('topicList');
+    const ul = topicList.querySelector('ul');
+    ul.innerHTML = '';
+    // Show all question texts as topics for audio orientation
+    const items = perguntas.filter(q => !q.obrigatoria);
+    if (items.length === 0) {
+        // If all are mandatory, show all anyway
+        perguntas.forEach(q => {
+            const li = document.createElement('li');
+            li.textContent = q.texto;
+            ul.appendChild(li);
+        });
+    } else {
+        items.forEach(q => {
+            const li = document.createElement('li');
+            li.textContent = q.texto;
+            ul.appendChild(li);
+        });
+    }
+}
+
 async function init() {
     if (!token) { showError('Link inválido', 'Este link de pré-consulta não é válido. Solicite um novo link ao seu médico.'); return; }
 
@@ -1055,6 +1336,27 @@ async function init() {
 
         document.getElementById('welcomeName').textContent = `Olá, ${data.pacienteNome}!`;
         document.getElementById('welcomeDoc').textContent = `Consulta com Dr(a). ${data.medicoNome} — ${data.especialidade}`;
+
+        // ── Handle template questions ──
+        templatePerguntas = data.templatePerguntas || null;
+        const permitirAudio = data.permitirAudio !== undefined ? data.permitirAudio : true;
+
+        if (templatePerguntas && templatePerguntas.length > 0) {
+            // Hide default form, show template form
+            document.getElementById('defaultFormWrap').style.display = 'none';
+            document.getElementById('templateFormWrap').style.display = 'block';
+            renderTemplateQuestions(templatePerguntas);
+
+            // Update audio topic list
+            updateTopicListForTemplate(templatePerguntas);
+        }
+
+        if (!permitirAudio) {
+            // Hide toggle, hide audio panel, force form mode
+            document.querySelector('.toggle-wrap').style.display = 'none';
+            document.getElementById('audioPanel').classList.remove('active');
+            document.getElementById('formPanel').classList.add('active');
+        }
 
         // Pré-preencher se tiver dados do perfil Vitae
         if (data.perfilPaciente) {

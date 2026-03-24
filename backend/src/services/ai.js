@@ -572,9 +572,22 @@ Regras:
  * @param {string} transcricao - Transcricao do audio (se houver).
  * @returns {object} { summaryTexto, blocos, alertas }
  */
-async function gerarSummaryPreConsulta(pacienteNome, respostas, transcricao) {
+async function gerarSummaryPreConsulta(pacienteNome, respostas, transcricao, templatePerguntas) {
   // Monta contexto estruturado com os novos campos do formulario de 11 secoes
   const r = respostas || {};
+
+  // If template questions exist, build context from template Q&A pairs
+  let templateContext = '';
+  if (templatePerguntas && Array.isArray(templatePerguntas)) {
+    const pairs = templatePerguntas.map(q => {
+      const answer = r[q.id];
+      if (!answer && answer !== 0 && answer !== false) return null;
+      return `${q.texto}: ${answer}`;
+    }).filter(Boolean);
+    if (pairs.length > 0) {
+      templateContext = `\nRespostas do formulário personalizado:\n${pairs.join('\n')}\n`;
+    }
+  }
 
   const secoes = [];
 
@@ -634,7 +647,7 @@ ${identificacao.length > 0 ? `Identificação: ${identificacao.join(' | ')}` : '
 
 Dados clínicos:
 ${dadosPaciente}
-
+${templateContext}
 ${transcricao ? `Transcrição do paciente:\n"${transcricao}"` : ''}
 
 Retorne EXCLUSIVAMENTE um JSON válido:

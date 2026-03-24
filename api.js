@@ -352,6 +352,23 @@ const vitaeAPI = {
     });
   },
 
+  // Templates
+  async listarTemplates() {
+    return apiRequest('/templates');
+  },
+  async criarTemplate(dados) {
+    return apiRequest('/templates', { method: 'POST', body: dados });
+  },
+  async editarTemplate(id, dados) {
+    return apiRequest(`/templates/${id}`, { method: 'PUT', body: dados });
+  },
+  async apagarTemplate(id) {
+    return apiRequest(`/templates/${id}`, { method: 'DELETE' });
+  },
+  async classificarPerguntas(texto) {
+    return apiRequest('/templates/classificar', { method: 'POST', body: { texto } });
+  },
+
   // Agendamento
   async criarAgendamento(dados) {
     return apiRequest('/agendamento', { method: 'POST', body: dados });

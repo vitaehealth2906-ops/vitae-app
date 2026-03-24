@@ -23,6 +23,7 @@ const criarPreConsultaSchema = z.object({
   pacienteNome: z.string().min(2, 'Nome do paciente obrigatorio'),
   pacienteTel: z.string().optional(),
   pacienteEmail: z.string().email().optional(),
+  templateId: z.string().uuid().optional(),
 });
 
 const responderPreConsultaSchema = z.object({
@@ -43,8 +44,21 @@ router.post('/', verificarAuth, validate(criarPreConsultaSchema), async (req, re
       return res.status(403).json({ erro: 'Apenas medicos podem criar pre-consultas' });
     }
 
-    const { pacienteNome, pacienteTel, pacienteEmail } = req.body;
+    const { pacienteNome, pacienteTel, pacienteEmail, templateId } = req.body;
     const linkToken = crypto.randomBytes(24).toString('hex');
+
+    // If template specified, copy its questions into the pre-consulta
+    let templatePerguntas = null;
+    let permitirAudio = true;
+    if (templateId) {
+      const template = await prisma.formTemplate.findUnique({ where: { id: templateId } });
+      if (template && template.medicoId === medico.id) {
+        templatePerguntas = template.perguntas;
+        permitirAudio = template.permitirAudio;
+        // Increment usage counter
+        await prisma.formTemplate.update({ where: { id: templateId }, data: { vezesUsado: { increment: 1 } } });
+      }
+    }
 
     const preConsulta = await prisma.preConsulta.create({
       data: {
@@ -53,6 +67,8 @@ router.post('/', verificarAuth, validate(criarPreConsultaSchema), async (req, re
         pacienteTel,
         pacienteEmail,
         linkToken,
+        templateId: templateId || null,
+        templatePerguntas,
         expiraEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dias
       },
     });
@@ -89,6 +105,7 @@ router.get('/t/:token', async (req, res, next) => {
             usuario: { select: { nome: true } },
           },
         },
+        template: { select: { permitirAudio: true } },
       },
     });
 
@@ -171,6 +188,8 @@ router.get('/t/:token', async (req, res, next) => {
       especialidade: preConsulta.medico.especialidade,
       status: preConsulta.status,
       perfilPaciente, // null se nao tiver conta Vitae
+      templatePerguntas: preConsulta.templatePerguntas || null,
+      permitirAudio: preConsulta.templatePerguntas ? (preConsulta.template?.permitirAudio ?? true) : true,
     });
   } catch (err) {
     next(err);
@@ -226,7 +245,7 @@ router.post('/t/:token/responder-audio', audioUpload.fields([
     let summaryIA = null;
     let summaryJson = null;
     try {
-      const resultado = await gerarSummaryPreConsulta(preConsulta.pacienteNome, respostas, transcricao);
+      const resultado = await gerarSummaryPreConsulta(preConsulta.pacienteNome, respostas, transcricao, preConsulta.templatePerguntas);
       summaryIA = resultado.summaryTexto;
       summaryJson = resultado;
     } catch (aiErr) {
@@ -341,7 +360,8 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
       const resultado = await gerarSummaryPreConsulta(
         preConsulta.pacienteNome,
         respostas,
-        finalTranscricao
+        finalTranscricao,
+        preConsulta.templatePerguntas
       );
       summaryIA = resultado.summaryTexto;
       summaryJson = resultado;

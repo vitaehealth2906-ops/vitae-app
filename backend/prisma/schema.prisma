@@ -268,13 +268,36 @@ model Medico {
   preConsultas    PreConsulta[]
   autorizacoes    AutorizacaoAcesso[] @relation("medico_autorizacoes")
 
+  templates       FormTemplate[]
+
   @@map("medicos")
+}
+
+// ---- FORM TEMPLATES ----
+model FormTemplate {
+  id              String   @id @default(uuid())
+  medicoId        String   @map("medico_id")
+  nome            String
+  perguntas       Json     // [{id, tipo, texto, opcoes?, obrigatoria?}]
+  permitirAudio   Boolean  @default(true) @map("permitir_audio")
+  ativo           Boolean  @default(true)
+  vezesUsado      Int      @default(0) @map("vezes_usado")
+  versao          Int      @default(1)
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+
+  medico          Medico   @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+  preConsultas    PreConsulta[]
+
+  @@map("form_templates")
 }
 
 // ---- PRE-CONSULTAS ----
 model PreConsulta {
   id              String   @id @default(uuid())
   medicoId        String   @map("medico_id")
+  templateId      String?  @map("template_id")
+  templatePerguntas Json?  @map("template_perguntas") // snapshot das perguntas no momento da criação
   pacienteNome    String   @map("paciente_nome")
   pacienteTel     String?  @map("paciente_tel")
   pacienteEmail   String?  @map("paciente_email")
@@ -295,6 +318,7 @@ model PreConsulta {
   atualizadoEm    DateTime @updatedAt @map("atualizado_em")
 
   medico          Medico   @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+  template        FormTemplate? @relation(fields: [templateId], references: [id])
 
   @@map("pre_consultas")
 }

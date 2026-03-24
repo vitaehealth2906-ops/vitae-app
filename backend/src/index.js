@@ -20,6 +20,7 @@ const agendamentoRoutes = require('./routes/agendamento');
 const autorizacaoRoutes = require('./routes/autorizacao');
 const consentimentoRoutes = require('./routes/consentimento');
 const timelineRoutes = require('./routes/timeline');
+const templatesRoutes = require('./routes/templates');
 
 // ── App ────────────────────────────────────────────────
 const app = express();
@@ -77,6 +78,7 @@ app.use('/pre-consulta', preConsultaRoutes);
 app.use('/agendamento', agendamentoRoutes);
 app.use('/autorizacao', autorizacaoRoutes);
 app.use('/consentimento', consentimentoRoutes);
+app.use('/templates', templatesRoutes);
 app.use('/timeline', timelineRoutes);
 
 // ── 404 para rotas nao encontradas ────────────────────
