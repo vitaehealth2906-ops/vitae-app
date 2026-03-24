@@ -37,7 +37,7 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
       prisma.exame.findMany({
         where: { usuarioId: usuario.id },
         orderBy: { dataExame: 'desc' },
-        take: 5,
+        take: 50,
         select: {
           id: true,
           tipoExame: true,
@@ -45,10 +45,9 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
           dataExame: true,
           statusGeral: true,
           status: true,
-          parametros: {
-            where: { classificacao: { in: ['CRITICO', 'ATENCAO'] } },
-            select: { nome: true, valor: true, unidade: true, classificacao: true },
-          },
+          laboratorio: true,
+          medicoSolicitante: true,
+          arquivoUrl: true,
         },
       }),
     ]);

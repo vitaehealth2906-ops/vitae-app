@@ -71,6 +71,8 @@ function montarPromptEstruturacao(contextoPerfil) {
   "nome_amigavel": "string (nome do exame em linguagem leiga, ex: 'Exame de Sangue Completo', 'Painel do Coração', 'Painel Completo de Saúde')",
   "data_exame": "string (data no formato YYYY-MM-DD, ou null se não encontrada)",
   "laboratorio": "string (nome do laboratório, ou null se não encontrado)",
+  "medico_solicitante": "string (nome do médico solicitante ou realizador do exame, como aparece no documento, ou null se não encontrado)",
+  "paciente_nome": "string (nome do paciente como aparece no exame, ou null se não encontrado)",
   "status_geral": "string ('NORMAL', 'ATENCAO' ou 'CRITICO')",
   "parametros": [
     {

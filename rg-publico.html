@@ -76,6 +76,9 @@
         .pub-e-num.proc { color:rgba(17,24,39,.35); }
         .pub-e-den { font-family:'DM Mono',monospace; font-size:8px; color:rgba(17,24,39,.35); letter-spacing:.06em; margin-top:2px; }
         .pub-e-arr { font-size:18px; color:rgba(17,24,39,.22); margin-left:2px; }
+        .pub-e-details { margin-top:6px; display:flex; flex-direction:column; gap:4px; }
+        .pub-e-detail-row { display:flex; align-items:center; gap:6px; font-family:'DM Mono',monospace; font-size:10px; color:rgba(17,24,39,.45); letter-spacing:.04em; }
+        .pub-e-detail-row svg { flex-shrink:0; }
 
         /* Warning box */
         .warn-box { background:rgba(240,160,80,0.07); border:1px solid rgba(240,160,80,0.2); border-radius:12px; padding:12px 14px; margin-top:10px; display:flex; align-items:flex-start; gap:10px; }
@@ -413,48 +416,42 @@
                 <div class="glass-card"><div class="tags-wrap">${p.cirurgias.map(c => `<span class="tag surgery">${c}</span>`).join('')}</div></div>`;
         }
 
-        // BLOCO 6 — EXAMES RECENTES (card style matching authenticated app)
+        // BLOCO 6 — EXAMES (card simples: nome, data, lab, médico, paciente)
         if (examesRecentes && examesRecentes.length > 0) {
             const total = examesRecentes.length;
-            const totalCrits = examesRecentes.reduce((n, e) => n + (e.parametros || []).filter(p => (p.classificacao||'').toUpperCase() === 'CRITICO').length, 0);
-            const totalNormals = examesRecentes.reduce((n, e) => n + (e.parametros || []).filter(p => (p.classificacao||'').toUpperCase() === 'NORMAL').length, 0);
 
             html += `
-                <div class="section-title">${svgIcon('#4AD9A4','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>')} Últimos Exames</div>
-                <div class="pub-sec-label">${total} resultado${total > 1 ? 's' : ''}${totalNormals > 0 ? ' · ' + totalNormals + ' normais' : ''}${totalCrits > 0 ? ' · ' + totalCrits + ' crítico' + (totalCrits > 1 ? 's' : '') : ''}</div>`;
+                <div class="section-title">${svgIcon('#4AD9A4','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>')} Exames</div>
+                <div class="pub-sec-label">${total} exame${total > 1 ? 's' : ''}</div>`;
 
             html += examesRecentes.map((e, i) => {
                 const dt = e.dataExame ? new Date(e.dataExame) : null;
-                const dateLabel = dt ? (monthNames[dt.getMonth()] + ' ' + dt.getFullYear()) : '—';
+                const dateLabel = dt ? (monthNames[dt.getMonth()] + ' ' + dt.getFullYear()) : null;
                 const title = formatExamTitle(e.tipoExame || e.nomeArquivo);
-                const { score, normal, atencao, critico } = calcExamScore(e.parametros);
                 const isClickable = e.id && (e.status === 'CONCLUIDO' || e.status === 'PROCESSADO');
                 const examUrl = isClickable ? `exame-publico.html?user=${usuario.id}&exam=${e.id}` : null;
                 const onclickAttr = isClickable ? `onclick="window.location.href='${examUrl}'"` : '';
 
-                // Score color class
-                const scoreNum = score !== null ? parseFloat(score) : null;
-                const sCls = scoreNum === null ? 'proc' : scoreNum >= 7 ? 'ok' : scoreNum >= 4 ? 'warn' : 'crit';
+                // Status badge para exames não clicáveis
+                let statusBadge = '';
+                if (e.status === 'PROCESSANDO') statusBadge = `<span class="pub-tag warn">Processando...</span>`;
+                else if (e.status === 'ERRO') statusBadge = `<span class="pub-tag crit">Erro no processamento</span>`;
+                else if (e.status === 'ENVIADO') statusBadge = `<span class="pub-tag warn">Aguardando análise</span>`;
 
-                // Tags
-                const tags = [
-                    normal > 0 ? `<span class="pub-tag ok">${normal} ótimo${normal > 1 ? 's' : ''}</span>` : '',
-                    atencao > 0 ? `<span class="pub-tag warn">${atencao} atenção</span>` : '',
-                    critico > 0 ? `<span class="pub-tag crit">${critico} crítico${critico > 1 ? 's' : ''}</span>` : '',
-                    e.status === 'PROCESSANDO' ? `<span class="pub-tag warn">processando</span>` : '',
-                ].filter(Boolean).join('') || '<span class="pub-tag ok">analisado</span>';
+                // Linhas de detalhe: data, lab, médico, paciente
+                const detailLines = [];
+                if (dateLabel) detailLines.push(`<div class="pub-e-detail-row">${svgIcon('rgba(17,24,39,.35)','<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>')} ${dateLabel}</div>`);
+                if (e.laboratorio) detailLines.push(`<div class="pub-e-detail-row">${svgIcon('rgba(17,24,39,.35)','<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>')} ${e.laboratorio}</div>`);
+                if (e.medicoSolicitante) detailLines.push(`<div class="pub-e-detail-row">${svgIcon('rgba(17,24,39,.35)','<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>')} ${e.medicoSolicitante}</div>`);
+                if (usuario.nome) detailLines.push(`<div class="pub-e-detail-row">${svgIcon('rgba(17,24,39,.35)','<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>')} ${usuario.nome}</div>`);
 
-                return `<div class="pub-exam-gc${isClickable ? '' : ' no-click'}" style="animation-delay:${0.06 + i * 0.07}s" ${onclickAttr}>
+                return `<div class="pub-exam-gc${isClickable ? '' : ' no-click'}" ${onclickAttr}>
                     <div class="pub-exam-gi">
                         <div class="pub-e-info">
-                            <div class="pub-e-meta">${dateLabel}</div>
                             <div class="pub-e-name">${title}</div>
-                            <div class="pub-tag-row">${tags}</div>
+                            <div class="pub-e-details">${detailLines.join('')}</div>
+                            ${statusBadge ? `<div class="pub-tag-row" style="margin-top:8px;">${statusBadge}</div>` : ''}
                         </div>
-                        ${score !== null ? `<div class="pub-e-score">
-                            <div class="pub-e-num ${sCls}">${score}</div>
-                            <div class="pub-e-den">/ 10</div>
-                        </div>` : ''}
                         ${isClickable ? `<div class="pub-e-arr">›</div>` : ''}
                     </div>
                 </div>`;

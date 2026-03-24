@@ -94,8 +94,9 @@ async function processarExame(exameId, usuarioId) {
         where: { id: exameId },
         data: {
           status: 'CONCLUIDO',
-          tipoExame: dadosEstruturados.tipo_exame || dadosEstruturados.nome_exame || null,
+          tipoExame: dadosEstruturados.nome_amigavel || dadosEstruturados.tipo_exame || dadosEstruturados.nome_exame || null,
           laboratorio: dadosEstruturados.laboratorio || null,
+          medicoSolicitante: dadosEstruturados.medico_solicitante || null,
           dadosEstruturados: dadosEstruturados,
           resumoIA: analise.resumo || dadosEstruturados.resumo || null,
           impactosIA: analise.impactos || dadosEstruturados.impactos || null,
