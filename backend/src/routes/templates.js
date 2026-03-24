@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const authMiddleware = require('../middleware/auth');
+const { verificarAuth } = require('../middleware/auth');
 
 // ---- Question classification logic ----
 const KEYWORDS = {
@@ -144,7 +144,7 @@ function classifyAllQuestions(rawText) {
 // ---- ROUTES ----
 
 // POST /templates/classificar — classify raw questions into structured form
-router.post('/classificar', authMiddleware, async (req, res) => {
+router.post('/classificar', verificarAuth, async (req, res) => {
   try {
     const { texto } = req.body;
     if (!texto || texto.trim().length < 5) {
@@ -164,9 +164,9 @@ router.post('/classificar', authMiddleware, async (req, res) => {
 });
 
 // GET /templates — list all templates for logged-in doctor
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', verificarAuth, async (req, res) => {
   try {
-    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.userId } });
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
     if (!medico) return res.status(403).json({ erro: 'Apenas médicos podem acessar templates.' });
 
     const templates = await prisma.formTemplate.findMany({
@@ -182,9 +182,9 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // POST /templates — create new template
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', verificarAuth, async (req, res) => {
   try {
-    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.userId } });
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
     if (!medico) return res.status(403).json({ erro: 'Apenas médicos podem criar templates.' });
 
     const { nome, perguntas, permitirAudio } = req.body;
@@ -214,9 +214,9 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // PUT /templates/:id — update template
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', verificarAuth, async (req, res) => {
   try {
-    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.userId } });
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
     if (!medico) return res.status(403).json({ erro: 'Apenas médicos podem editar templates.' });
 
     const existing = await prisma.formTemplate.findUnique({ where: { id: req.params.id } });
@@ -254,9 +254,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
 });
 
 // DELETE /templates/:id — delete template
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', verificarAuth, async (req, res) => {
   try {
-    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.userId } });
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
     if (!medico) return res.status(403).json({ erro: 'Apenas médicos podem apagar templates.' });
 
     const existing = await prisma.formTemplate.findUnique({ where: { id: req.params.id } });
