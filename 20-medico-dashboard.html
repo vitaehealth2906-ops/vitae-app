@@ -178,6 +178,20 @@
 
         /* Create template view */
         .back-arrow { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:rgba(17,24,39,0.5); cursor:pointer; margin-bottom:16px; }
+
+        /* Chat styles */
+        .chat-msg { display:flex; gap:8px; max-width:90%; }
+        .chat-msg.ai { align-self:flex-start; }
+        .chat-msg.user { align-self:flex-end; flex-direction:row-reverse; }
+        .chat-avatar { width:28px; height:28px; border-radius:50%; background:rgba(0,153,196,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+        .chat-bubble { padding:12px 16px; border-radius:16px; font-size:13px; line-height:1.5; }
+        .ai-bubble { background:rgba(0,153,196,0.06); border:1px solid rgba(0,153,196,0.12); color:#111827; border-bottom-left-radius:4px; }
+        .user-bubble { background:linear-gradient(135deg,#00B4D8,#007A9E); color:#fff; border-bottom-right-radius:4px; }
+        .typing-dots { display:flex; gap:4px; padding:12px 16px; }
+        .typing-dots span { width:6px; height:6px; border-radius:50%; background:rgba(0,153,196,0.4); animation:typing 1.2s infinite; }
+        .typing-dots span:nth-child(2) { animation-delay:0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay:0.4s; }
+        @keyframes typing { 0%,80%,100%{opacity:0.3;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
         .back-arrow:hover { color:#0099C4; }
         .info-box {
             background:rgba(0,153,196,0.06); border:1px solid rgba(0,153,196,0.15);
@@ -289,35 +303,44 @@
         </div>
     </div>
 
-    <!-- VIEW: CREATE / EDIT TEMPLATE -->
+    <!-- VIEW: CREATE / EDIT TEMPLATE (Chat style) -->
     <div class="content" id="viewCreateTemplate" style="display:none;">
         <div class="back-arrow" onclick="showView('templates')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             Voltar
         </div>
-        <div class="section-title" style="margin-bottom:16px;">Novo Template</div>
-        <div class="info-box">
-            Escreva abaixo as perguntas que você costuma fazer pro seu paciente. Cada pergunta em uma linha.
-        </div>
-        <textarea class="tpl-textarea" id="templateQuestions" placeholder="Ex:&#10;Onde dói?&#10;Há quanto tempo?&#10;Toma algum remédio?&#10;Tem alergia?&#10;Fuma?"></textarea>
-        <div class="toggle-row">
-            <span class="toggle-row-label">Permitir áudio</span>
-            <label class="toggle-switch">
-                <input type="checkbox" id="toggleAudio" checked>
-                <span class="toggle-slider"></span>
-            </label>
-        </div>
-        <button class="create-btn" id="generateBtn" onclick="gerarFormulario()" style="margin-top:8px;">Gerar formulário</button>
 
-        <!-- Preview Section -->
-        <div id="previewSection" style="display:none;">
-            <div class="section-title" style="margin-top:24px;margin-bottom:12px;">Pré-visualização</div>
-            <input class="tpl-name-input" id="templateNome" placeholder="Nome do template (ex: Ortopedia geral)">
-            <div id="previewQuestions"></div>
-            <div class="btn-row">
-                <button class="btn-secondary" onclick="voltarEdicaoTemplate()">Voltar para edição</button>
-                <button class="btn-primary" onclick="salvarTemplate()">Salvar e Ativar</button>
+        <!-- Chat messages area -->
+        <div id="chatMessages" style="display:flex;flex-direction:column;gap:10px;padding-bottom:16px;">
+            <div class="chat-msg ai">
+                <div class="chat-avatar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                </div>
+                <div class="chat-bubble ai-bubble">Olá Dr(a)! Me diga quais perguntas você costuma fazer pro seu paciente — pode escrever do seu jeito, sem formalidade. Eu monto o formulário pra você.</div>
             </div>
+        </div>
+
+        <!-- Preview Section (hidden until generated) -->
+        <div id="previewSection" style="display:none;margin-bottom:16px;">
+            <div style="font-size:12px;font-weight:700;color:rgba(17,24,39,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Pré-visualização do formulário</div>
+            <input class="tpl-name-input" id="templateNome" placeholder="Nome do template (ex: Cardiologia - Dor torácica)">
+            <div id="previewQuestions"></div>
+            <div class="toggle-row" style="margin:12px 0;">
+                <span class="toggle-row-label">Permitir áudio do paciente</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggleAudio" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <button class="create-btn" onclick="salvarTemplate()">Salvar e Ativar</button>
+        </div>
+
+        <!-- Chat input (always at bottom) -->
+        <div style="display:flex;gap:8px;align-items:flex-end;position:sticky;bottom:0;background:#fff;padding:12px 0;">
+            <textarea id="chatInput" class="tpl-textarea" style="min-height:48px;max-height:120px;margin:0;flex:1;padding:12px 14px;line-height:1.4;" placeholder="Escreva suas perguntas aqui..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarChat()}"></textarea>
+            <button onclick="enviarChat()" style="width:46px;height:46px;border-radius:14px;border:none;background:linear-gradient(135deg,#00B4D8,#007A9E);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
         </div>
     </div>
 
@@ -633,45 +656,143 @@
         'NUMERO': 'Número',
     };
 
-    async function gerarFormulario() {
-        const raw = document.getElementById('templateQuestions').value.trim();
-        if (!raw) return alert('Escreva pelo menos uma pergunta.');
-        const linhas = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        if (linhas.length === 0) return alert('Escreva pelo menos uma pergunta.');
+    let chatHistory = [];
 
-        document.getElementById('generateBtn').textContent = 'Classificando...';
-        try {
-            const data = await vitaeAPI.classificarPerguntas({ perguntas: linhas });
-            classificadoQuestions = data.perguntas || linhas.map(p => ({ texto: p, tipo: 'TEXTO' }));
-            renderPreview();
-            document.getElementById('previewSection').style.display = '';
-        } catch (e) {
-            // Fallback: all questions as TEXTO
-            classificadoQuestions = linhas.map(p => ({ texto: p, tipo: 'TEXTO' }));
-            renderPreview();
-            document.getElementById('previewSection').style.display = '';
-            console.log('Classificação fallback:', e.message);
+    function addChatMessage(type, text) {
+        const container = document.getElementById('chatMessages');
+        const msg = document.createElement('div');
+        msg.className = `chat-msg ${type}`;
+        if (type === 'ai') {
+            msg.innerHTML = `<div class="chat-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div><div class="chat-bubble ai-bubble">${text}</div>`;
+        } else {
+            msg.innerHTML = `<div class="chat-bubble user-bubble">${text}</div>`;
         }
-        document.getElementById('generateBtn').textContent = 'Gerar formulário';
+        container.appendChild(msg);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function showTyping() {
+        const container = document.getElementById('chatMessages');
+        const msg = document.createElement('div');
+        msg.className = 'chat-msg ai';
+        msg.id = 'typingIndicator';
+        msg.innerHTML = `<div class="chat-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div><div class="chat-bubble ai-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+        container.appendChild(msg);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function hideTyping() {
+        const el = document.getElementById('typingIndicator');
+        if (el) el.remove();
+    }
+
+    async function enviarChat() {
+        const input = document.getElementById('chatInput');
+        const raw = input.value.trim();
+        if (!raw) return;
+
+        // Show user message
+        addChatMessage('user', raw.replace(/\n/g, '<br>'));
+        input.value = '';
+        chatHistory.push(raw);
+
+        // If we already have questions and user is requesting an edit
+        if (classificadoQuestions.length > 0) {
+            showTyping();
+            // Parse edit commands
+            const lower = raw.toLowerCase();
+            let edited = false;
+
+            // "tira/remove a pergunta X"
+            const removeMatch = lower.match(/(?:tira|remove|exclui|apaga).*(?:pergunta|questão)\s*(\d+)/);
+            if (removeMatch) {
+                const idx = parseInt(removeMatch[1]) - 1;
+                const mandatory = classificadoQuestions.filter(q => q.obrigatoria);
+                const custom = classificadoQuestions.filter(q => !q.obrigatoria);
+                if (idx >= 0 && idx < custom.length) {
+                    custom.splice(idx, 1);
+                    classificadoQuestions = [...mandatory, ...custom];
+                    renderPreview();
+                    hideTyping();
+                    addChatMessage('ai', `Pronto! Removi a pergunta ${removeMatch[1]}. O formulário foi atualizado.`);
+                    edited = true;
+                }
+            }
+
+            // "adiciona X"
+            if (!edited && (lower.includes('adiciona') || lower.includes('coloca') || lower.includes('inclui') || lower.includes('acrescenta'))) {
+                showTyping();
+                try {
+                    const data = await vitaeAPI.classificarPerguntas(raw);
+                    const newQs = (data.perguntas || []).filter(q => !q.obrigatoria);
+                    if (newQs.length > 0) {
+                        classificadoQuestions = [...classificadoQuestions, ...newQs];
+                        renderPreview();
+                        hideTyping();
+                        addChatMessage('ai', `Adicionei ${newQs.length} pergunta(s) ao formulário!`);
+                        edited = true;
+                    }
+                } catch(e) { console.log(e); }
+            }
+
+            if (!edited) {
+                // Generic: re-classify everything including new text
+                try {
+                    const allText = chatHistory.join('\n');
+                    const data = await vitaeAPI.classificarPerguntas(allText);
+                    classificadoQuestions = data.perguntas || classificadoQuestions;
+                    renderPreview();
+                    hideTyping();
+                    addChatMessage('ai', 'Formulário atualizado! Confira abaixo.');
+                } catch(e) {
+                    hideTyping();
+                    addChatMessage('ai', 'Desculpe, não entendi. Tente algo como "adiciona uma pergunta sobre diabetes" ou "tira a pergunta 3".');
+                }
+            }
+            return;
+        }
+
+        // First message: classify questions
+        showTyping();
+        try {
+            const data = await vitaeAPI.classificarPerguntas(raw);
+            classificadoQuestions = data.perguntas || [];
+            if (classificadoQuestions.length <= 3) {
+                hideTyping();
+                addChatMessage('ai', 'Não consegui identificar perguntas suficientes. Pode escrever mais detalhes? Por exemplo: "Onde dói? Há quanto tempo? Fuma? Tem alergia?"');
+                return;
+            }
+            renderPreview();
+            document.getElementById('previewSection').style.display = '';
+            hideTyping();
+            const customCount = classificadoQuestions.filter(q => !q.obrigatoria).length;
+            addChatMessage('ai', `Pronto! Criei seu formulário com ${customCount} perguntas personalizadas + 3 obrigatórias. Confira abaixo. Se quiser ajustar, me diga (ex: "tira a pergunta 2" ou "adiciona uma sobre colesterol").`);
+        } catch(e) {
+            hideTyping();
+            addChatMessage('ai', 'Ops, algo deu errado. Tente escrever suas perguntas novamente, uma por linha.');
+        }
     }
 
     function renderPreview() {
         const container = document.getElementById('previewQuestions');
+        let mandatoryIdx = 0;
+        let customIdx = 0;
         container.innerHTML = classificadoQuestions.map(q => {
-            const tipo = q.tipo || 'TEXTO';
-            const icon = typeIcons[tipo] || typeIcons['TEXTO'];
-            const label = typeLabels[tipo] || tipo;
+            const tipo = q.tipo || 'text';
+            const tipoUpper = tipo.toUpperCase();
+            const icon = typeIcons[tipoUpper] || typeIcons['TEXTO'] || '📝';
+            const label = typeLabels[tipoUpper] || tipo;
+            const isMandatory = q.obrigatoria;
+            const num = isMandatory ? '' : `${++customIdx}. `;
             return `
-                <div class="preview-question">
+                <div class="preview-question" style="${isMandatory ? 'opacity:0.6;' : ''}">
                     <div class="pq-icon">${icon}</div>
-                    <div class="pq-text">${q.texto}</div>
-                    <div class="pq-type">${label}</div>
+                    <div style="flex:1;">
+                        <div class="pq-text">${num}${q.texto} ${isMandatory ? '<span style="color:#D94452;font-size:10px;">(obrigatória)</span>' : ''}</div>
+                        <div class="pq-type">${label}</div>
+                    </div>
                 </div>`;
         }).join('');
-    }
-
-    function voltarEdicaoTemplate() {
-        document.getElementById('previewSection').style.display = 'none';
     }
 
     async function salvarTemplate() {
