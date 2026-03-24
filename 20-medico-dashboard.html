@@ -291,8 +291,14 @@
         </div>
     </div>
 
-    <!-- VIEW: TEMPLATES (empty for now) -->
+    <!-- VIEW: TEMPLATES -->
     <div class="content" id="viewTemplates" style="display:none;">
+        <div class="section-title" style="margin-bottom:8px;">Templates</div>
+        <p style="font-size:13px;color:rgba(17,24,39,0.45);margin-bottom:20px;line-height:1.5;">Escreva abaixo as perguntas que você costuma fazer pro seu paciente. O formulário será criado automaticamente.</p>
+        <input id="tplNome" style="width:100%;padding:14px 16px;background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.08);border-radius:12px;font-family:'Inter',sans-serif;font-size:14px;color:#111827;outline:none;margin-bottom:12px;" placeholder="Nome do template (ex: Cardiologia geral)">
+        <textarea id="tplPerguntas" style="width:100%;min-height:200px;padding:16px;background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.08);border-radius:14px;font-family:'Inter',sans-serif;font-size:14px;color:#111827;resize:vertical;outline:none;line-height:1.7;" placeholder="Onde dói?&#10;Há quanto tempo?&#10;Toma algum remédio?&#10;Tem alergia a algo?&#10;Fuma?&#10;Bebe álcool?&#10;Já fez alguma cirurgia?"></textarea>
+        <button class="create-btn" style="margin-top:16px;" onclick="criarTemplatSimples()">Criar formulário</button>
+        <div id="tplLista" style="margin-top:24px;"></div>
     </div>
 
     <!-- Create pre-consulta modal -->
@@ -373,20 +379,11 @@
         document.getElementById('viewDashboard').style.display = view === 'dashboard' ? '' : 'none';
         document.getElementById('viewConsultas').style.display = view === 'consultas' ? '' : 'none';
         document.getElementById('viewTemplates').style.display = view === 'templates' ? '' : 'none';
-        document.getElementById('viewCreateTemplate').style.display = view === 'create-template' ? '' : 'none';
         document.getElementById('tabDashboard').className = 'tab' + (view === 'dashboard' ? ' active' : '');
         document.getElementById('tabConsultas').className = 'tab' + (view === 'consultas' ? ' active' : '');
-        document.getElementById('tabTemplates').className = 'tab' + ((view === 'templates' || view === 'create-template') ? ' active' : '');
+        document.getElementById('tabTemplates').className = 'tab' + (view === 'templates' ? ' active' : '');
         if (view === 'consultas') loadAllPreConsultas();
-        if (view === 'templates') loadTemplates();
-        if (view === 'create-template') {
-            document.getElementById('previewSection').style.display = 'none';
-            if (!editingTemplateId) {
-                document.getElementById('templateQuestions').value = '';
-                document.getElementById('templateNome').value = '';
-                document.getElementById('toggleAudio').checked = true;
-            }
-        }
+        if (view === 'templates') carregarTemplates();
     }
 
     function buildCard(pc) {
@@ -538,296 +535,60 @@
 
     // ========== TEMPLATES ==========
     let editingTemplateId = null;
-    let classificadoQuestions = [];
+    async function criarTemplatSimples() {
+        const nome = document.getElementById('tplNome').value.trim();
+        const raw = document.getElementById('tplPerguntas').value.trim();
+        if (!nome) return alert('Dê um nome ao template.');
+        if (!raw) return alert('Escreva pelo menos uma pergunta.');
 
-    async function loadTemplates() {
-        const list = document.getElementById('templateList');
-        list.innerHTML = '<div class="empty-state">Carregando...</div>';
-        try {
-            const data = await vitaeAPI.listarTemplates();
-            const templates = data.templates || [];
-            if (templates.length === 0) {
-                list.innerHTML = '<div class="empty-state">Nenhum template ainda. Crie o primeiro!</div>';
-            } else {
-                list.innerHTML = templates.map(buildTemplateCard).join('');
-            }
-        } catch (e) {
-            list.innerHTML = '<div class="empty-state">Erro ao carregar templates.</div>';
-            console.log('Erro templates:', e.message);
-        }
-    }
-
-    function buildTemplateCard(t) {
-        const dt = t.criadoEm ? new Date(t.criadoEm).toLocaleDateString('pt-BR') : '';
-        const vezes = t.vezesUsado || 0;
-        const ativo = t.ativo !== false;
-        return `
-            <div class="tpl-card">
-                <div class="tpl-card-header">
-                    <div class="tpl-card-name">${t.nome || 'Sem nome'}</div>
-                    <label class="tpl-active-toggle" title="${ativo ? 'Ativo' : 'Inativo'}">
-                        <input type="checkbox" ${ativo ? 'checked' : ''} onchange="toggleTemplateAtivo('${t.id}', this.checked)">
-                        <span class="tpl-active-slider"></span>
-                    </label>
-                </div>
-                <div class="tpl-card-meta">
-                    <span>Criado ${dt}</span>
-                    <span>${vezes}x usado</span>
-                    <span>${(t.perguntas || []).length} perguntas</span>
-                </div>
-                <div class="tpl-card-actions">
-                    <button onclick="editarTemplate('${t.id}')">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        Editar
-                    </button>
-                    <button onclick="duplicarTemplate('${t.id}')">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                        Duplicar
-                    </button>
-                    <button class="delete" onclick="apagarTemplate('${t.id}','${(t.nome||'').replace(/'/g,"\\'")}')">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                        Apagar
-                    </button>
-                </div>
-            </div>`;
-    }
-
-    const typeIcons = {
-        'SIM_NAO': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>',
-        'ESCALA': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="12" y1="21" x2="12" y2="8"/><line x1="20" y1="21" x2="20" y2="3"/></svg>',
-        'TEXTO': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2" stroke-linecap="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="12" y1="14" x2="3" y2="14"/></svg>',
-        'MULTIPLA_ESCOLHA': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
-        'NUMERO': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>',
-    };
-    const typeLabels = {
-        'SIM_NAO': 'Sim/Não',
-        'ESCALA': 'Escala',
-        'TEXTO': 'Texto',
-        'MULTIPLA_ESCOLHA': 'Múltipla escolha',
-        'NUMERO': 'Número',
-    };
-
-    let chatHistory = [];
-
-    function addChatMessage(type, text) {
-        const container = document.getElementById('chatMessages');
-        const msg = document.createElement('div');
-        msg.className = `chat-msg ${type}`;
-        if (type === 'ai') {
-            msg.innerHTML = `<div class="chat-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div><div class="chat-bubble ai-bubble">${text}</div>`;
-        } else {
-            msg.innerHTML = `<div class="chat-bubble user-bubble">${text}</div>`;
-        }
-        container.appendChild(msg);
-        container.scrollTop = container.scrollHeight;
-    }
-
-    function showTyping() {
-        const container = document.getElementById('chatMessages');
-        const msg = document.createElement('div');
-        msg.className = 'chat-msg ai';
-        msg.id = 'typingIndicator';
-        msg.innerHTML = `<div class="chat-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div><div class="chat-bubble ai-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
-        container.appendChild(msg);
-        container.scrollTop = container.scrollHeight;
-    }
-
-    function hideTyping() {
-        const el = document.getElementById('typingIndicator');
-        if (el) el.remove();
-    }
-
-    async function enviarChat() {
-        const input = document.getElementById('chatInput');
-        const raw = input.value.trim();
-        if (!raw) return;
-
-        // Show user message
-        addChatMessage('user', raw.replace(/\n/g, '<br>'));
-        input.value = '';
-        chatHistory.push(raw);
-
-        // If we already have questions and user is requesting an edit
-        if (classificadoQuestions.length > 0) {
-            showTyping();
-            // Parse edit commands
-            const lower = raw.toLowerCase();
-            let edited = false;
-
-            // "tira/remove a pergunta X"
-            const removeMatch = lower.match(/(?:tira|remove|exclui|apaga).*(?:pergunta|questão)\s*(\d+)/);
-            if (removeMatch) {
-                const idx = parseInt(removeMatch[1]) - 1;
-                const mandatory = classificadoQuestions.filter(q => q.obrigatoria);
-                const custom = classificadoQuestions.filter(q => !q.obrigatoria);
-                if (idx >= 0 && idx < custom.length) {
-                    custom.splice(idx, 1);
-                    classificadoQuestions = [...mandatory, ...custom];
-                    renderPreview();
-                    hideTyping();
-                    addChatMessage('ai', `Pronto! Removi a pergunta ${removeMatch[1]}. O formulário foi atualizado.`);
-                    edited = true;
-                }
-            }
-
-            // "adiciona X"
-            if (!edited && (lower.includes('adiciona') || lower.includes('coloca') || lower.includes('inclui') || lower.includes('acrescenta'))) {
-                showTyping();
-                try {
-                    const data = await vitaeAPI.classificarPerguntas(raw);
-                    const newQs = (data.perguntas || []).filter(q => !q.obrigatoria);
-                    if (newQs.length > 0) {
-                        classificadoQuestions = [...classificadoQuestions, ...newQs];
-                        renderPreview();
-                        hideTyping();
-                        addChatMessage('ai', `Adicionei ${newQs.length} pergunta(s) ao formulário!`);
-                        edited = true;
-                    }
-                } catch(e) { console.log(e); }
-            }
-
-            if (!edited) {
-                // Generic: re-classify everything including new text
-                try {
-                    const allText = chatHistory.join('\n');
-                    const data = await vitaeAPI.classificarPerguntas(allText);
-                    classificadoQuestions = data.perguntas || classificadoQuestions;
-                    renderPreview();
-                    hideTyping();
-                    addChatMessage('ai', 'Formulário atualizado! Confira abaixo.');
-                } catch(e) {
-                    hideTyping();
-                    addChatMessage('ai', 'Desculpe, não entendi. Tente algo como "adiciona uma pergunta sobre diabetes" ou "tira a pergunta 3".');
-                }
-            }
-            return;
-        }
-
-        // First message: classify questions
-        showTyping();
+        const btn = document.querySelector('#viewTemplates .create-btn');
+        btn.textContent = 'Criando...';
         try {
             const data = await vitaeAPI.classificarPerguntas(raw);
-            classificadoQuestions = data.perguntas || [];
-            if (classificadoQuestions.length <= 3) {
-                hideTyping();
-                addChatMessage('ai', 'Não consegui identificar perguntas suficientes. Pode escrever mais detalhes? Por exemplo: "Onde dói? Há quanto tempo? Fuma? Tem alergia?"');
-                return;
+            const perguntas = data.perguntas || [];
+            if (perguntas.length < 4) {
+                btn.textContent = 'Criar formulário';
+                return alert('Escreva pelo menos uma pergunta (além das 3 obrigatórias).');
             }
-            renderPreview();
-            document.getElementById('previewSection').style.display = '';
-            hideTyping();
-            const customCount = classificadoQuestions.filter(q => !q.obrigatoria).length;
-            addChatMessage('ai', `Pronto! Criei seu formulário com ${customCount} perguntas personalizadas + 3 obrigatórias. Confira abaixo. Se quiser ajustar, me diga (ex: "tira a pergunta 2" ou "adiciona uma sobre colesterol").`);
+            await vitaeAPI.criarTemplate({ nome, perguntas, permitirAudio: true });
+            document.getElementById('tplNome').value = '';
+            document.getElementById('tplPerguntas').value = '';
+            btn.textContent = 'Criar formulário';
+            alert('Template criado com sucesso!');
+            carregarTemplates();
         } catch(e) {
-            hideTyping();
-            addChatMessage('ai', 'Ops, algo deu errado. Tente escrever suas perguntas novamente, uma por linha.');
+            btn.textContent = 'Criar formulário';
+            alert('Erro: ' + (e.message || 'Tente novamente'));
         }
     }
 
-    function renderPreview() {
-        const container = document.getElementById('previewQuestions');
-        let mandatoryIdx = 0;
-        let customIdx = 0;
-        container.innerHTML = classificadoQuestions.map(q => {
-            const tipo = q.tipo || 'text';
-            const tipoUpper = tipo.toUpperCase();
-            const icon = typeIcons[tipoUpper] || typeIcons['TEXTO'] || '📝';
-            const label = typeLabels[tipoUpper] || tipo;
-            const isMandatory = q.obrigatoria;
-            const num = isMandatory ? '' : `${++customIdx}. `;
-            return `
-                <div class="preview-question" style="${isMandatory ? 'opacity:0.6;' : ''}">
-                    <div class="pq-icon">${icon}</div>
-                    <div style="flex:1;">
-                        <div class="pq-text">${num}${q.texto} ${isMandatory ? '<span style="color:#D94452;font-size:10px;">(obrigatória)</span>' : ''}</div>
-                        <div class="pq-type">${label}</div>
-                    </div>
-                </div>`;
-        }).join('');
-    }
-
-    async function salvarTemplate() {
-        const nome = document.getElementById('templateNome').value.trim();
-        if (!nome) return alert('Dê um nome ao template.');
-        if (classificadoQuestions.length === 0) return alert('Gere o formulário antes de salvar.');
-
-        const payload = {
-            nome: nome,
-            perguntas: classificadoQuestions,
-            permitirAudio: document.getElementById('toggleAudio').checked,
-            ativo: true,
-        };
-
+    async function carregarTemplates() {
         try {
-            if (editingTemplateId) {
-                await vitaeAPI.atualizarTemplate(editingTemplateId, payload);
-            } else {
-                await vitaeAPI.criarTemplate(payload);
-            }
-            editingTemplateId = null;
-            classificadoQuestions = [];
-            showView('templates');
-        } catch (e) {
-            alert('Erro ao salvar template: ' + e.message);
-        }
+            const data = await vitaeAPI.listarTemplates();
+            const lista = document.getElementById('tplLista');
+            const tpls = data.templates || [];
+            if (tpls.length === 0) { lista.innerHTML = ''; return; }
+            lista.innerHTML = '<div style="font-size:12px;font-weight:700;color:rgba(17,24,39,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Seus templates</div>' +
+                tpls.map(t => `
+                    <div style="background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.07);border-radius:14px;padding:14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+                        <div>
+                            <div style="font-size:14px;font-weight:600;color:#111827;">${t.nome}</div>
+                            <div style="font-size:11px;color:rgba(17,24,39,0.4);margin-top:2px;">Usado ${t.vezesUsado}x · ${t.ativo ? 'Ativo' : 'Inativo'}</div>
+                        </div>
+                        <button onclick="if(confirm('Apagar template ${t.nome}?'))apagarTpl('${t.id}')" style="width:30px;height:30px;border-radius:8px;border:none;background:rgba(217,68,82,0.06);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(217,68,82,0.5)" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                        </button>
+                    </div>`).join('');
+        } catch(e) { console.log(e); }
     }
 
-    async function editarTemplate(id) {
+    async function apagarTpl(id) {
         try {
-            const data = await vitaeAPI.getTemplate(id);
-            const t = data.template || data;
-            editingTemplateId = id;
-            document.getElementById('templateQuestions').value = (t.perguntas || []).map(p => p.texto || p).join('\n');
-            document.getElementById('templateNome').value = t.nome || '';
-            document.getElementById('toggleAudio').checked = t.permitirAudio !== false;
-            classificadoQuestions = t.perguntas || [];
-            showView('create-template');
-            if (classificadoQuestions.length > 0) {
-                renderPreview();
-                document.getElementById('previewSection').style.display = '';
-            }
-        } catch (e) {
-            alert('Erro ao carregar template: ' + e.message);
-        }
+            await vitaeAPI.apagarTemplate(id);
+            carregarTemplates();
+        } catch(e) { alert('Erro ao apagar: ' + e.message); }
     }
 
-    async function duplicarTemplate(id) {
-        try {
-            const data = await vitaeAPI.getTemplate(id);
-            const t = data.template || data;
-            editingTemplateId = null;
-            document.getElementById('templateQuestions').value = (t.perguntas || []).map(p => p.texto || p).join('\n');
-            document.getElementById('templateNome').value = (t.nome || '') + ' (cópia)';
-            document.getElementById('toggleAudio').checked = t.permitirAudio !== false;
-            classificadoQuestions = t.perguntas || [];
-            showView('create-template');
-            if (classificadoQuestions.length > 0) {
-                renderPreview();
-                document.getElementById('previewSection').style.display = '';
-            }
-        } catch (e) {
-            alert('Erro ao duplicar template: ' + e.message);
-        }
-    }
-
-    async function apagarTemplate(id, nome) {
-        if (!confirm(`Tem certeza que deseja apagar o template "${nome}"?`)) return;
-        try {
-            await vitaeAPI.deletarTemplate(id);
-            loadTemplates();
-        } catch (e) {
-            alert('Erro ao apagar template: ' + e.message);
-        }
-    }
-
-    async function toggleTemplateAtivo(id, ativo) {
-        try {
-            await vitaeAPI.atualizarTemplate(id, { ativo: ativo });
-        } catch (e) {
-            console.log('Erro toggle template:', e.message);
-            loadTemplates(); // refresh to revert UI
-        }
-    }
 
     async function populateTemplateSelect() {
         const select = document.getElementById('pcTemplate');
