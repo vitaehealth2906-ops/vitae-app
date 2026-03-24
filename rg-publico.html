@@ -53,6 +53,30 @@
         .tag.exam-warn { background:rgba(240,160,80,0.1); color:var(--orange); border:1px solid rgba(240,160,80,0.2); }
         .tag.exam-crit { background:rgba(217,68,82,0.1); color:#e55; border:1px solid rgba(217,68,82,0.2); }
 
+        /* Exam cards — same visual as authenticated app */
+        .pub-sec-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:.15em; color:rgba(17,24,39,.42); text-transform:uppercase; margin:0 0 10px; }
+        .pub-exam-gc { position:relative; border-radius:20px; margin-bottom:10px; background:#FFFFFF; border:1px solid rgba(0,0,0,.07); box-shadow:0 2px 12px rgba(0,0,0,.05); cursor:pointer; transition:border-color 0.2s, transform 0.15s; }
+        .pub-exam-gc:hover { border-color:rgba(0,153,196,.25); }
+        .pub-exam-gc:active { transform:scale(.978); }
+        .pub-exam-gc.no-click { cursor:default; }
+        .pub-exam-gi { border-radius:19px; padding:16px 18px; display:flex; gap:14px; align-items:center; }
+        .pub-e-info { flex:1; }
+        .pub-e-meta { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.12em; color:rgba(17,24,39,.40); text-transform:uppercase; margin-bottom:5px; }
+        .pub-e-name { font-family:'Playfair Display',serif; font-size:19px; font-weight:500; color:#111827; margin-bottom:8px; line-height:1.2; }
+        .pub-tag-row { display:flex; gap:6px; flex-wrap:wrap; }
+        .pub-tag { display:inline-flex; align-items:center; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:500; line-height:1; }
+        .pub-tag.ok { background:rgba(74,217,164,.1); color:var(--green); border:1px solid rgba(74,217,164,.2); }
+        .pub-tag.warn { background:rgba(240,160,80,.1); color:var(--orange); border:1px solid rgba(240,160,80,.2); }
+        .pub-tag.crit { background:rgba(217,68,82,.1); color:#e55; border:1px solid rgba(217,68,82,.2); }
+        .pub-e-score { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+        .pub-e-num { font-family:'Playfair Display',serif; font-size:26px; font-weight:600; line-height:1; }
+        .pub-e-num.ok { color:var(--green); }
+        .pub-e-num.warn { color:var(--orange); }
+        .pub-e-num.crit { color:var(--red); }
+        .pub-e-num.proc { color:rgba(17,24,39,.35); }
+        .pub-e-den { font-family:'DM Mono',monospace; font-size:8px; color:rgba(17,24,39,.35); letter-spacing:.06em; margin-top:2px; }
+        .pub-e-arr { font-size:18px; color:rgba(17,24,39,.22); margin-left:2px; }
+
         /* Warning box */
         .warn-box { background:rgba(240,160,80,0.07); border:1px solid rgba(240,160,80,0.2); border-radius:12px; padding:12px 14px; margin-top:10px; display:flex; align-items:flex-start; gap:10px; }
         .warn-box svg { flex-shrink:0; margin-top:1px; }
@@ -389,39 +413,50 @@
                 <div class="glass-card"><div class="tags-wrap">${p.cirurgias.map(c => `<span class="tag surgery">${c}</span>`).join('')}</div></div>`;
         }
 
-        // BLOCO 6 — EXAMES RECENTES (card style)
+        // BLOCO 6 — EXAMES RECENTES (card style matching authenticated app)
         if (examesRecentes && examesRecentes.length > 0) {
-            html += `
-                <div class="section-title">${svgIcon('#4AD9A4','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>')} Últimos Exames</div>`;
+            const total = examesRecentes.length;
+            const totalCrits = examesRecentes.reduce((n, e) => n + (e.parametros || []).filter(p => (p.classificacao||'').toUpperCase() === 'CRITICO').length, 0);
+            const totalNormals = examesRecentes.reduce((n, e) => n + (e.parametros || []).filter(p => (p.classificacao||'').toUpperCase() === 'NORMAL').length, 0);
 
-            html += examesRecentes.map(e => {
+            html += `
+                <div class="section-title">${svgIcon('#4AD9A4','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>')} Últimos Exames</div>
+                <div class="pub-sec-label">${total} resultado${total > 1 ? 's' : ''}${totalNormals > 0 ? ' · ' + totalNormals + ' normais' : ''}${totalCrits > 0 ? ' · ' + totalCrits + ' crítico' + (totalCrits > 1 ? 's' : '') : ''}</div>`;
+
+            html += examesRecentes.map((e, i) => {
                 const dt = e.dataExame ? new Date(e.dataExame) : null;
                 const dateLabel = dt ? (monthNames[dt.getMonth()] + ' ' + dt.getFullYear()) : '—';
-                const labName = e.tipoExame || e.nomeArquivo || 'Laboratório';
                 const title = formatExamTitle(e.tipoExame || e.nomeArquivo);
                 const { score, normal, atencao, critico } = calcExamScore(e.parametros);
                 const isClickable = e.id && (e.status === 'CONCLUIDO' || e.status === 'PROCESSADO');
-                const examUrl = isClickable ? `exame-publico.html?user=${usuario.id}&exam=${e.id}` : '#';
+                const examUrl = isClickable ? `exame-publico.html?user=${usuario.id}&exam=${e.id}` : null;
                 const onclickAttr = isClickable ? `onclick="window.location.href='${examUrl}'"` : '';
 
-                let tagsHtml = '';
-                if (normal > 0) tagsHtml += `<span class="tag exam-ok" style="font-size:10px;padding:3px 8px;">${normal} Normal</span>`;
-                if (atencao > 0) tagsHtml += `<span class="tag exam-warn" style="font-size:10px;padding:3px 8px;">${atencao} Atenção</span>`;
-                if (critico > 0) tagsHtml += `<span class="tag exam-crit" style="font-size:10px;padding:3px 8px;">${critico} Crítico</span>`;
-                if (e.status === 'PROCESSANDO') tagsHtml += `<span class="tag exam-warn" style="font-size:10px;padding:3px 8px;">Processando</span>`;
+                // Score color class
+                const scoreNum = score !== null ? parseFloat(score) : null;
+                const sCls = scoreNum === null ? 'proc' : scoreNum >= 7 ? 'ok' : scoreNum >= 4 ? 'warn' : 'crit';
 
-                return `<div style="background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:16px;padding:16px;margin-bottom:10px;${isClickable ? 'cursor:pointer;' : ''}" ${onclickAttr}>
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                        <div>
-                            <div style="font-size:8px;color:rgba(17,24,39,0.35);letter-spacing:0.1em;text-transform:uppercase;">${dateLabel} · ${labName}</div>
-                            <div style="font-size:16px;font-weight:700;color:#111827;margin-top:4px;">${title}</div>
+                // Tags
+                const tags = [
+                    normal > 0 ? `<span class="pub-tag ok">${normal} ótimo${normal > 1 ? 's' : ''}</span>` : '',
+                    atencao > 0 ? `<span class="pub-tag warn">${atencao} atenção</span>` : '',
+                    critico > 0 ? `<span class="pub-tag crit">${critico} crítico${critico > 1 ? 's' : ''}</span>` : '',
+                    e.status === 'PROCESSANDO' ? `<span class="pub-tag warn">processando</span>` : '',
+                ].filter(Boolean).join('') || '<span class="pub-tag ok">analisado</span>';
+
+                return `<div class="pub-exam-gc${isClickable ? '' : ' no-click'}" style="animation-delay:${0.06 + i * 0.07}s" ${onclickAttr}>
+                    <div class="pub-exam-gi">
+                        <div class="pub-e-info">
+                            <div class="pub-e-meta">${dateLabel}</div>
+                            <div class="pub-e-name">${title}</div>
+                            <div class="pub-tag-row">${tags}</div>
                         </div>
-                        ${score !== null ? `<div style="text-align:right;">
-                            <div style="font-size:24px;font-weight:700;color:#0099C4;">${score}</div>
-                            <div style="font-size:9px;color:rgba(17,24,39,0.3);">/10</div>
+                        ${score !== null ? `<div class="pub-e-score">
+                            <div class="pub-e-num ${sCls}">${score}</div>
+                            <div class="pub-e-den">/ 10</div>
                         </div>` : ''}
+                        ${isClickable ? `<div class="pub-e-arr">›</div>` : ''}
                     </div>
-                    ${tagsHtml ? `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">${tagsHtml}</div>` : ''}
                 </div>`;
             }).join('');
         }
