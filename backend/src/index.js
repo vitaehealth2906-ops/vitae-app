@@ -61,7 +61,7 @@ app.get('/health', (_req, res) => {
 });
 
 // Version check endpoint
-app.get('/version', (_req, res) => res.json({ version: '2.1-audio-base64', timestamp: '2026-03-21T20:00:00Z' }));
+app.get('/version', (_req, res) => res.json({ version: '3.0-templates', timestamp: '2026-03-22T22:00:00Z' }));
 
 // ── Montagem das rotas ─────────────────────────────────
 app.use('/auth', authRoutes);
