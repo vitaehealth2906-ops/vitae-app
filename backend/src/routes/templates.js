@@ -3,6 +3,7 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { verificarAuth } = require('../middleware/auth');
+const ai = require('../services/ai');
 
 // ---- Question classification logic ----
 const KEYWORDS = {
@@ -143,6 +144,31 @@ function classifyAllQuestions(rawText) {
 
 // ---- ROUTES ----
 
+// POST /templates/gerar — generate questions via AI from instruction
+router.post('/gerar', verificarAuth, async (req, res) => {
+  try {
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) return res.status(403).json({ erro: 'Apenas médicos podem gerar templates.' });
+
+    const { instrucao } = req.body;
+    if (!instrucao || instrucao.trim().length < 5) {
+      return res.status(400).json({ erro: 'Instrução muito curta. Descreva o tipo de formulário que deseja.' });
+    }
+
+    const textoPerguntas = await ai.gerarPerguntasTemplate(instrucao);
+    const perguntas = classifyAllQuestions(textoPerguntas);
+
+    if (!perguntas || perguntas.length <= 3) {
+      return res.status(400).json({ erro: 'A IA não gerou perguntas suficientes. Tente reformular a instrução.' });
+    }
+
+    res.json({ perguntas });
+  } catch (e) {
+    console.error('[TEMPLATE] Erro gerar:', e.message);
+    res.status(500).json({ erro: e.message || 'Erro ao gerar perguntas com IA.' });
+  }
+});
+
 // POST /templates/classificar — classify raw questions into structured form
 router.post('/classificar', verificarAuth, async (req, res) => {
   try {
@@ -178,6 +204,24 @@ router.get('/', verificarAuth, async (req, res) => {
   } catch (e) {
     console.error('[TEMPLATE] Erro listar:', e.message);
     res.status(500).json({ erro: 'Erro ao listar templates.' });
+  }
+});
+
+// GET /templates/:id — get single template by ID
+router.get('/:id', verificarAuth, async (req, res) => {
+  try {
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) return res.status(403).json({ erro: 'Apenas médicos podem acessar templates.' });
+
+    const template = await prisma.formTemplate.findUnique({ where: { id: req.params.id } });
+    if (!template || template.medicoId !== medico.id) {
+      return res.status(404).json({ erro: 'Template não encontrado.' });
+    }
+
+    res.json({ template });
+  } catch (e) {
+    console.error('[TEMPLATE] Erro buscar:', e.message);
+    res.status(500).json({ erro: 'Erro ao buscar template.' });
   }
 });
 

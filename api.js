@@ -368,6 +368,12 @@ const vitaeAPI = {
   async classificarPerguntas(texto) {
     return apiRequest('/templates/classificar', { method: 'POST', body: { texto } });
   },
+  async gerarPerguntasIA(instrucao) {
+    return apiRequest('/templates/gerar', { method: 'POST', body: { instrucao } });
+  },
+  async buscarTemplate(id) {
+    return apiRequest(`/templates/${id}`);
+  },
 
   // Agendamento
   async criarAgendamento(dados) {

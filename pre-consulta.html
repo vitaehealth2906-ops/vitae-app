@@ -370,6 +370,11 @@
             <div class="pc-sub" style="color:rgba(0,153,196,0.6);">Pré-Consulta Médica</div>
         </div>
 
+        <!-- Preview mode banner (shown only in ?preview=ID mode) -->
+        <div id="previewBanner" style="display:none;background:#F59E0B;color:#fff;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;text-align:center;padding:10px 16px;border-radius:12px;margin-bottom:14px;letter-spacing:0.03em;">
+            MODO PREVIEW — como o paciente verá o formulário
+        </div>
+
         <div class="welcome-card">
             <div class="welcome-name" id="welcomeName">Olá!</div>
             <div class="welcome-doc" id="welcomeDoc">Preencha as informações antes da sua consulta</div>
@@ -1331,6 +1336,31 @@ function updateTopicListForTemplate(perguntas) {
 }
 
 async function init() {
+    // ── Preview mode ──
+    const previewId = urlParams.get('preview');
+    if (previewId) {
+        document.getElementById('previewBanner').style.display = 'block';
+        try {
+            const data = await vitaeAPI.buscarTemplate(previewId);
+            const tpl = data.template;
+            document.getElementById('welcomeName').textContent = 'Preview do formulário';
+            document.getElementById('welcomeDoc').textContent = tpl.nome;
+            const perguntas = tpl.perguntas || [];
+            if (perguntas.length > 0) {
+                document.getElementById('defaultFormWrap').style.display = 'none';
+                document.getElementById('templateFormWrap').style.display = 'block';
+                renderTemplateQuestions(perguntas);
+            }
+            // Hide submit buttons and toggle
+            document.querySelectorAll('.btn-submit').forEach(b => b.style.display = 'none');
+            document.querySelector('.toggle-wrap') && (document.querySelector('.toggle-wrap').style.display = 'none');
+            document.getElementById('photoSection') && (document.getElementById('photoSection').style.display = 'none');
+        } catch(e) {
+            showError('Template não encontrado', 'Verifique o ID do template.');
+        }
+        return;
+    }
+
     if (!token) { showError('Link inválido', 'Este link de pré-consulta não é válido. Solicite um novo link ao seu médico.'); return; }
 
     try {

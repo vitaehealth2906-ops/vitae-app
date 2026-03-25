@@ -807,6 +807,47 @@ Retorne EXCLUSIVAMENTE um JSON válido:
   }
 }
 
+/**
+ * Gera perguntas para um template de pré-consulta com base em uma instrução do médico.
+ *
+ * @param {string} instrucao - Instrução do médico (ex: "anamnese para cardiologia com 10 perguntas").
+ * @returns {string} Texto com as perguntas, uma por linha.
+ */
+async function gerarPerguntasTemplate(instrucao) {
+  if (!instrucao || instrucao.trim().length < 5) {
+    throw new Error('Instrução muito curta. Descreva o tipo de formulário que deseja.');
+  }
+
+  const response = await anthropic.messages.create({
+    model: 'claude-opus-4-6',
+    max_tokens: 1024,
+    messages: [
+      {
+        role: 'user',
+        content: `Você é um assistente médico especializado em criar formulários de pré-consulta para médicos brasileiros. Com base na instrução abaixo, gere perguntas para um formulário de pré-consulta que o paciente responderá antes da consulta.
+
+Retorne APENAS as perguntas, uma por linha, sem numeração, sem explicação, sem títulos.
+
+Instrução: "${instrucao.trim()}"
+
+Regras:
+- Gere entre 5 e 20 perguntas conforme pedido (se não especificado, gere 8)
+- Perguntas específicas para a especialidade/contexto mencionado
+- Linguagem simples e clara para o paciente entender
+- NÃO inclua: "Qual o motivo da consulta?", "Toma medicamentos?", "Tem alergia?" — essas são adicionadas automaticamente
+- Perguntas práticas e objetivas, relevantes clinicamente
+- Apenas as perguntas, nada mais`,
+      },
+    ],
+  });
+
+  const conteudo = response.content[0]?.text || '';
+  if (!conteudo.trim()) {
+    throw new Error('A IA não conseguiu gerar perguntas. Tente reformular a instrução.');
+  }
+  return conteudo.trim();
+}
+
 module.exports = {
   estruturarExame,
   estruturarExameDeArquivo,
@@ -817,4 +858,5 @@ module.exports = {
   gerarSummaryPreConsulta,
   gerarAudioElevenLabs,
   verificarCompletudeTopicos,
+  gerarPerguntasTemplate,
 };
