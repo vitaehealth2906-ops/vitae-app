@@ -345,11 +345,10 @@
     <div class="content" id="viewTemplates" style="display:none;">
         <div class="section-title" style="margin-bottom:8px;">Templates</div>
         <input id="tplNome" style="width:100%;padding:14px 16px;background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.08);border-radius:12px;font-family:'Inter',sans-serif;font-size:14px;color:#111827;outline:none;margin-bottom:12px;box-sizing:border-box;" placeholder="Nome do template (ex: Cardiologia geral)">
-        <textarea id="tplPerguntas" style="width:100%;min-height:180px;padding:16px;background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.08);border-radius:14px;font-family:'Inter',sans-serif;font-size:14px;color:#111827;resize:vertical;outline:none;line-height:1.7;box-sizing:border-box;" placeholder="Onde dói?&#10;Há quanto tempo?&#10;A dor irradia para algum lugar?&#10;&#10;— ou escreva uma instrução:&#10;'Crie 10 perguntas para cardiologia'"></textarea>
-        <div class="tpl-hint">Escreva as perguntas (uma por linha) ou descreva o que quer e clique em "Gerar com IA".</div>
+        <textarea id="tplPerguntas" style="width:100%;min-height:180px;padding:16px;background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.08);border-radius:14px;font-family:'Inter',sans-serif;font-size:14px;color:#111827;resize:vertical;outline:none;line-height:1.7;box-sizing:border-box;" placeholder="Exemplo 1 — instrução para a IA:&#10;Sou um médico de neurologia, quero uma anamnese com foco em cefaleia e histórico familiar&#10;&#10;Exemplo 2 — perguntas diretas:&#10;O que dói?&#10;O que já tem hoje?&#10;Há quanto tempo?"></textarea>
+        <div class="tpl-hint">Descreva o que quer ou escreva as perguntas direto — o botão Gerar faz o resto.</div>
         <div class="tpl-btn-row">
-            <button class="tpl-btn-ai" id="btnGerarIA" onclick="gerarComIA()">✨ Gerar com IA</button>
-            <button class="tpl-btn-manual" id="btnCriarManual" onclick="criarTemplatSimples()">Criar manualmente</button>
+            <button class="tpl-btn-manual" id="btnGerar" onclick="gerarInteligente()" style="flex:1;">Gerar</button>
         </div>
         <div id="tplLista" style="margin-top:24px;"></div>
     </div>
@@ -636,92 +635,57 @@
         document.getElementById('tplPerguntas').focus();
     }
 
-    async function criarTemplatSimples() {
-        const nome = document.getElementById('tplNome').value.trim();
-        const raw = document.getElementById('tplPerguntas').value.trim();
-        if (!nome) return alert('Dê um nome ao template.');
-        if (!raw) return alert('Escreva pelo menos uma pergunta.');
-
-        const btnAI = document.getElementById('btnGerarIA');
-        const btn = document.getElementById('btnCriarManual');
-        btn.textContent = 'Criando...';
-        btn.disabled = true;
-        btnAI.disabled = true;
-        try {
-            const data = await vitaeAPI.classificarPerguntas(raw);
-            const perguntas = data.perguntas || [];
-            const customCount = perguntas.filter(p => !p.obrigatoria).length;
-
-            if (customCount === 0) {
-                btn.textContent = 'Criar manualmente';
-                btn.disabled = false;
-                btnAI.disabled = false;
-                return alert('Escreva pelo menos uma pergunta personalizada (além das 3 obrigatórias).');
-            }
-
-            // Auto-complete offer if very few questions
-            if (customCount < 3) {
-                const aceita = confirm(`Você escreveu apenas ${customCount} pergunta(s). Quer que a IA complete com sugestões para "${nome}"?`);
-                if (aceita) {
-                    btn.textContent = 'Gerando...';
-                    const gerado = await vitaeAPI.gerarPerguntasIA(`Complete um formulário de pré-consulta para ${nome} com mais perguntas relevantes`);
-                    const perguntasGeradas = gerado.perguntas || [];
-                    const customGeradas = perguntasGeradas.filter(p => !p.obrigatoria);
-                    const idsExistentes = new Set(perguntas.map(p => p.texto));
-                    const novas = customGeradas.filter(p => !idsExistentes.has(p.texto));
-                    const perguntasMescladas = [...perguntas, ...novas];
-                    await vitaeAPI.criarTemplate({ nome, perguntas: perguntasMescladas, permitirAudio: true });
-                } else {
-                    await vitaeAPI.criarTemplate({ nome, perguntas, permitirAudio: true });
-                }
-            } else {
-                await vitaeAPI.criarTemplate({ nome, perguntas, permitirAudio: true });
-            }
-
-            document.getElementById('tplNome').value = '';
-            document.getElementById('tplPerguntas').value = '';
-            btn.textContent = 'Criar manualmente';
-            btn.disabled = false;
-            btnAI.disabled = false;
-            carregarTemplates();
-        } catch(e) {
-            btn.textContent = 'Criar manualmente';
-            btn.disabled = false;
-            btnAI.disabled = false;
-            alert('Erro: ' + (e.message || 'Tente novamente'));
-        }
+    // Detecta se o texto é uma instrução (frase corrida) ou perguntas (linhas)
+    function pareceInstrucao(texto) {
+        const linhas = texto.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+        if (linhas.length <= 2) return true; // poucas linhas → provavelmente instrução
+        const comInterrogacao = linhas.filter(l => l.endsWith('?')).length;
+        return comInterrogacao < linhas.length * 0.4; // menos de 40% com "?" → instrução
     }
 
-    async function gerarComIA() {
+    async function gerarInteligente() {
         const nome = document.getElementById('tplNome').value.trim();
-        const instrucao = document.getElementById('tplPerguntas').value.trim();
-        if (!nome) return alert('Dê um nome ao template primeiro.');
-        if (!instrucao) return alert('Descreva o tipo de formulário que quer gerar.');
+        const texto = document.getElementById('tplPerguntas').value.trim();
+        if (!nome) return alert('Dê um nome ao template.');
+        if (!texto) return alert('Descreva o que quer ou escreva as perguntas.');
 
-        const btnAI = document.getElementById('btnGerarIA');
-        const btn = document.getElementById('btnCriarManual');
-        btnAI.textContent = '✨ Gerando...';
-        btnAI.disabled = true;
+        const btn = document.getElementById('btnGerar');
+        btn.textContent = 'Gerando...';
         btn.disabled = true;
         try {
-            const data = await vitaeAPI.gerarPerguntasIA(instrucao);
-            const perguntas = data.perguntas || [];
-            if (perguntas.filter(p => !p.obrigatoria).length < 3) {
-                btnAI.textContent = '✨ Gerar com IA';
-                btnAI.disabled = false;
-                btn.disabled = false;
-                return alert('A IA não gerou perguntas suficientes. Tente reformular a instrução.');
+            let perguntas;
+            if (pareceInstrucao(texto)) {
+                // Usa IA para gerar a partir da instrução
+                const data = await vitaeAPI.gerarPerguntasIA(texto);
+                perguntas = data.perguntas || [];
+            } else {
+                // Classifica as perguntas escritas diretamente
+                const data = await vitaeAPI.classificarPerguntas(texto);
+                perguntas = data.perguntas || [];
+                // Se muito poucas, completa com IA
+                const customCount = perguntas.filter(p => !p.obrigatoria).length;
+                if (customCount < 3) {
+                    const gerado = await vitaeAPI.gerarPerguntasIA(`Complete um formulário de pré-consulta para ${nome} com mais perguntas relevantes`);
+                    const geradas = (gerado.perguntas || []).filter(p => !p.obrigatoria);
+                    const existentes = new Set(perguntas.map(p => p.texto));
+                    perguntas = [...perguntas, ...geradas.filter(p => !existentes.has(p.texto))];
+                }
             }
+
+            if (perguntas.filter(p => !p.obrigatoria).length === 0) {
+                btn.textContent = 'Gerar';
+                btn.disabled = false;
+                return alert('Não foi possível identificar perguntas. Tente novamente com outro texto.');
+            }
+
             await vitaeAPI.criarTemplate({ nome, perguntas, permitirAudio: true });
             document.getElementById('tplNome').value = '';
             document.getElementById('tplPerguntas').value = '';
-            btnAI.textContent = '✨ Gerar com IA';
-            btnAI.disabled = false;
+            btn.textContent = 'Gerar';
             btn.disabled = false;
             carregarTemplates();
         } catch(e) {
-            btnAI.textContent = '✨ Gerar com IA';
-            btnAI.disabled = false;
+            btn.textContent = 'Gerar';
             btn.disabled = false;
             alert('Erro: ' + (e.message || 'Tente novamente'));
         }
