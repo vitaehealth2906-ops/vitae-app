@@ -374,6 +374,11 @@ const vitaeAPI = {
   async buscarTemplate(id) {
     return apiRequest(`/templates/${id}`);
   },
+  async buscarTemplatePublico(id) {
+    const r = await fetch(`${API_URL}/templates/preview-publico/${id}`);
+    if (!r.ok) throw new Error('Template não encontrado.');
+    return r.json();
+  },
 
   // Agendamento
   async criarAgendamento(dados) {

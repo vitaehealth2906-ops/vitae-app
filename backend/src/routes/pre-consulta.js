@@ -69,7 +69,7 @@ router.post('/', verificarAuth, validate(criarPreConsultaSchema), async (req, re
         linkToken,
         templateId: templateId || null,
         templatePerguntas,
-        expiraEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dias
+        expiraEm: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000), // 10 anos
       },
     });
 

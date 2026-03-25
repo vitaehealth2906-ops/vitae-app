@@ -144,6 +144,17 @@ function classifyAllQuestions(rawText) {
 
 // ---- ROUTES ----
 
+// GET /templates/preview-publico/:id — public, no auth, returns perguntas only (for iframe preview)
+router.get('/preview-publico/:id', async (req, res) => {
+  try {
+    const template = await prisma.formTemplate.findUnique({ where: { id: req.params.id } });
+    if (!template) return res.status(404).json({ erro: 'Template não encontrado.' });
+    res.json({ nome: template.nome, perguntas: template.perguntas });
+  } catch (e) {
+    res.status(500).json({ erro: 'Erro ao buscar template.' });
+  }
+});
+
 // POST /templates/gerar — generate questions via AI from instruction
 router.post('/gerar', verificarAuth, async (req, res) => {
   try {
