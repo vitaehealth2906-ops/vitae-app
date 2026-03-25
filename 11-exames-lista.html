@@ -717,26 +717,27 @@ body{display:flex;flex-direction:column;align-items:center;justify-content:cente
   <div class="screen active" id="s-lista">
     <div class="topbar">
       <span class="topbar-title">Exames</span>
-      <button class="top-action" onclick="triggerUpload()">+ Novo</button>
     </div>
 
-    <!-- Upload area -->
-    <div class="upload-gc" id="uploadArea">
-      <div class="upload-inner" onclick="triggerUpload()">
-        <div class="upload-iw">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(0,153,196,.8)" stroke-width="1.5" stroke-linecap="round">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-        </div>
-        <div class="upload-title">Adicionar resultado</div>
-        <div class="upload-sub">PDF, foto ou imagem do laboratório</div>
-        <button class="upload-action-btn">Escolher arquivo</button>
+    <!-- Search bar -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <div style="flex:1;display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.08);border-radius:14px;padding:12px 14px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(17,24,39,0.3)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="searchExames" type="text" placeholder="Buscar exame..." oninput="filtrarExames()" style="border:none;outline:none;background:transparent;font-family:'Inter',sans-serif;font-size:14px;color:#111827;width:100%;">
       </div>
     </div>
 
+    <!-- Processing indicator (hidden by default) -->
+    <div id="processingIndicator" style="display:none;"></div>
+
     <!-- Exam list or empty state -->
     <div id="listaContent"></div>
-    <div style="height:20px"></div>
+    <div style="height:80px"></div>
+
+    <!-- Floating add button -->
+    <button onclick="triggerUpload()" style="position:absolute;bottom:100px;right:20px;width:52px;height:52px;border-radius:50%;border:none;background:linear-gradient(135deg,#00B4D8,#007A9E);box-shadow:0 4px 20px rgba(0,153,196,0.35);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:15;transition:transform 0.15s;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
   </div>
 
   <!-- ══ VISÃO GERAL ══ -->
@@ -1036,6 +1037,7 @@ async function loadExams() {
       .map(e => ({
         id: e.id,
         name: toNomeAmigavel(e.tipoExame) || 'Exame',
+        tipoExame: e.tipoExame || '',
         date: formatDate(e.dataExame || e.criadoEm),
         dateFull: formatDateFull(e.dataExame || e.criadoEm),
         lab: e.laboratorio || '',
@@ -1065,74 +1067,79 @@ async function loadExams() {
 // ══════════════════════════════
 function renderLista(processingCount = 0, errorExams = []) {
   const container = document.getElementById('listaContent');
-  // Upload area vira loading ou volta ao normal
+  const procIndicator = document.getElementById('processingIndicator');
+
+  // Show processing indicator
   if (processingCount > 0) {
-    showUploadLoading();
+    procIndicator.style.display = '';
+    procIndicator.innerHTML = `
+      <div style="background:rgba(0,153,196,0.04);border:1px solid rgba(0,153,196,0.12);border-radius:16px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border:3px solid rgba(0,153,196,0.15);border-top-color:#0099C4;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#111827;">Analisando exame...</div>
+          <div style="font-size:12px;color:rgba(17,24,39,0.4);margin-top:2px;">A IA está processando seus resultados</div>
+        </div>
+      </div>`;
   } else {
-    resetUploadArea();
+    procIndicator.style.display = 'none';
+    procIndicator.innerHTML = '';
   }
 
   let html = '';
 
-  // Exames com erro — não exibir na lista
-
-  // Nenhum exame pronto ainda
+  // Empty state
   if (allExams.length === 0 && processingCount === 0 && errorExams.length === 0) {
-    container.innerHTML = html + `
-      <div class="empty-state fade">
+    container.innerHTML = `
+      <div class="empty-state fade" style="padding:60px 20px;">
         <div class="empty-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(0,153,196,.6)" stroke-width="1.5" stroke-linecap="round">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(0,153,196,.4)" stroke-width="1.5" stroke-linecap="round">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
             <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
           </svg>
         </div>
-        <div class="empty-title">Nenhum exame ainda</div>
-        <div class="empty-sub">Envie seu primeiro resultado de laboratório.<br>A IA analisa e estrutura tudo automaticamente.</div>
+        <div class="empty-title" style="margin-top:12px;">Nenhum exame ainda</div>
+        <div class="empty-sub">Toque no <strong>+</strong> para enviar seu primeiro resultado de laboratório.</div>
       </div>`;
     return;
   }
 
   if (allExams.length === 0) {
-    container.innerHTML = html;
+    container.innerHTML = '';
     return;
   }
 
-  const total = allExams.length;
-  const normals = allExams.filter(e => e.statusCls === 'ok').length;
-  const crits = allExams.filter(e => e.statusCls === 'crit').length;
-
-  html += `<div class="sec-label fade d2">${total} resultado${total > 1 ? 's' : ''} · ${normals} normais${crits > 0 ? ' · ' + crits + ' críticos' : ''}</div>`;
-
   allExams.forEach((e, i) => {
-    const score = e.totalParams > 0 ? (e.normalCount / e.totalParams * 10).toFixed(1) : '--';
-    const sCls = e.statusCls;
-
-    const tags = [
-      e.normalCount > 0 ? `<span class="tag ok">${e.normalCount} ótimo${e.normalCount > 1 ? 's' : ''}</span>` : '',
-      e.atencaoCount > 0 ? `<span class="tag warn">${e.atencaoCount} atenção</span>` : '',
-      e.criticoCount > 0 ? `<span class="tag crit">${e.criticoCount} crítico${e.criticoCount > 1 ? 's' : ''}</span>` : '',
-    ].filter(Boolean).join('') || '<span class="tag ok">Analisado</span>';
-
-    const meta = [e.date, e.lab].filter(Boolean).join(' · ');
+    const tipo = e.tipoExame || 'Exame de laboratório';
+    const meta = [e.date, e.lab].filter(Boolean).join(' - ');
+    const isImg = e.arquivoUrl && /\.(jpg|jpeg|png|webp)/i.test(e.arquivoUrl);
+    const thumb = e.arquivoUrl
+      ? (isImg
+        ? `<img src="${e.arquivoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" loading="lazy">`
+        : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(0,153,196,0.5)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>`)
+      : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(17,24,39,0.15)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>`;
 
     html += `
-      <div class="exam-gc fade" style="animation-delay:${0.06 + i * 0.07}s" onclick="openExam(${i})">
-        <div class="exam-gi">
-          <div class="e-info">
-            <div class="e-meta">${meta}</div>
-            <div class="e-name">${e.name}</div>
-            <div class="tag-row">${tags}</div>
+      <div class="exam-gc fade" style="animation-delay:${0.04 + i * 0.05}s" onclick="openExam(${i})" data-search="${(tipo + ' ' + e.name + ' ' + e.lab + ' ' + e.date).toLowerCase()}">
+        <div style="display:flex;gap:14px;align-items:center;">
+          <div style="width:64px;height:80px;border-radius:10px;background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.06);overflow:hidden;flex-shrink:0;">${thumb}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;color:rgba(17,24,39,0.4);margin-bottom:2px;text-transform:capitalize;">${tipo}</div>
+            <div style="font-size:14px;font-weight:600;color:#111827;line-height:1.3;margin-bottom:4px;">${e.name}</div>
+            <div style="font-size:12px;color:rgba(17,24,39,0.35);">${meta}</div>
           </div>
-          <div class="e-score">
-            <div class="e-num ${sCls}">${score}</div>
-            <div class="e-den">/ 10</div>
-          </div>
-          <div class="e-arr">›</div>
         </div>
       </div>`;
   });
 
   container.innerHTML = html;
+}
+
+function filtrarExames() {
+  const q = document.getElementById('searchExames').value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  document.querySelectorAll('#listaContent .exam-gc').forEach(card => {
+    const text = (card.dataset.search || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    card.style.display = text.includes(q) ? '' : 'none';
+  });
 }
 
 // ══════════════════════════════
