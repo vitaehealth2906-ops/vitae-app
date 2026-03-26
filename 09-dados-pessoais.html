@@ -461,11 +461,12 @@
                 const d = new Date(ps.dataNascimento);
                 data.nascimento.value = d.toLocaleDateString('pt-BR');
             }
-            if (ps.altura || ps.peso) {
-                data.altura.value = (ps.altura ? ps.altura + ' cm' : '') + (ps.peso ? ' / ' + ps.peso + ' kg' : '');
+            if (ps.alturaCm || ps.pesoKg) {
+                data.altura.value = (ps.alturaCm ? ps.alturaCm + ' cm' : '') + (ps.pesoKg ? ' / ' + ps.pesoKg + ' kg' : '');
             }
-            if (ps.genero) data.genero.value = ps.genero.charAt(0).toUpperCase() + ps.genero.slice(1);
-            if (ps.tipoSanguineo) data.sangue.value = ps.tipoSanguineo;
+            if (ps.genero) data.genero.value = ps.genero.charAt(0).toUpperCase() + ps.genero.slice(1).toLowerCase();
+            const bloodDisplayMap = {'A_POS':'A+','A_NEG':'A-','B_POS':'B+','B_NEG':'B-','AB_POS':'AB+','AB_NEG':'AB-','O_POS':'O+','O_NEG':'O-'};
+            if (ps.tipoSanguineo) data.sangue.value = bloodDisplayMap[ps.tipoSanguineo] || ps.tipoSanguineo;
             if (ps.historicoFamiliar) data.historico.value = ps.historicoFamiliar;
             if (ps.condicoes) data.condicoes.value = ps.condicoes;
             if (ps.cpf) data.cpf.value = ps.cpf;
@@ -587,26 +588,34 @@
         // Salvar no backend
         try {
             if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
-                const payload = {};
-                if (key === 'nome') payload.nome = val;
-                else if (key === 'email') payload.email = val;
-                else if (key === 'celular') payload.celular = val;
-                else if (key === 'genero') payload.genero = val.toLowerCase();
-                else if (key === 'sangue') payload.tipoSanguineo = val;
-                else if (key === 'historico') payload.historicoFamiliar = val;
-                else if (key === 'condicoes') payload.condicoes = val;
-                else if (key === 'cpf') payload.cpf = val.replace(/\D/g, '');
-                else if (key === 'plano') payload.planoSaude = val;
-                else if (key === 'cirurgias') payload.cirurgias = val.split(',').map(s => s.trim()).filter(Boolean);
-                else if (key === 'nascimento') {
-                    const parts = val.split('/');
-                    if (parts.length === 3) payload.dataNascimento = new Date(parts[2], parts[1]-1, parts[0]).toISOString();
+                const contaFields = ['nome', 'email', 'celular'];
+                if (contaFields.includes(key)) {
+                    const payload = {};
+                    if (key === 'nome') payload.nome = val;
+                    else if (key === 'email') payload.email = val;
+                    else if (key === 'celular') payload.celular = val;
+                    await vitaeAPI.atualizarConta(payload);
+                } else {
+                    const payload = {};
+                    const gMap = {'masculino':'MASCULINO','feminino':'FEMININO','outro':'OUTRO'};
+                    const sMap = {'A+':'A_POS','A-':'A_NEG','B+':'B_POS','B-':'B_NEG','AB+':'AB_POS','AB-':'AB_NEG','O+':'O_POS','O-':'O_NEG'};
+                    if (key === 'genero') payload.genero = gMap[val.toLowerCase()] || 'NAO_INFORMADO';
+                    else if (key === 'sangue') payload.tipoSanguineo = sMap[val.toUpperCase()] || val;
+                    else if (key === 'historico') payload.historicoFamiliar = val;
+                    else if (key === 'condicoes') payload.condicoes = val;
+                    else if (key === 'cpf') payload.cpf = val.replace(/\D/g, '');
+                    else if (key === 'plano') payload.planoSaude = val;
+                    else if (key === 'cirurgias') payload.cirurgias = val.split(',').map(s => s.trim()).filter(Boolean);
+                    else if (key === 'nascimento') {
+                        const parts = val.split('/');
+                        if (parts.length === 3) payload.dataNascimento = parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
+                    }
+                    else if (key === 'altura') {
+                        const match = val.match(/(\d+)\s*cm\s*\/?\s*(\d+)\s*kg/i);
+                        if (match) { payload.alturaCm = parseInt(match[1]); payload.pesoKg = parseInt(match[2]); }
+                    }
+                    if (Object.keys(payload).length > 0) await vitaeAPI.atualizarPerfil(payload);
                 }
-                else if (key === 'altura') {
-                    const match = val.match(/(\d+)\s*cm\s*\/?\s*(\d+)\s*kg/i);
-                    if (match) { payload.altura = parseInt(match[1]); payload.peso = parseInt(match[2]); }
-                }
-                await vitaeAPI.atualizarPerfil(payload);
             }
         } catch (e) { console.log('Erro ao salvar:', e.message); }
         setTimeout(() => showToast(data[key].label + ' atualizado'), 350);
@@ -623,9 +632,7 @@
             if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
                 const payload = {};
                 if (key === 'emergencia') { payload.contatoEmergenciaNome = val1; payload.contatoEmergenciaTel = val2; }
-                else if (key === 'mae') { payload.nomeMae = val1; payload.nomeMaeTel = val2; }
-                else if (key === 'pai') { payload.nomePai = val1; payload.nomePaiTel = val2; }
-                await vitaeAPI.atualizarPerfil(payload);
+                if (Object.keys(payload).length > 0) await vitaeAPI.atualizarPerfil(payload);
             }
         } catch (e) { console.log('Erro ao salvar:', e.message); }
         setTimeout(() => showToast(data[key].label + ' atualizado'), 350);

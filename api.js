@@ -182,6 +182,9 @@ const vitaeAPI = {
   async atualizarPerfil(dados) {
     return apiRequest('/perfil', { method: 'PUT', body: dados });
   },
+  async atualizarConta(dados) {
+    return apiRequest('/perfil/conta', { method: 'PATCH', body: dados });
+  },
 
   async uploadFoto(fotoUrl) {
     return apiRequest('/perfil/foto', { method: 'POST', body: { fotoUrl } });

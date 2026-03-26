@@ -67,6 +67,12 @@ const atualizarPerfilSchema = z.object({
   }).optional(),
 });
 
+const atualizarContaSchema = z.object({
+  nome: z.string().min(2).max(120).optional(),
+  email: z.string().email('Email invalido').optional(),
+  celular: z.string().optional(),
+});
+
 // ---------------------------------------------------------------------------
 // GET /
 // ---------------------------------------------------------------------------
@@ -123,6 +129,30 @@ router.put('/', validate(atualizarPerfilSchema), async (req, res, next) => {
     });
 
     return res.status(200).json({ perfil });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /conta — atualiza dados da conta (usuario: nome, email, celular)
+// ---------------------------------------------------------------------------
+
+router.patch('/conta', validate(atualizarContaSchema), async (req, res, next) => {
+  try {
+    const { nome, email, celular } = req.body;
+    const updateData = {};
+    if (nome !== undefined) updateData.nome = nome;
+    if (email !== undefined) updateData.email = email;
+    if (celular !== undefined) updateData.celular = celular;
+
+    const usuario = await prisma.usuario.update({
+      where: { id: req.usuario.id },
+      data: updateData,
+      select: { id: true, nome: true, email: true, celular: true },
+    });
+
+    return res.status(200).json({ usuario });
   } catch (err) {
     next(err);
   }
