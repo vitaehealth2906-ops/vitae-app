@@ -101,7 +101,8 @@ async function handleResponse(response) {
 
   if (!response.ok) {
     const erro = data.erro || data.message || `Erro ${response.status}`;
-    throw new Error(erro);
+    const detalhes = data.detalhes && data.detalhes.length ? '\n' + data.detalhes.join('\n') : '';
+    throw new Error(erro + detalhes);
   }
 
   return data;

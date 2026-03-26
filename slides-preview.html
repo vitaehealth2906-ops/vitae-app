@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VitaID — Preview dos Slides</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#0a0a0a;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:100vh; font-family:'Inter',sans-serif;
+  padding:24px 0;
+}
+
+/* ── Phone Frame ── */
+.phone {
+  width:390px; height:780px;
+  background:#fff; border-radius:48px;
+  box-shadow:0 0 0 1px rgba(0,180,216,0.2), 0 0 0 3px #1a1a1a, 0 40px 100px rgba(0,0,0,0.9);
+  position:relative; overflow:hidden;
+  user-select:none;
+}
+.phone-notch {
+  position:absolute; top:0; left:50%; transform:translateX(-50%);
+  width:120px; height:32px; background:#fff; border-radius:0 0 20px 20px; z-index:100;
+}
+
+/* ── Slides Container ── */
+.slides-wrap {
+  width:100%; height:100%;
+  display:flex; flex-direction:column;
+}
+
+/* ── Top Bar ── */
+.top-bar {
+  position:absolute; top:40px; left:0; right:0;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 24px; z-index:20;
+}
+.persona-badge {
+  font-size:10px; font-weight:700; letter-spacing:.15em; text-transform:uppercase;
+  padding:5px 12px; border-radius:20px;
+  transition:all .4s;
+}
+.persona-badge.medico { background:rgba(0,153,196,.12); color:#0099C4; }
+.persona-badge.paciente { background:rgba(0,180,70,.12); color:#00A846; }
+.slide-counter { font-size:11px; font-weight:600; color:rgba(17,24,39,.3); }
+
+/* ── Slide ── */
+.slide {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:0 28px;
+  opacity:0; pointer-events:none;
+  transition:opacity .5s, transform .5s;
+  transform:translateX(40px);
+}
+.slide.active {
+  opacity:1; pointer-events:all; transform:translateX(0);
+}
+.slide.exit {
+  opacity:0; transform:translateX(-40px);
+}
+
+/* ── Illustration area ── */
+.illus {
+  width:100%; height:240px;
+  display:flex; align-items:center; justify-content:center;
+  position:relative; margin-bottom:8px;
+}
+
+/* ── Copy ── */
+.slide-title {
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:22px; font-weight:800; color:#111827;
+  line-height:1.25; text-align:center; margin-bottom:12px;
+}
+.slide-text {
+  font-size:14px; font-weight:400; color:rgba(17,24,39,.55);
+  line-height:1.65; text-align:center;
+}
+
+/* ── Dots ── */
+.dots {
+  position:absolute; bottom:32px; left:0; right:0;
+  display:flex; align-items:center; justify-content:center; gap:6px; z-index:20;
+}
+.dot {
+  width:6px; height:6px; border-radius:3px; background:rgba(17,24,39,.15);
+  transition:all .4s; cursor:pointer;
+}
+.dot.active { width:18px; background:#0099C4; }
+
+/* ── Nav arrows ── */
+.nav-btn {
+  position:absolute; top:50%; transform:translateY(-50%);
+  width:36px; height:36px; border-radius:50%;
+  background:rgba(0,0,0,.06); border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  z-index:20; transition:background .2s;
+}
+.nav-btn:hover { background:rgba(0,153,196,.12); }
+.nav-btn svg { width:16px; height:16px; stroke:#111827; }
+.nav-btn.prev { left:12px; }
+.nav-btn.next { right:12px; }
+
+/* ══════════════════════════════════════
+   ANIMAÇÕES DAS ILUSTRAÇÕES
+══════════════════════════════════════ */
+
+/* M1 — Notificações que sobem */
+.notif-stack { display:flex; flex-direction:column; gap:10px; width:100%; }
+.notif {
+  background:#fff; border:1px solid rgba(0,0,0,.07);
+  border-radius:16px; padding:12px 16px;
+  display:flex; align-items:center; gap:12px;
+  box-shadow:0 4px 16px rgba(0,0,0,.06);
+  opacity:0; transform:translateY(20px);
+}
+.notif-icon {
+  width:36px; height:36px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.notif-text { flex:1; }
+.notif-label { font-size:10px; font-weight:700; color:rgba(17,24,39,.35); text-transform:uppercase; letter-spacing:.08em; }
+.notif-val { font-size:13px; font-weight:600; color:#111827; margin-top:2px; }
+.notif-time { font-size:10px; color:rgba(17,24,39,.3); }
+
+.slide.active .notif:nth-child(1) { animation:notifUp .5s .2s forwards; }
+.slide.active .notif:nth-child(2) { animation:notifUp .5s .5s forwards; }
+.slide.active .notif:nth-child(3) { animation:notifUp .5s .8s forwards; }
+
+@keyframes notifUp {
+  to { opacity:1; transform:translateY(0); }
+}
+
+/* M2 — Antes/Depois */
+.split-box {
+  width:100%; display:flex; gap:10px;
+}
+.split-card {
+  flex:1; border-radius:16px; padding:14px 12px;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+.split-card.before {
+  background:rgba(217,68,82,.05); border:1px solid rgba(217,68,82,.15);
+  opacity:0; transform:translateX(-16px);
+}
+.split-card.after {
+  background:rgba(0,153,196,.06); border:1px solid rgba(0,153,196,.2);
+  opacity:0; transform:translateX(16px);
+}
+.split-label { font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+.split-card.before .split-label { color:#D94452; }
+.split-card.after .split-label { color:#0099C4; }
+.split-time { font-size:28px; font-weight:800; line-height:1; }
+.split-card.before .split-time { color:#D94452; text-decoration:line-through; }
+.split-card.after .split-time { color:#0099C4; }
+.split-desc { font-size:11px; color:rgba(17,24,39,.5); text-align:center; line-height:1.4; }
+.strike-line {
+  position:absolute; top:50%; left:0; right:100%;
+  height:2px; background:#D94452;
+  transition:right 1s .6s;
+}
+
+.slide.active .split-card.before { animation:fadeSlideIn .5s .2s forwards; }
+.slide.active .split-card.after  { animation:fadeSlideIn .5s .5s forwards; }
+@keyframes fadeSlideIn {
+  to { opacity:1; transform:translateX(0); }
+}
+
+/* M3 — Flow steps */
+.flow-row {
+  display:flex; align-items:center; gap:0; width:100%;
+}
+.flow-step {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;
+  opacity:0; transform:translateY(12px);
+}
+.flow-icon {
+  width:52px; height:52px; border-radius:18px;
+  background:linear-gradient(135deg,#00B4D8,#007A9E);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 6px 20px rgba(0,153,196,.25);
+}
+.flow-icon svg { width:22px; height:22px; stroke:#fff; }
+.flow-label { font-size:11px; font-weight:600; color:#111827; text-align:center; }
+.flow-arrow {
+  width:28px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  opacity:0;
+}
+.flow-arrow svg { width:16px; height:16px; stroke:rgba(0,153,196,.5); }
+.slide.active .flow-step:nth-child(1) { animation:notifUp .4s .2s forwards; }
+.slide.active .flow-arrow:nth-child(2) { animation:notifUp .3s .45s forwards; }
+.slide.active .flow-step:nth-child(3) { animation:notifUp .4s .5s forwards; }
+.slide.active .flow-arrow:nth-child(4) { animation:notifUp .3s .75s forwards; }
+.slide.active .flow-step:nth-child(5) { animation:notifUp .4s .8s forwards; }
+
+/* P1 — Exames scattered → organized */
+.scatter-wrap { position:relative; width:220px; height:200px; }
+.scatter-card {
+  position:absolute; background:#fff; border-radius:14px; padding:10px 14px;
+  display:flex; align-items:center; gap:8px;
+  box-shadow:0 4px 20px rgba(0,0,0,.1); border:1px solid rgba(0,0,0,.07);
+  transition:all .7s cubic-bezier(.34,1.56,.64,1);
+  opacity:0;
+}
+.scatter-card .sc-icon { width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.scatter-card .sc-label { font-size:12px; font-weight:600; color:#111827; }
+.scatter-card .sc-date { font-size:10px; color:rgba(17,24,39,.4); }
+/* initial positions — scattered */
+.scatter-card:nth-child(1) { top:10px;  left:10px;  transform:rotate(-6deg); }
+.scatter-card:nth-child(2) { top:70px;  left:60px;  transform:rotate(4deg); }
+.scatter-card:nth-child(3) { top:130px; left:20px;  transform:rotate(-3deg); }
+/* organized positions */
+.slide.active .scatter-card:nth-child(1) { animation:scatIn1 .5s .15s forwards; }
+.slide.active .scatter-card:nth-child(2) { animation:scatIn2 .5s .3s forwards; }
+.slide.active .scatter-card:nth-child(3) { animation:scatIn3 .5s .45s forwards; }
+
+@keyframes scatIn1 {
+  0%  { opacity:0; top:10px; left:10px; transform:rotate(-6deg); }
+  60% { opacity:1; }
+  100%{ opacity:1; top:8px;   left:0; transform:rotate(0deg); }
+}
+@keyframes scatIn2 {
+  0%  { opacity:0; top:70px; left:60px; transform:rotate(4deg); }
+  60% { opacity:1; }
+  100%{ opacity:1; top:64px;  left:0; transform:rotate(0deg); }
+}
+@keyframes scatIn3 {
+  0%  { opacity:0; top:130px; left:20px; transform:rotate(-3deg); }
+  60% { opacity:1; }
+  100%{ opacity:1; top:120px; left:0; transform:rotate(0deg); }
+}
+
+/* P2 — QR scan */
+.qr-wrap { display:flex; flex-direction:column; align-items:center; gap:14px; }
+.qr-box {
+  width:130px; height:130px; border-radius:20px;
+  border:2px solid rgba(0,153,196,.3);
+  background:#f8f8f8; position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transform:scale(.85);
+}
+.slide.active .qr-box { animation:popIn .5s .2s forwards; }
+@keyframes popIn {
+  to { opacity:1; transform:scale(1); }
+}
+.qr-scan-line {
+  position:absolute; left:4px; right:4px; height:2px;
+  background:linear-gradient(90deg, transparent, #00B4D8, transparent);
+  box-shadow:0 0 8px #00B4D8;
+  animation:scanLine 1.8s .7s infinite;
+  opacity:0;
+}
+.slide.active .qr-scan-line { opacity:1; }
+@keyframes scanLine {
+  0%   { top:4px; }
+  50%  { top:calc(100% - 6px); }
+  100% { top:4px; }
+}
+/* QR pattern (fake) */
+.qr-grid {
+  display:grid; grid-template-columns:repeat(7,1fr); gap:2px; padding:12px;
+}
+.qr-cell {
+  width:10px; height:10px; border-radius:1px;
+}
+.qr-cell.on  { background:#111827; }
+.qr-cell.off { background:transparent; }
+
+.data-chips { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+.chip {
+  padding:6px 14px; border-radius:20px; font-size:11px; font-weight:600;
+  opacity:0; transform:translateY(8px);
+}
+.chip.blue { background:rgba(0,153,196,.1); color:#0099C4; }
+.chip.red  { background:rgba(217,68,82,.1); color:#D94452; }
+.chip.green{ background:rgba(0,168,70,.1); color:#00A846; }
+.slide.active .chip:nth-child(1) { animation:notifUp .4s .9s forwards; }
+.slide.active .chip:nth-child(2) { animation:notifUp .4s 1.05s forwards; }
+.slide.active .chip:nth-child(3) { animation:notifUp .4s 1.2s forwards; }
+
+/* P3 — Card 3D flip */
+.card-scene {
+  width:300px; height:170px;
+  perspective:800px;
+}
+.card-3d {
+  width:100%; height:100%;
+  position:relative; transform-style:preserve-3d;
+  animation:cardFlip 1.4s .3s cubic-bezier(.4,0,.2,1) forwards;
+  transform:rotateY(-90deg);
+}
+@keyframes cardFlip {
+  0%   { transform:rotateY(-90deg) scale(.9); opacity:0; }
+  40%  { opacity:1; }
+  100% { transform:rotateY(0deg) scale(1); opacity:1; }
+}
+.card-face {
+  position:absolute; inset:0; backface-visibility:hidden;
+  border-radius:20px;
+  background:linear-gradient(135deg,#00B4D8 0%,#007A9E 100%);
+  padding:20px 24px;
+  box-shadow:0 16px 40px rgba(0,153,196,.35);
+  display:flex; flex-direction:column; justify-content:space-between;
+  overflow:hidden;
+}
+.card-shine {
+  position:absolute; top:-40px; right:-40px;
+  width:160px; height:160px; border-radius:50%;
+  background:rgba(255,255,255,.08);
+}
+.card-logo {
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:15px; font-weight:800; color:#fff; letter-spacing:-.02em;
+}
+.card-logo span { color:rgba(255,255,255,.6); font-weight:700; }
+.card-name {
+  font-size:17px; font-weight:700; color:#fff; letter-spacing:.01em;
+}
+.card-meta { display:flex; gap:16px; }
+.card-meta-item { }
+.card-meta-label { font-size:9px; color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.1em; }
+.card-meta-val { font-size:13px; font-weight:700; color:#fff; }
+.card-qr-corner {
+  position:absolute; bottom:18px; right:20px;
+  width:40px; height:40px; background:rgba(255,255,255,.15); border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* bg decorators per slide */
+.slide[data-slide="0"] .slide-bg { background:linear-gradient(160deg,rgba(0,180,216,.04) 0%,rgba(255,255,255,0) 60%); }
+.slide[data-slide="1"] .slide-bg { background:linear-gradient(160deg,rgba(0,180,216,.04) 0%,rgba(255,255,255,0) 60%); }
+.slide[data-slide="2"] .slide-bg { background:linear-gradient(160deg,rgba(0,180,216,.04) 0%,rgba(255,255,255,0) 60%); }
+.slide[data-slide="3"] .slide-bg { background:linear-gradient(160deg,rgba(0,168,70,.04) 0%,rgba(255,255,255,0) 60%); }
+.slide[data-slide="4"] .slide-bg { background:linear-gradient(160deg,rgba(0,168,70,.04) 0%,rgba(255,255,255,0) 60%); }
+.slide[data-slide="5"] .slide-bg { background:linear-gradient(160deg,rgba(0,168,70,.04) 0%,rgba(255,255,255,0) 60%); }
+.slide-bg { position:absolute; inset:0; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="phone-notch"></div>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="persona-badge medico" id="personaBadge">Médico</div>
+    <div class="slide-counter"><span id="slideNum">1</span> / 6</div>
+  </div>
+
+  <!-- NAV -->
+  <button class="nav-btn prev" onclick="changeSlide(-1)">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <button class="nav-btn next" onclick="changeSlide(1)">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+
+  <!-- ══════════ SLIDE M1 ══════════ -->
+  <div class="slide active" data-slide="0">
+    <div class="slide-bg"></div>
+    <div class="illus">
+      <div class="notif-stack">
+
+        <div class="notif">
+          <div class="notif-icon" style="background:rgba(0,153,196,.1);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+          </div>
+          <div class="notif-text">
+            <div class="notif-label">Pré-consulta enviada</div>
+            <div class="notif-val">João Silva recebeu o link</div>
+          </div>
+          <div class="notif-time">agora</div>
+        </div>
+
+        <div class="notif">
+          <div class="notif-icon" style="background:rgba(0,168,70,.1);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00A846" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <div class="notif-text">
+            <div class="notif-label">Paciente respondeu</div>
+            <div class="notif-val">Formulário completo · 8 respostas</div>
+          </div>
+          <div class="notif-time">14:23</div>
+        </div>
+
+        <div class="notif" style="border-color:rgba(0,153,196,.2);">
+          <div class="notif-icon" style="background:linear-gradient(135deg,#00B4D8,#007A9E);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div class="notif-text">
+            <div class="notif-label">Resumo IA pronto</div>
+            <div class="notif-val">1-minute summary gerado</div>
+          </div>
+          <div class="notif-time">14:24</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="slide-title">Você já sabe o que o paciente tem antes de ele entrar na sala</div>
+    <div class="slide-text">Mande um link. O paciente responde por formulário ou áudio. A IA resume tudo em 1 minuto.</div>
+  </div>
+
+  <!-- ══════════ SLIDE M2 ══════════ -->
+  <div class="slide" data-slide="1">
+    <div class="slide-bg"></div>
+    <div class="illus">
+      <div class="split-box">
+        <div class="split-card before">
+          <div class="split-label">Antes</div>
+          <div class="split-time">10 min</div>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D94452" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div class="split-desc">perdidos nas perguntas básicas de sempre</div>
+        </div>
+        <div class="split-card after">
+          <div class="split-label">Agora</div>
+          <div class="split-time">0 min</div>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <div class="split-desc">anamnese pronta, vai direto ao ponto</div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-title">Menos "o que te trouxe aqui?" e mais consulta de verdade</div>
+    <div class="slide-text">A anamnese básica já está feita. Você vai direto ao que importa — e o paciente sente a diferença.</div>
+  </div>
+
+  <!-- ══════════ SLIDE M3 ══════════ -->
+  <div class="slide" data-slide="2">
+    <div class="slide-bg"></div>
+    <div class="illus">
+      <div class="flow-row">
+
+        <div class="flow-step">
+          <div class="flow-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="flow-label">Recepcionista<br>envia link</div>
+        </div>
+
+        <div class="flow-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <div class="flow-label">Paciente<br>responde</div>
+        </div>
+
+        <div class="flow-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="flow-label">Médico já<br>sabe tudo</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="slide-title">Sua recepcionista envia. Você recebe. O paciente não repete nada.</div>
+    <div class="slide-text">Um link, um formulário, um resumo. Sem papel, sem repetição, sem perda de tempo.</div>
+  </div>
+
+  <!-- ══════════ SLIDE P1 ══════════ -->
+  <div class="slide" data-slide="3">
+    <div class="slide-bg"></div>
+    <div class="illus">
+      <div class="scatter-wrap">
+
+        <div class="scatter-card">
+          <div class="sc-icon" style="background:rgba(217,68,82,.1);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D94452" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div>
+            <div class="sc-label">Hemograma Completo</div>
+            <div class="sc-date">jan 2025 · Fleury</div>
+          </div>
+        </div>
+
+        <div class="scatter-card">
+          <div class="sc-icon" style="background:rgba(0,153,196,.1);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div>
+            <div class="sc-label">Vitamina D</div>
+            <div class="sc-date">mar 2025 · Delboni</div>
+          </div>
+        </div>
+
+        <div class="scatter-card">
+          <div class="sc-icon" style="background:rgba(0,168,70,.1);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00A846" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div>
+            <div class="sc-label">TSH / T4 Livre</div>
+            <div class="sc-date">jun 2025 · Hermes</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="slide-title">Todos os seus exames organizados em um lugar só</div>
+    <div class="slide-text">Chega de procurar PDF no WhatsApp ou foto no celular. Você sobe uma vez — a IA organiza, resume e alerta o que importa.</div>
+  </div>
+
+  <!-- ══════════ SLIDE P2 ══════════ -->
+  <div class="slide" data-slide="4">
+    <div class="slide-bg"></div>
+    <div class="illus">
+      <div class="qr-wrap">
+        <div class="qr-box">
+          <div class="qr-scan-line"></div>
+          <!-- fake QR grid -->
+          <div class="qr-grid">
+            <!-- 7x7 = 49 cells, pattern simplificado -->
+            <div class="qr-cell on"></div><div class="qr-cell on"></div><div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell on"></div>
+            <div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell on"></div><div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell on"></div><div class="qr-cell on"></div>
+            <div class="qr-cell on"></div><div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell on"></div><div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell on"></div>
+            <div class="qr-cell off"></div><div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell off"></div><div class="qr-cell on"></div><div class="qr-cell on"></div><div class="qr-cell off"></div>
+            <div class="qr-cell on"></div><div class="qr-cell on"></div><div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell off"></div><div class="qr-cell on"></div><div class="qr-cell on"></div>
+            <div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell on"></div><div class="qr-cell on"></div><div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell on"></div>
+            <div class="qr-cell on"></div><div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell on"></div><div class="qr-cell off"></div><div class="qr-cell on"></div><div class="qr-cell on"></div>
+          </div>
+        </div>
+        <div class="data-chips">
+          <div class="chip blue">Tipo O+</div>
+          <div class="chip red">Alergia: Dipirona</div>
+          <div class="chip green">2 exames recentes</div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-title">Chegou no hospital? Só mostrar o QR Code</div>
+    <div class="slide-text">A recepcionista escaneia e já sabe tudo: tipo sanguíneo, medicamentos, alergias, contato de emergência. Zero papel. Zero explicação.</div>
+  </div>
+
+  <!-- ══════════ SLIDE P3 ══════════ -->
+  <div class="slide" data-slide="5">
+    <div class="slide-bg"></div>
+    <div class="illus">
+      <div class="card-scene">
+        <div class="card-3d">
+          <div class="card-face">
+            <div class="card-shine"></div>
+            <div class="card-logo">Vita<span>ID</span></div>
+            <div class="card-name">João da Silva</div>
+            <div class="card-meta">
+              <div class="card-meta-item">
+                <div class="card-meta-label">Tipo Sanguíneo</div>
+                <div class="card-meta-val">O+</div>
+              </div>
+              <div class="card-meta-item">
+                <div class="card-meta-label">Nascimento</div>
+                <div class="card-meta-val">12/08/1990</div>
+              </div>
+              <div class="card-meta-item">
+                <div class="card-meta-label">Alergias</div>
+                <div class="card-meta-val">1 registrada</div>
+              </div>
+            </div>
+            <div class="card-qr-corner">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h.01M18 14h.01M14 18h.01M18 18h.01M18 21v-3M21 18h-3"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-title">Seu RG da Saúde, sempre no bolso</div>
+    <div class="slide-text">Um cartão digital com tudo que você é de saúde — para apresentar em qualquer consulta, exame ou emergência.</div>
+  </div>
+
+  <!-- Dots -->
+  <div class="dots" id="dots"></div>
+</div>
+
+<!-- Label abaixo -->
+<div style="margin-top:20px;font-size:12px;color:rgba(255,255,255,.3);font-family:'Inter',sans-serif;text-align:center;">
+  Clique nas setas ou arraste para navegar · 6 slides
+</div>
+
+<script>
+let current = 0;
+const total = 6;
+const slides = document.querySelectorAll('.slide');
+const dotsEl = document.getElementById('dots');
+const badge = document.getElementById('personaBadge');
+const slideNum = document.getElementById('slideNum');
+
+// Build dots
+for (let i = 0; i < total; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  dotsEl.appendChild(d);
+}
+
+function goTo(n) {
+  if (n < 0 || n >= total) return;
+  const prev = slides[current];
+  prev.classList.remove('active');
+  prev.classList.add('exit');
+  setTimeout(() => prev.classList.remove('exit'), 500);
+
+  current = n;
+  const next = slides[current];
+  next.classList.add('active');
+
+  // update dots
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+
+  // update badge
+  if (current < 3) {
+    badge.textContent = 'Médico';
+    badge.className = 'persona-badge medico';
+  } else {
+    badge.textContent = 'Paciente';
+    badge.className = 'persona-badge paciente';
+  }
+  slideNum.textContent = current + 1;
+
+  // Re-trigger card animation on P3
+  if (current === 5) {
+    const card = document.querySelector('.card-3d');
+    card.style.animation = 'none';
+    card.offsetHeight; // reflow
+    card.style.animation = '';
+  }
+}
+
+function changeSlide(dir) { goTo(current + dir); }
+
+// Swipe/drag
+let startX = 0;
+const phone = document.querySelector('.phone');
+phone.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive:true});
+phone.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - startX;
+  if (Math.abs(dx) > 40) changeSlide(dx < 0 ? 1 : -1);
+});
+phone.addEventListener('mousedown', e => startX = e.clientX);
+phone.addEventListener('mouseup', e => {
+  const dx = e.clientX - startX;
+  if (Math.abs(dx) > 40) changeSlide(dx < 0 ? 1 : -1);
+});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') changeSlide(1);
+  if (e.key === 'ArrowLeft')  changeSlide(-1);
+});
+</script>
+</body>
+</html>
