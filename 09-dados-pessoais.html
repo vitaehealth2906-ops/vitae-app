@@ -314,7 +314,8 @@
 
     <!-- AVATAR -->
     <div class="avatar-wrap">
-        <div class="avatar-circle" id="avatarCircle">
+        <div class="avatar-circle" id="avatarCircle" onclick="document.getElementById('fotoInput').click()">
+            <img id="avatarImg" src="" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:none;">
             <span id="avatarInitials">?</span>
             <div class="avatar-cam">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -323,6 +324,7 @@
                 </svg>
             </div>
         </div>
+        <input type="file" id="fotoInput" accept="image/*" style="display:none;" onchange="uploadFoto(this)">
     </div>
 
     <!-- SCROLL CONTENT -->
@@ -629,7 +631,19 @@ function renderTudo() {
     const nome = dadosUsuario.nome || '';
     document.getElementById('displayNome').textContent = nome || 'Sem nome';
     document.getElementById('displayEmail').textContent = dadosUsuario.email || '—';
-    document.getElementById('avatarInitials').textContent = nome ? nome.trim()[0].toUpperCase() : '?';
+
+    // Avatar: foto ou iniciais
+    const avatarImg = document.getElementById('avatarImg');
+    const avatarInitials = document.getElementById('avatarInitials');
+    if (dadosUsuario.fotoUrl) {
+        avatarImg.src = dadosUsuario.fotoUrl;
+        avatarImg.style.display = 'block';
+        avatarInitials.style.display = 'none';
+    } else {
+        avatarImg.style.display = 'none';
+        avatarInitials.style.display = '';
+        avatarInitials.textContent = nome ? nome.trim()[0].toUpperCase() : '?';
+    }
 
     setVal('nome',   nome);
     setVal('email',  dadosUsuario.email);
@@ -890,6 +904,33 @@ function showToast(msg) {
     t.textContent = msg;
     t.classList.add('show');
     setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ── UPLOAD FOTO ───────────────────────────────────────────────────────────
+async function uploadFoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+        showToast('Imagem muito grande (max 2MB)');
+        input.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const base64 = e.target.result;
+        try {
+            await vitaeAPI.uploadFoto(base64);
+            dadosUsuario.fotoUrl = base64;
+            renderTudo();
+            showToast('Foto atualizada!');
+        } catch(err) {
+            showToast('Erro ao salvar foto');
+        }
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
 }
 
 // ── NAVEGAÇÃO ─────────────────────────────────────────────────────────────
