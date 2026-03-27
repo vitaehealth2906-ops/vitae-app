@@ -200,22 +200,57 @@
             font-size:12px; color:rgba(255,255,255,0.3);
         }
 
-        /* Timeline mini */
-        .timeline-item {
-            display:flex; gap:12px; padding:10px 0;
-            border-bottom:1px solid rgba(255,255,255,0.04);
+        /* Mini Timeline card */
+        .mini-tl-card {
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:18px; padding:16px 18px;
+            margin-bottom:20px; cursor:pointer;
+            text-decoration:none; display:block;
+            transition:all 0.2s;
         }
-        .timeline-item:last-child { border-bottom:none; }
-        .timeline-dot {
+        .mini-tl-card:hover { border-color:rgba(0,153,196,0.2); }
+        .mini-tl-header {
+            display:flex; align-items:center; justify-content:space-between;
+            margin-bottom:14px;
+        }
+        .mini-tl-title { font-size:15px; font-weight:700; color:#fff; }
+        .mini-tl-link { font-size:12px; font-weight:600; color:#0099C4; }
+        .mini-tl-list { position:relative; padding-left:16px; }
+        .mini-tl-list::before {
+            content:''; position:absolute; left:4px; top:6px; bottom:6px;
+            width:2px; background:rgba(255,255,255,0.06); border-radius:2px;
+        }
+        .mini-tl-item {
+            display:flex; align-items:flex-start; gap:12px;
+            padding:6px 0; position:relative;
+        }
+        .mini-tl-dot {
             width:10px; height:10px; border-radius:50%;
-            margin-top:5px; flex-shrink:0;
+            margin-top:4px; flex-shrink:0; position:relative;
+            margin-left:-16px; z-index:1;
+            box-shadow:0 0 0 3px var(--bg);
         }
-        .timeline-dot.exam { background:var(--gold); }
-        .timeline-dot.med { background:var(--blue); }
-        .timeline-dot.schedule { background:var(--green); }
-        .timeline-content { flex:1; }
-        .timeline-title { font-size:13px; font-weight:500; color:#fff; }
-        .timeline-date { font-size:11px; color:rgba(255,255,255,0.25); }
+        .mini-tl-dot.exame { background:#0099C4; }
+        .mini-tl-dot.medicamento { background:var(--blue); }
+        .mini-tl-dot.agendamento { background:var(--green); }
+        .mini-tl-dot.alergia { background:var(--red); }
+        .mini-tl-info { flex:1; min-width:0; }
+        .mini-tl-name { font-size:13px; font-weight:500; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .mini-tl-date { font-size:11px; color:rgba(255,255,255,0.25); }
+        .mini-tl-badge {
+            font-size:9px; font-weight:700; letter-spacing:0.06em;
+            padding:2px 8px; border-radius:6px; text-transform:uppercase;
+            flex-shrink:0; margin-top:2px;
+        }
+        .mini-tl-badge.exame { background:rgba(0,153,196,0.1); color:#0099C4; }
+        .mini-tl-badge.medicamento { background:rgba(74,144,226,0.1); color:var(--blue); }
+        .mini-tl-badge.agendamento { background:rgba(74,217,164,0.1); color:var(--green); }
+        .mini-tl-badge.alergia { background:rgba(217,68,82,0.1); color:var(--red); }
+        .mini-tl-empty {
+            text-align:center; padding:12px 0;
+            font-size:12px; color:rgba(255,255,255,0.2);
+        }
 
         /* Tab bar */
         .tab-bar {
@@ -356,21 +391,15 @@
         </div>
 
 
-        <!-- Timeline shortcut -->
-        <a href="24-timeline.html" class="timeline-shortcut" style="
-            display:flex; align-items:center; gap:14px; padding:16px 18px;
-            background:rgba(0,153,196,0.06); border:1px solid rgba(0,153,196,0.12);
-            border-radius:16px; margin-bottom:20px; cursor:pointer;
-            text-decoration:none; transition:all 0.2s;
-        ">
-            <div style="width:44px;height:44px;border-radius:12px;background:rgba(0,153,196,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0099C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <!-- Mini Timeline -->
+        <a href="24-timeline.html" class="mini-tl-card" id="miniTimeline">
+            <div class="mini-tl-header">
+                <div class="mini-tl-title">Minha Timeline</div>
+                <div class="mini-tl-link">Ver tudo ›</div>
             </div>
-            <div style="flex:1;">
-                <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:2px;">Minha Timeline</div>
-                <div style="font-size:11px;color:rgba(255,255,255,0.35);">Seus eventos de saúde em ordem cronológica</div>
+            <div class="mini-tl-list" id="miniTlList">
+                <div class="mini-tl-empty">Carregando...</div>
             </div>
-            <div style="color:rgba(0,153,196,0.5);font-size:20px;">›</div>
         </a>
 
         <!-- Next appointment -->
@@ -671,12 +700,44 @@
         }, 500);
     }
 
+    // ===== Load mini timeline =====
+    async function loadMiniTimeline() {
+        const container = document.getElementById('miniTlList');
+        try {
+            const data = await vitaeAPI.getTimeline();
+            const events = data.eventos || data.timeline || [];
+            if (events.length === 0) {
+                container.innerHTML = '<div class="mini-tl-empty">Sua timeline está vazia</div>';
+                return;
+            }
+            const recent = events.slice(0, 3);
+            container.innerHTML = recent.map(ev => {
+                const tipo = (ev.tipo || 'exame').toLowerCase();
+                const dt = ev.data ? new Date(ev.data).toLocaleDateString('pt-BR', { day:'2-digit', month:'short' }) : '';
+                const titulo = ev.titulo || ev.nome || 'Evento';
+                return `
+                    <div class="mini-tl-item">
+                        <div class="mini-tl-dot ${tipo}"></div>
+                        <div class="mini-tl-info">
+                            <div class="mini-tl-name">${titulo}</div>
+                            <div class="mini-tl-date">${dt}</div>
+                        </div>
+                        <div class="mini-tl-badge ${tipo}">${tipo}</div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            container.innerHTML = '<div class="mini-tl-empty">Sua timeline está vazia</div>';
+        }
+    }
+
     // ===== Init =====
     loadProfile();
     loadAllergies();
     loadMeds();
     loadExams();
     loadNextAppointment();
+    loadMiniTimeline();
 </script>
 </body>
 </html>
