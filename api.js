@@ -179,6 +179,10 @@ const vitaeAPI = {
     return apiRequest('/perfil');
   },
 
+  async buscarPerfil() {
+    return apiRequest('/perfil');
+  },
+
   async atualizarPerfil(dados) {
     return apiRequest('/perfil', { method: 'PUT', body: dados });
   },
