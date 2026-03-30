@@ -19,6 +19,8 @@ import { useMedicamentosStore } from '@/stores/medicamentos';
 import { useAlergiasStore } from '@/stores/alergias';
 import { usePerfilStore } from '@/stores/perfil';
 import { isLoggedIn } from '@/lib/auth';
+import CompletionCard from '@/components/ui/CompletionCard';
+import ExamAlertCard, { type ExamAlert } from '@/components/ui/ExamAlertCard';
 
 /* ---------- helpers ---------- */
 
@@ -430,6 +432,39 @@ export default function PerfilPage() {
     .filter((e) => e.statusProcessamento === 'CONCLUIDO')
     .slice(0, 3);
 
+  /* ---- Completion card data ---- */
+  const completionFields = [
+    { name: 'Nome', done: !!usuario?.nome },
+    { name: 'Nascimento', done: !!perfil?.dataNascimento },
+    { name: 'Sangue', done: !!perfil?.tipoSanguineo },
+    { name: 'Alergias', done: alergias.length > 0 },
+    { name: 'Exames', done: exames.some((e) => e.statusProcessamento === 'CONCLUIDO') },
+    { name: 'Peso', done: !!perfil?.pesoKg },
+    { name: 'Altura', done: !!perfil?.alturaCm },
+  ];
+  const filledCount = completionFields.filter((f) => f.done).length;
+  const completionPct = Math.round((filledCount / completionFields.length) * 100);
+  const missingCount = completionFields.length - filledCount;
+
+  /* ---- Exam alerts data ---- */
+  const examAlerts: ExamAlert[] = [];
+  for (const exam of exames) {
+    if (exam.statusProcessamento !== 'CONCLUIDO' || !exam.parametros) continue;
+    for (const p of exam.parametros) {
+      if (p.status === 'NORMAL') continue;
+      examAlerts.push({
+        name: p.nome,
+        value: p.valor,
+        unit: p.unidade || '',
+        severity: p.status === 'CRITICO' ? 'bad' : 'warn',
+        label: p.status === 'CRITICO' ? 'alto' : 'atenção',
+      });
+    }
+  }
+  // Sort: bad first, then warn; limit to top 3
+  examAlerts.sort((a, b) => (a.severity === 'bad' ? 0 : 1) - (b.severity === 'bad' ? 0 : 1));
+  const topAlerts = examAlerts.slice(0, 3);
+
   /* chart data */
   const chartData = historico.map((s: Score) => ({
     mes: new Date(s.criadoEm).toLocaleDateString('pt-BR', { month: 'short' }),
@@ -538,6 +573,38 @@ export default function PerfilPage() {
               Enviar exame
             </Link>
           </div>
+        )}
+
+        {/* ---- Completion card ---- */}
+        {completionPct < 100 && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mb-4"
+          >
+            <CompletionCard
+              percentage={completionPct}
+              missingCount={missingCount}
+              fields={completionFields}
+              onComplete={() => router.push('/dados-pessoais')}
+            />
+          </motion.div>
+        )}
+
+        {/* ---- Exam alerts ---- */}
+        {topAlerts.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+            className="mb-4"
+          >
+            <ExamAlertCard
+              alerts={topAlerts}
+              onViewAll={() => router.push('/alertas')}
+            />
+          </motion.div>
         )}
 
         {/* ---- Health chart ---- */}

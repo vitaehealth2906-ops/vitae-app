@@ -82,6 +82,9 @@ async function processarExame(exameId, usuarioId) {
             nome: p.nome || '',
             valor: String(p.valor || ''),
             unidade: p.unidade || null,
+            valorNumerico: !isNaN(Number(p.valor)) ? Number(p.valor) : null,
+            referenciaMin: p.referencia_min != null ? Number(p.referencia_min) : null,
+            referenciaMax: p.referencia_max != null ? Number(p.referencia_max) : null,
             valorReferencia: p.referencia_texto || null,
             referenciaTexto: p.referencia_texto || null,
             classificacao: p.classificacao || 'NORMAL',
@@ -174,8 +177,15 @@ router.get('/', async (req, res, next) => {
       select: {
         id: true, nomeArquivo: true, tipoExame: true, laboratorio: true,
         arquivoUrl: true, dataExame: true, status: true, statusGeral: true,
-        erroProcessamento: true, criadoEm: true,
-        parametros: { select: { classificacao: true } },
+        erroProcessamento: true, criadoEm: true, dadosEstruturados: true,
+        parametros: {
+          select: {
+            id: true, nome: true, valor: true, unidade: true,
+            valorNumerico: true, referenciaMin: true, referenciaMax: true,
+            referenciaTexto: true, classificacao: true, status: true,
+            percentualFaixa: true,
+          },
+        },
       },
     });
 
@@ -185,12 +195,31 @@ router.get('/', async (req, res, next) => {
         const normalCount = params.filter(p => ['NORMAL', ''].includes(p.classificacao || '')).length;
         const atencaoCount = params.filter(p => ['ALTO', 'BAIXO', 'ATENCAO'].includes(p.classificacao || '')).length;
         const criticoCount = params.filter(p => p.classificacao === 'CRITICO').length;
+
+        // Enrich parameters with AI-generated data from dadosEstruturados
+        const dados = e.dadosEstruturados || {};
+        const iaParams = (dados && typeof dados === 'object' && !Array.isArray(dados) && dados.parametros) || [];
+        const enrichedParams = params.map((p) => {
+          const iaMatch = iaParams.find((ia) => ia.nome === p.nome);
+          return {
+            ...p,
+            valorNumerico: p.valorNumerico != null ? Number(p.valorNumerico) : (iaMatch ? Number(iaMatch.valor) : null),
+            referenciaMin: p.referenciaMin != null ? Number(p.referenciaMin) : (iaMatch ? iaMatch.referencia_min : null),
+            referenciaMax: p.referenciaMax != null ? Number(p.referenciaMax) : (iaMatch ? iaMatch.referencia_max : null),
+            percentualFaixa: p.percentualFaixa != null ? Number(p.percentualFaixa) : null,
+            explicacaoSimples: iaMatch ? iaMatch.explicacao_simples : null,
+            impactoPessoal: iaMatch ? iaMatch.impacto_pessoal : null,
+            dicas: iaMatch ? iaMatch.dicas : null,
+          };
+        });
+
         return {
           id: e.id, nomeArquivo: e.nomeArquivo, tipoExame: e.tipoExame,
           laboratorio: e.laboratorio, arquivoUrl: e.arquivoUrl,
           dataExame: e.dataExame, status: e.status, statusGeral: e.statusGeral,
           erroProcessamento: e.erroProcessamento,
           totalParametros: params.length, normalCount, atencaoCount, criticoCount,
+          parametros: enrichedParams,
           criadoEm: e.criadoEm,
         };
       }),
@@ -210,7 +239,27 @@ router.get('/:id', async (req, res, next) => {
     });
     if (!exame) return res.status(404).json({ erro: 'Exame nao encontrado' });
     if (exame.usuarioId !== usuarioId) return res.status(403).json({ erro: 'Acesso negado' });
-    return res.status(200).json({ exame });
+
+    // Enrich parameters with AI-generated data from dadosEstruturados
+    const dadosDetail = exame.dadosEstruturados || {};
+    const iaParams = (dadosDetail && typeof dadosDetail === 'object' && !Array.isArray(dadosDetail) && dadosDetail.parametros) || [];
+    const enrichedParametros = (exame.parametros || []).map((p) => {
+      const iaMatch = iaParams.find((ia) => ia.nome === p.nome);
+      return {
+        ...p,
+        valorNumerico: p.valorNumerico != null ? Number(p.valorNumerico) : (iaMatch ? Number(iaMatch.valor) : null),
+        referenciaMin: p.referenciaMin != null ? Number(p.referenciaMin) : (iaMatch ? iaMatch.referencia_min : null),
+        referenciaMax: p.referenciaMax != null ? Number(p.referenciaMax) : (iaMatch ? iaMatch.referencia_max : null),
+        percentualFaixa: p.percentualFaixa != null ? Number(p.percentualFaixa) : null,
+        explicacaoSimples: iaMatch ? iaMatch.explicacao_simples : null,
+        impactoPessoal: iaMatch ? iaMatch.impacto_pessoal : null,
+        dicas: iaMatch ? iaMatch.dicas : null,
+      };
+    });
+
+    return res.status(200).json({
+      exame: { ...exame, parametros: enrichedParametros },
+    });
   } catch (err) {
     next(err);
   }

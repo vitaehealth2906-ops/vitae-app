@@ -12,6 +12,9 @@ export interface ExameParametro {
   referenciaTexto?: string;
   status: 'NORMAL' | 'ATENCAO' | 'CRITICO';
   percentualFaixa?: number;
+  explicacaoSimples?: string;
+  impactoPessoal?: string;
+  dicas?: string[];
 }
 
 export interface Exame {
@@ -51,7 +54,19 @@ export const useExamesStore = create<ExamesState>((set, get) => ({
     set({ carregando: true });
     try {
       const { data } = await examesApi.listar();
-      set({ exames: data.exames, carregando: false });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapped = (data.exames || []).map((e: any) => ({
+        id: e.id,
+        nome: e.tipoExame || e.nomeArquivo || 'Exame',
+        tipo: e.tipoExame || '',
+        dataExame: e.dataExame,
+        laboratorio: e.laboratorio,
+        statusProcessamento: e.status || e.statusProcessamento,
+        statusGeral: e.statusGeral,
+        parametros: e.parametros,
+        criadoEm: e.criadoEm,
+      }));
+      set({ exames: mapped as Exame[], carregando: false });
     } catch {
       set({ carregando: false });
     }
@@ -61,7 +76,23 @@ export const useExamesStore = create<ExamesState>((set, get) => ({
     set({ carregando: true });
     try {
       const { data } = await examesApi.detalhe(id);
-      set({ exameAtual: data, carregando: false });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const e = data.exame || data;
+      const mapped: Exame = {
+        id: e.id,
+        nome: e.tipoExame || e.nomeArquivo || 'Exame',
+        tipo: e.tipoExame || '',
+        dataExame: e.dataExame,
+        laboratorio: e.laboratorio,
+        statusProcessamento: e.status || e.statusProcessamento,
+        statusGeral: e.statusGeral,
+        resumoIa: e.resumoIA || e.resumoIa,
+        impactosIa: e.impactosIA || e.impactosIa,
+        melhoriasIa: e.melhoriasIA || e.melhoriasIa,
+        parametros: e.parametros,
+        criadoEm: e.criadoEm,
+      };
+      set({ exameAtual: mapped, carregando: false });
     } catch {
       set({ carregando: false });
     }
