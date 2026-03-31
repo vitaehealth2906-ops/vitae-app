@@ -468,7 +468,10 @@
             display:flex; align-items:center; gap:11px;
             padding:9px 16px;
             border-top:1px solid rgba(255,255,255,0.04);
+            transition:background 0.2s;
         }
+        .alert-row:hover { background:rgba(255,255,255,0.03); }
+        .alert-row:active { transform:scale(0.98); }
         .alert-bar {
             width:3px; height:28px; border-radius:2px; flex-shrink:0;
         }
@@ -905,7 +908,7 @@
     }
 
     // ===== Navigation =====
-    function navigateTo(target) {
+    function navigateTo(target, param) {
         const overlay = document.getElementById('exitOverlay');
         overlay.classList.add('active');
         setTimeout(() => {
@@ -918,6 +921,10 @@
                 'alergias': '17-alergias.html',
                 'agendamentos': '23-agendamentos.html',
             };
+            if (target === 'exame-detalhe' && param) {
+                window.location.href = '13-exame-detalhe.html?id=' + param + '&from=perfil';
+                return;
+            }
             window.location.href = routes[target] || '08-perfil.html';
         }, 500);
     }
@@ -947,12 +954,12 @@
     function updateCompletionCard(perfil, usuario, allergies, exames) {
         const fields = [
             { name: 'Nome', done: !!(usuario && usuario.nome) },
-            { name: 'Nascimento', done: !!(perfil && perfil.dataNascimento) },
+            { name: 'CPF', done: !!(perfil && perfil.cpf) },
             { name: 'Sangue', done: !!(perfil && perfil.tipoSanguineo) },
             { name: 'Alergias', done: allergies.length > 0 },
             { name: 'Exames', done: exames.some(e => e.status === 'CONCLUIDO') },
-            { name: 'Peso', done: !!(perfil && perfil.pesoKg) },
-            { name: 'Altura', done: !!(perfil && perfil.alturaCm) },
+            { name: 'Nascimento', done: !!(perfil && perfil.dataNascimento) },
+            { name: 'Emergência', done: !!(perfil && perfil.contatoEmergenciaNome) },
         ];
         const filled = fields.filter(f => f.done).length;
         const pct = Math.round((filled / fields.length) * 100);
@@ -1000,6 +1007,7 @@
                     unit: p.unidade || '',
                     severity: isBad ? 'bad' : 'warn',
                     label: isBad ? 'alto' : 'atenção',
+                    examId: exam.id,
                 });
             }
         }
@@ -1013,7 +1021,7 @@
         card.style.display = 'block';
         const rowsEl = document.getElementById('alertRows');
         rowsEl.innerHTML = top3.map(a =>
-            `<div class="alert-row">
+            `<div class="alert-row" onclick="navigateTo('exame-detalhe', '${a.examId}')" style="cursor:pointer;">
                 <div class="alert-bar ${a.severity}"></div>
                 <div class="alert-name">${a.name}</div>
                 <div class="alert-val ${a.severity}">${a.value} ${a.unit}</div>
