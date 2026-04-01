@@ -35,9 +35,15 @@
         }
 
         .glass-card {
-            background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.07);
-            border-radius:16px; padding:14px; margin-bottom:10px;
+            background:#FFFFFF; border:1px solid rgba(0,0,0,0.07);
+            border-radius:16px; padding:0; margin-bottom:10px;
+            overflow:hidden; box-shadow:0 1px 12px rgba(0,0,0,0.07);
         }
+        .glass-card::before {
+            content:''; display:block; height:3px;
+            background:linear-gradient(90deg, #00E5A0, #00B4D8);
+        }
+        .glass-card-inner { padding:14px; }
 
         /* Tags */
         .tags-wrap { display:flex; flex-wrap:wrap; gap:6px; }
@@ -87,7 +93,9 @@
         .warn-text strong { display:block; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
 
         /* Emergency */
-        .emergency-card { background:rgba(217,68,82,0.04); border:1px solid rgba(217,68,82,0.2); border-radius:16px; padding:14px; margin-bottom:10px; }
+        .emergency-card { background:#FFFFFF; border:1px solid rgba(0,0,0,0.07); border-radius:16px; padding:0; margin-bottom:10px; overflow:hidden; box-shadow:0 1px 12px rgba(0,0,0,0.07); }
+        .emergency-card::before { content:''; display:block; height:3px; background:linear-gradient(90deg, #EF4444, #F59E0B); }
+        .emergency-card-inner { padding:14px; }
         .emergency-label { font-size:10px; color:var(--bad); text-transform:uppercase; letter-spacing:0.1em; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
         .emerg-contact { display:flex; flex-direction:column; }
         .emerg-badge { font-size:9px; text-transform:uppercase; letter-spacing:0.08em; color:rgba(13,15,20,0.30); margin-bottom:2px; }
@@ -388,25 +396,25 @@
         if (alergias && alergias.length > 0) {
             html += `
                 <div class="section-title">${svgIcon('#EF4444','<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>')} Alergias</div>
-                <div class="glass-card">
+                <div class="glass-card"><div class="glass-card-inner">
                     <div class="tags-wrap">
                         ${alergias.map(a => {
                             const grave = a.gravidade && ['GRAVE','SEVERA','ANAFILAXIA'].includes((a.gravidade||'').toUpperCase());
                             return `<span class="tag ${grave ? 'allergy-grave' : 'allergy'}">${grave ? '⚠ ' : ''}${a.nome}${a.gravidade ? ` · ${a.gravidade}` : ''}</span>`;
                         }).join('')}
                     </div>
-                </div>`;
+                </div></div>`;
         } else {
             html += `
                 <div class="section-title">${svgIcon('#EF4444','<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>')} Alergias</div>
-                <div class="glass-card" style="font-size:13px;color:rgba(13,15,20,0.35);">Nenhuma alergia conhecida cadastrada</div>`;
+                <div class="glass-card"><div class="glass-card-inner" style="font-size:13px;color:rgba(13,15,20,0.35);">Nenhuma alergia conhecida cadastrada</div></div>`;
         }
 
         // BLOCO 3 — MEDICAMENTOS
         if (medicamentos && medicamentos.length > 0) {
             html += `
                 <div class="section-title">${svgIcon('#3B82F6','<path d="M10.5 1.5H8C4.68 1.5 2 4.18 2 7.5S4.68 13.5 8 13.5h8c3.32 0 6-2.68 6-6s-2.68-6-6-6h-2.5"/><line x1="12" y1="1.5" x2="12" y2="13.5"/>')} Medicamentos em Uso</div>
-                <div class="glass-card">
+                <div class="glass-card"><div class="glass-card-inner">
                     <div class="tags-wrap">
                         ${medicamentos.map(m => `<span class="tag med">${m.nome}${m.dosagem ? ` ${m.dosagem}` : ''}${m.frequencia ? ` · ${m.frequencia}` : ''}</span>`).join('')}
                     </div>
@@ -414,7 +422,7 @@
                         ${svgIcon('#F0A050','<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>')}
                         <div class="warn-text"><strong>Agonista GLP-1 (Ozempic / Mounjaro)</strong>Paciente usa GLP-1. Para anestesia, jejum deve ser estendido para 24-48h.</div>
                     </div>` : ''}
-                </div>`;
+                </div></div>`;
         }
 
         // BLOCO 4 — CONDIÇÕES DE SAÚDE
@@ -423,7 +431,7 @@
             if (conds.length > 0) {
                 html += `
                     <div class="section-title">${svgIcon('#00E5A0','<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>')} Condições de Saúde</div>
-                    <div class="glass-card"><div class="tags-wrap">${conds.map(c => `<span class="tag cond">${c}</span>`).join('')}</div></div>`;
+                    <div class="glass-card"><div class="glass-card-inner"><div class="tags-wrap">${conds.map(c => `<span class="tag cond">${c}</span>`).join('')}</div></div></div>`;
             }
         }
 
@@ -431,14 +439,14 @@
         if (p.cirurgias && p.cirurgias.length > 0) {
             html += `
                 <div class="section-title">${svgIcon('rgba(255,255,255,0.35)','<path d="M18 2l4 4-10 10H8v-4L18 2z"/><line x1="2" y1="22" x2="8" y2="16"/>')} Cirurgias Anteriores</div>
-                <div class="glass-card"><div class="tags-wrap">${p.cirurgias.map(c => `<span class="tag surgery">${c}</span>`).join('')}</div></div>`;
+                <div class="glass-card"><div class="glass-card-inner"><div class="tags-wrap">${p.cirurgias.map(c => `<span class="tag surgery">${c}</span>`).join('')}</div></div></div>`;
         }
 
         // BLOCO 6 — HISTÓRICO FAMILIAR (moved up, before Exames)
         if (p.historicoFamiliar && p.historicoFamiliar.length > 0) {
             html += `
                 <div class="section-title">${svgIcon('rgba(255,255,255,0.3)','<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>')} Histórico Familiar</div>
-                <div class="glass-card"><div class="tags-wrap">${p.historicoFamiliar.map(h => `<span class="tag family">${h}</span>`).join('')}</div></div>`;
+                <div class="glass-card"><div class="glass-card-inner"><div class="tags-wrap">${p.historicoFamiliar.map(h => `<span class="tag family">${h}</span>`).join('')}</div></div></div>`;
         }
 
         // BLOCO 7 — CONTATOS DE EMERGÊNCIA (moved up, before Exames)
@@ -446,7 +454,7 @@
         if (hasEmerg) {
             html += `
                 <div class="section-title">${svgIcon('#EF4444','<path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>')} Contatos de Emergência</div>
-                <div class="emergency-card">
+                <div class="emergency-card"><div class="glass-card-inner">
                     <div class="emergency-label">${svgIcon('currentColor','<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>')} EMERGÊNCIA</div>`;
             const contacts = [];
             if (p.contatoEmergenciaNome) contacts.push({ badge:'Contato Principal', name:p.contatoEmergenciaNome, tel:p.contatoEmergenciaTel });
@@ -459,7 +467,7 @@
                     <div class="emerg-name">${c.name}</div>
                     ${c.tel ? `<a href="tel:${c.tel.replace(/\D/g,'')}" class="emerg-tel" style="text-decoration:none;">${c.tel}</a>` : ''}
                 </div>`).join('');
-            html += `</div>`;
+            html += `</div></div>`;
         }
 
         // BLOCO 8 — EXAMES (filtered: no ERRO, with thumbnails like exam tab)
