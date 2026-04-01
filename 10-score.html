@@ -134,13 +134,18 @@ body{display:flex;justify-content:center;align-items:center;min-height:100vh;fon
 .bio-score-badge.warn{background:var(--warn-bg);color:var(--warn)}
 .bio-score-badge.bad{background:var(--bad-bg);color:var(--bad)}
 .bio-expand{display:none;padding:0 16px 14px}
-.bio-range{position:relative;height:8px;border-radius:4px;margin:8px 0 6px;
-  background:linear-gradient(to right,#EF4444 0%,#F59E0B 28%,#00E5A0 52%,#00E5A0 72%,#F59E0B 87%,#EF4444 100%);
-  box-shadow:inset 0 1px 3px rgba(0,0,0,0.1)}
-.bio-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;
-  background:#fff;border-radius:50%;border:2px solid var(--ok);
-  box-shadow:0 0 0 3px rgba(0,229,160,0.2),0 2px 6px rgba(0,0,0,0.15);
-  transition:left 1s cubic-bezier(0.4,0,0.2,1);left:0}
+.bio-range{position:relative;height:6px;border-radius:3px;margin:8px 0 6px;
+  background:var(--s2);overflow:visible}
+.bio-range-zones{display:flex;height:100%;border-radius:3px;overflow:hidden}
+.rz-low{background:rgba(239,68,68,0.20)}.rz-ok{background:rgba(0,196,122,0.30)}.rz-warn{background:rgba(245,158,11,0.22)}.rz-high{background:rgba(239,68,68,0.20)}
+.bio-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;
+  background:#fff;border-radius:50%;border:2.5px solid var(--ok);
+  box-shadow:0 0 0 3px rgba(0,196,122,0.25),0 2px 6px rgba(0,0,0,0.12);
+  transition:left 1s cubic-bezier(0.34,1.2,0.64,1);left:0}
+.bio-marker.mk-ok{border-color:var(--ok);box-shadow:0 0 0 3px rgba(0,196,122,0.25),0 2px 6px rgba(0,0,0,0.12)}
+.bio-marker.mk-warn{border-color:var(--warn);box-shadow:0 0 0 3px rgba(245,158,11,0.25),0 2px 6px rgba(0,0,0,0.12)}
+.bio-marker.mk-bad{border-color:var(--bad);box-shadow:0 0 0 3px rgba(239,68,68,0.25),0 2px 6px rgba(0,0,0,0.12)}
+.bio-ref-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:2px}
 .bio-explain{font-size:11px;color:var(--t2);line-height:1.6;margin-top:8px}
 
 /* ===== AI RECOMMENDATIONS ===== */
@@ -434,18 +439,27 @@ function toggleBio(el) {
     }
 }
 
-// ===== Marker position =====
+// ===== Marker position + range zones =====
 function calcMarkerPos(valor, refMin, refMax) {
-    if (!refMin && !refMax) return '50%';
-    var min = refMin || 0;
-    var max = refMax || min * 2;
+    if (refMin == null && refMax == null) return '50%';
+    var min = refMin != null ? refMin : 0;
+    var max = refMax != null ? refMax : min * 2;
+    if (max <= min) max = min + 1;
     var range = max - min;
-    var optMin = min;
-    var optMax = max;
-    var fullMin = optMin - range * 0.8;
-    var fullMax = optMax + range * 0.8;
-    var pos = ((valor - fullMin) / (fullMax - fullMin)) * 100;
-    return Math.max(2, Math.min(98, pos)) + '%';
+    var fullMin = min - range * 0.6;
+    var fullMax = max + range * 0.6;
+    var fullRange = fullMax - fullMin;
+    if (fullRange <= 0) return '50%';
+    var pos = ((valor - fullMin) / fullRange) * 100;
+    return Math.max(3, Math.min(97, pos)) + '%';
+}
+
+function buildRangeZones(refMin, refMax) {
+    if (refMin == null && refMax == null) return '<div class="bio-range-zones"><div class="rz-ok" style="flex:1"></div></div>';
+    var min = refMin != null ? refMin : 0;
+    var max = refMax != null ? refMax : min * 2;
+    // Zone widths: [low danger] [ok range] [high danger] roughly 20/60/20
+    return '<div class="bio-range-zones"><div class="rz-low" style="flex:2"></div><div class="rz-ok" style="flex:6"></div><div class="rz-high" style="flex:2"></div></div>';
 }
 
 function parseRef(refStr) {
@@ -480,7 +494,17 @@ function buildTrendChart(historico) {
     if (!historico || historico.length < 2) { section.style.display = 'none'; return; }
 
     section.style.display = 'block';
-    var points = historico.slice(0, 8).reverse();
+    // Deduplicate: keep only last score per month
+    var byMonth = {};
+    for (var hi = 0; hi < historico.length; hi++) {
+        var h = historico[hi];
+        var hd = new Date(h.data || h.criadoEm);
+        var key = hd.getFullYear() + '-' + String(hd.getMonth()+1).padStart(2,'0');
+        byMonth[key] = h; // last one wins per month
+    }
+    var deduped = Object.values(byMonth);
+    if (deduped.length < 2) { section.style.display = 'none'; return; }
+    var points = deduped.slice(-8);
     var container = document.getElementById('trendChart');
     var w = container.offsetWidth || 300;
     var h = 120;
@@ -550,18 +574,35 @@ async function loadScore() {
         var examesData = results[2];
         var melhoriasData = results[3];
 
-        // Check if we have a score
+        // Check if we have a score — if not, try to recalculate
         var score = scoreData && (scoreData.score || scoreData.scoreGeral);
-        if (!score && score !== 0) {
+        var scoreVal = score ? (typeof score === 'object' ? score.scoreGeral : (typeof score === 'number' ? score : parseInt(score))) : null;
+
+        if ((!scoreVal || scoreVal === 0) && examesData) {
+            var exList = examesData.exames || examesData || [];
+            var hasConcluido = exList.some(function(e) { return (e.status || '').toUpperCase() === 'CONCLUIDO'; });
+            if (hasConcluido) {
+                try {
+                    var recalc = await vitaeAPI.recalcularScores();
+                    if (recalc && recalc.score) {
+                        scoreData = recalc;
+                        score = recalc.score;
+                        scoreVal = typeof score === 'object' ? score.scoreGeral : (typeof score === 'number' ? score : parseInt(score));
+                    }
+                } catch(re) { console.log('Recalculo falhou:', re); }
+            }
+        }
+
+        if (!scoreVal && scoreVal !== 0) {
             document.getElementById('scoreHdr').style.display = 'none';
             document.getElementById('emptyState').style.display = 'flex';
             return;
         }
+        scoreVal = scoreVal || 0;
 
         document.getElementById('scoredContent').style.display = 'block';
 
         // 1. Animate score ring
-        var scoreVal = typeof score === 'number' ? score : parseInt(score) || 0;
         var circumference = 427.26;
         var offset = circumference - (scoreVal / 100) * circumference;
 
@@ -714,26 +755,49 @@ async function loadScore() {
                 var bpUnit = bp.unidade || bp.unit || '';
                 var bpRef = bp.referencia || bp.ref || '';
 
-                var ref = parseRef(bpRef);
+                var refMin = bp.referenciaMin != null ? parseFloat(bp.referenciaMin) : null;
+                var refMax = bp.referenciaMax != null ? parseFloat(bp.referenciaMax) : null;
+                if (refMin == null || refMax == null) {
+                    var parsedRef = parseRef(bpRef);
+                    if (refMin == null) refMin = parsedRef.min;
+                    if (refMax == null) refMax = parsedRef.max;
+                }
                 var valNum = parseFloat(String(bpVal).replace(',', '.'));
-                var markerPos = isNaN(valNum) ? '50%' : calcMarkerPos(valNum, ref.min, ref.max);
+                var markerPos = isNaN(valNum) ? '50%' : calcMarkerPos(valNum, refMin, refMax);
+                var markerCls = 'mk-' + bpStatus;
 
-                var explain = '';
-                if (bpStatus === 'ok') explain = 'Valor dentro da faixa de referencia. Continue mantendo habitos saudaveis.';
-                else if (bpStatus === 'warn') explain = 'Valor levemente alterado. Considere acompanhamento medico e ajustes no estilo de vida.';
-                else explain = 'Valor fora da faixa ideal. Consulte seu medico para avaliacao.';
+                // Fix 3: Use AI-generated explanations if available
+                var explain = bp.explicacaoSimples || bp.explicacao || '';
+                if (!explain) {
+                    if (bp.impactoPessoal) explain = bp.impactoPessoal;
+                }
+                if (!explain) {
+                    // Fallback with specific info
+                    if (bpStatus === 'ok') explain = bpName + ' esta dentro da faixa normal (' + bpRef + '). Resultado saudavel.';
+                    else if (bpStatus === 'warn') explain = bpName + ' esta levemente fora da faixa (' + bpRef + '). Valor atual: ' + bpVal + ' ' + bpUnit + '. Acompanhe com seu medico.';
+                    else explain = bpName + ' esta fora da faixa ideal (' + bpRef + '). Valor atual: ' + bpVal + ' ' + bpUnit + '. Consulte seu medico para avaliacao detalhada.';
+                }
+                // Add tips if available
+                if (bp.dicas && Array.isArray(bp.dicas) && bp.dicas.length > 0) {
+                    explain += '<br><br><strong>Dicas:</strong> ' + bp.dicas.join(' · ');
+                }
+
+                var refLabels = '';
+                if (refMin != null && refMax != null) {
+                    refLabels = '<div class="bio-ref-labels"><span>' + refMin + '</span><span>Ref: ' + refMin + '–' + refMax + '</span><span>' + refMax + '</span></div>';
+                }
 
                 bioHtml += '<div class="bio-card fade-up">' +
                     '<div class="bio-header" onclick="toggleBio(this)">' +
                     '<div class="bio-status-bar ' + bpStatus + '"></div>' +
                     '<div class="bio-info"><div class="bio-name">' + bpName + '</div><div class="bio-unit">' + bpUnit + '</div></div>' +
                     '<div class="bio-value ' + bpStatus + '">' + bpVal + '</div>' +
-                    '<div class="bio-ref">' + bpRef + '</div>' +
                     '<div class="bio-score-badge ' + bpStatus + '">' + statusLabel(bp.status) + '</div>' +
                     '</div>' +
                     '<div class="bio-expand">' +
-                    '<div class="bio-range"><div class="bio-marker" data-pos="' + markerPos + '" style="left:0;border-color:' +
-                    (bpStatus === 'ok' ? 'var(--ok)' : bpStatus === 'warn' ? 'var(--warn)' : 'var(--bad)') + '"></div></div>' +
+                    '<div class="bio-range">' + buildRangeZones(refMin, refMax) +
+                    '<div class="bio-marker ' + markerCls + '" data-pos="' + markerPos + '" style="left:0"></div></div>' +
+                    refLabels +
                     '<div class="bio-explain">' + explain + '</div>' +
                     '</div></div>';
             }
