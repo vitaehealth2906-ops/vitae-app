@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>vitaid — Score de Saúde</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#00E5A0;--cyan:#00B4D8;
+  --grad:linear-gradient(120deg,#00E5A0,#00B4D8);
+  --dark:#0D0F14;--bg:#F4F6FA;--surface:#fff;--s2:#F0F2F7;
+  --border:rgba(0,0,0,0.07);--sh:0 1px 12px rgba(0,0,0,0.07);
+  --t1:#0D0F14;--t2:#4B5563;--t3:#9CA3AF;--t4:#C4C9D4;
+  --acc:rgba(0,229,160,0.10);--accb:rgba(0,229,160,0.22);
+  --font:'Plus Jakarta Sans',sans-serif;--r:16px;--rs:10px;
+  --ok:#00C47A;--warn:#F59E0B;--bad:#EF4444;
+  --ok-bg:rgba(0,196,122,0.10);--warn-bg:rgba(245,158,11,0.10);--bad-bg:rgba(239,68,68,0.10);
+}
+html,body{height:100%;overflow:hidden;background:#000}
+body{display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:var(--font)}
+.phone{width:393px;height:852px;max-height:100vh;background:var(--bg);border-radius:52px;overflow:hidden;position:relative;
+  box-shadow:0 0 0 1px rgba(0,229,160,0.15),0 0 0 3px #1A1E26,0 40px 120px rgba(0,0,0,0.9)}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;background:var(--dark);border-radius:0 0 20px 20px;z-index:10}
+.status{position:absolute;top:14px;left:28px;right:28px;display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);z-index:11}
+.content{height:100%;overflow-y:auto;padding-top:0;padding-bottom:100px;scrollbar-width:none}
+.content::-webkit-scrollbar{display:none}
+
+/* Exit overlay */
+.exit-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--bg);opacity:0;z-index:30;pointer-events:none;transition:opacity 0.5s}
+.exit-overlay.active{opacity:1;pointer-events:all}
+
+/* ===== SCORE HEADER (dark) ===== */
+.score-hdr{position:relative;background:var(--dark);padding:58px 20px 28px;overflow:hidden}
+.score-hdr::before{content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:400px;height:400px;
+  background:radial-gradient(circle,rgba(0,229,160,0.12) 0%,rgba(0,229,160,0.03) 40%,transparent 70%);pointer-events:none}
+.score-hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(0,229,160,0.3),rgba(0,180,216,0.3),transparent)}
+.score-hdr-top{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;margin-bottom:24px}
+.score-hdr-btn{width:40px;height:40px;border-radius:12px;cursor:pointer;
+  background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:20px;
+  display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-family:var(--font)}
+.score-hdr-btn:hover{background:rgba(255,255,255,0.08)}
+.score-hdr-btn:active{transform:scale(0.92)}
+.score-hdr-title{font-size:17px;font-weight:700;color:#fff;letter-spacing:-0.02em}
+
+/* Score Ring */
+.score-ring-section{display:flex;flex-direction:column;align-items:center;position:relative;z-index:1;padding-bottom:8px}
+.score-ring-wrap{position:relative;width:160px;height:160px;margin-bottom:16px}
+.score-ring-wrap svg{width:160px;height:160px;transform:rotate(-90deg)}
+.score-ring-track{fill:none;stroke:rgba(255,255,255,0.08);stroke-width:10;stroke-linecap:round}
+.score-ring-fill{fill:none;stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1)}
+.score-ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-ring-num{font-size:48px;font-weight:700;color:#fff;line-height:1;letter-spacing:-2px}
+.score-ring-max{font-size:14px;color:rgba(255,255,255,0.35);font-weight:500;margin-top:2px}
+.score-grade{display:inline-flex;align-items:center;justify-content:center;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:0.06em;margin-top:8px}
+.badge-A{background:rgba(0,229,160,0.15);color:#00E5A0;border:1px solid rgba(0,229,160,0.3)}
+.badge-B{background:rgba(0,196,122,0.15);color:#00C47A;border:1px solid rgba(0,196,122,0.3)}
+.badge-C{background:rgba(245,158,11,0.15);color:#F59E0B;border:1px solid rgba(245,158,11,0.3)}
+.badge-D{background:rgba(239,68,68,0.12);color:#EF4444;border:1px solid rgba(239,68,68,0.25)}
+.badge-F{background:rgba(239,68,68,0.20);color:#EF4444;border:1px solid rgba(239,68,68,0.4)}
+.score-label{font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);margin-top:12px}
+.score-sublabel{font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px}
+.score-source{font-size:10px;color:rgba(255,255,255,0.25);margin-top:6px;letter-spacing:0.04em}
+.score-trend{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;margin-top:12px}
+.score-trend.up{background:rgba(0,229,160,0.1);color:#00E5A0;border:1px solid rgba(0,229,160,0.2)}
+.score-trend.down{background:rgba(239,68,68,0.1);color:#EF4444;border:1px solid rgba(239,68,68,0.2)}
+.score-trend.neutral{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.1)}
+
+/* ===== CATEGORIES SECTION ===== */
+.cats-section{padding:24px 20px 8px}
+.sec-title{font-size:10px;font-weight:700;letter-spacing:0.16em;color:var(--t3);text-transform:uppercase;margin-bottom:14px}
+.cats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cats-grid .cat-card:last-child:nth-child(odd){grid-column:1/-1}
+.cat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;
+  box-shadow:var(--sh);cursor:pointer;transition:all 0.2s}
+.cat-card:active{transform:scale(0.97)}
+.cat-grad-bar{height:3px}
+.cat-grad-bar.ok{background:linear-gradient(90deg,#00E5A0,#00C47A)}
+.cat-grad-bar.warn{background:linear-gradient(90deg,#F59E0B,#FBBF24)}
+.cat-grad-bar.bad{background:linear-gradient(90deg,#EF4444,#F87171)}
+.cat-inner{padding:14px}
+.cat-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.cat-icon.lip{background:rgba(239,68,68,0.08)}
+.cat-icon.hem{background:rgba(220,38,38,0.08)}
+.cat-icon.met{background:rgba(245,158,11,0.08)}
+.cat-icon.hor{background:rgba(139,92,246,0.08)}
+.cat-icon.ren{background:rgba(6,182,212,0.08)}
+.cat-name{font-size:13px;font-weight:600;color:var(--t1);line-height:1.2}
+.cat-score{font-size:11px;color:var(--t3);font-weight:500}
+.cat-bar{height:4px;background:var(--s2);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.cat-bar-fill{height:100%;border-radius:2px;transition:width 1s cubic-bezier(0.4,0,0.2,1)}
+.cat-bar-fill.ok{background:var(--ok)}
+.cat-bar-fill.warn{background:var(--warn)}
+.cat-bar-fill.bad{background:var(--bad)}
+.cat-markers{font-size:10px;color:var(--t3)}
+
+/* ===== TREND SECTION ===== */
+.trend-section{padding:8px 20px 8px}
+.trend-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--sh)}
+.trend-grad-bar{height:3px;background:var(--grad)}
+.trend-inner{padding:18px}
+.trend-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.trend-title{font-size:14px;font-weight:700;color:var(--t1)}
+.trend-range{font-size:11px;color:var(--t3)}
+.trend-chart{width:100%;height:120px;margin-bottom:12px}
+.trend-summary{font-size:12px;color:var(--ok);font-weight:600;display:flex;align-items:center;gap:4px}
+.trend-summary.down{color:var(--bad)}
+
+/* ===== BIOMARKERS SECTION ===== */
+.bio-section{padding:8px 20px}
+.bio-group-title{font-size:10px;font-weight:700;letter-spacing:0.16em;color:var(--t3);text-transform:uppercase;margin:16px 0 10px}
+.bio-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;
+  box-shadow:var(--sh);margin-bottom:8px}
+.bio-header{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;transition:background 0.2s}
+.bio-header:active{background:var(--s2)}
+.bio-status-bar{width:3px;height:28px;border-radius:2px;flex-shrink:0}
+.bio-status-bar.ok{background:var(--ok)}
+.bio-status-bar.warn{background:var(--warn)}
+.bio-status-bar.bad{background:var(--bad)}
+.bio-info{flex:1;min-width:0}
+.bio-name{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:2px}
+.bio-unit{font-size:10px;color:var(--t3)}
+.bio-value{font-size:14px;font-weight:700;text-align:right;min-width:50px}
+.bio-value.ok{color:var(--ok)}
+.bio-value.warn{color:var(--warn)}
+.bio-value.bad{color:var(--bad)}
+.bio-ref{font-size:10px;color:var(--t3);text-align:right;min-width:60px}
+.bio-score-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;flex-shrink:0}
+.bio-score-badge.ok{background:var(--ok-bg);color:var(--ok)}
+.bio-score-badge.warn{background:var(--warn-bg);color:var(--warn)}
+.bio-score-badge.bad{background:var(--bad-bg);color:var(--bad)}
+.bio-expand{display:none;padding:0 16px 14px}
+.bio-range{position:relative;height:8px;border-radius:4px;margin:8px 0 6px;
+  background:linear-gradient(to right,#EF4444 0%,#F59E0B 28%,#00E5A0 52%,#00E5A0 72%,#F59E0B 87%,#EF4444 100%);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,0.1)}
+.bio-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;
+  background:#fff;border-radius:50%;border:2px solid var(--ok);
+  box-shadow:0 0 0 3px rgba(0,229,160,0.2),0 2px 6px rgba(0,0,0,0.15);
+  transition:left 1s cubic-bezier(0.4,0,0.2,1);left:0}
+.bio-explain{font-size:11px;color:var(--t2);line-height:1.6;margin-top:8px}
+
+/* ===== AI RECOMMENDATIONS ===== */
+.ai-section{padding:8px 20px 16px}
+.ai-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.ai-icon{width:32px;height:32px;border-radius:8px;background:var(--acc);border:1px solid var(--accb);
+  display:flex;align-items:center;justify-content:center}
+.ai-title-wrap{flex:1}
+.ai-label{font-size:10px;font-weight:700;letter-spacing:0.14em;color:var(--ok);text-transform:uppercase}
+.ai-subtitle{font-size:13px;font-weight:600;color:var(--t1);margin-top:1px}
+.ai-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;
+  box-shadow:var(--sh);padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
+.ai-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.ai-dot.high{background:var(--bad)}
+.ai-dot.med{background:var(--warn)}
+.ai-dot.low{background:var(--ok)}
+.ai-content{flex:1;min-width:0}
+.ai-rec-title{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px}
+.ai-rec-text{font-size:11px;color:var(--t2);line-height:1.5;margin-bottom:6px}
+.ai-tag{font-size:9px;font-weight:600;letter-spacing:0.06em;padding:3px 10px;border-radius:20px;display:inline-block}
+.ai-tag.medico{background:rgba(59,130,246,0.08);color:#3B82F6;border:1px solid rgba(59,130,246,0.2)}
+.ai-tag.estilo{background:var(--ok-bg);color:var(--ok);border:1px solid rgba(0,196,122,0.2)}
+.ai-tag.monitorar{background:var(--warn-bg);color:var(--warn);border:1px solid rgba(245,158,11,0.2)}
+
+/* ===== SHARE BUTTON ===== */
+.share-float{position:sticky;bottom:0;padding:12px 20px 8px;z-index:5;
+  background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.share-btn{width:100%;padding:14px;border:none;border-radius:14px;cursor:pointer;
+  background:var(--grad);color:var(--dark);font-family:var(--font);
+  font-size:14px;font-weight:700;letter-spacing:0.02em;
+  box-shadow:0 4px 20px rgba(0,229,160,0.25);transition:all 0.2s}
+.share-btn:active{transform:scale(0.97)}
+
+/* ===== TAB BAR ===== */
+.tab-bar{position:absolute;bottom:0;left:0;right:0;height:86px;padding:0 24px;
+  background:linear-gradient(to top,var(--bg) 60%,transparent);
+  display:flex;align-items:center;justify-content:space-around;z-index:20}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:8px 12px;transition:all 0.2s}
+.tab svg{opacity:0.35;transition:opacity 0.2s}
+.tab-label{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:0.5px}
+.tab.active svg{opacity:1}
+.tab.active .tab-label{color:var(--ok)}
+
+/* ===== EMPTY STATE ===== */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 30px;text-align:center}
+.empty-icon{width:80px;height:80px;border-radius:20px;background:var(--acc);border:1px solid var(--accb);
+  display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.empty-title{font-size:17px;font-weight:700;color:var(--t1);margin-bottom:8px}
+.empty-text{font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:24px}
+.empty-cta{padding:14px 32px;border:none;border-radius:14px;cursor:pointer;
+  background:var(--grad);color:var(--dark);font-family:var(--font);
+  font-size:14px;font-weight:700;box-shadow:0 4px 20px rgba(0,229,160,0.25)}
+.empty-cta:active{transform:scale(0.97)}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeUp{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
+.fade-up{opacity:0;animation:fadeUp 0.45s ease both}
+
+@media(max-width:480px){body{padding:0!important;background:var(--bg)!important}.phone{width:100vw!important;height:100vh!important;height:100svh!important;max-width:100vw!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}.notch,.status{display:none!important}.score-hdr{padding-top:20px!important}}
+</style>
+<link rel="stylesheet" href="vitae-glass.css">
+<link rel="stylesheet" href="vitae-light.css">
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128267;</span></div>
+    <div class="exit-overlay" id="exitOverlay"></div>
+
+    <div class="content" id="mainContent">
+
+        <!-- DARK HEADER WITH SCORE RING -->
+        <div class="score-hdr" id="scoreHdr">
+            <div class="score-hdr-top">
+                <div class="score-hdr-btn" onclick="goBack()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </div>
+                <div class="score-hdr-title">Score de Saude</div>
+                <div class="score-hdr-btn" onclick="shareScore()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                </div>
+            </div>
+
+            <div class="score-ring-section">
+                <div class="score-ring-wrap">
+                    <svg viewBox="0 0 160 160">
+                        <defs>
+                            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#00E5A0"/>
+                                <stop offset="100%" stop-color="#00B4D8"/>
+                            </linearGradient>
+                        </defs>
+                        <circle class="score-ring-track" cx="80" cy="80" r="68"/>
+                        <circle class="score-ring-fill" id="ringFill" cx="80" cy="80" r="68"
+                            stroke="url(#ringGrad)"
+                            stroke-dasharray="427.26"
+                            stroke-dashoffset="427.26"/>
+                    </svg>
+                    <div class="score-ring-inner">
+                        <div class="score-ring-num" id="scoreNum">0</div>
+                        <div class="score-ring-max">/100</div>
+                    </div>
+                </div>
+                <div class="score-grade" id="scoreBadge"></div>
+                <div class="score-label" id="scoreLabel"></div>
+                <div class="score-sublabel" id="scoreSublabel"></div>
+                <div class="score-source" id="scoreSource"></div>
+                <div class="score-trend" id="scoreTrend" style="display:none"></div>
+            </div>
+        </div>
+
+        <!-- SCORED CONTENT (hidden until data loads) -->
+        <div id="scoredContent" style="display:none">
+
+            <!-- CATEGORIES -->
+            <div class="cats-section">
+                <div class="sec-title">POR CATEGORIA</div>
+                <div class="cats-grid" id="catsGrid"></div>
+            </div>
+
+            <!-- TREND CHART -->
+            <div class="trend-section" id="trendSection" style="display:none">
+                <div class="trend-card">
+                    <div class="trend-grad-bar"></div>
+                    <div class="trend-inner">
+                        <div class="trend-top">
+                            <div class="trend-title">Evolucao do Score</div>
+                            <div class="trend-range" id="trendRange"></div>
+                        </div>
+                        <div class="trend-chart" id="trendChart"></div>
+                        <div class="trend-summary" id="trendSummary"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BIOMARKERS -->
+            <div class="bio-section" id="bioSection"></div>
+
+            <!-- AI RECOMMENDATIONS -->
+            <div class="ai-section" id="aiSection" style="display:none">
+                <div class="ai-header">
+                    <div class="ai-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0110 10 10 10 0 01-10 10A10 10 0 012 12 10 10 0 0112 2z"/><path d="M12 8v4l3 3"/></svg>
+                    </div>
+                    <div class="ai-title-wrap">
+                        <div class="ai-label">RECOMENDACOES VITAID</div>
+                        <div class="ai-subtitle">O que fazer agora</div>
+                    </div>
+                </div>
+                <div id="aiCards"></div>
+            </div>
+
+            <!-- SHARE BUTTON -->
+            <div class="share-float">
+                <button class="share-btn" onclick="shareScore()">Compartilhar Score</button>
+            </div>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div class="empty-state" id="emptyState" style="display:none">
+            <div class="empty-icon">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <div class="empty-title">Sem Score ainda</div>
+            <div class="empty-text">Envie seus exames para calcular seu Score de Saude</div>
+            <button class="empty-cta" onclick="navigateTo('exames')">Ver Exames</button>
+        </div>
+
+    </div>
+
+    <!-- TAB BAR -->
+    <div class="tab-bar">
+        <div class="tab" onclick="navigateTo('perfil')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg>
+            <div class="tab-label">Meu RG</div>
+        </div>
+        <div class="tab active">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <div class="tab-label">Score</div>
+        </div>
+        <div class="tab" onclick="navigateTo('exames')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div class="tab-label">Exames</div>
+        </div>
+        <div class="tab" onclick="navigateTo('qrcode')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/></svg>
+            <div class="tab-label">QR Code</div>
+        </div>
+        <div class="tab" onclick="navigateTo('editar')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <div class="tab-label">Editar</div>
+        </div>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+// ===== Auth =====
+if (!vitaeAPI.isLoggedIn()) {
+    window.location.href = '00-escolha.html';
+}
+
+// ===== Navigation =====
+function navigateTo(target) {
+    document.getElementById('exitOverlay').classList.add('active');
+    setTimeout(function() {
+        var routes = {
+            'perfil': '08-perfil.html',
+            'exames': '11-exames-lista.html',
+            'qrcode': '21-qrcode.html',
+            'editar': '09-dados-pessoais.html'
+        };
+        window.location.href = routes[target] || '08-perfil.html';
+    }, 500);
+}
+function goBack() { navigateTo('perfil'); }
+
+// ===== Helpers =====
+function animateNum(el, target, duration) {
+    var start = null;
+    function step(ts) {
+        if (!start) start = ts;
+        var p = Math.min((ts - start) / duration, 1);
+        el.textContent = Math.round(p * target);
+        if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+function getGrade(score) {
+    if (score >= 90) return { grade: 'A', label: 'Excelente', cls: 'badge-A' };
+    if (score >= 75) return { grade: 'B', label: 'Bom', cls: 'badge-B' };
+    if (score >= 60) return { grade: 'C', label: 'Moderado', cls: 'badge-C' };
+    if (score >= 40) return { grade: 'D', label: 'Abaixo do ideal', cls: 'badge-D' };
+    return { grade: 'F', label: 'Critico', cls: 'badge-F' };
+}
+
+function getStatusCls(score) {
+    if (score >= 75) return 'ok';
+    if (score >= 50) return 'warn';
+    return 'bad';
+}
+
+function paramStatus(p) {
+    var s = (p.status || '').toUpperCase();
+    if (s === 'NORMAL' || s === 'BOM') return 'ok';
+    if (s === 'ALTO' || s === 'BAIXO' || s === 'ALTERADO' || s === 'ATENCAO') return 'warn';
+    if (s === 'CRITICO' || s === 'MUITO ALTO' || s === 'MUITO BAIXO') return 'bad';
+    return 'ok';
+}
+
+function statusLabel(s) {
+    var m = (s || '').toUpperCase();
+    if (m === 'NORMAL' || m === 'BOM') return 'Normal';
+    if (m === 'ALTO') return 'Alto';
+    if (m === 'BAIXO') return 'Baixo';
+    if (m === 'CRITICO' || m === 'MUITO ALTO' || m === 'MUITO BAIXO') return 'Critico';
+    return s || 'Normal';
+}
+
+// ===== Category map =====
+var CATEGORY_MAP = {
+    'Lipideos': { keys: ['colesterol', 'ldl', 'hdl', 'trigliceri', 'vldl'], icon: '🫀', cls: 'lip' },
+    'Hematologico': { keys: ['hemoglobina', 'hematocrito', 'hemacia', 'leucocit', 'plaqueta', 'vcm', 'hcm', 'chcm', 'rdw', 'linfocit', 'neutrofil', 'monocit', 'eosinofil', 'basofil'], icon: '🩸', cls: 'hem' },
+    'Metabolico': { keys: ['glicemia', 'glicose', 'hba1c', 'hemoglobina glicada', 'insulina', 'homa'], icon: '⚡', cls: 'met' },
+    'Hormonal': { keys: ['tsh', 't3', 't4', 'testosterona', 'estradiol', 'progesterona', 'cortisol', 'prolactina', 'fsh', 'lh', 'dhea', 'vitamina d', '25-hidroxi'], icon: '🧬', cls: 'hor' },
+    'Renal / Hepatico': { keys: ['creatinina', 'ureia', 'tgo', 'tgp', 'ast', 'alt', 'ggt', 'gama', 'fosfatase', 'bilirrubina', 'acido urico', 'albumina', 'proteina'], icon: '🫘', cls: 'ren' }
+};
+
+function classifyParam(name) {
+    var n = (name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    for (var cat in CATEGORY_MAP) {
+        var keys = CATEGORY_MAP[cat].keys;
+        for (var i = 0; i < keys.length; i++) {
+            if (n.indexOf(keys[i]) !== -1) return cat;
+        }
+    }
+    return null;
+}
+
+// ===== Toggle biomarker =====
+function toggleBio(el) {
+    var wrap = el.nextElementSibling;
+    if (wrap.style.display === 'none' || !wrap.style.display) {
+        wrap.style.display = 'block';
+        var marker = wrap.querySelector('.bio-marker');
+        if (marker) setTimeout(function() { marker.style.left = marker.dataset.pos; }, 50);
+    } else {
+        wrap.style.display = 'none';
+    }
+}
+
+// ===== Marker position =====
+function calcMarkerPos(valor, refMin, refMax) {
+    if (!refMin && !refMax) return '50%';
+    var min = refMin || 0;
+    var max = refMax || min * 2;
+    var range = max - min;
+    var optMin = min;
+    var optMax = max;
+    var fullMin = optMin - range * 0.8;
+    var fullMax = optMax + range * 0.8;
+    var pos = ((valor - fullMin) / (fullMax - fullMin)) * 100;
+    return Math.max(2, Math.min(98, pos)) + '%';
+}
+
+function parseRef(refStr) {
+    if (!refStr) return { min: null, max: null };
+    var m = refStr.match(/([\d.,]+)\s*(?:a|-|ate)\s*([\d.,]+)/i);
+    if (m) return { min: parseFloat(m[1].replace(',', '.')), max: parseFloat(m[2].replace(',', '.')) };
+    m = refStr.match(/(?:ate|<|menor que)\s*([\d.,]+)/i);
+    if (m) return { min: 0, max: parseFloat(m[1].replace(',', '.')) };
+    m = refStr.match(/(?:>|acima de|maior que)\s*([\d.,]+)/i);
+    if (m) return { min: parseFloat(m[1].replace(',', '.')), max: parseFloat(m[1].replace(',', '.')) * 2 };
+    return { min: null, max: null };
+}
+
+// ===== Share =====
+function shareScore() {
+    if (navigator.share) {
+        navigator.share({ title: 'Meu Score de Saude - VitaID', text: 'Confira meu Score de Saude no VitaID!' });
+    }
+}
+
+// ===== Format date =====
+function fmtDate(d) {
+    if (!d) return '';
+    var dt = new Date(d);
+    var months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    return months[dt.getMonth()] + '/' + dt.getFullYear().toString().substr(2);
+}
+
+// ===== Build trend chart SVG =====
+function buildTrendChart(historico) {
+    var section = document.getElementById('trendSection');
+    if (!historico || historico.length < 2) { section.style.display = 'none'; return; }
+
+    section.style.display = 'block';
+    var points = historico.slice(0, 8).reverse();
+    var container = document.getElementById('trendChart');
+    var w = container.offsetWidth || 300;
+    var h = 120;
+    var padX = 20, padY = 20;
+
+    var scores = points.map(function(p) { return p.score || p.scoreGeral || 0; });
+    var minS = Math.max(0, Math.min.apply(null, scores) - 10);
+    var maxS = Math.min(100, Math.max.apply(null, scores) + 10);
+    var rangeS = maxS - minS || 1;
+
+    var coords = points.map(function(p, i) {
+        var x = padX + (i / (points.length - 1)) * (w - padX * 2);
+        var s = p.score || p.scoreGeral || 0;
+        var y = padY + (1 - (s - minS) / rangeS) * (h - padY * 2);
+        return { x: x, y: y, s: s, d: p.data || p.criadoEm };
+    });
+
+    var pathD = coords.map(function(c, i) { return (i === 0 ? 'M' : 'L') + c.x + ',' + c.y; }).join(' ');
+    var areaD = pathD + ' L' + coords[coords.length-1].x + ',' + (h - 5) + ' L' + coords[0].x + ',' + (h - 5) + ' Z';
+
+    var dotsHtml = coords.map(function(c) {
+        return '<circle cx="' + c.x + '" cy="' + c.y + '" r="4" fill="#00E5A0" stroke="#fff" stroke-width="2"/>' +
+               '<text x="' + c.x + '" y="' + (c.y - 10) + '" text-anchor="middle" fill="#4B5563" font-size="10" font-family="Plus Jakarta Sans" font-weight="600">' + c.s + '</text>';
+    }).join('');
+
+    var labelsHtml = coords.map(function(c) {
+        return '<text x="' + c.x + '" y="' + (h - 0) + '" text-anchor="middle" fill="#9CA3AF" font-size="9" font-family="Plus Jakarta Sans">' + fmtDate(c.d) + '</text>';
+    }).join('');
+
+    container.innerHTML = '<svg width="' + w + '" height="' + (h + 5) + '" viewBox="0 0 ' + w + ' ' + (h + 5) + '">' +
+        '<defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00E5A0" stop-opacity="0.2"/><stop offset="100%" stop-color="#00E5A0" stop-opacity="0.02"/></linearGradient></defs>' +
+        '<path d="' + areaD + '" fill="url(#areaGrad)"/>' +
+        '<path d="' + pathD + '" fill="none" stroke="#00E5A0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+        dotsHtml + labelsHtml + '</svg>';
+
+    // Range
+    var rangeEl = document.getElementById('trendRange');
+    rangeEl.textContent = fmtDate(points[0].data || points[0].criadoEm) + ' - ' + fmtDate(points[points.length-1].data || points[points.length-1].criadoEm);
+
+    // Summary
+    var summaryEl = document.getElementById('trendSummary');
+    var diff = scores[scores.length - 1] - scores[0];
+    if (diff > 0) {
+        summaryEl.className = 'trend-summary';
+        summaryEl.innerHTML = '&#8593; +' + diff + ' pontos de evolucao';
+    } else if (diff < 0) {
+        summaryEl.className = 'trend-summary down';
+        summaryEl.innerHTML = '&#8595; ' + diff + ' pontos';
+    } else {
+        summaryEl.className = 'trend-summary';
+        summaryEl.textContent = 'Score estavel';
+    }
+}
+
+// ===== Main load =====
+async function loadScore() {
+    try {
+        var results = await Promise.all([
+            vitaeAPI.getScoreAtual().catch(function() { return null; }),
+            vitaeAPI.getHistoricoScores().catch(function() { return null; }),
+            vitaeAPI.listarExames().catch(function() { return []; }),
+            vitaeAPI.getMelhorias().catch(function() { return null; })
+        ]);
+
+        var scoreData = results[0];
+        var historicoData = results[1];
+        var examesData = results[2];
+        var melhoriasData = results[3];
+
+        // Check if we have a score
+        var score = scoreData && (scoreData.score || scoreData.scoreGeral);
+        if (!score && score !== 0) {
+            document.getElementById('scoreHdr').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'flex';
+            return;
+        }
+
+        document.getElementById('scoredContent').style.display = 'block';
+
+        // 1. Animate score ring
+        var scoreVal = typeof score === 'number' ? score : parseInt(score) || 0;
+        var circumference = 427.26;
+        var offset = circumference - (scoreVal / 100) * circumference;
+
+        setTimeout(function() {
+            document.getElementById('ringFill').style.strokeDashoffset = offset;
+            animateNum(document.getElementById('scoreNum'), scoreVal, 1200);
+        }, 200);
+
+        var grade = getGrade(scoreVal);
+        var badgeEl = document.getElementById('scoreBadge');
+        badgeEl.textContent = grade.grade;
+        badgeEl.className = 'score-grade ' + grade.cls;
+
+        document.getElementById('scoreLabel').textContent = grade.label;
+
+        // Count params
+        var totalParams = 0;
+        var examesList = examesData.exames || examesData || [];
+        var latestExame = null;
+        for (var i = 0; i < examesList.length; i++) {
+            var ex = examesList[i];
+            if ((ex.status || '').toUpperCase() === 'CONCLUIDO' || (ex.status || '').toUpperCase() === 'CONCLUÍDO') {
+                if (!latestExame || new Date(ex.dataExame || ex.criadoEm) > new Date(latestExame.dataExame || latestExame.criadoEm)) {
+                    latestExame = ex;
+                }
+            }
+        }
+
+        var allParams = [];
+        if (latestExame && latestExame.parametros) {
+            allParams = latestExame.parametros;
+        } else if (scoreData.categorias) {
+            // Use score categorias if available
+        }
+
+        totalParams = allParams.length || (scoreData.totalParametros || 0);
+        document.getElementById('scoreSublabel').textContent = 'Baseado em ' + (totalParams || '—') + ' parametros';
+        document.getElementById('scoreSource').textContent = latestExame ? ('Ultimo exame: ' + fmtDate(latestExame.dataExame || latestExame.criadoEm)) : '';
+
+        // Trend pill
+        var historico = (historicoData && (historicoData.historico || historicoData)) || [];
+        if (Array.isArray(historico) && historico.length >= 2) {
+            var prevScore = historico[1].score || historico[1].scoreGeral || 0;
+            var diff = scoreVal - prevScore;
+            var trendEl = document.getElementById('scoreTrend');
+            trendEl.style.display = 'inline-flex';
+            if (diff > 0) {
+                trendEl.className = 'score-trend up';
+                trendEl.innerHTML = '&#8593; +' + diff + ' pts vs anterior';
+            } else if (diff < 0) {
+                trendEl.className = 'score-trend down';
+                trendEl.innerHTML = '&#8595; ' + diff + ' pts vs anterior';
+            } else {
+                trendEl.className = 'score-trend neutral';
+                trendEl.textContent = '= Mesmo score anterior';
+            }
+        }
+
+        // 2. Build categories
+        var catData = {};
+        for (var cat in CATEGORY_MAP) {
+            catData[cat] = { params: [], normal: 0, total: 0, score: 0 };
+        }
+
+        // Try scoreData.categorias first
+        if (scoreData.categorias && typeof scoreData.categorias === 'object') {
+            var sc = scoreData.categorias;
+            for (var catKey in sc) {
+                var mapped = null;
+                for (var mapCat in CATEGORY_MAP) {
+                    if (catKey.toLowerCase().indexOf(mapCat.toLowerCase().replace(/ \/ /g, '').substring(0, 4)) !== -1 ||
+                        mapCat.toLowerCase().indexOf(catKey.toLowerCase().substring(0, 4)) !== -1) {
+                        mapped = mapCat;
+                        break;
+                    }
+                }
+                if (mapped && sc[catKey]) {
+                    var catInfo = sc[catKey];
+                    catData[mapped].score = catInfo.score || catInfo.scoreCategoria || 0;
+                    catData[mapped].total = catInfo.total || catInfo.totalParametros || 0;
+                    catData[mapped].normal = catInfo.normais || catInfo.normal || 0;
+                    if (catInfo.parametros) catData[mapped].params = catInfo.parametros;
+                }
+            }
+        }
+
+        // Also group from allParams
+        for (var j = 0; j < allParams.length; j++) {
+            var p = allParams[j];
+            var pCat = classifyParam(p.nome || p.name || '');
+            if (pCat && catData[pCat]) {
+                catData[pCat].params.push(p);
+                catData[pCat].total++;
+                var pSt = (p.status || '').toUpperCase();
+                if (pSt === 'NORMAL' || pSt === 'BOM' || pSt === '') catData[pCat].normal++;
+            }
+        }
+
+        // Calculate category scores from params if not from API
+        for (var c in catData) {
+            if (!catData[c].score && catData[c].total > 0) {
+                catData[c].score = Math.round((catData[c].normal / catData[c].total) * 100);
+            }
+        }
+
+        // Render category cards
+        var catsHtml = '';
+        for (var catName in catData) {
+            var cd = catData[catName];
+            if (cd.total === 0 && cd.score === 0) continue;
+            var catScore = cd.score || 0;
+            var catCls = getStatusCls(catScore);
+            var catMeta = CATEGORY_MAP[catName];
+
+            catsHtml += '<div class="cat-card fade-up" onclick="scrollToCat(\'' + catName + '\')">' +
+                '<div class="cat-grad-bar ' + catCls + '"></div>' +
+                '<div class="cat-inner">' +
+                '<div class="cat-top">' +
+                '<div class="cat-icon ' + catMeta.cls + '">' + catMeta.icon + '</div>' +
+                '<div style="flex:1">' +
+                '<div class="cat-name">' + catName + '</div>' +
+                '<div class="cat-score">' + catScore + '/100</div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="cat-bar"><div class="cat-bar-fill ' + catCls + '" style="width:0%" data-w="' + catScore + '%"></div></div>' +
+                '<div class="cat-markers">' + cd.normal + '/' + cd.total + ' marcadores normais</div>' +
+                '</div></div>';
+        }
+        document.getElementById('catsGrid').innerHTML = catsHtml;
+
+        // Animate category bars
+        setTimeout(function() {
+            var fills = document.querySelectorAll('.cat-bar-fill');
+            fills.forEach(function(f) { f.style.width = f.dataset.w; });
+        }, 300);
+
+        // 3. Biomarkers by category
+        var bioHtml = '';
+        for (var bCat in catData) {
+            var bcd = catData[bCat];
+            if (bcd.params.length === 0) continue;
+
+            bioHtml += '<div class="bio-group-title" id="cat-' + bCat.replace(/[^a-zA-Z]/g, '') + '">' + bCat.toUpperCase() + '</div>';
+
+            for (var k = 0; k < bcd.params.length; k++) {
+                var bp = bcd.params[k];
+                var bpStatus = paramStatus(bp);
+                var bpName = bp.nome || bp.name || 'Marcador';
+                var bpVal = bp.valor || bp.value || '—';
+                var bpUnit = bp.unidade || bp.unit || '';
+                var bpRef = bp.referencia || bp.ref || '';
+
+                var ref = parseRef(bpRef);
+                var valNum = parseFloat(String(bpVal).replace(',', '.'));
+                var markerPos = isNaN(valNum) ? '50%' : calcMarkerPos(valNum, ref.min, ref.max);
+
+                var explain = '';
+                if (bpStatus === 'ok') explain = 'Valor dentro da faixa de referencia. Continue mantendo habitos saudaveis.';
+                else if (bpStatus === 'warn') explain = 'Valor levemente alterado. Considere acompanhamento medico e ajustes no estilo de vida.';
+                else explain = 'Valor fora da faixa ideal. Consulte seu medico para avaliacao.';
+
+                bioHtml += '<div class="bio-card fade-up">' +
+                    '<div class="bio-header" onclick="toggleBio(this)">' +
+                    '<div class="bio-status-bar ' + bpStatus + '"></div>' +
+                    '<div class="bio-info"><div class="bio-name">' + bpName + '</div><div class="bio-unit">' + bpUnit + '</div></div>' +
+                    '<div class="bio-value ' + bpStatus + '">' + bpVal + '</div>' +
+                    '<div class="bio-ref">' + bpRef + '</div>' +
+                    '<div class="bio-score-badge ' + bpStatus + '">' + statusLabel(bp.status) + '</div>' +
+                    '</div>' +
+                    '<div class="bio-expand">' +
+                    '<div class="bio-range"><div class="bio-marker" data-pos="' + markerPos + '" style="left:0;border-color:' +
+                    (bpStatus === 'ok' ? 'var(--ok)' : bpStatus === 'warn' ? 'var(--warn)' : 'var(--bad)') + '"></div></div>' +
+                    '<div class="bio-explain">' + explain + '</div>' +
+                    '</div></div>';
+            }
+        }
+        document.getElementById('bioSection').innerHTML = bioHtml;
+
+        // 4. Trend chart
+        if (Array.isArray(historico) && historico.length >= 2) {
+            setTimeout(function() { buildTrendChart(historico); }, 400);
+        }
+
+        // 5. AI Recommendations
+        var melhorias = melhoriasData && (melhoriasData.melhorias || melhoriasData.recomendacoes || melhoriasData);
+        if (Array.isArray(melhorias) && melhorias.length > 0) {
+            document.getElementById('aiSection').style.display = 'block';
+            var aiHtml = '';
+            for (var m = 0; m < melhorias.length; m++) {
+                var mel = melhorias[m];
+                var prio = (mel.prioridade || mel.priority || 'media').toLowerCase();
+                var dotCls = prio === 'alta' || prio === 'high' ? 'high' : prio === 'media' || prio === 'medium' ? 'med' : 'low';
+                var tipo = (mel.tipo || mel.type || mel.categoria || 'estilo').toLowerCase();
+                var tagCls = 'estilo';
+                var tagLabel = 'Estilo de vida';
+                if (tipo.indexOf('medic') !== -1 || tipo.indexOf('consul') !== -1) { tagCls = 'medico'; tagLabel = 'Medico'; }
+                else if (tipo.indexOf('monitor') !== -1) { tagCls = 'monitorar'; tagLabel = 'Monitorar'; }
+
+                aiHtml += '<div class="ai-card fade-up">' +
+                    '<div class="ai-dot ' + dotCls + '"></div>' +
+                    '<div class="ai-content">' +
+                    '<div class="ai-rec-title">' + (mel.titulo || mel.title || mel.nome || 'Recomendacao') + '</div>' +
+                    '<div class="ai-rec-text">' + (mel.descricao || mel.description || mel.texto || '') + '</div>' +
+                    '<div class="ai-tag ' + tagCls + '">' + tagLabel + '</div>' +
+                    '</div></div>';
+            }
+            document.getElementById('aiCards').innerHTML = aiHtml;
+        }
+
+    } catch (e) {
+        console.log('Erro ao carregar score:', e);
+        document.getElementById('scoreHdr').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'flex';
+    }
+}
+
+function scrollToCat(catName) {
+    var id = 'cat-' + catName.replace(/[^a-zA-Z]/g, '');
+    var el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+loadScore();
+</script>
+</body>
+</html>
