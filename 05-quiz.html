@@ -294,7 +294,21 @@
             border-radius:12px; cursor:pointer;
             font-size:14px; color:#4B5563;
             transition:all 0.2s;
-            display:flex; align-items:center; justify-content:space-between;
+            display:flex; align-items:center; gap:12px;
+        }
+        .picker-option .plan-logo {
+            width:28px; height:28px; border-radius:6px;
+            object-fit:contain; flex-shrink:0;
+            background:#F0F2F7; padding:2px;
+        }
+        .picker-option .plan-icon {
+            width:28px; height:28px; border-radius:6px;
+            background:rgba(0,229,160,0.10); border:1px solid rgba(0,229,160,0.22);
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .picker-option .plan-name { flex:1; }
+        .picker-option .plan-add {
+            color:#00E5A0; font-weight:700; font-size:13px;
         }
         .picker-option:hover { background:rgba(0,0,0,0.02); }
         .picker-option.selected {
@@ -656,6 +670,54 @@
         },
     };
 
+    // Plan logos (favicon URLs from clearbit/logo.dev)
+    var planLogos = {
+        'SUS':'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/SUS_logo.svg/120px-SUS_logo.svg.png',
+        'Hapvida':'https://logo.clearbit.com/hapvida.com.br',
+        'NotreDame Intermédica':'https://logo.clearbit.com/gndi.com.br',
+        'Amil':'https://logo.clearbit.com/amil.com.br',
+        'Bradesco Saúde':'https://logo.clearbit.com/bradescosaude.com.br',
+        'SulAmérica':'https://logo.clearbit.com/sulamerica.com.br',
+        'Porto Seguro Saúde':'https://logo.clearbit.com/portoseguro.com.br',
+        'Prevent Senior':'https://logo.clearbit.com/preventsenior.com.br',
+        'Care Plus':'https://logo.clearbit.com/careplus.com.br',
+        'CASSI':'https://logo.clearbit.com/cassi.com.br',
+        'GEAP':'https://logo.clearbit.com/geap.com.br',
+        'Golden Cross':'https://logo.clearbit.com/goldencross.com.br',
+        'Omint':'https://logo.clearbit.com/omint.com.br',
+        'Mediservice':'https://logo.clearbit.com/mediservice.com.br',
+        'Odontoprev':'https://logo.clearbit.com/odontoprev.com.br',
+        'MetLife Dental':'https://logo.clearbit.com/metlife.com.br',
+        'Trasmontano':'https://logo.clearbit.com/trasmontano.com.br',
+        'OSDE':'https://logo.clearbit.com/osde.com.ar',
+        'Swiss Medical':'https://logo.clearbit.com/swissmedical.com.ar',
+        'Galeno':'https://logo.clearbit.com/galeno.com.ar',
+        'Medicus':'https://logo.clearbit.com/medicus.com.ar',
+        'Sanitas':'https://logo.clearbit.com/sanitas.com.co',
+        'Sura EPS':'https://logo.clearbit.com/segurossura.com.co',
+        'Colsanitas':'https://logo.clearbit.com/colsanitas.com',
+        'FONASA':'https://logo.clearbit.com/fonasa.cl',
+        'Banmédica':'https://logo.clearbit.com/banmedica.cl',
+        'IMSS':'https://logo.clearbit.com/imss.gob.mx',
+        'GNP Seguros':'https://logo.clearbit.com/gnp.com.mx',
+        'AXA Seguros':'https://logo.clearbit.com/axa.com.mx',
+        'EsSalud':'https://logo.clearbit.com/essalud.gob.pe',
+        'Rímac Seguros':'https://logo.clearbit.com/rimac.com',
+        'Pacífico Seguros':'https://logo.clearbit.com/pacifico.com.pe',
+        'MAPFRE Perú':'https://logo.clearbit.com/mapfre.com.pe',
+    };
+    function getPlanLogo(name) {
+        if (planLogos[name]) return planLogos[name];
+        // Try partial match
+        for (var key in planLogos) {
+            if (name.toLowerCase().indexOf(key.toLowerCase().substring(0,5)) !== -1 ||
+                key.toLowerCase().indexOf(name.toLowerCase().substring(0,5)) !== -1) return planLogos[key];
+        }
+        // Try Unimed variants
+        if (name.toLowerCase().indexOf('unimed') !== -1) return 'https://logo.clearbit.com/unimed.coop.br';
+        return null;
+    }
+
     function openPicker(type) {
         const config = pickerConfigs[type];
         currentPickerType = type;
@@ -679,10 +741,22 @@
     function renderPickerOptions(options) {
         const container = document.getElementById('pickerOptions');
         container.innerHTML = '';
+        const isPlano = currentPickerType === 'plano';
         options.forEach(opt => {
             const div = document.createElement('div');
             div.className = 'picker-option' + (pickerSelected.includes(opt) ? ' selected' : '');
-            div.textContent = opt;
+            if (isPlano) {
+                var logo = getPlanLogo(opt);
+                if (logo) {
+                    div.innerHTML = '<img class="plan-logo" src="' + logo + '" onerror="this.style.display=\'none\'" alt="">' +
+                        '<span class="plan-name">' + opt + '</span>';
+                } else {
+                    div.innerHTML = '<div class="plan-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>' +
+                        '<span class="plan-name">' + opt + '</span>';
+                }
+            } else {
+                div.textContent = opt;
+            }
             div.onclick = () => selectPickerOption(opt, div);
             container.appendChild(div);
         });
@@ -693,6 +767,22 @@
         const config = pickerConfigs[currentPickerType];
         const filtered = config.options.filter(o => o.toLowerCase().includes(query));
         renderPickerOptions(filtered);
+
+        // Show "Add custom" option for plano when no exact match
+        if (currentPickerType === 'plano' && query.length >= 2) {
+            var exactMatch = config.options.some(o => o.toLowerCase() === query);
+            if (!exactMatch) {
+                var container = document.getElementById('pickerOptions');
+                var addDiv = document.createElement('div');
+                addDiv.className = 'picker-option';
+                var typed = document.getElementById('pickerSearch').value;
+                addDiv.innerHTML = '<div class="plan-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>' +
+                    '<span class="plan-name">Adicionar "<strong>' + typed + '</strong>"</span>' +
+                    '<span class="plan-add">Adicionar</span>';
+                addDiv.onclick = function() { selectPickerOption(typed, addDiv); };
+                container.insertBefore(addDiv, container.firstChild);
+            }
+        }
     }
 
     function selectPickerOption(value, el) {
