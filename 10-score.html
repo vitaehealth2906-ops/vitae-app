@@ -559,20 +559,19 @@ function buildTrendChart(historico) {
     }
 }
 
-// ===== Main load =====
+// ===== Main load (layered — fast first, AI last) =====
 async function loadScore() {
     try {
-        var results = await Promise.all([
+        // LAYER 1: Load score + exams fast (no AI)
+        var fastResults = await Promise.all([
             vitaeAPI.getScoreAtual().catch(function() { return null; }),
-            vitaeAPI.getHistoricoScores().catch(function() { return null; }),
             vitaeAPI.listarExames().catch(function() { return []; }),
-            vitaeAPI.getMelhorias().catch(function() { return null; })
+            vitaeAPI.getHistoricoScores().catch(function() { return null; })
         ]);
 
-        var scoreData = results[0];
-        var historicoData = results[1];
-        var examesData = results[2];
-        var melhoriasData = results[3];
+        var scoreData = fastResults[0];
+        var examesData = fastResults[1];
+        var historicoData = fastResults[2];
 
         // Check if we have a score — if not, try to recalculate
         var score = scoreData && (scoreData.score || scoreData.scoreGeral);
@@ -809,10 +808,27 @@ async function loadScore() {
             setTimeout(function() { buildTrendChart(historico); }, 400);
         }
 
-        // 5. AI Recommendations
+        // LAYER 2: Load AI recommendations in background (slow, don't block)
+        loadAIRecommendations();
+
+    } catch (e) {
+        console.log('Erro ao carregar score:', e);
+        document.getElementById('scoreHdr').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'flex';
+    }
+}
+
+// ===== AI Recommendations — loaded separately so it doesn't block =====
+async function loadAIRecommendations() {
+    // Show loading indicator
+    var aiSection = document.getElementById('aiSection');
+    aiSection.style.display = 'block';
+    document.getElementById('aiCards').innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:12px;">Gerando recomendacoes personalizadas...</div>';
+
+    try {
+        var melhoriasData = await vitaeAPI.getMelhorias();
         var melhorias = melhoriasData && (melhoriasData.melhorias || melhoriasData.recomendacoes || melhoriasData);
         if (Array.isArray(melhorias) && melhorias.length > 0) {
-            document.getElementById('aiSection').style.display = 'block';
             var aiHtml = '';
             for (var m = 0; m < melhorias.length; m++) {
                 var mel = melhorias[m];
@@ -824,7 +840,7 @@ async function loadScore() {
                 if (tipo.indexOf('medic') !== -1 || tipo.indexOf('consul') !== -1) { tagCls = 'medico'; tagLabel = 'Medico'; }
                 else if (tipo.indexOf('monitor') !== -1) { tagCls = 'monitorar'; tagLabel = 'Monitorar'; }
 
-                aiHtml += '<div class="ai-card fade-up">' +
+                aiHtml += '<div class="ai-card fade-up" style="animation-delay:' + (m * 0.08) + 's">' +
                     '<div class="ai-dot ' + dotCls + '"></div>' +
                     '<div class="ai-content">' +
                     '<div class="ai-rec-title">' + (mel.titulo || mel.title || mel.nome || 'Recomendacao') + '</div>' +
@@ -833,12 +849,12 @@ async function loadScore() {
                     '</div></div>';
             }
             document.getElementById('aiCards').innerHTML = aiHtml;
+        } else {
+            aiSection.style.display = 'none';
         }
-
     } catch (e) {
-        console.log('Erro ao carregar score:', e);
-        document.getElementById('scoreHdr').style.display = 'none';
-        document.getElementById('emptyState').style.display = 'flex';
+        console.log('Erro ao carregar melhorias:', e);
+        aiSection.style.display = 'none';
     }
 }
 
