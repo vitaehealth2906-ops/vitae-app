@@ -432,16 +432,14 @@
 
             <div class="field">
                 <div class="field-label">Condições Crônicas</div>
-                <div class="picker-field" id="condicoesField" onclick="openPicker('condicoes')">
-                    Selecione... <span class="arrow">›</span>
-                </div>
+                <textarea class="field-input" id="condicoesInput" placeholder="Ex: diabetes, hipertensão, asma..." rows="2" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
+                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Separe por vírgula. Deixe vazio se nenhuma.</div>
             </div>
 
             <div class="field">
                 <div class="field-label">Cirurgias Anteriores</div>
-                <div class="picker-field" id="cirurgiasField" onclick="openPicker('cirurgias')">
-                    Nenhuma <span class="arrow">›</span>
-                </div>
+                <textarea class="field-input" id="cirurgiasInput" placeholder="Ex: apendicectomia, hérnia..." rows="2" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
+                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Separe por vírgula. Deixe vazio se nenhuma.</div>
             </div>
 
             <div class="field">
@@ -628,7 +626,33 @@
             title: 'Plano de Saúde',
             multi: false,
             search: true,
-            options: ['SUS', 'Amil', 'Bradesco Saúde', 'SulAmérica', 'Unimed', 'NotreDame Intermédica', 'Hapvida', 'Porto Seguro', 'Prevent Senior', 'Care Plus', 'Cassi', 'Geap', 'Allianz', 'MetLife', 'Outro', 'Nenhum'],
+            options: [
+                // Brasil
+                'SUS','Particular (sem plano)','Hapvida','NotreDame Intermédica','Amil','Bradesco Saúde','SulAmérica','Unimed Seguros','Unimed BH','Unimed Rio','Unimed Campinas','Unimed Curitiba','Unimed Porto Alegre','Unimed Fortaleza','Unimed Recife','Unimed SP','Unimed Central RS','Unimed Goiânia','Unimed Santos','Unimed Belém','Unimed Manaus','Unimed Salvador','Unimed Vitória','Unimed Londrina','Unimed Ribeirão Preto','Unimed Juiz de Fora','Unimed São José dos Campos','Unimed Natal','Unimed João Pessoa','Unimed Maceió','Unimed (outra regional)',
+                'Porto Seguro Saúde','Prevent Senior','Care Plus','CASSI','GEAP','Petrobras Saúde','Fundação Copel','Postal Saúde','Caixa de Assistência (FUNCEF)','FAPES','Embratel Saúde','Saúde Caixa',
+                'Grupo São Francisco','São Cristóvão','MedSênior','Intermédica','Notredame','Golden Cross','Assim Saúde','Samp','Medical','One Health','Omint','Mediservice','Paraná Clínicas','Clinipam','Santa Helena','Smile Saúde','Dental Uni','Odontoprev','Metlife Dental','Interodonto',
+                'Lincx','Trasmontano','Santa Casa Saúde','Economus','Sabesprev','Real Grandeza','Serpros','Fascal','Capesesp','São Lucas Saúde','Life Empresarial','Vitallis','Mútua','Classes Laboriosas',
+                // Argentina
+                'PAMI','OSDE','Swiss Medical','Galeno','Medicus','Accord Salud','Omint AR','Hospital Alemán','Hospital Británico','Hospital Italiano','Sancor Salud','Prevención Salud','Luis Pasteur','Federada Salud','OSECAC','OSPACA','Medifé','Unión Personal','OSPLAD','OSDEPYM','OSUTHGRA','Otro (Argentina)',
+                // Colombia
+                'Nueva EPS','Sanitas','Sura EPS','Compensar','Famisanar','Salud Total','Coomeva','Coosalud','Mutual Ser','Aliansalud','Comfenalco Valle','Capital Salud','Cajacopi','Colsanitas','Medisanitas','Otro (Colombia)',
+                // Chile
+                'FONASA','Banmédica','Colmena','Cruz Blanca','Consalud','Vida Tres','Nueva Masvida','Esencial','Otro (Chile)',
+                // México
+                'IMSS','ISSSTE','IMSS-Bienestar','Seguros Monterrey','GNP Seguros','AXA Seguros','MetLife México','MAPFRE México','Allianz México','Bupa México','Plan Seguro','Otro (México)',
+                // Peru
+                'EsSalud','SIS','Rímac Seguros','Pacífico Seguros','MAPFRE Perú','La Positiva','Sanitas Perú','Otro (Perú)',
+                // Uruguay
+                'ASSE','MUCAM','CASMU','Médica Uruguaya','SMI','Asociación Española','Hospital Británico UY','Blue Cross UY','MP','COSEM','Hospital Evangélico','Otro (Uruguay)',
+                // Outros países
+                'IESS (Ecuador)','Saludsa','Ecuasanitas','BMI Ecuador','Otro (Ecuador)',
+                'IPS (Paraguay)','Asismed','AMSA','Otro (Paraguay)',
+                'CNS (Bolivia)','BISA Seguros','Otro (Bolivia)',
+                'CCSS (Costa Rica)','INS Salud','Otro (Costa Rica)',
+                'IVSS (Venezuela)','Seguros Caracas','Mercantil Seguros','Otro (Venezuela)',
+                'CSS (Panamá)','ASSA Panamá','Otro (Panamá)',
+                'Otro','Nenhum'
+            ],
         },
     };
 
@@ -803,9 +827,12 @@
         if (formData.tipoSanguineo && bloodTypeMap[formData.tipoSanguineo]) {
             profileData.tipoSanguineo = bloodTypeMap[formData.tipoSanguineo];
         }
-        if (formData.condicoes && formData.condicoes !== 'Nenhuma') profileData.condicoes = formData.condicoes;
-        if (formData.cirurgias.length > 0 && !formData.cirurgias.includes('Nenhuma')) {
-            profileData.cirurgias = formData.cirurgias;
+        // Read from free text fields
+        var condicoesVal = (document.getElementById('condicoesInput') || {}).value || '';
+        if (condicoesVal.trim()) profileData.condicoes = condicoesVal.trim();
+        var cirurgiasVal = (document.getElementById('cirurgiasInput') || {}).value || '';
+        if (cirurgiasVal.trim()) {
+            profileData.cirurgias = cirurgiasVal.split(',').map(function(s){return s.trim()}).filter(Boolean);
         }
         if (formData.planoSaude && formData.planoSaude !== 'Nenhum') profileData.planoSaude = formData.planoSaude;
         if (carteirinha) profileData.carteirinhaPlano = carteirinha;
