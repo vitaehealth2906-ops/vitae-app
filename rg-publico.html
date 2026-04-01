@@ -416,56 +416,76 @@
                 <div class="glass-card"><div class="tags-wrap">${p.cirurgias.map(c => `<span class="tag surgery">${c}</span>`).join('')}</div></div>`;
         }
 
-        // BLOCO 6 — EXAMES (card simples: nome, data, lab, médico, paciente)
-        if (examesRecentes && examesRecentes.length > 0) {
-            const total = examesRecentes.length;
-
-            html += `
-                <div class="section-title">${svgIcon('#00C47A','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>')} Exames</div>
-                <div class="pub-sec-label">${total} exame${total > 1 ? 's' : ''}</div>`;
-
-            html += examesRecentes.map((e, i) => {
-                const dt = e.dataExame ? new Date(e.dataExame) : null;
-                const dateLabel = dt ? (monthNames[dt.getMonth()] + ' ' + dt.getFullYear()) : null;
-                const title = formatExamTitle(e.tipoExame || e.nomeArquivo);
-                const isClickable = e.id && (e.status === 'CONCLUIDO' || e.status === 'PROCESSADO');
-                const examUrl = isClickable ? `exame-publico.html?user=${usuario.id}&exam=${e.id}` : null;
-                const onclickAttr = isClickable ? `onclick="window.location.href='${examUrl}'"` : '';
-
-                // Status badge para exames não clicáveis
-                let statusBadge = '';
-                if (e.status === 'PROCESSANDO') statusBadge = `<span class="pub-tag warn">Processando...</span>`;
-                else if (e.status === 'ERRO') statusBadge = `<span class="pub-tag crit">Erro no processamento</span>`;
-                else if (e.status === 'ENVIADO') statusBadge = `<span class="pub-tag warn">Aguardando análise</span>`;
-
-                // Linhas de detalhe: data, lab, médico, paciente
-                const detailLines = [];
-                if (dateLabel) detailLines.push(`<div class="pub-e-detail-row">${svgIcon('rgba(13,15,20,.35)','<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>')} ${dateLabel}</div>`);
-                if (e.laboratorio) detailLines.push(`<div class="pub-e-detail-row">${svgIcon('rgba(13,15,20,.35)','<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>')} ${e.laboratorio}</div>`);
-                if (e.medicoSolicitante) detailLines.push(`<div class="pub-e-detail-row">${svgIcon('rgba(13,15,20,.35)','<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>')} ${e.medicoSolicitante}</div>`);
-                if (usuario.nome) detailLines.push(`<div class="pub-e-detail-row">${svgIcon('rgba(13,15,20,.35)','<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>')} ${usuario.nome}</div>`);
-
-                return `<div class="pub-exam-gc${isClickable ? '' : ' no-click'}" ${onclickAttr}>
-                    <div class="pub-exam-gi">
-                        <div class="pub-e-info">
-                            <div class="pub-e-name">${title}</div>
-                            <div class="pub-e-details">${detailLines.join('')}</div>
-                            ${statusBadge ? `<div class="pub-tag-row" style="margin-top:8px;">${statusBadge}</div>` : ''}
-                        </div>
-                        ${isClickable ? `<div class="pub-e-arr">›</div>` : ''}
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        // BLOCO 7 — HISTÓRICO FAMILIAR
+        // BLOCO 6 — HISTÓRICO FAMILIAR (moved up, before Exames)
         if (p.historicoFamiliar && p.historicoFamiliar.length > 0) {
             html += `
                 <div class="section-title">${svgIcon('rgba(255,255,255,0.3)','<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>')} Histórico Familiar</div>
                 <div class="glass-card"><div class="tags-wrap">${p.historicoFamiliar.map(h => `<span class="tag family">${h}</span>`).join('')}</div></div>`;
         }
 
-        // BLOCO 8 — ACESSIBILIDADE
+        // BLOCO 7 — CONTATOS DE EMERGÊNCIA (moved up, before Exames)
+        const hasEmerg = p.contatoEmergenciaNome || p.nomeMae || p.nomePai;
+        if (hasEmerg) {
+            html += `
+                <div class="section-title">${svgIcon('#EF4444','<path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>')} Contatos de Emergência</div>
+                <div class="emergency-card">
+                    <div class="emergency-label">${svgIcon('currentColor','<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>')} EMERGÊNCIA</div>`;
+            const contacts = [];
+            if (p.contatoEmergenciaNome) contacts.push({ badge:'Contato Principal', name:p.contatoEmergenciaNome, tel:p.contatoEmergenciaTel });
+            if (p.nomeMae) contacts.push({ badge:'Mãe', name:p.nomeMae, tel:p.telMae });
+            if (p.nomePai) contacts.push({ badge:'Pai', name:p.nomePai, tel:p.telPai });
+            html += contacts.map((c, i) => `
+                ${i > 0 ? '<div class="emerg-divider"></div>' : ''}
+                <div class="emerg-contact">
+                    <div class="emerg-badge">${c.badge}</div>
+                    <div class="emerg-name">${c.name}</div>
+                    ${c.tel ? `<a href="tel:${c.tel.replace(/\D/g,'')}" class="emerg-tel" style="text-decoration:none;">${c.tel}</a>` : ''}
+                </div>`).join('');
+            html += `</div>`;
+        }
+
+        // BLOCO 8 — EXAMES (filtered: no ERRO, with thumbnails like exam tab)
+        const examesFiltrados = (examesRecentes || []).filter(e => e.status !== 'ERRO');
+        if (examesFiltrados.length > 0) {
+            const total = examesFiltrados.length;
+
+            html += `
+                <div class="section-title">${svgIcon('#00C47A','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>')} Exames</div>
+                <div class="pub-sec-label">${total} exame${total > 1 ? 's' : ''}</div>`;
+
+            html += examesFiltrados.map((e, i) => {
+                const dt = e.dataExame ? new Date(e.dataExame) : null;
+                const dateLabel = dt ? (monthNames[dt.getMonth()] + ' ' + dt.getFullYear()) : '';
+                const tipo = e.tipoExame || 'Exame';
+                const title = formatExamTitle(e.tipoExame || e.nomeArquivo);
+                const isClickable = e.id && e.status === 'CONCLUIDO';
+                const examUrl = isClickable ? `exame-publico.html?user=${usuario.id}&exam=${e.id}` : null;
+                const onclickAttr = isClickable ? `onclick="window.location.href='${examUrl}'"` : '';
+                const meta = [dateLabel, e.laboratorio].filter(Boolean).join(' - ');
+
+                // Thumbnail: image or PDF icon
+                let thumb = '';
+                const isImg = e.arquivoUrl && /\.(jpg|jpeg|png|webp)/i.test(e.arquivoUrl);
+                if (e.arquivoUrl && isImg) {
+                    thumb = `<img src="${e.arquivoUrl}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`;
+                } else {
+                    thumb = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f6f8;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,0.12)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>`;
+                }
+
+                return `<div style="border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);padding:10px;margin-bottom:10px;${isClickable ? 'cursor:pointer;' : ''}" ${onclickAttr}>
+                    <div style="display:flex;gap:14px;align-items:stretch;">
+                        <div style="width:100px;min-height:120px;border-radius:8px;background:#f0f2f5;overflow:hidden;flex-shrink:0;">${thumb}</div>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0;">
+                            <div style="font-size:12px;color:rgba(13,15,20,0.4);text-transform:capitalize;line-height:1.3;">${tipo}</div>
+                            <div style="font-size:15px;font-weight:700;color:#00E5A0;line-height:1.35;">${title}</div>
+                            <div style="font-size:12px;color:rgba(13,15,20,0.35);margin-top:2px;">${meta}</div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // BLOCO 9 — ACESSIBILIDADE
         if (p.limitacoesAcessibilidade) {
             const lim = p.limitacoesAcessibilidade;
             const ativas = Object.keys(accessMap).filter(k => lim[k]);
@@ -477,30 +497,6 @@
                         ${lim.descricao ? `<div style="margin-top:10px;font-size:12px;color:rgba(13,15,20,0.40);line-height:1.5;">${lim.descricao}</div>` : ''}
                     </div>`;
             }
-        }
-
-        // BLOCO 9 — CONTATOS DE EMERGÊNCIA
-        const hasEmerg = p.contatoEmergenciaNome || p.nomeMae || p.nomePai;
-        if (hasEmerg) {
-            html += `
-                <div class="section-title">${svgIcon('#EF4444','<path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>')} Contatos de Emergência</div>
-                <div class="emergency-card">
-                    <div class="emergency-label">${svgIcon('currentColor','<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>')} EMERGÊNCIA</div>`;
-
-            const contacts = [];
-            if (p.contatoEmergenciaNome) contacts.push({ badge:'Contato Principal', name:p.contatoEmergenciaNome, tel:p.contatoEmergenciaTel });
-            if (p.nomeMae) contacts.push({ badge:'Mãe', name:p.nomeMae, tel:p.telMae });
-            if (p.nomePai) contacts.push({ badge:'Pai', name:p.nomePai, tel:p.telPai });
-
-            html += contacts.map((c, i) => `
-                ${i > 0 ? '<div class="emerg-divider"></div>' : ''}
-                <div class="emerg-contact">
-                    <div class="emerg-badge">${c.badge}</div>
-                    <div class="emerg-name">${c.name}</div>
-                    ${c.tel ? `<a href="tel:${c.tel.replace(/\D/g,'')}" class="emerg-tel" style="text-decoration:none;">${c.tel}</a>` : ''}
-                </div>`).join('');
-
-            html += `</div>`;
         }
 
         html += `

@@ -57,6 +57,8 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
       genero: perfil.genero,
       dataNascimento: perfil.dataNascimento,
       tipoSanguineo: perfil.tipoSanguineo,
+      pesoKg: perfil.pesoKg,
+      alturaCm: perfil.alturaCm,
       cpf: perfil.cpf ? perfil.cpf.slice(0,3) + '.***.***-' + perfil.cpf.slice(-2) : null,
       apelido: perfil.apelido,
       nomeSocial: perfil.nomeSocial,
