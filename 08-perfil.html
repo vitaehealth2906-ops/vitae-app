@@ -79,7 +79,7 @@
         .card-content { position:absolute; inset:0; padding:14px 18px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; }
         .card-top { display:flex; justify-content:space-between; align-items:flex-start; }
         .card-logo { font-family:'Plus Jakarta Sans','Arial Black',sans-serif; font-size:15px; font-weight:800; letter-spacing:-0.8px; color:#fff; line-height:1; display:inline-flex; align-items:center; }
-        .card-logo .id-box { display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#0D0F14; font-weight:800; font-style:normal; margin-left:2px; padding:1px 5px; border-radius:4px; line-height:1; }
+        .card-logo .id-box { display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#0D0F14; font-weight:800; font-style:normal; margin-left:0; padding:1px 5px; border-radius:4px; line-height:1; }
         .card-type-badge { font-size:6.5px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-top:2px; }
         .card-middle { display:flex; align-items:center; gap:12px; }
         .card-avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(120deg,#00E5A0,#00B4D8); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; overflow:hidden; }
@@ -108,7 +108,7 @@
         .emergency-text { font-size:9px; font-weight:500; color:rgba(255,255,255,0.7); }
         .back-bottom { display:flex; justify-content:space-between; align-items:center; margin-top:4px; }
         .vitaid-small { font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:800; letter-spacing:-0.5px; color:rgba(255,255,255,0.4); line-height:1; display:inline-flex; align-items:center; }
-        .vitaid-small .id-box { display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#0D0F14; font-weight:800; font-style:normal; margin-left:1px; padding:0px 3px; border-radius:3px; line-height:1; font-size:10px; }
+        .vitaid-small .id-box { display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#0D0F14; font-weight:800; font-style:normal; margin-left:0; padding:0px 3px; border-radius:3px; line-height:1; font-size:10px; }
         .valid-text { font-size:7px; font-weight:500; color:rgba(255,255,255,0.2); letter-spacing:0.05em; }
 
         /* ===== Action buttons ===== */
@@ -872,11 +872,11 @@
             document.getElementById('rgValidText').textContent = 'Válido até 03/2028';
 
             // Emergency contact
+            const rgEC = document.getElementById('rgEmergContact');
             if (perfil.contatoEmergenciaNome) {
-                document.getElementById('emergName').textContent = perfil.contatoEmergenciaNome;
-                document.getElementById('emergTel').textContent = perfil.contatoEmergenciaTel || '—';
-                const rgEC = document.getElementById('rgEmergContact');
                 if (rgEC) rgEC.textContent = perfil.contatoEmergenciaNome + (perfil.contatoEmergenciaTel ? ' · ' + perfil.contatoEmergenciaTel : '');
+            } else {
+                if (rgEC) rgEC.textContent = '—';
             }
 
             // Plano de saúde no verso do cartão
@@ -917,7 +917,7 @@
             if (allergies.length > 0) {
                 document.getElementById('rgAlergias').textContent = allergies.slice(0,2).map(a => a.nome).join(', ');
                 const tagsEl = document.getElementById('rgTags');
-                if (tagsEl) tagsEl.innerHTML = allergies.slice(0,2).map(a => `<span class="card-tag card-tag-allergy">Alergia: ${a.nome}</span>`).join('');
+                if (tagsEl) tagsEl.innerHTML += allergies.slice(0,2).map(a => `<span class="card-tag card-tag-allergy">Alergia: ${a.nome}</span>`).join('');
                 document.getElementById('allergySummary').textContent = allergies.slice(0,3).map(a => a.nome).join(', ');
             } else {
                 document.getElementById('rgAlergias').textContent = 'Nenhuma';
@@ -1175,6 +1175,9 @@
     }
 
     // ===== Init =====
+    // Clear tags before both functions populate them
+    const rgTagsInit = document.getElementById('rgTags');
+    if (rgTagsInit) rgTagsInit.innerHTML = '';
     loadProfile();
     loadAllergies();
     loadMeds();
