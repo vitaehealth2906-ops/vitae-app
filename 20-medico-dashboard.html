@@ -1418,59 +1418,65 @@
 
             // Stats removed from UI — data still computed for internal use
 
-            renderPacientesList(allPacientesData);
+            renderPacientesList(allPacientesData, 'all');
         } catch(e) {
             console.log('Erro ao carregar pacientes:', e);
             document.getElementById('pacList').innerHTML = '<div class="empty-state">Erro ao carregar pacientes.</div>';
         }
     }
 
-    function renderPacientesList(list) {
+    function buildPacCardHtml(entry) {
+        var key = entry[0];
+        var p = entry[1];
+        var initials = p.nome.split(' ').map(function(w){return w[0]}).filter(Boolean).slice(0,2).join('').toUpperCase();
+        var lastDate = p.ultimaData ? formatRelDate(p.ultimaData) : '';
+        var avatarHtml = p.foto
+            ? '<div class="pac-avatar"><img src="' + p.foto + '"></div>'
+            : '<div class="pac-avatar">' + initials + '</div>';
+        var dateStr = p.ultimaData ? p.ultimaData.toISOString().split('T')[0] : '';
+        return '<div class="pac-card" onclick="showPatientProfile(\'' + encodeURIComponent(key) + '\')" data-name="' + p.nome.toLowerCase() + '" data-tel="' + (p.tel||'') + '" data-date="' + dateStr + '">' +
+            '<div class="pac-card-inner">' +
+            avatarHtml +
+            '<div class="pac-info"><div class="pac-name">' + p.nome + '</div><div class="pac-meta">' + (p.tel || p.email || '—') + '</div></div>' +
+            '<div class="pac-right"><div class="pac-date">' + lastDate + '</div><svg class="pac-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>' +
+            '</div></div>';
+    }
+
+    function renderPacientesList(list, period) {
         if (list.length === 0) {
             document.getElementById('pacList').innerHTML = '<div style="padding:60px 20px;text-align:center;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg><div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:4px;">Nenhum paciente ainda</div><div style="font-size:13px;color:#9CA3AF;line-height:1.5;">Seus pacientes aparecerão aqui após a primeira consulta</div></div>';
             return;
         }
-        var html = '';
+        period = period || 'all';
         var now = new Date();
         var todayStr = now.toISOString().split('T')[0];
         var weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
         var weekStr = weekAgo.toISOString().split('T')[0];
 
-        var today = [], week = [], older = [];
-        list.forEach(function(entry) {
-            var p = entry[1];
-            var d = p.ultimaData ? p.ultimaData.toISOString().split('T')[0] : '2000-01-01';
-            if (d === todayStr) today.push(entry);
-            else if (d >= weekStr) week.push(entry);
-            else older.push(entry);
-        });
-
-        function renderSection(title, items) {
-            if (items.length === 0) return '';
-            var s = '<div class="pac-sec-header"><span class="pac-sec-title">' + title + '</span></div>';
-            items.forEach(function(entry) {
-                var key = entry[0];
-                var p = entry[1];
-                var initials = p.nome.split(' ').map(function(w){return w[0]}).filter(Boolean).slice(0,2).join('').toUpperCase();
-                var lastDate = p.ultimaData ? formatRelDate(p.ultimaData) : '';
-                var avatarHtml = p.foto
-                    ? '<div class="pac-avatar"><img src="' + p.foto + '"></div>'
-                    : '<div class="pac-avatar">' + initials + '</div>';
-                var dateStr = p.ultimaData ? p.ultimaData.toISOString().split('T')[0] : '';
-                s += '<div class="pac-card" onclick="showPatientProfile(\'' + encodeURIComponent(key) + '\')" data-name="' + p.nome.toLowerCase() + '" data-tel="' + (p.tel||'') + '" data-date="' + dateStr + '">' +
-                    '<div class="pac-card-inner">' +
-                    avatarHtml +
-                    '<div class="pac-info"><div class="pac-name">' + p.nome + '</div><div class="pac-meta">' + (p.tel || p.email || '—') + '</div></div>' +
-                    '<div class="pac-right"><div class="pac-date">' + lastDate + '</div><svg class="pac-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>' +
-                    '</div></div>';
-            });
-            return s;
+        // For 'all', render flat list without section headers
+        if (period === 'all') {
+            var html = list.map(buildPacCardHtml).join('');
+            document.getElementById('pacList').innerHTML = html || '<div class="empty-state">Nenhum paciente.</div>';
+            return;
         }
 
-        html += renderSection('Hoje', today);
-        html += renderSection('Esta semana', week);
-        html += renderSection('Anteriores', older);
-        document.getElementById('pacList').innerHTML = html;
+        // Filtered views: show only matching cards
+        var filtered = list.filter(function(entry) {
+            var p = entry[1];
+            var d = p.ultimaData ? p.ultimaData.toISOString().split('T')[0] : '2000-01-01';
+            if (period === 'today') return d === todayStr;
+            if (period === 'week') return d >= weekStr;
+            if (period === 'month') return d.substring(0,7) === todayStr.substring(0,7);
+            return true;
+        });
+
+        var titles = { today: 'Hoje', week: 'Esta semana', month: 'Este mês' };
+        var header = '<div class="pac-sec-header"><span class="pac-sec-title">' + (titles[period] || '') + '</span></div>';
+        if (filtered.length === 0) {
+            document.getElementById('pacList').innerHTML = header + '<div class="empty-state" style="padding:30px 20px;text-align:center;color:#9CA3AF;font-size:13px;">Nenhum paciente neste período.</div>';
+            return;
+        }
+        document.getElementById('pacList').innerHTML = header + filtered.map(buildPacCardHtml).join('');
     }
 
     async function openPatientFromDash(encodedKey) {
@@ -1491,28 +1497,7 @@
     function filterPacTime(btn, period) {
         document.querySelectorAll('.pac-pill').forEach(function(p){p.classList.remove('active')});
         btn.classList.add('active');
-        var cards = document.querySelectorAll('.pac-card');
-        var headers = document.querySelectorAll('.pac-sec-header');
-        if (period === 'all') { cards.forEach(function(c){c.style.display=''}); headers.forEach(function(h){h.style.display=''}); return; }
-        var now = new Date();
-        var todayStr = now.toISOString().split('T')[0];
-        cards.forEach(function(c) {
-            var d = c.getAttribute('data-date') || '';
-            var show = false;
-            if (period === 'today') show = d === todayStr;
-            else if (period === 'week') { var w = new Date(now); w.setDate(w.getDate()-7); show = d >= w.toISOString().split('T')[0]; }
-            else if (period === 'month') { show = d.substring(0,7) === todayStr.substring(0,7); }
-            c.style.display = show ? '' : 'none';
-        });
-        headers.forEach(function(h) {
-            var next = h.nextElementSibling;
-            var anyVisible = false;
-            while (next && !next.classList.contains('pac-sec-header')) {
-                if (next.style.display !== 'none' && next.classList.contains('pac-card')) anyVisible = true;
-                next = next.nextElementSibling;
-            }
-            h.style.display = anyVisible ? '' : 'none';
-        });
+        renderPacientesList(allPacientesData, period);
     }
 
     function filterPacientes(q) {
