@@ -67,22 +67,61 @@
         .edit-btn-save{width:100%;margin-top:14px;padding:14px;border:none;border-radius:12px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#0D0F14;font-weight:700;font-size:15px;cursor:pointer}
         .edit-btn-save:disabled{opacity:.5;cursor:not-allowed}
 
-        .stats-row {
-            display:flex;
+        /* ── Unified Panel (stats + search + filters) ── */
+        .unified-panel {
             background:#FFFFFF;
             border:1px solid rgba(0,0,0,0.06);
             border-radius:16px;
             box-shadow:0 1px 12px rgba(0,0,0,0.04);
-            margin-bottom:24px;
             overflow:hidden;
+            margin-bottom:20px;
             position:relative;
         }
-        .stats-row::before {
-            content:'';
-            position:absolute;
-            top:0; left:0; right:0;
-            height:3px;
-            background:linear-gradient(90deg,#00E5A0,#00B4D8);
+        .panel-signature { height:3px; background:linear-gradient(90deg,#00E5A0,#00B4D8); }
+        .panel-stats { display:flex; padding:18px 0 16px; }
+        .stat-col { flex:1; text-align:center; position:relative; min-width:0; }
+        .stat-col + .stat-col::before {
+            content:''; position:absolute; left:0; top:8px; bottom:8px;
+            width:1px; background:rgba(0,0,0,0.06);
+        }
+        .stat-num {
+            font-family:'Plus Jakarta Sans',sans-serif;
+            font-size:26px; font-weight:800; color:#0D0F14;
+            letter-spacing:-0.6px; line-height:1;
+        }
+        .stat-lbl {
+            font-size:10px; font-weight:600; color:#9CA3AF;
+            text-transform:uppercase; letter-spacing:.08em; margin-top:5px;
+        }
+        .panel-search {
+            display:flex; align-items:center; gap:10px;
+            padding:12px 18px;
+            border-top:1px solid rgba(0,0,0,0.06);
+        }
+        .panel-search svg { width:16px; height:16px; stroke:#0D0F14; fill:none; stroke-width:2; flex-shrink:0; }
+        .panel-search input {
+            flex:1; border:none; background:transparent; outline:none;
+            font-family:'Plus Jakarta Sans',sans-serif;
+            font-size:14px; color:#0D0F14; padding:0;
+        }
+        .panel-search input::placeholder { color:#9CA3AF; }
+        .panel-filters {
+            display:flex;
+            border-top:1px solid rgba(0,0,0,0.06);
+            padding:4px; gap:2px;
+        }
+        .filter-tab {
+            flex:1; padding:9px 6px;
+            background:transparent; border:none; border-radius:10px;
+            font-family:'Plus Jakarta Sans',sans-serif;
+            font-size:11px; font-weight:600; color:#9CA3AF;
+            cursor:pointer; transition:all .2s ease; white-space:nowrap;
+        }
+        .filter-tab:hover { color:#4B5563; }
+        .filter-tab.active {
+            background:linear-gradient(120deg,#00E5A0,#00B4D8);
+            color:#FFFFFF;
+            box-shadow:0 2px 8px rgba(0,229,160,0.25);
         }
         .stat-card {
             flex:1;
@@ -566,18 +605,32 @@
             </div>
         </div>
 
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-number" id="statPacientes">0</div>
-                <div class="stat-label">Pacientes</div>
+        <!-- Unified panel: stats + search + filters (single card) -->
+        <div class="unified-panel">
+            <div class="panel-signature"></div>
+            <div class="panel-stats">
+                <div class="stat-col">
+                    <div class="stat-num" id="statPacientes">0</div>
+                    <div class="stat-lbl">Pacientes</div>
+                </div>
+                <div class="stat-col">
+                    <div class="stat-num" id="statPendentes">0</div>
+                    <div class="stat-lbl">Pendentes</div>
+                </div>
+                <div class="stat-col">
+                    <div class="stat-num" id="statRespondidas">0</div>
+                    <div class="stat-lbl">Respondidas</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number" id="statPendentes">0</div>
-                <div class="stat-label">Pendentes</div>
+            <div class="panel-search">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input placeholder="Buscar paciente..." oninput="filterPacientes(this.value)">
             </div>
-            <div class="stat-card">
-                <div class="stat-number" id="statRespondidas">0</div>
-                <div class="stat-label">Respondidas</div>
+            <div class="panel-filters">
+                <button class="filter-tab active" onclick="filterPacTime(this,'all')">Todos</button>
+                <button class="filter-tab" onclick="filterPacTime(this,'today')">Hoje</button>
+                <button class="filter-tab" onclick="filterPacTime(this,'week')">Esta semana</button>
+                <button class="filter-tab" onclick="filterPacTime(this,'month')">Este mês</button>
             </div>
         </div>
 
@@ -588,18 +641,8 @@
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
 
-        <!-- Pacientes section (moved from Pacientes tab) -->
-        <div id="pacListView" style="margin-top:16px;">
-            <div class="pac-search">
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input placeholder="Buscar paciente..." oninput="filterPacientes(this.value)">
-            </div>
-            <div id="pacFilters" style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none;">
-                <button class="pac-pill active" onclick="filterPacTime(this,'all')">Todos</button>
-                <button class="pac-pill" onclick="filterPacTime(this,'today')">Hoje</button>
-                <button class="pac-pill" onclick="filterPacTime(this,'week')">Esta semana</button>
-                <button class="pac-pill" onclick="filterPacTime(this,'month')">Este mês</button>
-            </div>
+        <!-- Pacientes list (detail view appears inline when clicking a patient) -->
+        <div id="pacListView" style="margin-top:4px;">
             <div id="pacList"></div>
         </div>
         <!-- Patient profile detail view (shown when clicking a patient) -->
@@ -1495,7 +1538,7 @@
     }
 
     function filterPacTime(btn, period) {
-        document.querySelectorAll('.pac-pill').forEach(function(p){p.classList.remove('active')});
+        document.querySelectorAll('.filter-tab').forEach(function(p){p.classList.remove('active')});
         btn.classList.add('active');
         renderPacientesList(allPacientesData, period);
     }
