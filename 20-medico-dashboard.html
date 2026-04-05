@@ -78,7 +78,8 @@
             position:relative;
         }
         .panel-signature { height:3px; background:linear-gradient(90deg,#00E5A0,#00B4D8); }
-        .panel-stats { display:flex; padding:18px 0 16px; }
+        .panel-greeting { display:flex; align-items:center; gap:14px; padding:18px 18px 14px; }
+        .panel-stats { display:flex; padding:14px 0 18px; border-top:1px solid rgba(0,0,0,0.06); }
         .stat-col { flex:1; text-align:center; position:relative; min-width:0; }
         .stat-col + .stat-col::before {
             content:''; position:absolute; left:0; top:8px; bottom:8px;
@@ -596,18 +597,18 @@
     <!-- VIEW: DASHBOARD (now includes Pacientes section) -->
     <div class="content" id="viewDashboard">
         <div id="dashTopBlock">
-        <div class="greeting">
-            <div class="greeting-avatar" id="docAvatar">—</div>
-            <div class="greeting-info">
-                <div class="greeting-text">Bem-vindo(a),</div>
-                <div class="greeting-name" id="docName">Dr(a). ...</div>
-                <div class="greeting-spec" id="docSpec" style="display:none;"></div>
-            </div>
-        </div>
 
-        <!-- Unified panel: stats + search + filters (single card) -->
+        <!-- Unified hero card: greeting + stats -->
         <div class="unified-panel">
             <div class="panel-signature"></div>
+            <div class="panel-greeting">
+                <div class="greeting-avatar" id="docAvatar">—</div>
+                <div class="greeting-info">
+                    <div class="greeting-text">Bem-vindo(a),</div>
+                    <div class="greeting-name" id="docName">Dr(a). ...</div>
+                    <div class="greeting-spec" id="docSpec" style="display:none;"></div>
+                </div>
+            </div>
             <div class="panel-stats">
                 <div class="stat-col">
                     <div class="stat-num" id="statPacientes">0</div>
@@ -622,16 +623,6 @@
                     <div class="stat-lbl">Respondidas</div>
                 </div>
             </div>
-            <div class="panel-search">
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input placeholder="Buscar paciente..." oninput="filterPacientes(this.value)">
-            </div>
-            <div class="panel-filters">
-                <button class="filter-tab active" onclick="filterPacTime(this,'all')">Todos</button>
-                <button class="filter-tab" onclick="filterPacTime(this,'today')">Hoje</button>
-                <button class="filter-tab" onclick="filterPacTime(this,'week')">Esta semana</button>
-                <button class="filter-tab" onclick="filterPacTime(this,'month')">Este mês</button>
-            </div>
         </div>
 
         </div>
@@ -641,8 +632,18 @@
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
 
-        <!-- Pacientes list (detail view appears inline when clicking a patient) -->
-        <div id="pacListView" style="margin-top:4px;">
+        <!-- Pacientes list section -->
+        <div id="pacListView" style="margin-top:16px;">
+            <div class="pac-search">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input placeholder="Buscar paciente..." oninput="filterPacientes(this.value)">
+            </div>
+            <div id="pacFilters" style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none;">
+                <button class="pac-pill active" onclick="filterPacTime(this,'all')">Todos</button>
+                <button class="pac-pill" onclick="filterPacTime(this,'today')">Hoje</button>
+                <button class="pac-pill" onclick="filterPacTime(this,'week')">Esta semana</button>
+                <button class="pac-pill" onclick="filterPacTime(this,'month')">Este mês</button>
+            </div>
             <div id="pacList"></div>
         </div>
         <!-- Patient profile detail view (shown when clicking a patient) -->
@@ -1538,7 +1539,7 @@
     }
 
     function filterPacTime(btn, period) {
-        document.querySelectorAll('.filter-tab').forEach(function(p){p.classList.remove('active')});
+        document.querySelectorAll('.pac-pill').forEach(function(p){p.classList.remove('active')});
         btn.classList.add('active');
         renderPacientesList(allPacientesData, period);
     }
