@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vitaid — Revisao da Receita</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { background:#F4F6FA; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif; }
+        .phone { width:393px; max-width:100vw; height:852px; max-height:100vh; background:#F4F6FA; border-radius:52px; overflow:hidden; position:relative; box-shadow:0 0 0 1px rgba(0,229,160,0.15),0 0 0 3px #1A1E26,0 40px 120px rgba(0,0,0,0.9); }
+        .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#F4F6FA; border-radius:0 0 20px 20px; z-index:10; }
+        .status { position:absolute; top:14px; left:28px; right:28px; display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#9CA3AF; z-index:11; }
+        .exit-overlay { position:absolute; inset:0; background:#F4F6FA; opacity:0; z-index:25; pointer-events:none; transition:opacity 0.5s ease; }
+        .exit-overlay.active { opacity:1; }
+        .content { height:calc(100% - 80px); overflow-y:auto; padding:55px 24px 24px; scrollbar-width:none; }
+        .content::-webkit-scrollbar { display:none; }
+
+        .hdr { display:flex; align-items:center; gap:14px; margin-bottom:20px; opacity:0; animation:fadeUp 0.4s ease 0.2s both; }
+        .back-btn { width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid rgba(0,0,0,0.07); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+        .back-btn:active { transform:scale(0.92); }
+        .page-title { font-size:26px; font-weight:700; color:#0D0F14; }
+        .page-title span { color:#00E5A0; font-style:italic; }
+        .page-subtitle { font-size:13px; color:#9CA3AF; margin-top:2px; }
+
+        .badge-row { display:flex; align-items:center; gap:8px; margin-bottom:14px; opacity:0; animation:fadeUp 0.4s ease 0.3s both; }
+        .badge { padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; }
+        .badge.green { background:rgba(0,196,122,0.08); color:#00C47A; }
+        .badge-text { font-size:12px; color:#9CA3AF; font-weight:600; }
+
+        /* Med item */
+        .med-item {
+            display:flex; align-items:center; gap:12px;
+            background:#fff; border:1px solid rgba(0,0,0,0.07);
+            border-radius:14px; padding:14px 16px; margin-bottom:8px;
+            box-shadow:0 1px 12px rgba(0,0,0,0.07);
+            opacity:0; animation:fadeUp 0.4s ease both;
+        }
+        .med-item.warn { border-color:rgba(245,158,11,0.25); background:rgba(245,158,11,0.03); }
+        .med-check {
+            width:24px; height:24px; border-radius:8px;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .med-check.ok { background:rgba(0,196,122,0.08); }
+        .med-check.warn { background:rgba(245,158,11,0.08); }
+        .med-check svg { width:12px; height:12px; }
+        .med-name { font-size:14px; font-weight:700; color:#0D0F14; }
+        .med-name.warn { color:#F59E0B; }
+        .med-detail { font-size:11px; color:#9CA3AF; margin-top:2px; }
+        .toggle {
+            width:36px; height:20px; border-radius:10px;
+            background:#00E5A0; position:relative; cursor:pointer;
+            flex-shrink:0; margin-left:auto; transition:background 0.25s;
+        }
+        .toggle::after { content:''; position:absolute; top:2px; right:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:all 0.25s; box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+        .toggle.off { background:#D1D5DB; }
+        .toggle.off::after { right:auto; left:2px; }
+        .edit-btn { margin-left:auto; cursor:pointer; flex-shrink:0; }
+        .edit-btn svg { width:16px; height:16px; stroke:#9CA3AF; }
+
+        /* Alert card */
+        .alert-card {
+            background:rgba(239,68,68,0.04); border:1px solid rgba(239,68,68,0.12);
+            border-radius:14px; padding:14px; margin:12px 0;
+            opacity:0; animation:fadeUp 0.4s ease 0.6s both;
+        }
+        .alert-head { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+        .alert-head svg { width:16px; height:16px; stroke:#EF4444; }
+        .alert-title { font-size:13px; font-weight:800; color:#EF4444; }
+        .alert-text { font-size:11px; color:#6B7280; line-height:1.6; }
+        .alert-text strong { color:#EF4444; }
+        .alert-action {
+            margin-top:8px; padding:8px; border-radius:10px;
+            background:rgba(239,68,68,0.06); text-align:center;
+            font-size:11px; font-weight:700; color:#EF4444;
+            cursor:pointer; transition:all 0.2s;
+        }
+        .alert-action:active { transform:scale(0.97); }
+
+        /* CTA buttons */
+        .cta-primary {
+            width:100%; padding:16px;
+            background:linear-gradient(120deg, #00E5A0, #00B4D8);
+            border:none; border-radius:14px;
+            font-family:'Plus Jakarta Sans',sans-serif;
+            font-size:15px; font-weight:700; color:#fff;
+            cursor:pointer; margin-top:12px;
+            box-shadow:0 4px 20px rgba(0,229,160,0.18);
+            transition:all 0.2s;
+        }
+        .cta-primary:active { transform:scale(0.97); }
+        .cta-sub { font-size:10px; color:rgba(255,255,255,0.6); margin-top:2px; font-weight:500; }
+        .cta-secondary {
+            width:100%; padding:14px;
+            background:#fff; border:1px solid rgba(0,0,0,0.07);
+            border-radius:14px;
+            font-family:'Plus Jakarta Sans',sans-serif;
+            font-size:14px; font-weight:600; color:#00E5A0;
+            cursor:pointer; margin-top:8px; transition:all 0.2s;
+        }
+        .cta-secondary:active { transform:scale(0.97); }
+
+        /* Tab bar */
+        .tab-bar { position:absolute; bottom:0; left:0; right:0; height:80px; padding:10px 0 0; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-top:1px solid rgba(0,0,0,0.07); display:flex; align-items:flex-start; justify-content:space-around; z-index:20; }
+        .tab { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:2px 12px; border:none; background:none; font-family:'Plus Jakarta Sans',sans-serif; }
+        .tab-label { font-size:10px; font-weight:500; color:#9CA3AF; }
+        .tab.active svg { stroke:#00E5A0 !important; }
+        .tab.active .tab-label { color:#00E5A0; font-weight:700; }
+
+        /* Toast */
+        .toast { position:absolute; top:60px; left:50%; transform:translateX(-50%) translateY(-20px); background:rgba(255,255,255,0.95); backdrop-filter:blur(24px); border:1px solid rgba(0,0,0,0.07); border-radius:14px; padding:14px 22px; display:flex; align-items:center; gap:10px; z-index:50; opacity:0; pointer-events:none; transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 4px 20px rgba(0,0,0,0.08); }
+        .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+        .toast-icon { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:rgba(0,229,160,0.15); }
+        .toast-text { font-size:13px; font-weight:600; color:#0D0F14; }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @media(max-width:480px){body{padding:0!important;background:#F4F6FA!important}.phone{width:100vw!important;height:100vh!important;height:100svh!important;max-width:100vw!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}.notch,.status{display:none!important}}
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128267;</span></div>
+    <div class="exit-overlay" id="exitOverlay"></div>
+
+    <div class="toast" id="toast">
+        <div class="toast-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="toast-text" id="toastText"></span>
+    </div>
+
+    <div class="content">
+        <div class="hdr">
+            <div class="back-btn" onclick="goBack()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div>
+                <div class="page-title">Revisao da <span>receita</span></div>
+                <div class="page-subtitle">Confira antes de adicionar</div>
+            </div>
+        </div>
+
+        <div class="badge-row">
+            <div class="badge green" id="countBadge">4 identificados</div>
+            <div class="badge-text">na sua receita</div>
+        </div>
+
+        <div id="medsList"></div>
+
+        <div id="alertSection"></div>
+
+        <button class="cta-primary" id="confirmBtn" onclick="confirmMeds()">
+            Confirmar medicamentos
+            <div class="cta-sub">Voce pode editar depois no perfil</div>
+        </button>
+        <button class="cta-secondary" onclick="scanAnother()">Escanear outra receita</button>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <div class="tab active" onclick="nav('perfil')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg><span class="tab-label">Meu RG</span></div>
+        <div class="tab" onclick="nav('score')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="tab-label">Score</span></div>
+        <div class="tab" onclick="nav('exames')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="tab-label">Exames</span></div>
+        <div class="tab" onclick="nav('qrcode')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/></svg><span class="tab-label">QR Code</span></div>
+        <div class="tab" onclick="nav('editar')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span class="tab-label">Editar</span></div>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+    // Try to load real scan results from API, fallback to demo data
+    const scanResult = JSON.parse(sessionStorage.getItem('vitae_scan_result') || 'null');
+
+    let scannedMeds = [];
+    let allergyConflicts = [];
+
+    if (scanResult && scanResult.medicamentos && scanResult.medicamentos.length > 0) {
+        // Real API data
+        scannedMeds = scanResult.medicamentos.map(m => ({
+            nome: m.nome,
+            dosagem: m.dosagem || '',
+            frequencia: m.frequencia || '',
+            horario: m.horario || '08:00',
+            enabled: true,
+            uncertain: m.uncertain || false,
+            nota: m.duracao || m.via || m.observacao || '',
+            alertaAlergia: m.alertaAlergia || false,
+        }));
+        // Build allergy conflicts from API response
+        scannedMeds.filter(m => m.alertaAlergia).forEach(m => {
+            allergyConflicts.push({ med: m.nome, allergy: m.nome });
+        });
+    } else {
+        // Demo data (when not logged in or API failed)
+        scannedMeds = [
+            { nome: 'Loratadina 10mg', dosagem: '10mg', frequencia: '1x ao dia', horario: '08:00', enabled: true, uncertain: false },
+            { nome: 'Prednisolona 20mg', dosagem: '20mg', frequencia: '1x ao dia', horario: '08:00', enabled: true, uncertain: false, nota: '5 dias' },
+            { nome: 'Soro Fisiologico', dosagem: '', frequencia: '3x ao dia', horario: '', enabled: true, uncertain: false, nota: 'nasal' },
+            { nome: 'Cetirizina 10mg', dosagem: '10mg', frequencia: '', horario: '', enabled: true, uncertain: true },
+        ];
+    }
+
+    // Check allergies for conflicts
+    async function checkAllergyConflicts() {
+        try {
+            const data = await vitaeAPI.listarAlergias();
+            const allergies = (data.alergias || []).map(a => (a.nome || '').toLowerCase());
+
+            // Check if any scanned med matches an allergy
+            // Also check for Dipirona specifically (common conflict)
+            const dangerMeds = ['Dipirona', 'Dipirona Sodica'];
+            for (const danger of dangerMeds) {
+                if (allergies.includes(danger.toLowerCase())) {
+                    allergyConflicts.push({ med: danger, allergy: danger });
+                }
+            }
+        } catch (e) {}
+    }
+
+    function renderMeds() {
+        const container = document.getElementById('medsList');
+        const enabledCount = scannedMeds.filter(m => m.enabled).length;
+        document.getElementById('countBadge').textContent = enabledCount + ' identificados';
+        document.getElementById('confirmBtn').textContent = 'Confirmar ' + enabledCount + ' medicamentos';
+
+        let html = '';
+        scannedMeds.forEach((m, i) => {
+            const cls = m.uncertain ? 'warn' : '';
+            const delay = 0.35 + i * 0.08;
+            html += `
+                <div class="med-item ${cls}" style="animation-delay:${delay}s">
+                    <div class="med-check ${m.uncertain ? 'warn' : 'ok'}">
+                        ${m.uncertain
+                            ? '<svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+                            : '<svg viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+                        }
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <div class="med-name ${m.uncertain ? 'warn' : ''}">${m.nome}</div>
+                        <div class="med-detail">${m.uncertain ? 'Frequencia nao identificada — toque para completar' : (m.frequencia + (m.nota ? ' · ' + m.nota : ''))}</div>
+                    </div>
+                    ${m.uncertain
+                        ? `<div class="edit-btn" onclick="editMed(${i})"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>`
+                        : `<div class="toggle ${m.enabled ? '' : 'off'}" onclick="toggleMed(${i})"></div>`
+                    }
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+
+        // Allergy alert
+        const alertSection = document.getElementById('alertSection');
+        if (allergyConflicts.length > 0) {
+            alertSection.innerHTML = allergyConflicts.map(c => `
+                <div class="alert-card">
+                    <div class="alert-head">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 00-3.48 0l-8 14A2 2 0 004 21h16a2 2 0 001.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <div class="alert-title">Alergia identificada</div>
+                    </div>
+                    <div class="alert-text">A receita inclui <strong>${c.med}</strong>, que consta na sua lista de alergias.</div>
+                    <div class="alert-action" onclick="this.parentElement.style.display='none'">Remover ${c.med} da lista</div>
+                </div>
+            `).join('');
+        }
+    }
+
+    function toggleMed(i) {
+        scannedMeds[i].enabled = !scannedMeds[i].enabled;
+        renderMeds();
+    }
+
+    function editMed(i) {
+        const freq = prompt('Qual a frequencia de ' + scannedMeds[i].nome + '?', '1x ao dia');
+        if (freq) {
+            scannedMeds[i].frequencia = freq;
+            scannedMeds[i].uncertain = false;
+            renderMeds();
+            showToast(scannedMeds[i].nome + ' atualizado');
+        }
+    }
+
+    async function confirmMeds() {
+        const toAdd = scannedMeds.filter(m => m.enabled);
+        if (toAdd.length === 0) { showToast('Selecione ao menos um medicamento'); return; }
+
+        const btn = document.getElementById('confirmBtn');
+        btn.textContent = 'Adicionando...';
+        btn.style.opacity = '0.7';
+
+        let added = 0;
+        const medico = scanResult ? scanResult.medico : null;
+        for (const m of toAdd) {
+            try {
+                const dados = {
+                    nome: m.nome,
+                    dosagem: m.dosagem || '',
+                    frequencia: m.frequencia || '1x ao dia',
+                    horario: m.horario || '08:00',
+                    fonte: 'scan',
+                };
+                if (medico) dados.medicoPrescritor = medico;
+                if (m.nota && /\d+\s*dia/.test(m.nota)) {
+                    const dias = parseInt(m.nota.match(/(\d+)\s*dia/)[1]);
+                    if (dias > 0) dados.duracaoDias = dias;
+                }
+                if (m.observacao) dados.observacao = m.observacao;
+                await vitaeAPI.adicionarMedicamento(dados);
+                added++;
+            } catch (e) {
+                console.log('Erro ao adicionar ' + m.nome + ':', e.message);
+            }
+        }
+
+        // Store result for confirmation screen
+        sessionStorage.setItem('vitae_added_count', added);
+        sessionStorage.setItem('vitae_added_meds', JSON.stringify(toAdd));
+
+        // Navigate to confirmation
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => { window.location.href = '29-confirmacao.html'; }, 400);
+    }
+
+    function scanAnother() {
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => { window.location.href = '26-scan-receita.html?tipo=receita&from=medicamentos'; }, 400);
+    }
+
+    // Toast
+    let toastTimer;
+    function showToast(text) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toastText').textContent = text;
+        clearTimeout(toastTimer);
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // Navigation
+    function goBack() {
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => { window.location.href = '16-medicamentos.html'; }, 400);
+    }
+    function nav(tab) {
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => {
+            const routes = { perfil:'08-perfil.html', score:'10-score.html', exames:'11-exames-lista.html', qrcode:'21-qrcode.html', editar:'09-dados-pessoais.html' };
+            window.location.href = routes[tab] || '08-perfil.html';
+        }, 400);
+    }
+
+    // Init
+    checkAllergyConflicts().then(() => renderMeds());
+</script>
+</body>
+</html>

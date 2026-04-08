@@ -848,6 +848,146 @@ Regras:
   return conteudo.trim();
 }
 
+// ---------------------------------------------------------------------------
+// Scan de receita medica — extrai medicamentos de foto/PDF
+// ---------------------------------------------------------------------------
+
+const SYSTEM_PROMPT_SCAN_RECEITA = `Voce e um assistente da plataforma vita id especializado em leitura de receitas medicas brasileiras.
+
+MISSAO: Analisar a imagem/PDF de uma receita medica e extrair TODOS os medicamentos prescritos com seus detalhes.
+
+REGRAS:
+- Extraia nome do medicamento, dosagem, frequencia (posologia) e via de administracao
+- Se nao conseguir ler um campo com certeza, marque como "uncertain": true
+- Se o documento nao for uma receita medica, retorne "tipo": "nao_receita"
+- NAO invente medicamentos que nao estao no documento
+- Trate abreviacoes medicas comuns (comp = comprimido, cp = comprimido, gt = gotas, mg = miligramas)
+- Linguagem simples e acessivel`;
+
+async function scanReceita(arquivoBuffer, mimeType) {
+  const base64 = arquivoBuffer.toString('base64');
+  const tipo = (mimeType || '').toLowerCase();
+
+  let contentItem;
+  if (tipo === 'application/pdf') {
+    contentItem = { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } };
+  } else {
+    const mediaType = tipo === 'image/jpg' ? 'image/jpeg' : tipo;
+    contentItem = { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } };
+  }
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2048,
+    system: SYSTEM_PROMPT_SCAN_RECEITA,
+    messages: [{
+      role: 'user',
+      content: [
+        contentItem,
+        { type: 'text', text: `Analise esta receita medica e extraia todos os medicamentos prescritos.
+
+Retorne EXCLUSIVAMENTE um JSON valido:
+{
+  "tipo": "receita",
+  "medico": "string ou null (nome do medico se visivel)",
+  "data": "string ou null (data da receita se visivel, formato DD/MM/YYYY)",
+  "medicamentos": [
+    {
+      "nome": "string (nome do medicamento)",
+      "dosagem": "string ou null (ex: 500mg, 10ml)",
+      "frequencia": "string ou null (ex: 1x ao dia, 8/8h, 3x ao dia)",
+      "horario": "string ou null (ex: manha, noite, em jejum)",
+      "duracao": "string ou null (ex: 7 dias, 30 dias, uso continuo)",
+      "via": "string ou null (oral, nasal, topico)",
+      "observacao": "string ou null (instrucoes extras)",
+      "uncertain": false
+    }
+  ]
+}
+
+Se algum campo nao for legivel, coloque null nesse campo e "uncertain": true no medicamento.
+Se o documento nao for uma receita, retorne: { "tipo": "nao_receita", "mensagem": "Documento nao parece ser uma receita medica" }` }
+      ],
+    }],
+  });
+
+  const conteudo = response.content[0].text.trim();
+  try {
+    return JSON.parse(conteudo);
+  } catch {
+    const jsonMatch = conteudo.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) return JSON.parse(jsonMatch[1].trim());
+    throw new Error('Nao foi possivel interpretar a receita. Tente com uma foto mais nitida.');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Scan de resultado de alergia — extrai alergias de foto/PDF
+// ---------------------------------------------------------------------------
+
+const SYSTEM_PROMPT_SCAN_ALERGIA = `Voce e um assistente da plataforma vita id especializado em leitura de resultados de exames alergicos brasileiros.
+
+MISSAO: Analisar a imagem/PDF de um resultado de teste alergico e extrair TODAS as alergias identificadas.
+
+REGRAS:
+- Identifique cada substancia/alergeno encontrado
+- Classifique por categoria: MEDICAMENTO, ALIMENTO, AMBIENTAL, CONTATO
+- Indique a gravidade quando possivel: LEVE, MODERADA, GRAVE
+- Se nao tiver certeza sobre a classificacao, marque como "uncertain": true
+- NAO invente alergias que nao estao no documento`;
+
+async function scanAlergia(arquivoBuffer, mimeType) {
+  const base64 = arquivoBuffer.toString('base64');
+  const tipo = (mimeType || '').toLowerCase();
+
+  let contentItem;
+  if (tipo === 'application/pdf') {
+    contentItem = { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } };
+  } else {
+    const mediaType = tipo === 'image/jpg' ? 'image/jpeg' : tipo;
+    contentItem = { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } };
+  }
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2048,
+    system: SYSTEM_PROMPT_SCAN_ALERGIA,
+    messages: [{
+      role: 'user',
+      content: [
+        contentItem,
+        { type: 'text', text: `Analise este resultado de exame alergico e extraia todas as alergias identificadas.
+
+Retorne EXCLUSIVAMENTE um JSON valido:
+{
+  "tipo": "exame_alergico",
+  "alergias": [
+    {
+      "nome": "string (nome da substancia/alergeno)",
+      "categoria": "MEDICAMENTO | ALIMENTO | AMBIENTAL | CONTATO | OUTRO",
+      "gravidade": "LEVE | MODERADA | GRAVE | null",
+      "detalhe": "string ou null (ex: IgE elevado, reacao moderada)",
+      "uncertain": false
+    }
+  ]
+}
+
+Se algum item nao for claro, marque "uncertain": true.
+Se o documento nao for um resultado de exame alergico, retorne: { "tipo": "nao_exame", "mensagem": "Documento nao parece ser um resultado de exame alergico" }` }
+      ],
+    }],
+  });
+
+  const conteudo = response.content[0].text.trim();
+  try {
+    return JSON.parse(conteudo);
+  } catch {
+    const jsonMatch = conteudo.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) return JSON.parse(jsonMatch[1].trim());
+    throw new Error('Nao foi possivel interpretar o resultado. Tente com uma foto mais nitida.');
+  }
+}
+
 module.exports = {
   estruturarExame,
   estruturarExameDeArquivo,
@@ -859,4 +999,6 @@ module.exports = {
   gerarAudioElevenLabs,
   verificarCompletudeTopicos,
   gerarPerguntasTemplate,
+  scanReceita,
+  scanAlergia,
 };

@@ -1,4 +1,5 @@
 const express = require('express');
+const multer = require('multer');
 const { z } = require('zod');
 const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
@@ -6,6 +7,16 @@ const { validate } = require('../middleware/validate');
 const ai = require('../services/ai');
 
 const router = express.Router();
+
+const uploadScan = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Envie uma foto (JPG/PNG) ou PDF.'));
+  },
+});
 
 // Todas as rotas requerem autenticacao
 router.use(verificarAuth);
@@ -124,6 +135,49 @@ router.get('/info/:nome', async (req, res, next) => {
     const info = await ai.gerarInfoSubstancia(decodeURIComponent(nome), 'alergia');
     return res.status(200).json({ info });
   } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /scan — Scan de resultado de exame alergico (foto/PDF → lista de alergias)
+// ---------------------------------------------------------------------------
+
+router.post('/scan', uploadScan.single('arquivo'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ erro: 'Nenhum arquivo enviado.' });
+    }
+
+    const { buffer, mimetype } = req.file;
+    const resultado = await ai.scanAlergia(buffer, mimetype);
+
+    if (resultado.tipo === 'nao_exame') {
+      return res.status(400).json({ erro: resultado.mensagem || 'Documento nao parece ser um resultado de exame alergico.' });
+    }
+
+    // Check which allergies already exist for this user
+    const usuarioId = req.usuario.id;
+    const existentes = await prisma.alergia.findMany({ where: { usuarioId } });
+    const existentesNomes = existentes.map(a => a.nome.toLowerCase());
+
+    const alergiasComStatus = (resultado.alergias || []).map(al => {
+      const jaExiste = existentesNomes.some(e =>
+        al.nome.toLowerCase().includes(e) || e.includes(al.nome.toLowerCase())
+      );
+      return { ...al, existing: jaExiste };
+    });
+
+    return res.status(200).json({
+      tipo: 'exame_alergico',
+      alergias: alergiasComStatus,
+      totalNovas: alergiasComStatus.filter(a => !a.existing).length,
+      totalExistentes: alergiasComStatus.filter(a => a.existing).length,
+    });
+  } catch (err) {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ erro: `Erro no envio: ${err.message}` });
+    }
     next(err);
   }
 });

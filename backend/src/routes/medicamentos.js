@@ -1,4 +1,5 @@
 const express = require('express');
+const multer = require('multer');
 const { z } = require('zod');
 const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
@@ -6,6 +7,16 @@ const { validate } = require('../middleware/validate');
 const ai = require('../services/ai');
 
 const router = express.Router();
+
+const uploadScan = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Envie uma foto (JPG/PNG) ou PDF.'));
+  },
+});
 
 // Todas as rotas requerem autenticacao
 router.use(verificarAuth);
@@ -20,11 +31,22 @@ const criarMedicamentoSchema = z.object({
   frequencia: z.string().max(100).optional(),
   horario: z.string().max(50).optional(),
   motivo: z.string().max(500).optional(),
+  observacao: z.string().max(500).optional(),
+  medicoPrescritor: z.string().max(200).optional(),
+  duracaoDias: z.number().int().min(1).max(365).optional(),
+  quantidadeEstoque: z.number().int().min(0).optional(),
+  quantidadePorDose: z.number().int().min(1).max(10).optional(),
   dataInicio: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD')
     .transform((val) => new Date(val))
     .optional(),
+  dataFim: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD')
+    .transform((val) => new Date(val))
+    .optional()
+    .nullable(),
 });
 
 const atualizarMedicamentoSchema = z.object({
@@ -76,7 +98,15 @@ router.get('/', async (req, res, next) => {
 router.post('/', validate(criarMedicamentoSchema), async (req, res, next) => {
   try {
     const usuarioId = req.usuario.id;
-    const { nome, dosagem, frequencia, horario, motivo, dataInicio } = req.body;
+    const { nome, dosagem, frequencia, horario, motivo, dataInicio, dataFim, duracaoDias, quantidadeEstoque, quantidadePorDose, medicoPrescritor, observacao } = req.body;
+
+    // Calculate dataFim from duracaoDias if provided
+    let calcDataFim = dataFim || null;
+    if (!calcDataFim && duracaoDias) {
+      const start = dataInicio || new Date();
+      calcDataFim = new Date(start);
+      calcDataFim.setDate(calcDataFim.getDate() + duracaoDias);
+    }
 
     const medicamento = await prisma.medicamento.create({
       data: {
@@ -86,7 +116,13 @@ router.post('/', validate(criarMedicamentoSchema), async (req, res, next) => {
         frequencia: frequencia || null,
         horario: horario || null,
         motivo: motivo || null,
+        observacao: observacao || null,
+        medicoPrescritor: medicoPrescritor || null,
+        duracaoDias: duracaoDias || null,
+        quantidadeEstoque: quantidadeEstoque || null,
+        quantidadePorDose: quantidadePorDose || 1,
         dataInicio: dataInicio || new Date(),
+        dataFim: calcDataFim,
         ativo: true,
       },
     });
@@ -167,6 +203,52 @@ router.get('/info/:nome', async (req, res, next) => {
     const info = await ai.gerarInfoSubstancia(decodeURIComponent(nome), 'medicamento');
     return res.status(200).json({ info });
   } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /scan — Scan de receita medica (foto/PDF → lista de medicamentos)
+// ---------------------------------------------------------------------------
+
+router.post('/scan', uploadScan.single('arquivo'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ erro: 'Nenhum arquivo enviado.' });
+    }
+
+    const { buffer, mimetype } = req.file;
+
+    // Use AI to extract medications from the image/PDF
+    const resultado = await ai.scanReceita(buffer, mimetype);
+
+    if (resultado.tipo === 'nao_receita') {
+      return res.status(400).json({ erro: resultado.mensagem || 'Documento nao parece ser uma receita medica.' });
+    }
+
+    // Check for allergy conflicts
+    const usuarioId = req.usuario.id;
+    const alergias = await prisma.alergia.findMany({ where: { usuarioId } });
+    const alergiasNomes = alergias.map(a => a.nome.toLowerCase());
+
+    const medicamentosComAlerta = (resultado.medicamentos || []).map(med => {
+      const conflito = alergiasNomes.some(al =>
+        med.nome.toLowerCase().includes(al) || al.includes(med.nome.toLowerCase())
+      );
+      return { ...med, alertaAlergia: conflito };
+    });
+
+    return res.status(200).json({
+      tipo: 'receita',
+      medico: resultado.medico || null,
+      data: resultado.data || null,
+      medicamentos: medicamentosComAlerta,
+      totalAlertasAlergia: medicamentosComAlerta.filter(m => m.alertaAlergia).length,
+    });
+  } catch (err) {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ erro: `Erro no envio: ${err.message}` });
+    }
     next(err);
   }
 });

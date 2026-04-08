@@ -235,6 +235,12 @@ const vitaeAPI = {
     return apiRequest(`/medicamentos/info/${encodeURIComponent(nome)}`);
   },
 
+  async scanReceita(file) {
+    const formData = new FormData();
+    formData.append('arquivo', file);
+    return apiRequest('/medicamentos/scan', { method: 'POST', body: formData });
+  },
+
   // Alergias
   async listarAlergias() {
     return apiRequest('/alergias');
@@ -250,6 +256,12 @@ const vitaeAPI = {
 
   async infoAlergia(nome) {
     return apiRequest(`/alergias/info/${encodeURIComponent(nome)}`);
+  },
+
+  async scanAlergia(file) {
+    const formData = new FormData();
+    formData.append('arquivo', file);
+    return apiRequest('/alergias/scan', { method: 'POST', body: formData });
   },
 
   // Scores

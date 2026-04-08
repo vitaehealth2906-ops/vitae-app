@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vitaid — Alergias identificadas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { background:#F4F6FA; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif; }
+        .phone { width:393px; max-width:100vw; height:852px; max-height:100vh; background:#F4F6FA; border-radius:52px; overflow:hidden; position:relative; box-shadow:0 0 0 1px rgba(0,229,160,0.15),0 0 0 3px #1A1E26,0 40px 120px rgba(0,0,0,0.9); }
+        .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#F4F6FA; border-radius:0 0 20px 20px; z-index:10; }
+        .status { position:absolute; top:14px; left:28px; right:28px; display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#9CA3AF; z-index:11; }
+        .exit-overlay { position:absolute; inset:0; background:#F4F6FA; opacity:0; z-index:25; pointer-events:none; transition:opacity 0.5s ease; }
+        .exit-overlay.active { opacity:1; }
+        .content { height:calc(100% - 80px); overflow-y:auto; padding:55px 24px 24px; scrollbar-width:none; }
+        .content::-webkit-scrollbar { display:none; }
+
+        .hdr { display:flex; align-items:center; gap:14px; margin-bottom:20px; opacity:0; animation:fadeUp 0.4s ease 0.2s both; }
+        .back-btn { width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid rgba(0,0,0,0.07); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+        .back-btn:active { transform:scale(0.92); }
+        .page-title { font-size:26px; font-weight:700; color:#0D0F14; }
+        .page-title span { color:#EF4444; font-style:italic; }
+        .page-subtitle { font-size:13px; color:#9CA3AF; margin-top:2px; }
+
+        /* Category label */
+        .cat-label { display:flex; align-items:center; gap:6px; margin:16px 0 8px; }
+        .cat-dot { width:6px; height:6px; border-radius:50%; }
+        .cat-text { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; }
+
+        /* Allergy item */
+        .al-item {
+            display:flex; align-items:center; gap:12px;
+            background:#fff; border:1px solid rgba(0,0,0,0.07);
+            border-radius:14px; padding:14px 16px; margin-bottom:8px;
+            box-shadow:0 1px 12px rgba(0,0,0,0.07);
+            opacity:0; animation:fadeUp 0.4s ease both;
+        }
+        .al-item.warn { border-color:rgba(245,158,11,0.25); background:rgba(245,158,11,0.03); }
+        .al-item.red { border-color:rgba(239,68,68,0.15); }
+        .al-item.yellow { border-color:rgba(245,158,11,0.15); }
+        .al-check {
+            width:24px; height:24px; border-radius:8px;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .al-check svg { width:12px; height:12px; }
+        .al-check.red { background:rgba(239,68,68,0.06); }
+        .al-check.red svg { stroke:#EF4444; }
+        .al-check.warn { background:rgba(245,158,11,0.08); }
+        .al-check.warn svg { stroke:#F59E0B; }
+        .al-name { font-size:14px; font-weight:700; color:#0D0F14; }
+        .al-name.warn { color:#F59E0B; }
+        .al-detail { font-size:11px; color:#9CA3AF; margin-top:2px; }
+        .al-toggle {
+            width:36px; height:20px; border-radius:10px;
+            background:#00E5A0; position:relative; cursor:pointer;
+            flex-shrink:0; margin-left:auto; transition:background 0.25s;
+        }
+        .al-toggle::after { content:''; position:absolute; top:2px; right:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:all 0.25s; box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+        .al-toggle.off { background:#D1D5DB; }
+        .al-toggle.off::after { right:auto; left:2px; }
+        .al-badge {
+            font-size:10px; font-weight:700; color:#9CA3AF;
+            padding:2px 8px; border-radius:6px; background:rgba(0,0,0,0.04);
+            margin-left:auto; flex-shrink:0;
+        }
+        .al-edit { margin-left:auto; cursor:pointer; flex-shrink:0; }
+        .al-edit svg { width:16px; height:16px; stroke:#9CA3AF; }
+
+        /* CTA */
+        .cta-primary {
+            width:100%; padding:16px;
+            background:linear-gradient(120deg, #EF4444, #F87171);
+            border:none; border-radius:14px;
+            font-family:'Plus Jakarta Sans',sans-serif;
+            font-size:15px; font-weight:700; color:#fff;
+            cursor:pointer; margin-top:16px;
+            box-shadow:0 4px 20px rgba(239,68,68,0.15);
+            transition:all 0.2s;
+        }
+        .cta-primary:active { transform:scale(0.97); }
+        .cta-sub { font-size:10px; color:rgba(255,255,255,0.6); margin-top:2px; font-weight:500; }
+
+        /* Toast */
+        .toast { position:absolute; top:60px; left:50%; transform:translateX(-50%) translateY(-20px); background:rgba(255,255,255,0.95); backdrop-filter:blur(24px); border:1px solid rgba(0,0,0,0.07); border-radius:14px; padding:14px 22px; display:flex; align-items:center; gap:10px; z-index:50; opacity:0; pointer-events:none; transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 4px 20px rgba(0,0,0,0.08); }
+        .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+        .toast-icon { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:rgba(0,229,160,0.15); }
+        .toast-text { font-size:13px; font-weight:600; color:#0D0F14; }
+
+        /* Tab bar */
+        .tab-bar { position:absolute; bottom:0; left:0; right:0; height:80px; padding:10px 0 0; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-top:1px solid rgba(0,0,0,0.07); display:flex; align-items:flex-start; justify-content:space-around; z-index:20; }
+        .tab { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:2px 12px; border:none; background:none; font-family:'Plus Jakarta Sans',sans-serif; }
+        .tab-label { font-size:10px; font-weight:500; color:#9CA3AF; }
+        .tab.active svg { stroke:#00E5A0 !important; }
+        .tab.active .tab-label { color:#00E5A0; font-weight:700; }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @media(max-width:480px){body{padding:0!important;background:#F4F6FA!important}.phone{width:100vw!important;height:100vh!important;height:100svh!important;max-width:100vw!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}.notch,.status{display:none!important}}
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128267;</span></div>
+    <div class="exit-overlay" id="exitOverlay"></div>
+
+    <div class="toast" id="toast">
+        <div class="toast-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="toast-text" id="toastText"></span>
+    </div>
+
+    <div class="content">
+        <div class="hdr">
+            <div class="back-btn" onclick="goBack()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div>
+                <div class="page-title">Alergias <span>identificadas</span></div>
+                <div class="page-subtitle">Confira antes de adicionar</div>
+            </div>
+        </div>
+
+        <div id="allergiesContainer"></div>
+
+        <button class="cta-primary" id="confirmBtn" onclick="confirmAllergies()">
+            Confirmar alergias novas
+            <div class="cta-sub" id="confirmSub"></div>
+        </button>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <div class="tab active" onclick="nav('perfil')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg><span class="tab-label">Meu RG</span></div>
+        <div class="tab" onclick="nav('score')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="tab-label">Score</span></div>
+        <div class="tab" onclick="nav('exames')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="tab-label">Exames</span></div>
+        <div class="tab" onclick="nav('qrcode')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/></svg><span class="tab-label">QR Code</span></div>
+        <div class="tab" onclick="nav('editar')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span class="tab-label">Editar</span></div>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+    // Try to load real scan results from API, fallback to demo data
+    const scanResult = JSON.parse(sessionStorage.getItem('vitae_scan_result') || 'null');
+
+    let scannedAllergies = [];
+
+    if (scanResult && scanResult.alergias && scanResult.alergias.length > 0) {
+        scannedAllergies = scanResult.alergias.map(a => ({
+            nome: a.nome,
+            categoria: (a.categoria || 'OUTRO').toLowerCase(),
+            detail: a.detalhe || '',
+            existing: a.existing || false,
+            enabled: true,
+            uncertain: a.uncertain || false,
+        }));
+    } else {
+        scannedAllergies = [
+            { nome: 'Dipirona', categoria: 'medicamento', detail: 'Ja registrada no seu perfil', existing: true, enabled: true },
+            { nome: 'AAS (Aspirina)', categoria: 'medicamento', detail: 'Acido acetilsalicilico', existing: false, enabled: true },
+            { nome: 'Amendoim', categoria: 'alimento', detail: 'Sensibilidade confirmada · reacao moderada', existing: false, enabled: true },
+            { nome: 'Poeira domestica', categoria: 'substancia', detail: 'Precisa de confirmacao — toque para revisar', existing: false, enabled: true, uncertain: true },
+        ];
+    }
+
+    // Check existing allergies
+    async function checkExisting() {
+        try {
+            const data = await vitaeAPI.listarAlergias();
+            const existing = (data.alergias || []).map(a => (a.nome || '').toLowerCase());
+            scannedAllergies.forEach(a => {
+                if (existing.includes(a.nome.toLowerCase())) {
+                    a.existing = true;
+                    a.detail = 'Ja registrada no seu perfil';
+                }
+            });
+        } catch (e) {}
+        render();
+    }
+
+    const catIcons = {
+        medicamento: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>',
+        alimento: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>',
+        substancia: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+    };
+    const catColors = { medicamento: '#EF4444', alimento: '#F59E0B', substancia: '#00E5A0' };
+    const catLabels = { medicamento: 'Medicamentos', alimento: 'Alimentos', substancia: 'Substancias' };
+
+    function render() {
+        const container = document.getElementById('allergiesContainer');
+        const newCount = scannedAllergies.filter(a => a.enabled && !a.existing).length;
+        const existingCount = scannedAllergies.filter(a => a.existing).length;
+
+        document.getElementById('confirmBtn').innerHTML = `Confirmar ${newCount} alergia${newCount !== 1 ? 's' : ''} nova${newCount !== 1 ? 's' : ''}<div class="cta-sub">${existingCount > 0 ? (existingCount === 1 ? 'Dipirona ja constava no seu perfil' : existingCount + ' ja constavam no seu perfil') : ''}</div>`;
+
+        // Group by category
+        const groups = {};
+        scannedAllergies.forEach(a => {
+            if (!groups[a.categoria]) groups[a.categoria] = [];
+            groups[a.categoria].push(a);
+        });
+
+        let html = '';
+        let delay = 0.3;
+        const catOrder = ['medicamento', 'alimento', 'substancia'];
+
+        catOrder.forEach(cat => {
+            if (!groups[cat]) return;
+            const color = catColors[cat];
+            html += `<div class="cat-label"><div class="cat-dot" style="background:${color}"></div><div class="cat-text" style="color:${color}">${catLabels[cat]}</div></div>`;
+
+            groups[cat].forEach((a, i) => {
+                delay += 0.06;
+                const checkClass = a.uncertain ? 'warn' : (cat === 'medicamento' ? 'red' : 'warn');
+                const borderClass = a.uncertain ? 'warn' : (cat === 'medicamento' ? 'red' : 'yellow');
+
+                html += `<div class="al-item ${borderClass}" style="animation-delay:${delay}s">
+                    <div class="al-check ${checkClass}">${a.uncertain ? catIcons.substancia : catIcons[cat]}</div>
+                    <div style="flex:1;min-width:0">
+                        <div class="al-name ${a.uncertain ? 'warn' : ''}">${a.nome}</div>
+                        <div class="al-detail">${a.detail}</div>
+                    </div>
+                    ${a.existing
+                        ? `<div class="al-badge">Existente</div>`
+                        : a.uncertain
+                            ? `<div class="al-edit" onclick="editAllergy(${scannedAllergies.indexOf(a)})"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>`
+                            : `<div class="al-toggle ${a.enabled ? '' : 'off'}" onclick="toggleAllergy(${scannedAllergies.indexOf(a)})"></div>`
+                    }
+                </div>`;
+            });
+        });
+
+        container.innerHTML = html;
+    }
+
+    function toggleAllergy(i) {
+        scannedAllergies[i].enabled = !scannedAllergies[i].enabled;
+        render();
+    }
+
+    function editAllergy(i) {
+        const confirm = window.confirm('Adicionar "' + scannedAllergies[i].nome + '" como alergia confirmada?');
+        if (confirm) {
+            scannedAllergies[i].uncertain = false;
+            scannedAllergies[i].detail = 'Confirmada manualmente';
+            render();
+            showToast(scannedAllergies[i].nome + ' confirmada');
+        }
+    }
+
+    async function confirmAllergies() {
+        const toAdd = scannedAllergies.filter(a => a.enabled && !a.existing);
+        if (toAdd.length === 0) { showToast('Nenhuma alergia nova para adicionar'); return; }
+
+        const btn = document.getElementById('confirmBtn');
+        btn.textContent = 'Adicionando...';
+        btn.style.opacity = '0.7';
+
+        let added = 0;
+        for (const a of toAdd) {
+            try {
+                const tipoMap = { medicamento: 'MEDICAMENTO', alimento: 'ALIMENTO', substancia: 'AMBIENTAL' };
+                await vitaeAPI.adicionarAlergia({
+                    nome: a.nome,
+                    tipo: tipoMap[a.categoria] || 'OUTRO',
+                    gravidade: 'MODERADA'
+                });
+                added++;
+            } catch (e) {
+                console.log('Erro ao adicionar ' + a.nome + ':', e.message);
+            }
+        }
+
+        showToast(added + ' alergia' + (added !== 1 ? 's' : '') + ' adicionada' + (added !== 1 ? 's' : ''));
+
+        // Navigate back to allergies after 1.5s
+        setTimeout(() => {
+            document.getElementById('exitOverlay').classList.add('active');
+            setTimeout(() => { window.location.href = '17-alergias.html'; }, 400);
+        }, 1500);
+    }
+
+    // Toast
+    let toastTimer;
+    function showToast(text) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toastText').textContent = text;
+        clearTimeout(toastTimer);
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    function goBack() {
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => { window.location.href = '17-alergias.html'; }, 400);
+    }
+    function nav(tab) {
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => {
+            const routes = { perfil:'08-perfil.html', score:'10-score.html', exames:'11-exames-lista.html', qrcode:'21-qrcode.html', editar:'09-dados-pessoais.html' };
+            window.location.href = routes[tab] || '08-perfil.html';
+        }, 400);
+    }
+
+    // Init
+    if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
+        checkExisting();
+    } else {
+        render();
+    }
+</script>
+</body>
+</html>
