@@ -88,7 +88,7 @@
 </head>
 <body>
 <div class="page">
-    <!-- Onboarding (first time) -->
+    <!-- Onboarding + LGPD consent (first time) -->
     <div class="onboard" id="onboard">
         <div class="onboard-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -97,9 +97,23 @@
             </svg>
         </div>
         <div class="onboard-title">Aponte para o codigo de barras</div>
-        <div class="onboard-sub">Ele fica no verso ou na lateral da caixa do medicamento</div>
-        <div class="onboard-hint">A camera vai identificar automaticamente</div>
-        <button class="onboard-btn" onclick="dismissOnboard()">Entendi</button>
+        <div class="onboard-sub">Ele fica no verso ou na lateral da caixa do medicamento. A camera vai identificar automaticamente.</div>
+        <div class="onboard-hint" style="font-size:10px;color:rgba(255,255,255,0.3);line-height:1.5;max-width:280px;margin-bottom:24px">Sua foto e processada e descartada imediatamente. Seus dados de saude sao protegidos. Este app nao substitui orientacao medica.</div>
+        <button class="onboard-btn" onclick="dismissOnboard()">Entendi, vamos la</button>
+    </div>
+
+    <!-- Help overlay (reusable, shows same content as onboarding) -->
+    <div class="onboard hidden" id="helpOverlay" style="z-index:101">
+        <div class="onboard-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                <line x1="7" y1="12" x2="17" y2="12"/>
+            </svg>
+        </div>
+        <div class="onboard-title">Como escanear</div>
+        <div class="onboard-sub">Aponte a camera para o codigo de barras da caixa. Ele fica no verso ou na lateral.</div>
+        <div class="onboard-hint" style="margin-bottom:24px">Se nao encontrar o codigo, voce pode tirar uma foto da frente da caixa ou digitar o nome.</div>
+        <button class="onboard-btn" onclick="document.getElementById('helpOverlay').classList.add('hidden')">Voltar para camera</button>
     </div>
 
     <!-- Scanner (html5-qrcode renders here) -->
@@ -173,10 +187,11 @@
     function dismissOnboard() {
         document.getElementById('onboard').classList.add('hidden');
         localStorage.setItem('vitae_scan_onboard_done', 'true');
+        localStorage.setItem('vitae_scan_consent', 'true'); // LGPD consent given
         startScanner();
     }
     function showOnboard() {
-        document.getElementById('onboard').classList.remove('hidden');
+        document.getElementById('helpOverlay').classList.remove('hidden');
     }
 
     // ---- Progressive tips ----
