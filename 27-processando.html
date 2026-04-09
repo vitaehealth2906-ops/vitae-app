@@ -191,7 +191,9 @@
 
     // Get file info from sessionStorage
     const fileName = sessionStorage.getItem('vitae_scan_filename') || 'documento.jpg';
-n    // Personalize last step with patient name
+    document.getElementById('mainSub').textContent = fileName;
+
+    // Personalize last step with patient name
     try {
         const usuario = JSON.parse(localStorage.getItem('vitae_usuario') || '{}');
         if (usuario && usuario.nome) {
@@ -294,25 +296,34 @@ n    // Personalize last step with patient name
         }
 
         function navigateToReview() {
-            document.getElementById('mainTitle').textContent = 'Pronto!';
-            document.getElementById('completeMsg').classList.add('show');
             if (apiResult) {
-                document.getElementById('completeTitle').textContent = 'Pronto!';
-            } else if (apiError) {
-                document.getElementById('completeTitle').textContent = 'Pronto!';
-                document.getElementById('completeText').textContent = 'Alguns dados podem precisar de ajuste manual.';
-            }
+                // SUCCESS: navigate to review
+                document.getElementById('mainTitle').textContent = 'Pronto!';
+                document.getElementById('completeMsg').classList.add('show');
+                document.getElementById('completeTitle').textContent = 'Medicamento identificado';
+                document.getElementById('completeText').textContent = 'Abrindo confirmacao...';
 
-            setTimeout(() => {
-                document.getElementById('exitOverlay').classList.add('active');
                 setTimeout(() => {
-                    if (tipo === 'alergia') {
-                        window.location.href = '31-revisao-alergias.html?from=' + from;
-                    } else {
-                        window.location.href = '28-revisao-receita.html?from=' + from;
-                    }
-                }, 500);
-            }, 1000);
+                    document.getElementById('exitOverlay').classList.add('active');
+                    setTimeout(() => {
+                        if (tipo === 'alergia') {
+                            window.location.href = '31-revisao-alergias.html?from=' + from;
+                        } else {
+                            window.location.href = '28-revisao-receita.html?from=' + from;
+                        }
+                    }, 500);
+                }, 800);
+            } else {
+                // ERROR: show what went wrong with clear options
+                document.getElementById('mainTitle').textContent = 'Nao conseguimos identificar';
+                document.getElementById('completeMsg').classList.add('show');
+                document.getElementById('completeTitle').textContent = apiError || 'Erro na identificacao';
+                document.getElementById('completeText').innerHTML =
+                    '<div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;align-items:center">' +
+                    '<button onclick="window.location.href=\'26-scan-receita.html?tipo=' + tipo + '&from=' + from + '&action=camera\'" style="padding:12px 24px;background:linear-gradient(120deg,#00E5A0,#00B4D8);border:none;border-radius:12px;font-family:inherit;font-size:13px;font-weight:700;color:#fff;cursor:pointer;width:100%;max-width:260px">Tirar outra foto</button>' +
+                    '<button onclick="window.location.href=\'' + (tipo === 'alergia' ? '17-alergias' : '16-medicamentos') + '.html\'" style="padding:10px 20px;background:none;border:1px solid rgba(0,0,0,0.07);border-radius:10px;font-family:inherit;font-size:12px;font-weight:600;color:#9CA3AF;cursor:pointer;width:100%;max-width:260px">Digitar o nome do medicamento</button>' +
+                    '</div>';
+            }
         }
 
         // Mark previous as done
@@ -342,7 +353,7 @@ n    // Personalize last step with patient name
         setTimeout(() => runStep(i + 1), 300);
     }
 
-    // Try real API scan in parallel with animation
+    // ===== API CALL (parallel with animation) =====
     let apiResult = null;
     let apiError = null;
     let animationDone = false;
@@ -350,32 +361,65 @@ n    // Personalize last step with patient name
     async function callScanAPI() {
       try {
         const fileData = sessionStorage.getItem('vitae_scan_file');
-        if (!fileData || typeof vitaeAPI === 'undefined' || !vitaeAPI.isLoggedIn()) return;
+
+        // Check 1: Do we have a photo?
+        if (!fileData) {
+          apiError = 'Nenhuma foto encontrada. Volte e tire uma foto.';
+          return;
+        }
+
+        // Check 2: Is the API module loaded?
+        if (typeof vitaeAPI === 'undefined') {
+          apiError = 'Modulo de comunicacao nao carregou. Recarregue a pagina.';
+          return;
+        }
+
+        // Check 3: Is the user logged in?
+        if (!vitaeAPI.isLoggedIn()) {
+          apiError = 'Voce precisa estar logado para identificar medicamentos.';
+          return;
+        }
 
         // Convert base64 data URL to File object
-        const res = await fetch(fileData);
-        const blob = await res.blob();
-        const file = new File([blob], fileName, { type: blob.type });
+        let blob;
+        try {
+          const res = await fetch(fileData);
+          blob = await res.blob();
+        } catch(e) {
+          apiError = 'Erro ao processar a foto. Tente tirar outra.';
+          return;
+        }
 
+        const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+
+        // Call the API
         if (tipo === 'alergia') {
           apiResult = await vitaeAPI.scanAlergia(file);
         } else {
           apiResult = await vitaeAPI.scanReceita(file);
         }
 
+        // Validate response
+        if (!apiResult || (!apiResult.medicamentos && !apiResult.alergias)) {
+          apiError = 'O servidor nao retornou dados. Tente novamente.';
+          apiResult = null;
+          return;
+        }
+
         // Store result for the review screen
         sessionStorage.setItem('vitae_scan_result', JSON.stringify(apiResult));
+
       } catch (e) {
-        apiError = e.message;
-        console.log('Scan API error (using demo mode):', e.message);
+        apiError = e.message || 'Erro ao comunicar com o servidor.';
+        console.log('Scan API error:', e.message);
       }
     }
 
     // Start API call immediately
     callScanAPI();
 
-    // Start animation after 600ms
-    setTimeout(() => runStep(0), 600);
+    // Start animation after 400ms
+    setTimeout(() => runStep(0), 400);
 </script>
 </body>
 </html>
