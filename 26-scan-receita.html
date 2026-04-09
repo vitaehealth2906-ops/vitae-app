@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>vitaid — Escanear medicamento</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/@AveChipBayern/zxing-wasm@1.2.12/dist/index.min.js" defer onerror="window._zxingFailed=true"></script>
+<script type="module">
+import { BarcodeDetector } from "https://cdn.jsdelivr.net/npm/barcode-detector@3/dist/es/pure.min.js";
+window.BarcodeDetectorPolyfill = BarcodeDetector;
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
@@ -264,8 +267,9 @@ async function initCamera() {
         vid.srcObject = stream;
         await vid.play();
 
-        // Pre-load CMED
+        // Pre-load CMED + barcode detector (in parallel)
         loadCmed();
+        await initDetector();
 
         // Start barcode scanning
         if (mode === 'barcode') startScan();
@@ -284,46 +288,48 @@ async function initCamera() {
     }
 }
 
-// ===== BARCODE SCANNING (frame-by-frame) =====
+// ===== BARCODE SCANNING (usando barcode-detector polyfill com ZXing WASM) =====
+let detector = null;
+
+async function initDetector() {
+    // Wait for the polyfill module to load
+    let attempts = 0;
+    while (!window.BarcodeDetectorPolyfill && attempts < 30) {
+        await new Promise(r => setTimeout(r, 200));
+        attempts++;
+    }
+    if (window.BarcodeDetectorPolyfill) {
+        detector = new window.BarcodeDetectorPolyfill({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128']
+        });
+        console.log('[SCAN] Barcode detector inicializado (ZXing WASM)');
+    } else {
+        console.warn('[SCAN] Barcode detector nao carregou');
+    }
+}
+
 function startScan() {
     if (scanning || found) return;
     scanning = true;
-    const vid = document.getElementById('vid');
-    const cvs = document.getElementById('cvs');
-    const ctx = cvs.getContext('2d');
 
-    function loop() {
+    const vid = document.getElementById('vid');
+
+    async function loop() {
         if (!scanning || found || mode !== 'barcode') return;
 
-        if (vid.readyState >= 2) {
-            // Draw frame to canvas
-            cvs.width = vid.videoWidth;
-            cvs.height = vid.videoHeight;
-            ctx.drawImage(vid, 0, 0);
-
-            // Try native BarcodeDetector first (Chrome Android)
-            if ('BarcodeDetector' in window && !window._triedNative) {
-                window._triedNative = true;
-                try {
-                    const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a'] });
-                    window._nativeDetector = detector;
-                } catch(e) { window._nativeDetector = null; }
+        if (vid.readyState >= 2 && detector) {
+            try {
+                const barcodes = await detector.detect(vid);
+                if (barcodes.length > 0 && !found) {
+                    onBarcode(barcodes[0].rawValue);
+                    return;
+                }
+            } catch(e) {
+                // Frame not ready or decode error — skip
             }
-
-            if (window._nativeDetector) {
-                window._nativeDetector.detect(cvs).then(barcodes => {
-                    if (barcodes.length > 0 && !found) {
-                        onBarcode(barcodes[0].rawValue);
-                    }
-                }).catch(() => {});
-            }
-
-            // Also try reading pixel patterns for EAN-13 (simple heuristic)
-            // This runs in parallel with native detector
-            trySimpleBarcodeScan(ctx, cvs.width, cvs.height);
         }
 
-        scanLoop = setTimeout(loop, 100); // ~10fps
+        scanLoop = setTimeout(loop, 150); // ~7fps — bom equilibrio velocidade/bateria
     }
     loop();
 }
@@ -331,46 +337,6 @@ function startScan() {
 function stopScan() {
     scanning = false;
     if (scanLoop) clearTimeout(scanLoop);
-}
-
-// Simple EAN-13 detection via pixel analysis
-function trySimpleBarcodeScan(ctx, w, h) {
-    // Sample the middle horizontal line of the frame
-    const y = Math.floor(h * 0.5);
-    const imgData = ctx.getImageData(0, y, w, 1).data;
-
-    // Convert to brightness values
-    const bright = [];
-    for (let x = 0; x < w; x++) {
-        const i = x * 4;
-        bright.push((imgData[i] + imgData[i+1] + imgData[i+2]) / 3);
-    }
-
-    // Find transitions (black→white, white→black) — barcodes have many
-    let transitions = 0;
-    const threshold = 40;
-    for (let x = 1; x < bright.length; x++) {
-        if (Math.abs(bright[x] - bright[x-1]) > threshold) transitions++;
-    }
-
-    // EAN-13 has ~60 transitions. If we see 40+, there's likely a barcode
-    // This is a heuristic — the actual decoding happens via BarcodeDetector or ZXing
-    if (transitions > 40 && transitions < 200) {
-        // Strong barcode signal — try harder with ImageData
-        // For now, rely on BarcodeDetector. On iOS where it's unavailable,
-        // we'll use the ZXing WASM fallback
-        tryZxingDecode(ctx, w, h);
-    }
-}
-
-// ZXing WASM decode attempt
-async function tryZxingDecode(ctx, w, h) {
-    if (found || !window.ZXing) return;
-    try {
-        const imgData = ctx.getImageData(0, 0, w, h);
-        // ZXing WASM would decode here
-        // For now, we rely on native BarcodeDetector + manual fallback
-    } catch(e) {}
 }
 
 // ===== BARCODE FOUND =====
