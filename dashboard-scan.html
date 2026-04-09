@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Central de Implementacao</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<meta http-equiv="refresh" content="30">
+<style>
+:root{--g:#00E5A0;--c:#00B4D8;--r:#EF4444;--y:#F59E0B;--bg:#0A0C10;--card:#12151C;--card2:#1A1D26;--t1:#fff;--t2:rgba(255,255,255,0.5);--t3:rgba(255,255,255,0.2);--b:rgba(255,255,255,0.05)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;color:var(--t1);min-height:100vh;padding:20px}
+
+.hdr{text-align:center;padding:20px 0 28px}
+.logo{display:inline-flex;align-items:center;margin-bottom:6px}
+.lv{font-size:22px;font-weight:900;letter-spacing:-1px}
+.lid{font-size:13px;font-weight:800;color:#fff;background:linear-gradient(120deg,var(--g),var(--c));border-radius:5px;padding:2px 6px;margin-left:3px}
+.badge{display:inline-flex;padding:3px 12px;border-radius:20px;font-size:9px;font-weight:700;background:rgba(0,229,160,0.08);color:var(--g);border:1px solid rgba(0,229,160,0.12);margin-bottom:10px}
+.htitle{font-size:26px;font-weight:900;letter-spacing:-0.5px;margin-bottom:4px}
+.hsub{font-size:12px;color:var(--t2)}
+
+/* Progress */
+.prog{max-width:700px;margin:0 auto 28px;background:var(--card);border-radius:16px;padding:18px;border:1px solid var(--b)}
+.ptop{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.plbl{font-size:11px;font-weight:600;color:var(--t2)}
+.ppct{font-size:22px;font-weight:900;color:var(--g)}
+.pbar{height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden}
+.pfill{height:100%;border-radius:3px;background:linear-gradient(120deg,var(--g),var(--c));transition:width 0.5s}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.stat{background:var(--card2);border-radius:10px;padding:12px;text-align:center}
+.sv{font-size:22px;font-weight:900}
+.sl{font-size:8px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+/* Sprints */
+.sprints{max-width:900px;margin:0 auto}
+.sprint{margin-bottom:16px}
+.stitle{font-size:13px;font-weight:800;color:var(--t2);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sdot{width:8px;height:8px;border-radius:50%}
+.tasks{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+
+.task{background:var(--card);border:1px solid var(--b);border-radius:12px;padding:12px 14px;transition:all 0.3s}
+.task.active{border-color:rgba(0,229,160,0.25);box-shadow:0 0 16px rgba(0,229,160,0.04)}
+.task.done{opacity:0.5}.task.done:hover{opacity:0.8}
+.ttop{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.tnum{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0}
+.tnum.p{background:rgba(255,255,255,0.05);color:var(--t3)}
+.tnum.a{background:rgba(0,229,160,0.1);color:var(--g);animation:tpulse 2s ease infinite}
+.tnum.d{background:rgba(0,229,160,0.1);color:var(--g)}
+.tnum.t{background:rgba(245,158,11,0.1);color:var(--y)}
+@keyframes tpulse{0%,100%{box-shadow:0 0 0 0 rgba(0,229,160,0.2)}50%{box-shadow:0 0 0 6px rgba(0,229,160,0)}}
+.tname{font-size:11px;font-weight:700;flex:1}
+.tbadge{font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase}
+.tbadge.p{background:rgba(255,255,255,0.04);color:var(--t3)}
+.tbadge.a{background:rgba(0,229,160,0.08);color:var(--g)}
+.tbadge.d{background:rgba(0,229,160,0.08);color:var(--g)}
+.tbadge.t{background:rgba(245,158,11,0.08);color:var(--y)}
+.tdesc{font-size:9px;color:var(--t3);line-height:1.4}
+
+/* Bugs prevention */
+.bugs{max-width:900px;margin:20px auto 0}
+.btitle{font-size:13px;font-weight:800;color:var(--r);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.btitle svg{width:14px;height:14px;stroke:var(--r)}
+.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px}
+.bug{background:rgba(239,68,68,0.03);border:1px solid rgba(239,68,68,0.08);border-radius:10px;padding:10px 12px}
+.bnum{font-size:8px;font-weight:800;color:var(--r);margin-bottom:2px}
+.bname{font-size:10px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.bfix{font-size:9px;color:var(--t3);line-height:1.3}
+
+/* Footer */
+.ft{text-align:center;padding:32px 0;font-size:10px;color:var(--t3)}
+.live{position:fixed;bottom:12px;right:12px;background:var(--card);border:1px solid var(--b);border-radius:8px;padding:6px 12px;font-size:9px;color:var(--t2);display:flex;align-items:center;gap:5px}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--g);animation:tpulse 2s ease infinite}
+
+/* Coverage */
+.cov{max-width:700px;margin:20px auto;background:var(--card);border-radius:12px;padding:14px;border:1px solid var(--b)}
+.crow{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b)}
+.crow:last-child{border:none}
+.ccat{font-size:9px;font-weight:700;color:var(--t2);flex:1}
+.cnum{font-size:9px;font-weight:800;color:var(--g)}
+.cbar{width:60px;height:4px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden}
+.cfill{height:100%;border-radius:2px;background:var(--g)}
+
+@media(max-width:480px){body{padding:10px}.tasks{grid-template-columns:1fr}.bgrid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+<div class="logo"><span class="lv">vita</span><span class="lid">id</span></div>
+<br><div class="badge">Central de Implementacao — Scan Inteligente</div>
+<div class="htitle">31 Tarefas · 7 Sprints</div>
+<div class="hsub">1.041 itens mapeados · 20 bugs prevenidos · 15 categorias cobertas</div>
+</div>
+
+<!-- Progress -->
+<div class="prog">
+<div class="ptop"><div class="plbl">Progresso geral</div><div class="ppct" id="pct">0%</div></div>
+<div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+<div class="stats">
+<div class="stat"><div class="sv" style="color:var(--g)" id="sdone">0</div><div class="sl">Concluidas</div></div>
+<div class="stat"><div class="sv" style="color:var(--c)" id="sactive">0</div><div class="sl">Em andamento</div></div>
+<div class="stat"><div class="sv" style="color:var(--t3)" id="spending">31</div><div class="sl">Pendentes</div></div>
+<div class="stat"><div class="sv" style="color:var(--y)" id="stests">0/31</div><div class="sl">Testadas</div></div>
+</div>
+</div>
+
+<!-- Coverage -->
+<div class="cov">
+<div style="font-size:10px;font-weight:700;color:var(--t2);margin-bottom:8px">COBERTURA DO MAPEAMENTO (1.041 itens)</div>
+<div class="crow"><div class="ccat">A — Camera (140 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">B — Barcode (80 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">C — Embalagem (90 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">D — Paciente (120 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">E — Toggle/Modos (50 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">F — Feedback (60 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">G — Fallbacks (40 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">H — Modo Foto (70 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">I — Pos-Scan (80 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">J — Edge Cases (90 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">K — Privacidade (50 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">L — Performance (60 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">M — Acessibilidade (50 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">N — Infraestrutura (60 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+<div class="crow"><div class="ccat">O — Legal (40 itens)</div><div class="cnum">100%</div><div class="cbar"><div class="cfill" style="width:100%"></div></div></div>
+</div>
+
+<!-- Sprints -->
+<div class="sprints">
+
+<div class="sprint">
+<div class="stitle"><div class="sdot" style="background:var(--g)"></div> SPRINT 1 — Camera que funciona no iPhone</div>
+<div class="tasks">
+<div class="task" id="t1"><div class="ttop"><div class="tnum p">1</div><div class="tname">Camera getUserMedia direto</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Sem html5-qrcode. Video com autoplay+playsinline+muted.</div></div>
+<div class="task" id="t2"><div class="ttop"><div class="tnum p">2</div><div class="tname">Decoder barcode WASM</div><div class="tbadge p">Pendente</div></div><div class="tdesc">ZXing WASM ou barcode-detector-polyfill. Processa frames do canvas.</div></div>
+<div class="task" id="t3"><div class="ttop"><div class="tnum p">3</div><div class="tname">Deteccao EAN-13 em tempo real</div><div class="tbadge p">Pendente</div></div><div class="tdesc">requestAnimationFrame loop. 10-15 fps. Busca no CMED local.</div></div>
+<div class="task" id="t4"><div class="ttop"><div class="tnum p">4</div><div class="tname">Testar iPhone Safari real</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Confirmar: camera inline, barcode lido, borda verde.</div></div>
+<div class="task" id="t5"><div class="ttop"><div class="tnum p">5</div><div class="tname">Testar Android Chrome real</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Confirmar mesmo fluxo funciona no Android.</div></div>
+</div></div>
+
+<div class="sprint">
+<div class="stitle"><div class="sdot" style="background:var(--c)"></div> SPRINT 2 — Toggle e modos</div>
+<div class="tasks">
+<div class="task" id="t6"><div class="ttop"><div class="tnum p">6</div><div class="tname">Componente toggle (barcode ↔ foto)</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Pill switch com icones. Barcode (linhas) e Camera (retangulo).</div></div>
+<div class="task" id="t7"><div class="ttop"><div class="tnum p">7</div><div class="tname">Modo barcode: scan automatico</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Moldura horizontal. Sem botao captura. Auto-detecta.</div></div>
+<div class="task" id="t8"><div class="ttop"><div class="tnum p">8</div><div class="tname">Modo foto: captura manual</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Moldura retangular. Botao captura visivel. Preview antes de enviar.</div></div>
+<div class="task" id="t9"><div class="ttop"><div class="tnum p">9</div><div class="tname">Transicao suave entre modos</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Camera nao para. Moldura transiciona. Botao aparece/some.</div></div>
+<div class="task" id="t10"><div class="ttop"><div class="tnum p">10</div><div class="tname">Dicas progressivas</div><div class="tbadge p">Pendente</div></div><div class="tdesc">5s: "Vire a caixa". 10s: sugerir modo foto. 15s: "Digite o nome".</div></div>
+</div></div>
+
+<div class="sprint">
+<div class="stitle"><div class="sdot" style="background:var(--g)"></div> SPRINT 3 — Deteccao e feedback</div>
+<div class="tasks">
+<div class="task" id="t11"><div class="ttop"><div class="tnum p">11</div><div class="tname">Borda verde + nome do medicamento</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Deteccao → flash verde → overlay com nome → navega 1.5s.</div></div>
+<div class="task" id="t12"><div class="ttop"><div class="tnum p">12</div><div class="tname">Busca CMED local instantanea</div><div class="tbadge p">Pendente</div></div><div class="tdesc">EAN → Map O(1). Nome → Fuse.js fuzzy. Offline.</div></div>
+<div class="task" id="t13"><div class="ttop"><div class="tnum p">13</div><div class="tname">Barcode nao encontrado → fallback</div><div class="tbadge p">Pendente</div></div><div class="tdesc">"Codigo nao reconhecido" → sugerir modo foto ou digitar.</div></div>
+<div class="task" id="t14"><div class="ttop"><div class="tnum p">14</div><div class="tname">Lanterna toggle</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Auto-detectar pouca luz. Botao liga/desliga. Track torch API.</div></div>
+<div class="task" id="t15"><div class="ttop"><div class="tnum p">15</div><div class="tname">Onboarding + botao "?"</div><div class="tbadge p">Pendente</div></div><div class="tdesc">1a vez: animacao. "?": mostra orientacao sem fechar camera.</div></div>
+</div></div>
+
+<div class="sprint">
+<div class="stitle"><div class="sdot" style="background:var(--c)"></div> SPRINT 4 — Processamento e confirmacao</div>
+<div class="tasks">
+<div class="task" id="t16"><div class="ttop"><div class="tnum p">16</div><div class="tname">Pipeline barcode → CMED → card</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Barcode lido → busca local → card de confirmacao pre-preenchido.</div></div>
+<div class="task" id="t17"><div class="ttop"><div class="tnum p">17</div><div class="tname">Pipeline foto → OCR → CMED → card</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Foto → Cloud Vision/Claude → fuzzy match CMED → card.</div></div>
+<div class="task" id="t18"><div class="ttop"><div class="tnum p">18</div><div class="tname">Card confirmacao com dados CMED</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Nome, substancia, classe, tarja. Campos editaveis. "Nao sei".</div></div>
+<div class="task" id="t19"><div class="ttop"><div class="tnum p">19</div><div class="tname">Pre-preenchimento inteligente</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Frequencia e horario sugeridos da bula. Tipo uso da classe.</div></div>
+<div class="task" id="t20"><div class="ttop"><div class="tnum p">20</div><div class="tname">Alerta alergia + duplicado</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Cruzar com alergias. Detectar se ja esta na lista.</div></div>
+</div></div>
+
+<div class="sprint">
+<div class="stitle"><div class="sdot" style="background:var(--y)"></div> SPRINT 5 — Fallbacks e edge cases</div>
+<div class="tasks">
+<div class="task" id="t21"><div class="ttop"><div class="tnum p">21</div><div class="tname">Permissao negada → galeria + manual</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Mensagem clara + "Abrir configuracoes" + alternativas.</div></div>
+<div class="task" id="t22"><div class="ttop"><div class="tnum p">22</div><div class="tname">In-app browser → "Abra no Safari"</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Detectar WhatsApp/Instagram WebView. Mostrar instrucao.</div></div>
+<div class="task" id="t23"><div class="ttop"><div class="tnum p">23</div><div class="tname">Manipulado + suplemento</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Nao encontrou → "Medicamento manipulado?" → entrada livre.</div></div>
+<div class="task" id="t24"><div class="ttop"><div class="tnum p">24</div><div class="tname">Foto borrada + escura</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Analisar sharpness e brilho antes de enviar. Pedir retake.</div></div>
+<div class="task" id="t25"><div class="ttop"><div class="tnum p">25</div><div class="tname">Receita com multiplos meds</div><div class="tbadge p">Pendente</div></div><div class="tdesc">OCR extrai todos. Lista pra confirmar um por um. Batch mode.</div></div>
+</div></div>
+
+<div class="sprint">
+<div class="stitle"><div class="sdot" style="background:var(--g)"></div> SPRINT 6 — Privacidade e acessibilidade</div>
+<div class="tasks">
+<div class="task" id="t26"><div class="ttop"><div class="tnum p">26</div><div class="tname">LGPD consentimento no onboarding</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Dentro da tela de scan. Bonito. Sem popup nativo.</div></div>
+<div class="task" id="t27"><div class="ttop"><div class="tnum p">27</div><div class="tname">Foto descartada apos processar</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Nunca armazenar no servidor. SessionStorage limpo apos uso.</div></div>
+<div class="task" id="t28"><div class="ttop"><div class="tnum p">28</div><div class="tname">VoiceOver + feedback auditivo</div><div class="tbadge p">Pendente</div></div><div class="tdesc">aria-labels em tudo. "Medicamento encontrado" via speech synthesis.</div></div>
+</div></div>
+
+<div class="sprint">
+<div class="stitle"><div class="sdot" style="background:var(--y)"></div> SPRINT 7 — Testes reais</div>
+<div class="tasks">
+<div class="task" id="t29"><div class="ttop"><div class="tnum p">29</div><div class="tname">10 caixas no iPhone</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Barcode de 10 caixas reais. Meta: 9/10 acertos.</div></div>
+<div class="task" id="t30"><div class="ttop"><div class="tnum p">30</div><div class="tname">10 caixas no Android</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Mesmo teste no Android Chrome. Meta: 9/10.</div></div>
+<div class="task" id="t31"><div class="ttop"><div class="tnum p">31</div><div class="tname">Cenarios de erro completos</div><div class="tbadge p">Pendente</div></div><div class="tdesc">Escuro, borrado, offline, duplicado, alergia, manipulado, permissao negada.</div></div>
+</div></div>
+
+</div>
+
+<!-- Bugs prevention -->
+<div class="bugs">
+<div class="btitle"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 20 BUGS PREVENIDOS</div>
+<div class="bgrid">
+<div class="bug"><div class="bnum">#1</div><div class="bname">Camera nativa em vez de inline</div><div class="bfix">getUserMedia direto, sem html5-qrcode</div></div>
+<div class="bug"><div class="bnum">#2</div><div class="bname">Adesivo preco lido como medicamento</div><div class="bfix">Verificar CMED. Se nao encontrar, avisar</div></div>
+<div class="bug"><div class="bnum">#3</div><div class="bname">Paciente nao acha barcode</div><div class="bfix">Onboarding + dicas progressivas</div></div>
+<div class="bug"><div class="bnum">#4</div><div class="bname">Toggle confuso pra idoso</div><div class="bfix">Icones claros + tooltip na 1a troca</div></div>
+<div class="bug"><div class="bnum">#5</div><div class="bname">Foto borrada enviada</div><div class="bfix">Analisar sharpness antes de enviar</div></div>
+<div class="bug"><div class="bnum">#6</div><div class="bname">OCR demora 15+ segundos</div><div class="bfix">Timeout 10s + botoes de escape</div></div>
+<div class="bug"><div class="bnum">#7</div><div class="bname">Barcode curvo nao le</div><div class="bfix">Dica: "Gire o frasco devagar"</div></div>
+<div class="bug"><div class="bnum">#8</div><div class="bname">Camera nao foca</div><div class="bfix">Dica: "Afaste um pouco"</div></div>
+<div class="bug"><div class="bnum">#9</div><div class="bname">Reflexo no plastico</div><div class="bfix">Dica: "Mude o angulo"</div></div>
+<div class="bug"><div class="bnum">#10</div><div class="bname">Local escuro</div><div class="bfix">Auto-detectar + sugerir lanterna</div></div>
+<div class="bug"><div class="bnum">#11</div><div class="bname">iPhone nao vibra</div><div class="bfix">Feedback visual suficiente</div></div>
+<div class="bug"><div class="bnum">#12</div><div class="bname">In-app browser quebra</div><div class="bfix">Detectar + "Abra no Safari"</div></div>
+<div class="bug"><div class="bnum">#13</div><div class="bname">Multiplos barcodes</div><div class="bfix">Priorizar EAN-13, mostrar opcoes</div></div>
+<div class="bug"><div class="bnum">#14</div><div class="bname">Medicamento nao no banco</div><div class="bfix">Manual + "nao verificado"</div></div>
+<div class="bug"><div class="bnum">#15</div><div class="bname">Paciente desiste no meio</div><div class="bfix">Salvar progresso parcial</div></div>
+<div class="bug"><div class="bnum">#16</div><div class="bname">Camera trava ao trocar modo</div><div class="bfix">Nao reiniciar stream</div></div>
+<div class="bug"><div class="bnum">#17</div><div class="bname">Bateria acabando</div><div class="bfix">Parar camera ao sair</div></div>
+<div class="bug"><div class="bnum">#18</div><div class="bname">Celular superaquece</div><div class="bfix">10fps, nao 30fps</div></div>
+<div class="bug"><div class="bnum">#19</div><div class="bname">Duplo-scan mesmo barcode</div><div class="bfix">Flag barcodeFound</div></div>
+<div class="bug"><div class="bnum">#20</div><div class="bname">Voltar do quiz pra camera</div><div class="bfix">Camera reinicia limpa</div></div>
+</div>
+</div>
+
+<div class="ft">
+<div class="logo" style="margin-bottom:4px"><span class="lv" style="font-size:14px">vita</span><span class="lid" style="font-size:9px">id</span></div>
+<div>Planejamento definitivo — 1.041 itens · 31 tarefas · 7 sprints · 20 bugs prevenidos</div>
+</div>
+
+<div class="live"><div class="ldot"></div> Atualiza a cada 30s</div>
+
+</body>
+</html>
