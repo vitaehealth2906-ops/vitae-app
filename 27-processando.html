@@ -135,27 +135,27 @@
         <div class="steps" id="stepsContainer">
             <div class="step" id="step0">
                 <div class="step-icon" id="icon0"><svg viewBox="0 0 24 24" fill="none" stroke="#C4C9D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-                <div class="step-text" id="text0">Receita reconhecida</div>
+                <div class="step-text" id="text0">Analisando sua foto...</div>
                 <div class="step-time" id="time0"></div>
             </div>
             <div class="step" id="step1">
                 <div class="step-icon" id="icon1"><svg viewBox="0 0 24 24" fill="none" stroke="#C4C9D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-                <div class="step-text" id="text1">Medicamentos encontrados</div>
+                <div class="step-text" id="text1">Procurando em nosso sistema...</div>
                 <div class="step-time" id="time1"></div>
             </div>
             <div class="step" id="step2">
                 <div class="step-icon" id="icon2"><svg viewBox="0 0 24 24" fill="none" stroke="#C4C9D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
-                <div class="step-text" id="text2">Organizando dosagens</div>
+                <div class="step-text" id="text2">Medicamento detectado</div>
                 <div class="step-time" id="time2"></div>
             </div>
             <div class="step" id="step3">
                 <div class="step-icon" id="icon3"><svg viewBox="0 0 24 24" fill="none" stroke="#C4C9D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-                <div class="step-text" id="text3">Definindo horarios</div>
+                <div class="step-text" id="text3">Verificando seguranca...</div>
                 <div class="step-time" id="time3"></div>
             </div>
             <div class="step" id="step4">
                 <div class="step-icon" id="icon4"><svg viewBox="0 0 24 24" fill="none" stroke="#C4C9D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-                <div class="step-text" id="text4">Verificando seguranca</div>
+                <div class="step-text" id="text4">Organizando tudo para voce</div>
                 <div class="step-time" id="time4"></div>
             </div>
         </div>
@@ -169,9 +169,19 @@
 
 <script src="api.js"></script>
 <script>
-    // Validate: do we have the required scan data?
+    // Validate: do we have scan data?
+    // If barcode already identified the med (vitae_scan_result exists), skip to review
+    if (sessionStorage.getItem('vitae_scan_result')) {
+        // Already identified by barcode — go straight to review
+        const fromParam = new URLSearchParams(window.location.search).get('from') || 'medicamentos';
+        const tipoParam = new URLSearchParams(window.location.search).get('tipo') || 'receita';
+        if (tipoParam === 'alergia') {
+            window.location.href = '31-revisao-alergias.html?from=' + fromParam;
+        } else {
+            window.location.href = '28-revisao-receita.html?from=' + fromParam;
+        }
+    }
     if (!sessionStorage.getItem('vitae_scan_file')) {
-        // No scan data — redirect back to medicamentos
         window.location.href = '16-medicamentos.html';
     }
 
@@ -181,6 +191,14 @@
 
     // Get file info from sessionStorage
     const fileName = sessionStorage.getItem('vitae_scan_filename') || 'documento.jpg';
+n    // Personalize last step with patient name
+    try {
+        const usuario = JSON.parse(localStorage.getItem('vitae_usuario') || '{}');
+        if (usuario && usuario.nome) {
+            const firstName = usuario.nome.split(' ')[0];
+            document.getElementById('text4').textContent = 'Organizando tudo para ' + firstName;
+        }
+    } catch(e) {}
     document.getElementById('mainSub').textContent = fileName;
 
     // Show photo thumbnail
