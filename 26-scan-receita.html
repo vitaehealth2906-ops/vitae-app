@@ -2,557 +2,322 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>vitaid — Escanear medicamento</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vitaid — Foto do medicamento</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script type="module">
-import { BarcodeDetector } from "https://cdn.jsdelivr.net/npm/barcode-detector@3/dist/es/pure.min.js";
-window.BarcodeDetectorPolyfill = BarcodeDetector;
-</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden}
-body{background:#000;font-family:'Plus Jakarta Sans',sans-serif}
+body{background:#F4F6FA;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:'Plus Jakarta Sans',sans-serif}
+.phone{width:393px;max-width:100vw;height:852px;max-height:100vh;background:#F4F6FA;border-radius:52px;overflow:hidden;position:relative;box-shadow:0 0 0 1px rgba(0,229,160,0.15),0 0 0 3px #1A1E26,0 40px 120px rgba(0,0,0,0.9)}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;background:#F4F6FA;border-radius:0 0 20px 20px;z-index:10}
+.status{position:absolute;top:14px;left:28px;right:28px;display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:#9CA3AF;z-index:11}
+.exit-overlay{position:absolute;inset:0;background:#F4F6FA;opacity:0;z-index:25;pointer-events:none;transition:opacity 0.5s ease}
+.exit-overlay.active{opacity:1}
+.content{height:100%;overflow-y:auto;padding:55px 24px 24px;scrollbar-width:none}
+.content::-webkit-scrollbar{display:none}
 
-/* Full screen camera */
-.page{position:relative;width:100%;height:100%;overflow:hidden}
-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-canvas{display:none}
-
-/* Onboarding overlay */
-.onboard{position:absolute;inset:0;z-index:100;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;transition:opacity 0.3s}
-.onboard.hide{opacity:0;pointer-events:none}
-.ob-icon{width:88px;height:88px;border-radius:22px;background:rgba(0,229,160,0.08);border:2px solid rgba(0,229,160,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:20px;animation:bob 2.5s ease infinite}
+/* Onboarding */
+.onboard{position:absolute;inset:0;z-index:30;background:rgba(244,246,250,0.98);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center}
+.onboard.hide{display:none}
+.ob-icon{width:88px;height:88px;border-radius:22px;background:rgba(0,229,160,0.06);border:2px solid rgba(0,229,160,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:20px;animation:bob 2.5s ease infinite}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 .ob-icon svg{width:40px;height:40px;stroke:#00E5A0;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.ob-t{font-size:20px;font-weight:800;color:#fff;margin-bottom:8px}
-.ob-s{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;max-width:280px;margin-bottom:6px}
-.ob-legal{font-size:9px;color:rgba(255,255,255,0.2);line-height:1.5;max-width:260px;margin-bottom:24px}
-.ob-btn{padding:14px 44px;background:linear-gradient(120deg,#00E5A0,#00B4D8);border:none;border-radius:14px;font-family:inherit;font-size:15px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 4px 20px rgba(0,229,160,0.25)}
+.ob-t{font-size:20px;font-weight:800;color:#0D0F14;margin-bottom:8px}
+.ob-s{font-size:13px;color:#9CA3AF;line-height:1.6;max-width:280px;margin-bottom:6px}
+.ob-hint{font-size:11px;color:#00E5A0;margin-bottom:6px}
+.ob-legal{font-size:9px;color:#C4C9D4;line-height:1.5;max-width:260px;margin-bottom:24px}
+.ob-btn{padding:14px 44px;background:linear-gradient(120deg,#00E5A0,#00B4D8);border:none;border-radius:14px;font-family:inherit;font-size:15px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 4px 20px rgba(0,229,160,0.2)}
 .ob-btn:active{transform:scale(0.95)}
 
-/* Top bar */
-.top{position:absolute;top:0;left:0;right:0;padding:50px 16px 10px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(0,0,0,0.5) 0%,transparent 100%);z-index:20}
-.tbtn{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,0.1);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer}
-.tbtn:active{transform:scale(0.88)}
-.tbtn svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.tbtn.on{background:rgba(0,229,160,0.15);border-color:rgba(0,229,160,0.25)}
-.tbtn.on svg{stroke:#00E5A0}
+/* Header */
+.hdr{display:flex;align-items:center;gap:14px;margin-bottom:20px;opacity:0;animation:fadeUp 0.4s ease 0.2s both}
+.back-btn{width:40px;height:40px;border-radius:12px;background:#fff;border:1px solid rgba(0,0,0,0.07);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.back-btn:active{transform:scale(0.92)}
+.page-title{font-size:22px;font-weight:700;color:#0D0F14}
+.page-title span{color:#00E5A0;font-style:italic}
+.page-subtitle{font-size:12px;color:#9CA3AF;margin-top:2px}
 
-/* Status pill */
-.spill{position:absolute;top:102px;left:50%;transform:translateX(-50%);z-index:20;padding:7px 14px;border-radius:20px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:all 0.3s}
-.spill.search{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.06)}
-.spill.found{background:rgba(0,229,160,0.12);color:#00E5A0;border:1px solid rgba(0,229,160,0.2)}
-.spill.error{background:rgba(239,68,68,0.1);color:#EF4444;border:1px solid rgba(239,68,68,0.15)}
-.sdot{width:5px;height:5px;border-radius:50%;transition:all 0.3s}
-.search .sdot{background:rgba(255,255,255,0.3);animation:pulse 1.5s ease infinite}
-.found .sdot{background:#00E5A0}
-.error .sdot{background:#EF4444}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.2}}
+/* States */
+.state{display:none;flex-direction:column;align-items:center;text-align:center}
+.state.active{display:flex;animation:fadeUp 0.4s ease both}
 
-/* Scan overlay (moldura) */
-.scan-area{position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);z-index:15;pointer-events:none;transition:all 0.3s}
-.scan-frame{border:2px solid rgba(255,255,255,0.15);border-radius:12px;position:relative;transition:all 0.3s}
-.scan-frame.barcode{width:260px;height:100px}
-.scan-frame.photo{width:240px;height:300px}
-.scan-frame.found{border-color:rgba(0,229,160,0.6);box-shadow:0 0 30px rgba(0,229,160,0.15)}
-/* Corners */
-.sc{position:absolute;width:16px;height:16px;border-style:solid;border-color:#fff;border-width:0;opacity:0.4;transition:all 0.3s}
-.scan-frame.found .sc{border-color:#00E5A0;opacity:1}
-.sc.tl{top:-1px;left:-1px;border-top-width:3px;border-left-width:3px;border-radius:6px 0 0 0}
-.sc.tr{top:-1px;right:-1px;border-top-width:3px;border-right-width:3px;border-radius:0 6px 0 0}
-.sc.bl{bottom:-1px;left:-1px;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 6px}
-.sc.br{bottom:-1px;right:-1px;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 6px 0}
-/* Scan line animation */
-.scan-line{position:absolute;top:0;left:10%;right:10%;height:2px;background:linear-gradient(90deg,transparent,rgba(0,229,160,0.5),transparent);border-radius:1px;animation:scanmove 2.5s ease-in-out infinite}
-.scan-frame.photo .scan-line{display:none}
-.scan-frame.found .scan-line{display:none}
-@keyframes scanmove{0%{top:0;opacity:0.8}50%{top:calc(100% - 2px);opacity:0.3}100%{top:0;opacity:0.8}}
+/* Empty state (no photo yet) */
+.empty-icon{width:80px;height:80px;border-radius:24px;background:rgba(0,229,160,0.06);border:2px solid rgba(0,229,160,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.empty-icon svg{width:36px;height:36px;stroke:#00E5A0;fill:none;stroke-width:1.5}
+.empty-t{font-size:16px;font-weight:700;color:#0D0F14;margin-bottom:6px}
+.empty-s{font-size:12px;color:#9CA3AF;line-height:1.6;max-width:260px;margin-bottom:24px}
+.action-btn{width:100%;padding:15px;border-radius:14px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;border:none;margin-bottom:8px;transition:all 0.2s}
+.action-btn:active{transform:scale(0.97)}
+.action-btn.primary{background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;box-shadow:0 4px 16px rgba(0,229,160,0.15)}
+.action-btn.secondary{background:#fff;color:#0D0F14;border:1px solid rgba(0,0,0,0.07)}
+.action-btn.ghost{background:none;color:#00E5A0;font-size:13px;padding:10px}
 
-/* Bottom area */
-.bot{position:absolute;bottom:0;left:0;right:0;padding:12px 20px 36px;background:linear-gradient(to top,rgba(0,0,0,0.65) 0%,transparent 100%);z-index:20;display:flex;flex-direction:column;align-items:center;gap:10px}
-.hint{font-size:12px;font-weight:500;color:rgba(255,255,255,0.4);text-align:center;transition:all 0.3s;min-height:18px}
-.hint.green{color:#00E5A0}
+/* Preview state */
+.preview-wrap{width:100%;border-radius:16px;overflow:hidden;border:1px solid rgba(0,0,0,0.07);margin-bottom:16px;background:#fff;box-shadow:0 1px 12px rgba(0,0,0,0.07)}
+.preview-img{width:100%;max-height:360px;object-fit:contain;display:block;background:#F0F2F5}
+.preview-pdf{width:100%;padding:40px;text-align:center;background:#F0F2F5}
+.preview-pdf svg{width:48px;height:48px;stroke:#9CA3AF;fill:none;stroke-width:1.5;margin-bottom:8px}
+.preview-pdf-name{font-size:12px;color:#9CA3AF}
+.quality-warn{display:none;padding:10px 14px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);border-radius:10px;margin-bottom:12px;font-size:11px;color:#F59E0B;font-weight:600;text-align:center}
+.quality-warn.show{display:block}
+.preview-hint{font-size:11px;color:#9CA3AF;margin-bottom:16px;text-align:center}
 
-/* Tips (progressive) */
-.tip{font-size:11px;color:rgba(255,255,255,0.25);text-align:center;display:none}
-.tip.show{display:block;animation:tipIn 0.3s ease}
-@keyframes tipIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.tip-btn{padding:8px 18px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:10px;font-family:inherit;font-size:11px;font-weight:600;color:#fff;cursor:pointer}
-.tip-btn:active{transform:scale(0.95)}
-.tip-btn.green{color:#00E5A0;border-color:rgba(0,229,160,0.2)}
+/* Help button */
+.help-btn{position:absolute;top:55px;right:24px;width:36px;height:36px;border-radius:10px;background:#fff;border:1px solid rgba(0,0,0,0.07);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-weight:800;color:#9CA3AF;z-index:12}
+.help-btn:active{transform:scale(0.92)}
 
-/* Toggle (barcode ↔ photo) */
-.toggle-wrap{background:rgba(255,255,255,0.08);border-radius:14px;padding:3px;display:flex;gap:2px;border:1px solid rgba(255,255,255,0.06)}
-.tg-opt{padding:8px 20px;border-radius:11px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.25s}
-.tg-opt.active{background:rgba(0,229,160,0.12);color:#00E5A0}
-.tg-opt:active{transform:scale(0.95)}
-.tg-opt svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* Toast */
+.toast{position:absolute;top:60px;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(255,255,255,0.95);backdrop-filter:blur(24px);border:1px solid rgba(0,0,0,0.07);border-radius:14px;padding:14px 22px;display:flex;align-items:center;gap:10px;z-index:50;opacity:0;pointer-events:none;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-text{font-size:13px;font-weight:600;color:#0D0F14}
 
-/* Capture button (only in photo mode) */
-.cap-wrap{display:flex;align-items:center;justify-content:center;gap:20px;margin-top:4px}
-.cap-btn{width:60px;height:60px;border-radius:50%;border:3px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;display:none}
-.cap-btn.show{display:flex}
-.cap-btn:active{transform:scale(0.85)}
-.cap-inner{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.1);transition:all 0.2s}
-.cap-btn:active .cap-inner{background:rgba(255,255,255,0.3)}
-
-.side-btn{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;cursor:pointer}
-.side-btn:active{transform:scale(0.9)}
-.side-btn svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-
-.manual-link{font-size:10px;color:rgba(255,255,255,0.25);cursor:pointer;margin-top:2px}
-.manual-link:active{color:rgba(255,255,255,0.4)}
-
-/* Success overlay */
-.success{position:absolute;inset:0;z-index:80;background:rgba(0,0,0,0.85);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px}
-.success.show{display:flex;animation:tipIn 0.3s ease}
-.suc-check{width:56px;height:56px;border-radius:50%;background:rgba(0,229,160,0.12);border:2px solid rgba(0,229,160,0.25);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
-.suc-check svg{width:24px;height:24px;stroke:#00E5A0;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.suc-name{font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;text-align:center}
-.suc-detail{font-size:12px;color:rgba(255,255,255,0.4);text-align:center}
-.suc-sub{font-size:10px;color:rgba(0,229,160,0.5);margin-top:10px}
-
-/* Preview (photo mode) */
-.preview{position:absolute;inset:0;z-index:70;background:#000;display:none;flex-direction:column}
-.preview.show{display:flex}
-.preview img{flex:1;object-fit:contain}
-.preview-bar{padding:16px 20px 36px;display:flex;gap:10px;justify-content:center}
-.prev-btn{padding:12px 28px;border-radius:12px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;border:none}
-.prev-btn.send{background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff}
-.prev-btn.retake{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.1)}
-
-/* Error state */
-.err-wrap{position:absolute;inset:0;z-index:60;background:rgba(0,0,0,0.9);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center}
-.err-wrap.show{display:flex;animation:tipIn 0.3s ease}
-.err-icon{width:56px;height:56px;border-radius:50%;background:rgba(239,68,68,0.08);border:2px solid rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
-.err-icon svg{width:24px;height:24px;stroke:#EF4444;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.err-t{font-size:16px;font-weight:800;color:#fff;margin-bottom:6px}
-.err-s{font-size:12px;color:rgba(255,255,255,0.4);line-height:1.6;margin-bottom:20px;max-width:260px}
-.err-btn{padding:12px 28px;border-radius:12px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;border:none;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;margin-bottom:8px;width:100%;max-width:260px}
-.err-btn2{padding:10px 24px;border-radius:10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);width:100%;max-width:260px}
-
-/* Flash */
-.flash{position:absolute;inset:0;background:#fff;z-index:90;opacity:0;pointer-events:none;transition:opacity 0.12s}
-.flash.on{opacity:0.5}
-
-input[type=file]{display:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:480px){body{padding:0!important;background:#F4F6FA!important}.phone{width:100vw!important;height:100vh!important;height:100svh!important;max-width:100vw!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}.notch,.status{display:none!important}}
 </style>
+<link rel="stylesheet" href="vitae-core.css">
 </head>
 <body>
-<div class="page">
+<div class="phone">
+<div class="notch"></div>
+<div class="status"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128267;</span></div>
+<div class="exit-overlay" id="exitOverlay"></div>
 
-<!-- Video feed -->
-<video id="vid" autoplay playsinline muted></video>
-<canvas id="cvs"></canvas>
-<div class="flash" id="flash"></div>
-
-<!-- Onboarding -->
+<!-- Onboarding (first time) -->
 <div class="onboard" id="onboard">
-<div class="ob-icon"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg></div>
-<div class="ob-t">Aponte para o codigo de barras</div>
-<div class="ob-s">Ele fica no verso ou na lateral da caixa. A camera identifica automaticamente.</div>
+<div class="ob-icon"><svg viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
+<div class="ob-t">Tire uma foto do medicamento</div>
+<div class="ob-s">Pode ser a caixa, o frasco, a cartela ou a receita do medico</div>
+<div class="ob-hint">Certifique-se de que o nome esta visivel</div>
 <div class="ob-legal">Sua foto e processada e descartada imediatamente. Seus dados sao protegidos. Este app nao substitui orientacao medica.</div>
-<button class="ob-btn" onclick="dismissOB()">Entendi, vamos la</button>
+<button class="ob-btn" onclick="dismissOnboard()">Entendi</button>
 </div>
 
-<!-- Help overlay (reusable) -->
-<div class="onboard hide" id="helpOL" style="z-index:101">
-<div class="ob-icon"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg></div>
-<div class="ob-t">Como escanear</div>
-<div class="ob-s">Aponte a camera para o codigo de barras. Se nao encontrar, use o modo foto ou digite o nome.</div>
+<!-- Help overlay -->
+<div class="onboard hide" id="helpOL" style="z-index:31">
+<div class="ob-icon"><svg viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
+<div class="ob-t">Como fotografar</div>
+<div class="ob-s">Fotografe a caixa, frasco ou receita com o nome do medicamento visivel. Evite sombras e reflexos.</div>
 <button class="ob-btn" onclick="document.getElementById('helpOL').classList.add('hide')">Voltar</button>
 </div>
 
-<!-- Top bar -->
-<div class="top">
-<div class="tbtn" onclick="goBack()" role="button" aria-label="Voltar"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
-<div class="tbtn" id="torchBtn" role="button" aria-label="Lanterna" onclick="toggleTorch()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div>
-<div class="tbtn" role="button" aria-label="Ajuda" onclick="document.getElementById('helpOL').classList.remove('hide')">?</div>
+<!-- Help button -->
+<div class="help-btn" onclick="document.getElementById('helpOL').classList.remove('hide')">?</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><span class="toast-text" id="toastText"></span></div>
+
+<div class="content">
+<div class="hdr">
+<div class="back-btn" onclick="goBack()">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
 </div>
-
-<!-- Status -->
-<div class="spill search" id="spill"><div class="sdot"></div><span id="stxt">Procurando codigo de barras...</span></div>
-
-<!-- Scan overlay -->
-<div class="scan-area"><div class="scan-frame barcode" id="sframe"><div class="sc tl"></div><div class="sc tr"></div><div class="sc bl"></div><div class="sc br"></div><div class="scan-line"></div></div></div>
-
-<!-- Bottom -->
-<div class="bot">
-<div class="hint" id="hint">Posicione o codigo de barras na frente da camera</div>
-<div class="tip" id="t5"><span>Vire a caixa — o codigo fica no verso ou lateral</span></div>
-<div class="tip" id="t10"><button class="tip-btn" onclick="setMode('photo')">Nao encontra? Tire uma foto da caixa</button></div>
-<div class="tip" id="t15"><button class="tip-btn green" onclick="goManual()">Digitar o nome do medicamento</button></div>
-
-<!-- Toggle -->
-<div class="toggle-wrap">
-<div class="tg-opt active" id="tgBar" onclick="setMode('barcode')"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg> Codigo</div>
-<div class="tg-opt" id="tgPho" onclick="setMode('photo')"><svg viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Foto</div>
-</div>
-
-<!-- Capture (photo mode only) -->
-<div class="cap-wrap">
-<div class="side-btn" onclick="document.getElementById('fileIn').click()"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
-<div class="cap-btn" id="capBtn" role="button" aria-label="Tirar foto" onclick="capturePhoto()"><div class="cap-inner"></div></div>
-<div class="side-btn" style="visibility:hidden"></div>
-</div>
-
-<div class="manual-link" onclick="goManual()">Digitar o nome do medicamento</div>
-</div>
-
-<!-- Success -->
-<div class="success" id="sucOL">
-<div class="suc-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-<div class="suc-name" id="sucName">Medicamento encontrado</div>
-<div class="suc-detail" id="sucDetail"></div>
-<div class="suc-sub">Abrindo confirmacao...</div>
-</div>
-
-<!-- Preview (photo mode) -->
-<div class="preview" id="prevOL">
-<img id="prevImg" src="">
-<div class="preview-bar">
-<button class="prev-btn retake" onclick="closePrev()">Tirar outra</button>
-<button class="prev-btn send" onclick="sendPhoto()">Enviar</button>
+<div>
+<div class="page-title">Foto do <span>medicamento</span></div>
+<div class="page-subtitle">Tire uma foto ou escolha um arquivo</div>
 </div>
 </div>
 
-<!-- Error -->
-<div class="err-wrap" id="errOL">
-<div class="err-icon"><svg viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-<div class="err-t" id="errT">Camera nao disponivel</div>
-<div class="err-s" id="errS">Nao foi possivel abrir a camera.</div>
-<button class="err-btn" onclick="document.getElementById('fileIn').click()">Enviar uma foto</button>
-<button class="err-btn2" onclick="goManual()">Digitar o nome</button>
+<!-- State 1: No photo yet -->
+<div class="state active" id="stateEmpty">
+<div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
+<div class="empty-t">Nenhuma foto selecionada</div>
+<div class="empty-s">Tire uma foto da caixa, frasco, cartela ou receita do medicamento</div>
+<button class="action-btn primary" onclick="openCamera()">Tirar foto</button>
+<button class="action-btn secondary" onclick="openGallery()">Escolher da galeria</button>
+<button class="action-btn ghost" onclick="goManual()">Digitar o nome do medicamento</button>
 </div>
 
-<input type="file" accept="image/*,application/pdf" id="fileIn" onchange="handleFile(event)">
+<!-- State 2: Photo preview -->
+<div class="state" id="statePreview">
+<div class="preview-wrap">
+<img class="preview-img" id="previewImg" src="" alt="Foto do medicamento">
+<div class="preview-pdf" id="previewPdf" style="display:none">
+<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+<div class="preview-pdf-name" id="pdfName">documento.pdf</div>
 </div>
+</div>
+<div class="quality-warn" id="qualityWarn"></div>
+<div class="preview-hint">Certifique-se de que o nome do medicamento esta visivel</div>
+<button class="action-btn primary" onclick="sendPhoto()">Enviar e identificar</button>
+<button class="action-btn secondary" onclick="retake()">Tirar outra foto</button>
+<button class="action-btn ghost" onclick="goManual()">Digitar o nome do medicamento</button>
+</div>
+</div>
+</div>
+
+<!-- Hidden inputs -->
+<input type="file" accept="image/*" capture="environment" id="cameraInput" style="display:none" onchange="handleFile(event)">
+<input type="file" accept="image/*,application/pdf" id="galleryInput" style="display:none" onchange="handleFile(event)">
 
 <script src="api.js"></script>
-<script src="cmed-search.js"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const tipo = params.get('tipo') || 'receita';
 const from = params.get('from') || 'medicamentos';
-
-let stream = null;
-let mode = 'barcode'; // 'barcode' or 'photo'
-let scanning = false;
-let found = false;
-let torchOn = false;
-let tipTimers = [];
-let scanLoop = null;
+let currentFile = null;
+let currentDataUrl = null;
 
 // ===== ONBOARDING =====
-function dismissOB() {
+function dismissOnboard() {
     document.getElementById('onboard').classList.add('hide');
-    localStorage.setItem('vitae_scan_onboard', '1');
+    localStorage.setItem('vitae_foto_onboard', '1');
     localStorage.setItem('vitae_scan_consent', '1');
-    initCamera();
 }
 
-// ===== CAMERA (getUserMedia direto) =====
-async function initCamera() {
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: { ideal: 'environment' },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            },
-            audio: false
-        });
-        const vid = document.getElementById('vid');
-        vid.srcObject = stream;
-        await vid.play();
-
-        // Pre-load CMED + barcode detector (in parallel)
-        loadCmed();
-        await initDetector();
-
-        // Start barcode scanning
-        if (mode === 'barcode') startScan();
-        startTips();
-    } catch (e) {
-        const msg = String(e);
-        if (msg.includes('NotAllowed') || msg.includes('Permission')) {
-            showError('Permissao da camera negada', 'Permita o acesso a camera nas configuracoes do navegador.');
-        } else if (msg.includes('NotFound')) {
-            showError('Camera nao encontrada', 'Seu dispositivo nao tem camera disponivel.');
-        } else if (msg.includes('NotReadableError') || msg.includes('AbortError')) {
-            showError('Camera em uso', 'Outra aplicacao pode estar usando a camera. Feche e tente novamente.');
-        } else {
-            showError('Camera com problema', 'Nao foi possivel abrir a camera. Tente recarregar a pagina.');
-        }
-    }
+// ===== CAMERA / GALLERY =====
+function openCamera() {
+    document.getElementById('cameraInput').click();
+}
+function openGallery() {
+    document.getElementById('galleryInput').click();
 }
 
-// ===== BARCODE SCANNING (usando barcode-detector polyfill com ZXing WASM) =====
-let detector = null;
-
-async function initDetector() {
-    // Wait for the polyfill module to load
-    let attempts = 0;
-    while (!window.BarcodeDetectorPolyfill && attempts < 30) {
-        await new Promise(r => setTimeout(r, 200));
-        attempts++;
-    }
-    if (window.BarcodeDetectorPolyfill) {
-        detector = new window.BarcodeDetectorPolyfill({
-            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128']
-        });
-        console.log('[SCAN] Barcode detector inicializado (ZXing WASM)');
-    } else {
-        console.warn('[SCAN] Barcode detector nao carregou');
-    }
-}
-
-function startScan() {
-    if (scanning || found) return;
-    scanning = true;
-
-    const vid = document.getElementById('vid');
-
-    async function loop() {
-        if (!scanning || found || mode !== 'barcode') return;
-
-        if (vid.readyState >= 2 && detector) {
-            try {
-                const barcodes = await detector.detect(vid);
-                if (barcodes.length > 0 && !found) {
-                    onBarcode(barcodes[0].rawValue);
-                    return;
-                }
-            } catch(e) {
-                // Frame not ready or decode error — skip
-            }
-        }
-
-        scanLoop = setTimeout(loop, 150); // ~7fps — bom equilibrio velocidade/bateria
-    }
-    loop();
-}
-
-function stopScan() {
-    scanning = false;
-    if (scanLoop) clearTimeout(scanLoop);
-}
-
-// ===== BARCODE FOUND =====
-async function onBarcode(code) {
-    if (found) return;
-    found = true;
-    stopScan();
-    clearTips();
-
-    // Flash
-    document.getElementById('flash').classList.add('on');
-    setTimeout(() => document.getElementById('flash').classList.remove('on'), 150);
-
-    // Vibrate (Android only)
-    if (navigator.vibrate) navigator.vibrate(80);
-
-    // Update UI
-    setStatus('found', 'Codigo encontrado!');
-    document.getElementById('sframe').classList.add('found');
-    document.getElementById('hint').textContent = code;
-    document.getElementById('hint').className = 'hint green';
-
-    // Look up in CMED
-    const med = await cmedLookupBarcode(code);
-
-    if (med) {
-        // Success!
-        document.getElementById('sucName').textContent = med.produto;
-        document.getElementById('sucDetail').textContent = (med.substancia || '') + ' · ' + (med.apresentacao || '');
-        document.getElementById('sucOL').classList.add('show');
-
-        // Store and navigate
-        sessionStorage.setItem('vitae_scan_result', JSON.stringify({
-            tipo: 'barcode', confianca: 'alta',
-            medicamentos: [{
-                nome: med.produto, substancia: med.substancia, dosagem: med.apresentacao,
-                laboratorio: med.laboratorio, tipo: med.tipo, classe: med.classe,
-                tarja: med.tarja, ean: code, uncertain: false
-            }]
-        }));
-        sessionStorage.setItem('vitae_scan_tipo', tipo);
-        sessionStorage.removeItem('vitae_scan_file'); // barcode, no file needed
-
-        setTimeout(() => {
-            window.location.href = '28-revisao-receita.html?from=' + from;
-        }, 1500);
-    } else {
-        // Barcode not in CMED
-        setStatus('error', 'Codigo nao reconhecido');
-        document.getElementById('hint').textContent = 'Pode ser da farmacia, nao do medicamento';
-        setTimeout(() => {
-            found = false;
-            document.getElementById('sframe').classList.remove('found');
-            setStatus('search', 'Procurando codigo de barras...');
-            document.getElementById('hint').textContent = 'Tente o codigo original da caixa, ou tire uma foto';
-            document.getElementById('hint').className = 'hint';
-            startScan();
-        }, 2500);
-    }
-}
-
-// ===== MODE TOGGLE =====
-function setMode(m) {
-    mode = m;
-    const frame = document.getElementById('sframe');
-    const capBtn = document.getElementById('capBtn');
-
-    document.getElementById('tgBar').classList.toggle('active', m === 'barcode');
-    document.getElementById('tgPho').classList.toggle('active', m === 'photo');
-
-    if (m === 'barcode') {
-        frame.className = 'scan-frame barcode';
-        capBtn.classList.remove('show');
-        setStatus('search', 'Procurando codigo de barras...');
-        document.getElementById('hint').textContent = 'Posicione o codigo de barras na frente da camera';
-        found = false;
-        startScan();
-    } else {
-        frame.className = 'scan-frame photo';
-        capBtn.classList.add('show');
-        stopScan();
-        setStatus('search', 'Modo foto');
-        document.getElementById('hint').textContent = 'Enquadre a caixa e toque no botao';
-    }
-}
-
-// ===== PHOTO CAPTURE =====
-function capturePhoto() {
-    const vid = document.getElementById('vid');
-    const cvs = document.getElementById('cvs');
-    cvs.width = vid.videoWidth;
-    cvs.height = vid.videoHeight;
-    cvs.getContext('2d').drawImage(vid, 0, 0);
-
-    // Flash
-    document.getElementById('flash').classList.add('on');
-    setTimeout(() => document.getElementById('flash').classList.remove('on'), 150);
-
-    // Show preview
-    const dataUrl = cvs.toDataURL('image/jpeg', 0.82);
-    document.getElementById('prevImg').src = dataUrl;
-    document.getElementById('prevOL').classList.add('show');
-    window._capturedPhoto = dataUrl;
-}
-
-function closePrev() {
-    document.getElementById('prevOL').classList.remove('show');
-}
-
-function sendPhoto() {
-    document.getElementById('prevOL').classList.remove('show');
-    const dataUrl = window._capturedPhoto;
-    if (!dataUrl) return;
-
-    sessionStorage.setItem('vitae_scan_file', dataUrl);
-    sessionStorage.setItem('vitae_scan_filename', 'foto_caixa.jpg');
-    sessionStorage.setItem('vitae_scan_tipo', tipo);
-    sessionStorage.removeItem('vitae_scan_result');
-
-    releaseCamera();
-    window.location.href = '27-processando.html?tipo=' + tipo + '&from=' + from;
-}
-
+// ===== FILE HANDLING =====
 function handleFile(event) {
     const file = event.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        sessionStorage.setItem('vitae_scan_file', e.target.result);
-        sessionStorage.setItem('vitae_scan_filename', file.name);
-        sessionStorage.setItem('vitae_scan_tipo', tipo);
-        sessionStorage.removeItem('vitae_scan_result');
-        releaseCamera();
-        window.location.href = '27-processando.html?tipo=' + tipo + '&from=' + from;
-    };
-    reader.readAsDataURL(file);
-}
+    currentFile = file;
 
-// ===== TORCH =====
-function toggleTorch() {
-    if (!stream) return;
-    torchOn = !torchOn;
-    document.getElementById('torchBtn').classList.toggle('on', torchOn);
-    const track = stream.getVideoTracks()[0];
-    if (track && track.getCapabilities && track.getCapabilities().torch) {
-        track.applyConstraints({ advanced: [{ torch: torchOn }] }).catch(() => {});
+    const isPdf = file.type === 'application/pdf';
+
+    if (isPdf) {
+        // Show PDF preview
+        document.getElementById('previewImg').style.display = 'none';
+        document.getElementById('previewPdf').style.display = 'block';
+        document.getElementById('pdfName').textContent = file.name;
+
+        // Still read as data URL for sending
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            currentDataUrl = e.target.result;
+            showPreview();
+        };
+        reader.readAsDataURL(file);
+    } else {
+        // Show image preview
+        document.getElementById('previewImg').style.display = 'block';
+        document.getElementById('previewPdf').style.display = 'none';
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            currentDataUrl = e.target.result;
+            document.getElementById('previewImg').src = currentDataUrl;
+            showPreview();
+            checkImageQuality(e.target.result);
+        };
+        reader.readAsDataURL(file);
     }
+
+    // Reset input so same file can be selected again
+    event.target.value = '';
 }
 
-// ===== TIPS =====
-function startTips() {
-    tipTimers.push(setTimeout(() => { if (!found && mode === 'barcode') document.getElementById('t5').classList.add('show'); }, 5000));
-    tipTimers.push(setTimeout(() => { if (!found) document.getElementById('t10').classList.add('show'); }, 10000));
-    tipTimers.push(setTimeout(() => { if (!found) document.getElementById('t15').classList.add('show'); }, 15000));
-}
-function clearTips() {
-    tipTimers.forEach(t => clearTimeout(t));
-    tipTimers = [];
-    ['t5','t10','t15'].forEach(id => document.getElementById(id).classList.remove('show'));
+function showPreview() {
+    document.getElementById('stateEmpty').classList.remove('active');
+    document.getElementById('statePreview').classList.add('active');
 }
 
-// ===== HELPERS =====
-function setStatus(type, text) {
-    const pill = document.getElementById('spill');
-    pill.className = 'spill ' + type;
-    document.getElementById('stxt').textContent = text;
+function retake() {
+    document.getElementById('statePreview').classList.remove('active');
+    document.getElementById('stateEmpty').classList.add('active');
+    document.getElementById('qualityWarn').classList.remove('show');
+    currentFile = null;
+    currentDataUrl = null;
+    openCamera();
 }
 
-function showError(title, msg) {
-    document.getElementById('errT').textContent = title;
-    document.getElementById('errS').textContent = msg;
-    document.getElementById('errOL').classList.add('show');
+// ===== QUALITY CHECK =====
+function checkImageQuality(dataUrl) {
+    const img = new Image();
+    img.onload = function() {
+        const warn = document.getElementById('qualityWarn');
+
+        // Check resolution
+        if (img.width < 400 || img.height < 400) {
+            warn.textContent = 'Foto com baixa resolucao. Tente tirar mais perto';
+            warn.classList.add('show');
+            return;
+        }
+
+        // Check brightness via canvas sampling
+        const cvs = document.createElement('canvas');
+        cvs.width = Math.min(img.width, 200);
+        cvs.height = Math.min(img.height, 200);
+        const ctx = cvs.getContext('2d');
+        ctx.drawImage(img, 0, 0, cvs.width, cvs.height);
+        const data = ctx.getImageData(0, 0, cvs.width, cvs.height).data;
+
+        let sum = 0;
+        for (let i = 0; i < data.length; i += 16) {
+            sum += (data[i] + data[i+1] + data[i+2]) / 3;
+        }
+        const avgBrightness = sum / (data.length / 16);
+
+        if (avgBrightness < 40) {
+            warn.textContent = 'Foto parece escura. Tente com melhor iluminacao';
+            warn.classList.add('show');
+        } else if (avgBrightness > 240) {
+            warn.textContent = 'Foto parece muito clara. Evite luz direta sobre o medicamento';
+            warn.classList.add('show');
+        } else {
+            warn.classList.remove('show');
+        }
+    };
+    img.src = dataUrl;
 }
 
-function releaseCamera() {
-    stopScan();
-    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+// ===== SEND PHOTO =====
+function sendPhoto() {
+    if (!currentDataUrl) return;
+
+    // Store in sessionStorage
+    sessionStorage.setItem('vitae_scan_file', currentDataUrl);
+    sessionStorage.setItem('vitae_scan_filename', currentFile ? currentFile.name : 'foto.jpg');
+    sessionStorage.setItem('vitae_scan_tipo', tipo);
+    sessionStorage.removeItem('vitae_scan_result');
+
+    // Navigate to processing
+    document.getElementById('exitOverlay').classList.add('active');
+    setTimeout(() => {
+        window.location.href = '27-processando.html?tipo=' + tipo + '&from=' + from;
+    }, 400);
 }
 
+// ===== NAVIGATION =====
 function goBack() {
-    releaseCamera();
-    if (from === 'alergias' || tipo === 'alergia') window.location.href = '17-alergias.html';
-    else window.location.href = '16-medicamentos.html';
+    document.getElementById('exitOverlay').classList.add('active');
+    setTimeout(() => {
+        if (from === 'alergias' || tipo === 'alergia') window.location.href = '17-alergias.html';
+        else window.location.href = '16-medicamentos.html';
+    }, 400);
 }
 
 function goManual() {
-    releaseCamera();
-    if (from === 'alergias' || tipo === 'alergia') window.location.href = '17-alergias.html';
-    else window.location.href = '16-medicamentos.html';
+    document.getElementById('exitOverlay').classList.add('active');
+    setTimeout(() => {
+        if (from === 'alergias' || tipo === 'alergia') window.location.href = '17-alergias.html';
+        else window.location.href = '16-medicamentos.html';
+    }, 400);
 }
 
-// ===== DETECT IN-APP BROWSER =====
-function isInAppBrowser() {
-    const ua = navigator.userAgent || '';
-    return /FBAN|FBAV|Instagram|Line\/|Twitter|WhatsApp|Snapchat|LinkedIn/i.test(ua);
-}
-
-if (isInAppBrowser()) {
-    showError(
-        'Abra no navegador',
-        'A camera nao funciona dentro deste app. Toque nos tres pontos (⋯) e selecione "Abrir no Safari" ou "Abrir no Chrome".'
-    );
+// ===== TOAST =====
+let toastTimer;
+function showToast(text) {
+    document.getElementById('toastText').textContent = text;
+    document.getElementById('toast').classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => document.getElementById('toast').classList.remove('show'), 2500);
 }
 
 // ===== INIT =====
-else if (localStorage.getItem('vitae_scan_onboard') === '1') {
+if (localStorage.getItem('vitae_foto_onboard') === '1') {
     document.getElementById('onboard').classList.add('hide');
-    initCamera();
 }
 
-// Cleanup on page leave
-window.addEventListener('beforeunload', releaseCamera);
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { stopScan(); }
-    else if (stream && mode === 'barcode' && !found) { startScan(); }
-});
+// If came here with a specific action, open camera/gallery immediately
+const action = params.get('action');
+if (action === 'camera') setTimeout(openCamera, 300);
+else if (action === 'gallery') setTimeout(openGallery, 300);
 </script>
 </body>
 </html>

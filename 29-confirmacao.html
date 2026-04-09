@@ -143,21 +143,21 @@
             </div>
         `).join('') + (addedMeds.length > 4 ? '<div style="font-size:11px;color:#9CA3AF;text-align:center;padding:4px">+' + (addedMeds.length - 4) + ' mais</div>' : '');
     } else {
-        summaryEl.innerHTML = `
-            <div class="sum-item"><div class="sum-item-name">Loratadina 10mg</div><div class="sum-item-freq">1x ao dia</div></div>
-            <div class="sum-item"><div class="sum-item-name">Prednisolona 20mg</div><div class="sum-item-freq">5 dias</div></div>
-            <div class="sum-item"><div class="sum-item-name">Soro Fisiologico</div><div class="sum-item-freq">3x ao dia</div></div>
-            <div class="sum-item"><div class="sum-item-name">Cetirizina 10mg</div><div class="sum-item-freq">1x ao dia</div></div>
-        `;
+        // No meds data — redirect back (should not happen)
+        summaryEl.innerHTML = '<div style="font-size:12px;color:#9CA3AF;text-align:center;padding:16px">Nenhum medicamento adicionado</div>';
     }
 
-    // Render reminders (simulated)
+    // Render reminders from added meds (real data, not demo)
     const remEl = document.getElementById('reminders');
-    const defaultReminders = [
-        { time: '08h', name: 'Loratadina 10mg', dose: '1 comprimido · manha' },
-        { time: '12h', name: 'Soro Fisiologico', dose: 'Aplicacao nasal' },
-        { time: '22h', name: 'Rivotril 0.5mg', dose: '1 comprimido · noite' },
-    ];
+    const reminders = addedMeds.filter(m => m.horario).map(m => ({
+        time: (m.horario || '').substring(0, 5).replace(':', 'h') || '08h',
+        name: m.nome,
+        dose: (m.dosagem || '') + (m.frequencia ? ' · ' + m.frequencia : '')
+    }));
+    if (reminders.length === 0) {
+        reminders.push({ time: '--', name: 'Nenhum horario definido', dose: 'Voce pode adicionar depois' });
+    }
+    const defaultReminders = reminders;
     remEl.innerHTML = defaultReminders.map(r => `
         <div class="rem-item">
             <div class="rem-time">${r.time}</div>
