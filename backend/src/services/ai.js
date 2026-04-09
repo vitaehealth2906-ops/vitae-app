@@ -1,8 +1,13 @@
 const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+// Gemini (Google AI) — usado pra scan de medicamentos (gratis)
+const geminiApiKey = process.env.GEMINI_API_KEY;
+const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
 
 const SYSTEM_PROMPT_ESTRUTURAR = `Você é um assistente médico da plataforma VITAE especializado em interpretação de exames laboratoriais brasileiros.
 
@@ -867,12 +872,76 @@ REGRAS:
 async function scanReceita(arquivoBuffer, mimeType) {
   const base64 = arquivoBuffer.toString('base64');
   const tipo = (mimeType || '').toLowerCase();
+  const mediaType = tipo === 'image/jpg' ? 'image/jpeg' : (tipo || 'image/jpeg');
 
+  // USE GEMINI (free) as primary, Claude as fallback
+  if (genAI) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.0-flash',
+        generationConfig: { responseMimeType: 'application/json' },
+      });
+
+      const prompt = `Voce e um assistente da plataforma vita id. Analise esta foto de medicamento ou receita medica brasileira.
+
+Primeiro identifique o tipo de imagem: caixa de remedio, frasco, receita medica, bula, ou outro.
+
+Retorne um JSON com esta estrutura:
+{
+  "tipo": "medicamento" ou "receita" ou "nao_receita",
+  "mensagem": "string (se nao for medicamento, explique)",
+  "medico": "string ou null",
+  "medicamentos": [
+    {
+      "nome": "string (nome comercial do medicamento)",
+      "principio_ativo": "string ou null",
+      "dosagem": "string ou null (ex: 500mg, 10ml)",
+      "forma": "string ou null (comprimido, capsula, gotas, solucao)",
+      "frequencia": "string ou null (ex: 1x ao dia, 8/8h)",
+      "duracao": "string ou null (ex: 7 dias, uso continuo)",
+      "laboratorio": "string ou null",
+      "quantidade": "string ou null (ex: 20 comprimidos)",
+      "uncertain": false,
+      "confianca": "alta" ou "media" ou "baixa"
+    }
+  ]
+}
+
+REGRAS:
+- Se nao conseguir ler um campo, coloque null (NUNCA invente)
+- Se a foto nao for de medicamento, retorne tipo "nao_receita"
+- Trate abreviacoes: comp=comprimido, cp=comprimido, gt=gotas, mg=miligramas
+- Se for receita, extraia TODOS os medicamentos listados
+- Se for caixa/frasco, extraia o nome e dosagem visiveis`;
+
+      const result = await model.generateContent([
+        { inlineData: { mimeType: mediaType, data: base64 } },
+        prompt,
+      ]);
+
+      const text = result.response.text().trim();
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) parsed = JSON.parse(jsonMatch[1].trim());
+        else throw new Error('JSON invalido do Gemini');
+      }
+
+      console.log('[SCAN] Gemini identificou:', parsed.tipo, parsed.medicamentos?.length || 0, 'meds');
+      return parsed;
+    } catch (geminiErr) {
+      console.error('[SCAN] Gemini falhou, tentando Claude:', geminiErr.message);
+      // Fall through to Claude
+    }
+  }
+
+  // FALLBACK: Claude (se Gemini falhar ou nao estiver configurado)
   let contentItem;
   if (tipo === 'application/pdf') {
     contentItem = { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } };
   } else {
-    const mediaType = tipo === 'image/jpg' ? 'image/jpeg' : tipo;
     contentItem = { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } };
   }
 
@@ -884,29 +953,7 @@ async function scanReceita(arquivoBuffer, mimeType) {
       role: 'user',
       content: [
         contentItem,
-        { type: 'text', text: `Analise esta receita medica e extraia todos os medicamentos prescritos.
-
-Retorne EXCLUSIVAMENTE um JSON valido:
-{
-  "tipo": "receita",
-  "medico": "string ou null (nome do medico se visivel)",
-  "data": "string ou null (data da receita se visivel, formato DD/MM/YYYY)",
-  "medicamentos": [
-    {
-      "nome": "string (nome do medicamento)",
-      "dosagem": "string ou null (ex: 500mg, 10ml)",
-      "frequencia": "string ou null (ex: 1x ao dia, 8/8h, 3x ao dia)",
-      "horario": "string ou null (ex: manha, noite, em jejum)",
-      "duracao": "string ou null (ex: 7 dias, 30 dias, uso continuo)",
-      "via": "string ou null (oral, nasal, topico)",
-      "observacao": "string ou null (instrucoes extras)",
-      "uncertain": false
-    }
-  ]
-}
-
-Se algum campo nao for legivel, coloque null nesse campo e "uncertain": true no medicamento.
-Se o documento nao for uma receita, retorne: { "tipo": "nao_receita", "mensagem": "Documento nao parece ser uma receita medica" }` }
+        { type: 'text', text: `Analise esta foto de medicamento ou receita medica. Retorne JSON com: tipo, medicamentos [{nome, dosagem, frequencia, horario, duracao, via, observacao, uncertain}]. Se nao for medicamento: {"tipo":"nao_receita","mensagem":"..."}` }
       ],
     }],
   });
@@ -917,7 +964,7 @@ Se o documento nao for uma receita, retorne: { "tipo": "nao_receita", "mensagem"
   } catch {
     const jsonMatch = conteudo.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) return JSON.parse(jsonMatch[1].trim());
-    throw new Error('Nao foi possivel interpretar a receita. Tente com uma foto mais nitida.');
+    throw new Error('Nao foi possivel interpretar. Tente com uma foto mais nitida.');
   }
 }
 
@@ -939,12 +986,62 @@ REGRAS:
 async function scanAlergia(arquivoBuffer, mimeType) {
   const base64 = arquivoBuffer.toString('base64');
   const tipo = (mimeType || '').toLowerCase();
+  const mediaType = tipo === 'image/jpg' ? 'image/jpeg' : (tipo || 'image/jpeg');
 
+  // USE GEMINI (free) as primary
+  if (genAI) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.0-flash',
+        generationConfig: { responseMimeType: 'application/json' },
+      });
+
+      const prompt = `Voce e um assistente da plataforma vita id. Analise esta foto de resultado de exame alergico ou medicamento que pode causar alergia.
+
+Retorne um JSON:
+{
+  "tipo": "exame_alergico" ou "nao_exame",
+  "mensagem": "string (se nao for exame/medicamento)",
+  "alergias": [
+    {
+      "nome": "string (nome da substancia/alergeno)",
+      "categoria": "MEDICAMENTO" ou "ALIMENTO" ou "AMBIENTAL" ou "CONTATO" ou "OUTRO",
+      "gravidade": "LEVE" ou "MODERADA" ou "GRAVE" ou null,
+      "detalhe": "string ou null",
+      "uncertain": false
+    }
+  ]
+}
+
+REGRAS:
+- Se nao conseguir ler, coloque null (NUNCA invente)
+- Se nao for exame/medicamento: tipo "nao_exame"`;
+
+      const result = await model.generateContent([
+        { inlineData: { mimeType: mediaType, data: base64 } },
+        prompt,
+      ]);
+
+      const text = result.response.text().trim();
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) parsed = JSON.parse(jsonMatch[1].trim());
+        else throw new Error('JSON invalido do Gemini');
+      }
+      return parsed;
+    } catch (geminiErr) {
+      console.error('[SCAN-ALERGIA] Gemini falhou, tentando Claude:', geminiErr.message);
+    }
+  }
+
+  // FALLBACK: Claude
   let contentItem;
   if (tipo === 'application/pdf') {
     contentItem = { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } };
   } else {
-    const mediaType = tipo === 'image/jpg' ? 'image/jpeg' : tipo;
     contentItem = { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } };
   }
 
