@@ -48,11 +48,53 @@ button{padding:10px 20px;background:#00E5A0;color:#000;border:none;border-radius
 <div id="log"></div>
 
 <script type="module">
-// Import the polyfill
-import { BarcodeDetector as BD } from "https://cdn.jsdelivr.net/npm/barcode-detector@3/dist/es/pure.min.js";
-window._Polyfill = BD;
-window._polyfillLoaded = true;
-log('Modulo barcode-detector importado com sucesso');
+// Attempt 1: barcode-detector v3 (Sec-ant) via jsdelivr
+try {
+    const mod = await import("https://cdn.jsdelivr.net/npm/barcode-detector@3/dist/es/pure.min.js");
+    window._Polyfill = mod.BarcodeDetector;
+    window._polyfillLoaded = true;
+    window._polyfillSource = 'barcode-detector@3 (jsdelivr)';
+    log('✓ Attempt 1 OK: barcode-detector@3 via jsdelivr');
+} catch(e1) {
+    log('✗ Attempt 1 FAIL: ' + e1.message);
+    // Attempt 2: same package via unpkg
+    try {
+        const mod2 = await import("https://unpkg.com/barcode-detector@3/dist/es/pure.min.js");
+        window._Polyfill = mod2.BarcodeDetector;
+        window._polyfillLoaded = true;
+        window._polyfillSource = 'barcode-detector@3 (unpkg)';
+        log('✓ Attempt 2 OK: barcode-detector@3 via unpkg');
+    } catch(e2) {
+        log('✗ Attempt 2 FAIL: ' + e2.message);
+        // Attempt 3: @AveChipBayern/zxing-wasm direct
+        try {
+            const mod3 = await import("https://cdn.jsdelivr.net/npm/@AveChipBayern/zxing-wasm@1.2.12/dist/index.min.js");
+            window._polyfillLoaded = false; // different API
+            window._zxingDirect = mod3;
+            log('✓ Attempt 3 OK: zxing-wasm direct');
+        } catch(e3) {
+            log('✗ Attempt 3 FAIL: ' + e3.message);
+            // Attempt 4: @niccokunzmann/zxing-wasm
+            try {
+                const mod4 = await import("https://cdn.jsdelivr.net/npm/@niccokunzmann/zxing-wasm/dist/index.js");
+                window._polyfillLoaded = false;
+                window._zxingDirect = mod4;
+                log('✓ Attempt 4 OK: @niccokunzmann/zxing-wasm');
+            } catch(e4) {
+                log('✗ Attempt 4 FAIL: ' + e4.message);
+                log('TODOS OS METODOS FALHARAM');
+            }
+        }
+    }
+}
+</script>
+
+<script>
+// Attempt 5 (non-module): Load @AveChipBayern/zxing-wasm via classic script
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@AveChipBayern/zxing-wasm@1.2.12/dist/iife/full/reader.js"
+    onload="window._iife_loaded=true;log('✓ Attempt 5 OK: zxing-wasm IIFE loaded')"
+    onerror="log('✗ Attempt 5 FAIL: zxing-wasm IIFE failed to load')">
 </script>
 
 <script>
@@ -146,11 +188,19 @@ async function testDetector() {
     }
 
     if (window._polyfillLoaded && window._Polyfill) {
-        setResult(6, 'pass', 'Polyfill carregou em ' + waited + 'ms');
-        log('Polyfill: CARREGOU em ' + waited + 'ms');
+        setResult(6, 'pass', 'Polyfill carregou em ' + waited + 'ms via ' + (window._polyfillSource || '?'));
+        log('Polyfill: CARREGOU em ' + waited + 'ms via ' + (window._polyfillSource || '?'));
+    } else if (window._iife_loaded) {
+        setResult(6, 'info', 'Polyfill NAO carregou, mas IIFE (zxing-wasm reader) carregou');
+        log('Polyfill: NAO, mas IIFE sim. Verificando API...');
+        // Try to use IIFE API
+        if (window.ZXing) {
+            log('ZXing global encontrado: ' + Object.keys(window.ZXing).join(', '));
+        }
     } else {
-        setResult(6, 'fail', 'Polyfill NAO carregou apos 10s');
-        log('Polyfill: FALHOU');
+        setResult(6, 'fail', 'NENHUM decoder carregou apos 10s. Verifique conexao e logs.');
+        log('Polyfill: FALHOU. IIFE: FALHOU.');
+        log('Possiveis causas: CORS, CSP, erro de rede, modulo incompativel com Safari');
         return;
     }
 
