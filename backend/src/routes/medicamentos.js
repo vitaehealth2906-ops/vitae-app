@@ -213,19 +213,26 @@ router.get('/info/:nome', async (req, res, next) => {
 
 router.post('/scan', uploadScan.single('arquivo'), async (req, res, next) => {
   try {
+    console.log('[SCAN] === Nova requisicao de scan ===');
+    console.log('[SCAN] File:', req.file ? `${req.file.mimetype} ${req.file.size} bytes` : 'NENHUM');
+    console.log('[SCAN] User:', req.usuario?.id || 'desconhecido');
+
     if (!req.file) {
       return res.status(400).json({ erro: 'Nenhum arquivo enviado.' });
     }
 
     const { buffer, mimetype } = req.file;
+    console.log('[SCAN] Enviando pra AI... mimetype:', mimetype, 'buffer size:', buffer.length);
 
     // Use AI to extract medications from the image/PDF
     let resultado;
     try {
       resultado = await ai.scanReceita(buffer, mimetype);
+      console.log('[SCAN] AI respondeu:', resultado?.tipo, resultado?.medicamentos?.length || 0, 'meds');
     } catch (aiErr) {
       const msg = String(aiErr.message || aiErr || '');
-      if (msg.includes('credit') || msg.includes('balance') || msg.includes('billing')) {
+      console.error('[SCAN] AI ERRO COMPLETO:', msg);
+      if (msg.includes('credit') || msg.includes('balance') || msg.includes('billing') || msg.includes('quota') || msg.includes('exceeded')) {
         return res.status(503).json({ erro: 'Servico de identificacao temporariamente indisponivel. Tente novamente em alguns minutos.' });
       }
       if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) {

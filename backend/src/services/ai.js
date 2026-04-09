@@ -875,8 +875,12 @@ async function scanReceita(arquivoBuffer, mimeType) {
   const mediaType = tipo === 'image/jpg' ? 'image/jpeg' : (tipo || 'image/jpeg');
 
   // USE GEMINI (free) as primary, Claude as fallback
+  console.log('[SCAN-AI] genAI disponivel:', !!genAI, '| GEMINI_API_KEY:', !!process.env.GEMINI_API_KEY);
+  console.log('[SCAN-AI] base64 size:', base64.length, '| mediaType:', mediaType);
+
   if (genAI) {
     try {
+      console.log('[SCAN-AI] Tentando Gemini 2.5 Flash...');
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash',
         generationConfig: { responseMimeType: 'application/json' },
@@ -920,16 +924,18 @@ REGRAS:
       ]);
 
       const text = result.response.text().trim();
+      console.log('[SCAN-AI] Gemini respondeu:', text.substring(0, 300));
+
       let parsed;
       try {
         parsed = JSON.parse(text);
       } catch {
         const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
         if (jsonMatch) parsed = JSON.parse(jsonMatch[1].trim());
-        else throw new Error('JSON invalido do Gemini');
+        else throw new Error('JSON invalido do Gemini: ' + text.substring(0, 100));
       }
 
-      console.log('[SCAN] Gemini identificou:', parsed.tipo, parsed.medicamentos?.length || 0, 'meds');
+      console.log('[SCAN-AI] Gemini identificou:', parsed.tipo, parsed.medicamentos?.length || 0, 'meds');
       return parsed;
     } catch (geminiErr) {
       console.error('[SCAN] Gemini falhou, tentando Claude:', geminiErr.message);
