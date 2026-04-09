@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teste de Scan — vita id</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0D0F14;color:#fff;font-family:system-ui;padding:16px}
+h1{font-size:18px;color:#00E5A0;margin-bottom:12px}
+button{padding:12px 24px;background:#00E5A0;color:#000;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin:4px}
+#log{background:#161921;padding:12px;border-radius:8px;font-family:monospace;font-size:11px;white-space:pre-wrap;margin-top:12px;max-height:400px;overflow-y:auto;color:#9CA3AF}
+.ok{color:#00E5A0}
+.err{color:#EF4444}
+img{max-width:200px;border-radius:8px;margin:8px 0}
+</style>
+</head>
+<body>
+<h1>Teste de Scan Direto</h1>
+<p style="font-size:12px;color:#9CA3AF;margin-bottom:12px">Envia foto DIRETO pro servidor sem login, sem sessionStorage, sem nada intermediario</p>
+
+<button onclick="document.getElementById('f').click()">Tirar foto</button>
+<button onclick="document.getElementById('g').click()">Galeria</button>
+<input type="file" accept="image/*" capture="environment" id="f" style="display:none" onchange="send(event)">
+<input type="file" accept="image/*" id="g" style="display:none" onchange="send(event)">
+
+<div id="preview"></div>
+<div id="log"></div>
+
+<script>
+const API = 'https://vitae-app-production.up.railway.app';
+const L = document.getElementById('log');
+
+function log(msg, cls) {
+    const t = new Date().toLocaleTimeString();
+    L.innerHTML += `<span class="${cls||''}">[${t}] ${msg}</span>\n`;
+    L.scrollTop = L.scrollHeight;
+}
+
+async function send(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+
+    // Show preview
+    const url = URL.createObjectURL(file);
+    document.getElementById('preview').innerHTML = `<img src="${url}">`;
+
+    log('Arquivo: ' + file.name + ' | ' + file.type + ' | ' + (file.size/1024).toFixed(0) + 'KB');
+
+    // Send DIRECTLY to test endpoint (no login needed)
+    const formData = new FormData();
+    formData.append('arquivo', file);
+
+    log('Enviando pro servidor...');
+    const t0 = Date.now();
+
+    try {
+        const resp = await fetch(API + '/test-scan', {
+            method: 'POST',
+            body: formData
+        });
+
+        const dt = ((Date.now() - t0) / 1000).toFixed(1);
+        log('Resposta em ' + dt + 's | HTTP ' + resp.status);
+
+        const data = await resp.json();
+        log('OK: ' + (data.ok ? 'SIM' : 'NAO'), data.ok ? 'ok' : 'err');
+
+        if (data.log) {
+            data.log.forEach(l => log('  SERVER: ' + l));
+        }
+
+        if (data.result) {
+            log('RESULTADO:', 'ok');
+            log('  Tipo: ' + data.result.tipo, 'ok');
+            if (data.result.medicamentos) {
+                data.result.medicamentos.forEach(m => {
+                    log('  → ' + m.nome + ' ' + (m.dosagem||'') + ' (' + (m.confianca||'?') + ')', 'ok');
+                });
+            }
+        }
+
+        if (data.erro) {
+            log('ERRO: ' + data.erro, 'err');
+        }
+
+    } catch(e) {
+        log('FALHA: ' + e.message, 'err');
+    }
+}
+</script>
+</body>
+</html>

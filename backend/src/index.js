@@ -61,7 +61,32 @@ app.get('/health', (_req, res) => {
 });
 
 // Version check endpoint
-app.get('/version', (_req, res) => res.json({ version: '3.0-templates', timestamp: '2026-03-22T22:00:00Z' }));
+app.get('/version', (_req, res) => res.json({ version: '3.1-gemini', timestamp: new Date().toISOString() }));
+
+// ── DIAGNOSTICO: teste do scan sem login ──────────────
+app.post('/test-scan', require('multer')({ storage: require('multer').memoryStorage(), limits: { fileSize: 10*1024*1024 } }).single('arquivo'), async (req, res) => {
+  const log = [];
+  log.push('Request received');
+  log.push('File: ' + (req.file ? `${req.file.mimetype} ${req.file.size} bytes` : 'NENHUM'));
+
+  if (!req.file) {
+    return res.json({ ok: false, log, erro: 'Nenhum arquivo' });
+  }
+
+  try {
+    const ai = require('./services/ai');
+    log.push('AI module loaded');
+    log.push('Calling scanReceita...');
+
+    const result = await ai.scanReceita(req.file.buffer, req.file.mimetype);
+    log.push('Result: ' + JSON.stringify(result).substring(0, 200));
+
+    return res.json({ ok: true, log, result });
+  } catch(e) {
+    log.push('ERROR: ' + e.message);
+    return res.json({ ok: false, log, erro: e.message });
+  }
+});
 
 // ── Montagem das rotas ─────────────────────────────────
 app.use('/auth', authRoutes);
