@@ -208,23 +208,32 @@
 
 <script src="api.js"></script>
 <script>
-    // Try to load real scan results from API, fallback to demo data
+    // Load scan results (from barcode or API)
     const scanResult = JSON.parse(sessionStorage.getItem('vitae_scan_result') || 'null');
+    const scanTipo = scanResult ? (scanResult.tipo || 'api') : 'none';
+    const scanConfianca = scanResult ? (scanResult.confianca || 'media') : 'baixa';
 
     let scannedMeds = [];
     let allergyConflicts = [];
 
     if (scanResult && scanResult.medicamentos && scanResult.medicamentos.length > 0) {
-        // Real API data
+        // Real data (from barcode or API)
         scannedMeds = scanResult.medicamentos.map(m => ({
             nome: m.nome,
+            substancia: m.substancia || '',
             dosagem: m.dosagem || '',
             frequencia: m.frequencia || '',
-            horario: m.horario || '08:00',
+            horario: m.horario || '',
+            laboratorio: m.laboratorio || '',
+            tipo: m.tipo || '',
+            classe: m.classe || '',
+            tarja: m.tarja || '',
+            ean: m.ean || '',
             enabled: true,
             uncertain: m.uncertain || false,
             nota: m.duracao || m.via || m.observacao || '',
             alertaAlergia: m.alertaAlergia || false,
+            confianca: scanConfianca,
         }));
         // Build allergy conflicts from API response
         scannedMeds.filter(m => m.alertaAlergia).forEach(m => {
