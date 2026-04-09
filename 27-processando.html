@@ -235,10 +235,38 @@
 
     async function runStep(i) {
         if (i >= steps.length) {
+            animationDone = true;
+
+            // Wait for API if it hasn't finished yet
+            if (!apiResult && !apiError && typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
+                document.getElementById('mainTitle').textContent = 'Finalizando...';
+                document.getElementById('completeText').textContent = 'Aguarde mais alguns segundos...';
+
+                // Poll every 500ms for up to 20s
+                let waited = 0;
+                const pollInterval = setInterval(() => {
+                    waited += 500;
+                    if (apiResult || apiError || waited >= 20000) {
+                        clearInterval(pollInterval);
+                        navigateToReview();
+                    }
+                }, 500);
+            } else {
+                navigateToReview();
+            }
+            return;
+        }
+
+        function navigateToReview() {
             document.getElementById('mainTitle').textContent = 'Pronto!';
             document.getElementById('completeMsg').classList.add('show');
+            if (apiResult) {
+                document.getElementById('completeTitle').textContent = 'Pronto!';
+            } else if (apiError) {
+                document.getElementById('completeTitle').textContent = 'Pronto!';
+                document.getElementById('completeText').textContent = 'Alguns dados podem precisar de ajuste manual.';
+            }
 
-            // Navigate to review after 1.5s
             setTimeout(() => {
                 document.getElementById('exitOverlay').classList.add('active');
                 setTimeout(() => {
@@ -248,8 +276,7 @@
                         window.location.href = '28-revisao-receita.html?from=' + from;
                     }
                 }, 500);
-            }, 1500);
-            return;
+            }, 1000);
         }
 
         // Mark previous as done
