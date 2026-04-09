@@ -107,6 +107,24 @@
         .tab.active svg { stroke:#00E5A0 !important; }
         .tab.active .tab-label { color:#00E5A0; font-weight:700; }
 
+        /* Edit bottom sheet */
+        .edit-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.4);z-index:30;opacity:0;pointer-events:none;transition:opacity 0.3s}
+        .edit-overlay.show{opacity:1;pointer-events:all}
+        .edit-sheet{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;padding:20px 24px 32px;z-index:31;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.4,0,0.2,1)}
+        .edit-sheet.show{transform:translateY(0)}
+        .edit-handle{width:36px;height:4px;border-radius:2px;background:rgba(0,0,0,0.1);margin:0 auto 16px}
+        .edit-title{font-size:16px;font-weight:800;color:#0D0F14;margin-bottom:16px}
+        .edit-label{font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;margin-top:12px}
+        .edit-label:first-of-type{margin-top:0}
+        .edit-input{width:100%;padding:12px 14px;background:#F4F6FA;border:1.5px solid rgba(0,0,0,0.07);border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:500;color:#0D0F14;outline:none;transition:all 0.2s}
+        .edit-input:focus{border-color:rgba(0,229,160,0.4);background:rgba(0,229,160,0.04)}
+        .edit-save{width:100%;padding:14px;background:linear-gradient(120deg,#00E5A0,#00B4D8);border:none;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;margin-top:16px;transition:all 0.2s}
+        .edit-save:active{transform:scale(0.97)}
+
+        /* Edit link in med card */
+        .med-edit{font-size:10px;font-weight:600;color:#00E5A0;cursor:pointer;margin-top:4px;display:inline-block}
+        .med-edit:hover{text-decoration:underline}
+
         /* Toast */
         .toast { position:absolute; top:60px; left:50%; transform:translateX(-50%) translateY(-20px); background:rgba(255,255,255,0.95); backdrop-filter:blur(24px); border:1px solid rgba(0,0,0,0.07); border-radius:14px; padding:14px 22px; display:flex; align-items:center; gap:10px; z-index:50; opacity:0; pointer-events:none; transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 4px 20px rgba(0,0,0,0.08); }
         .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
@@ -139,9 +157,15 @@
             </div>
         </div>
 
-        <div class="badge-row">
-            <div class="badge green" id="countBadge">4 identificados</div>
-            <div class="badge-text">na sua receita</div>
+        <!-- Photo thumbnail -->
+        <div id="photoRow" style="display:none;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+            <div style="width:48px;height:48px;border-radius:10px;overflow:hidden;border:1px solid rgba(0,0,0,0.07);flex-shrink:0;background:#eee">
+                <img id="reviewPhoto" style="width:100%;height:100%;object-fit:cover" alt="">
+            </div>
+            <div>
+                <div class="badge green" id="countBadge">4 identificados</div>
+                <div class="badge-text" style="margin-top:2px">na sua receita</div>
+            </div>
         </div>
 
         <div id="medsList"></div>
@@ -153,6 +177,22 @@
             <div class="cta-sub">Voce pode editar depois no perfil</div>
         </button>
         <button class="cta-secondary" onclick="scanAnother()">Escanear outra receita</button>
+    </div>
+
+    <!-- Edit sheet -->
+    <div class="edit-overlay" id="editOverlay" onclick="closeEdit()"></div>
+    <div class="edit-sheet" id="editSheet">
+        <div class="edit-handle"></div>
+        <div class="edit-title" id="editTitle">Editar medicamento</div>
+        <div class="edit-label">Nome</div>
+        <input class="edit-input" id="editNome" type="text">
+        <div class="edit-label">Dosagem</div>
+        <input class="edit-input" id="editDosagem" type="text" placeholder="Ex: 500mg">
+        <div class="edit-label">Frequencia</div>
+        <input class="edit-input" id="editFreq" type="text" placeholder="Ex: 1x ao dia">
+        <div class="edit-label">Horario</div>
+        <input class="edit-input" id="editHorario" type="text" placeholder="Ex: 08:00">
+        <button class="edit-save" onclick="saveEdit()">Salvar</button>
     </div>
 
     <!-- Tab Bar -->
@@ -237,11 +277,9 @@
                     <div style="flex:1;min-width:0">
                         <div class="med-name ${m.uncertain ? 'warn' : ''}">${m.nome}</div>
                         <div class="med-detail">${m.uncertain ? 'Frequencia nao identificada — toque para completar' : (m.frequencia + (m.nota ? ' · ' + m.nota : ''))}</div>
+                        <div class="med-edit" onclick="event.stopPropagation();editMed(${i})">${m.uncertain ? 'Completar' : 'Editar'}</div>
                     </div>
-                    ${m.uncertain
-                        ? `<div class="edit-btn" onclick="editMed(${i})"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>`
-                        : `<div class="toggle ${m.enabled ? '' : 'off'}" onclick="toggleMed(${i})"></div>`
-                    }
+                    <div class="toggle ${m.enabled ? '' : 'off'}" onclick="event.stopPropagation();toggleMed(${i})" style="${m.uncertain ? 'display:none' : ''}"></div>
                 </div>
             `;
         });
@@ -268,14 +306,41 @@
         renderMeds();
     }
 
+    let editingIndex = -1;
+
     function editMed(i) {
-        const freq = prompt('Qual a frequencia de ' + scannedMeds[i].nome + '?', '1x ao dia');
-        if (freq) {
-            scannedMeds[i].frequencia = freq;
-            scannedMeds[i].uncertain = false;
-            renderMeds();
-            showToast(scannedMeds[i].nome + ' atualizado');
-        }
+        editingIndex = i;
+        const m = scannedMeds[i];
+        document.getElementById('editTitle').textContent = m.uncertain ? 'Completar informacoes' : 'Editar medicamento';
+        document.getElementById('editNome').value = m.nome;
+        document.getElementById('editDosagem').value = m.dosagem || '';
+        document.getElementById('editFreq').value = m.frequencia || '';
+        document.getElementById('editHorario').value = m.horario || '';
+        document.getElementById('editOverlay').classList.add('show');
+        document.getElementById('editSheet').classList.add('show');
+        setTimeout(() => {
+            if (m.uncertain) document.getElementById('editFreq').focus();
+            else document.getElementById('editNome').focus();
+        }, 300);
+    }
+
+    function closeEdit() {
+        document.getElementById('editOverlay').classList.remove('show');
+        document.getElementById('editSheet').classList.remove('show');
+        editingIndex = -1;
+    }
+
+    function saveEdit() {
+        if (editingIndex < 0) return;
+        const m = scannedMeds[editingIndex];
+        m.nome = document.getElementById('editNome').value.trim() || m.nome;
+        m.dosagem = document.getElementById('editDosagem').value.trim();
+        m.frequencia = document.getElementById('editFreq').value.trim();
+        m.horario = document.getElementById('editHorario').value.trim();
+        if (m.frequencia) m.uncertain = false;
+        closeEdit();
+        renderMeds();
+        showToast(m.nome + ' atualizado');
     }
 
     async function confirmMeds() {
@@ -345,6 +410,13 @@
             const routes = { perfil:'08-perfil.html', score:'10-score.html', exames:'11-exames-lista.html', qrcode:'21-qrcode.html', editar:'09-dados-pessoais.html' };
             window.location.href = routes[tab] || '08-perfil.html';
         }, 400);
+    }
+
+    // Show photo thumbnail
+    const photoData = sessionStorage.getItem('vitae_scan_file');
+    if (photoData && photoData.startsWith('data:image')) {
+        document.getElementById('reviewPhoto').src = photoData;
+        document.getElementById('photoRow').style.display = 'flex';
     }
 
     // Init
