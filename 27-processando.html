@@ -231,11 +231,11 @@ n    // Personalize last step with patient name
 
     // Step animation
     const steps = [
-        { pct: 18, time: '0.6s', dur: 1000 },
-        { pct: 40, time: '1.1s', dur: 1300 },
-        { pct: 65, time: '1.8s', dur: 1600 },
-        { pct: 85, time: '1.2s', dur: 1200 },
-        { pct: 100, time: '0.9s', dur: 1000 },
+        { pct: 20, time: '0.4s', dur: 600 },
+        { pct: 45, time: '0.8s', dur: 800 },
+        { pct: 70, time: '1.2s', dur: 900 },
+        { pct: 90, time: '0.7s', dur: 700 },
+        { pct: 100, time: '0.5s', dur: 500 },
     ];
 
     const checkSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
@@ -262,16 +262,27 @@ n    // Personalize last step with patient name
         if (i >= steps.length) {
             animationDone = true;
 
-            // Wait for API if it hasn't finished yet
+            // Wait for API — but max 10 seconds, with progress feedback
             if (!apiResult && !apiError && typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
                 document.getElementById('mainTitle').textContent = 'Finalizando...';
-                document.getElementById('completeText').textContent = 'Aguarde mais alguns segundos...';
+                document.getElementById('completeText').textContent = 'Aguarde um momento...';
 
-                // Poll every 500ms for up to 20s
                 let waited = 0;
                 const pollInterval = setInterval(() => {
                     waited += 500;
-                    if (apiResult || apiError || waited >= 20000) {
+
+                    // After 5s: show "taking longer" message
+                    if (waited >= 5000 && waited < 5500) {
+                        document.getElementById('completeText').textContent = 'Estamos demorando um pouco mais que o normal...';
+                    }
+
+                    // After 8s: show manual option
+                    if (waited >= 8000 && waited < 8500) {
+                        document.getElementById('completeText').innerHTML = 'Demorando mais que o esperado.<br><br><button onclick="navigateToReview()" style="padding:10px 24px;background:linear-gradient(120deg,#00E5A0,#00B4D8);border:none;border-radius:12px;font-family:inherit;font-size:13px;font-weight:700;color:#fff;cursor:pointer">Continuar mesmo assim</button><br><br><button onclick="window.location.href=\'16-medicamentos.html\'" style="padding:8px 20px;background:none;border:1px solid rgba(255,255,255,0.15);border-radius:10px;font-family:inherit;font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);cursor:pointer">Digitar manualmente</button>';
+                    }
+
+                    // After 10s: auto-navigate (with whatever we have)
+                    if (apiResult || apiError || waited >= 10000) {
                         clearInterval(pollInterval);
                         navigateToReview();
                     }
