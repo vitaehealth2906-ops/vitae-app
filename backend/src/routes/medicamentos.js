@@ -220,7 +220,23 @@ router.post('/scan', uploadScan.single('arquivo'), async (req, res, next) => {
     const { buffer, mimetype } = req.file;
 
     // Use AI to extract medications from the image/PDF
-    const resultado = await ai.scanReceita(buffer, mimetype);
+    let resultado;
+    try {
+      resultado = await ai.scanReceita(buffer, mimetype);
+    } catch (aiErr) {
+      const msg = String(aiErr.message || aiErr || '');
+      if (msg.includes('credit') || msg.includes('balance') || msg.includes('billing')) {
+        return res.status(503).json({ erro: 'Servico de identificacao temporariamente indisponivel. Tente novamente em alguns minutos.' });
+      }
+      if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) {
+        return res.status(504).json({ erro: 'Identificacao demorou mais que o esperado. Tente com uma foto mais simples.' });
+      }
+      if (msg.includes('too large') || msg.includes('maximum')) {
+        return res.status(413).json({ erro: 'Foto muito grande. Tente com uma foto menor ou mais comprimida.' });
+      }
+      console.error('[SCAN] AI error:', msg);
+      return res.status(500).json({ erro: 'Nao foi possivel analisar a foto. Tente novamente.' });
+    }
 
     if (resultado.tipo === 'nao_receita') {
       return res.status(400).json({ erro: resultado.mensagem || 'Documento nao parece ser uma receita medica.' });

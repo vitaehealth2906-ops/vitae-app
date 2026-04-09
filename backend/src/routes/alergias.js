@@ -150,7 +150,21 @@ router.post('/scan', uploadScan.single('arquivo'), async (req, res, next) => {
     }
 
     const { buffer, mimetype } = req.file;
-    const resultado = await ai.scanAlergia(buffer, mimetype);
+
+    let resultado;
+    try {
+      resultado = await ai.scanAlergia(buffer, mimetype);
+    } catch (aiErr) {
+      const msg = String(aiErr.message || aiErr || '');
+      if (msg.includes('credit') || msg.includes('balance') || msg.includes('billing')) {
+        return res.status(503).json({ erro: 'Servico de identificacao temporariamente indisponivel.' });
+      }
+      if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) {
+        return res.status(504).json({ erro: 'Identificacao demorou mais que o esperado.' });
+      }
+      console.error('[SCAN-ALERGIA] AI error:', msg);
+      return res.status(500).json({ erro: 'Nao foi possivel analisar a foto.' });
+    }
 
     if (resultado.tipo === 'nao_exame') {
       return res.status(400).json({ erro: resultado.mensagem || 'Documento nao parece ser um resultado de exame alergico.' });
