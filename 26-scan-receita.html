@@ -267,20 +267,65 @@ function checkImageQuality(dataUrl) {
 }
 
 // ===== SEND PHOTO =====
-function sendPhoto() {
-    if (!currentDataUrl) return;
+async function sendPhoto() {
+    if (!currentFile) return;
 
-    // Store in sessionStorage
-    sessionStorage.setItem('vitae_scan_file', currentDataUrl);
-    sessionStorage.setItem('vitae_scan_filename', currentFile ? currentFile.name : 'foto.jpg');
-    sessionStorage.setItem('vitae_scan_tipo', tipo);
-    sessionStorage.removeItem('vitae_scan_result');
+    // Show loading state
+    const btn = document.querySelector('.action-btn.primary');
+    btn.textContent = 'Identificando...';
+    btn.style.opacity = '0.7';
+    btn.style.pointerEvents = 'none';
 
-    // Navigate to processing
-    document.getElementById('exitOverlay').classList.add('active');
-    setTimeout(() => {
-        window.location.href = '27-processando.html?tipo=' + tipo + '&from=' + from;
-    }, 400);
+    try {
+        // Check login
+        if (typeof vitaeAPI === 'undefined' || !vitaeAPI.isLoggedIn()) {
+            showToast('Faca login para identificar medicamentos');
+            btn.textContent = 'Enviar e identificar';
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+            return;
+        }
+
+        // Send the ORIGINAL file directly to the server (no base64 conversion)
+        const formData = new FormData();
+        formData.append('arquivo', currentFile);
+
+        let result;
+        if (tipo === 'alergia') {
+            result = await vitaeAPI.scanAlergia(currentFile);
+        } else {
+            result = await vitaeAPI.scanReceita(currentFile);
+        }
+
+        // Validate result
+        if (!result || (!result.medicamentos && !result.alergias)) {
+            showToast('Nao foi possivel identificar. Tente outra foto.');
+            btn.textContent = 'Enviar e identificar';
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+            return;
+        }
+
+        // Store result and navigate to review
+        sessionStorage.setItem('vitae_scan_result', JSON.stringify(result));
+        sessionStorage.setItem('vitae_scan_tipo', tipo);
+
+        document.getElementById('exitOverlay').classList.add('active');
+        setTimeout(() => {
+            if (tipo === 'alergia') {
+                window.location.href = '31-revisao-alergias.html?from=' + from;
+            } else {
+                window.location.href = '28-revisao-receita.html?from=' + from;
+            }
+        }, 400);
+
+    } catch (e) {
+        const msg = e.message || 'Erro desconhecido';
+        showToast(msg);
+        btn.textContent = 'Enviar e identificar';
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+    }
 }
 
 // ===== NAVIGATION =====
