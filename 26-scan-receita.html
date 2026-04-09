@@ -3,285 +3,342 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>vitaid — Tirar foto</title>
+    <title>vitaid — Adicionar medicamento</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         body{background:#000;font-family:'Plus Jakarta Sans',sans-serif;overflow:hidden;height:100vh;height:100dvh}
+        .page{position:relative;width:100%;height:100vh;height:100dvh;overflow:hidden;background:#000}
 
-        /* Fullscreen camera */
-        .camera-page{position:relative;width:100%;height:100vh;height:100dvh;overflow:hidden;background:#000}
-        video{width:100%;height:100%;object-fit:cover;display:block}
-        canvas{display:none}
+        /* Onboarding overlay (first time) */
+        .onboard{position:absolute;inset:0;z-index:100;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center}
+        .onboard.hidden{display:none}
+        .onboard-icon{width:100px;height:100px;border-radius:24px;background:rgba(0,229,160,0.1);border:2px solid rgba(0,229,160,0.2);display:flex;align-items:center;justify-content:center;margin-bottom:24px;animation:bobUp 2s ease infinite}
+        @keyframes bobUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+        .onboard-icon svg{width:48px;height:48px;stroke:#00E5A0}
+        .onboard-title{font-size:22px;font-weight:800;color:#fff;margin-bottom:8px}
+        .onboard-sub{font-size:14px;color:rgba(255,255,255,0.5);line-height:1.6;margin-bottom:8px;max-width:280px}
+        .onboard-hint{font-size:12px;color:rgba(0,229,160,0.6);margin-bottom:32px}
+        .onboard-btn{padding:16px 48px;background:linear-gradient(120deg,#00E5A0,#00B4D8);border:none;border-radius:16px;font-family:inherit;font-size:16px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 4px 20px rgba(0,229,160,0.3)}
+        .onboard-btn:active{transform:scale(0.95)}
+
+        /* Scanner area (html5-qrcode) */
+        #scanner{width:100%;height:100%;position:absolute;inset:0}
+        #scanner video{width:100%!important;height:100%!important;object-fit:cover!important}
 
         /* Top bar */
-        .cam-top{position:absolute;top:0;left:0;right:0;padding:52px 20px 12px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(0,0,0,0.5),transparent);z-index:10}
-        .cam-back{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1)}
-        .cam-back:active{transform:scale(0.9)}
-        .cam-back svg{width:20px;height:20px;stroke:#fff}
+        .top{position:absolute;top:0;left:0;right:0;padding:52px 20px 12px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(0,0,0,0.6),transparent);z-index:20}
+        .back{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1)}
+        .back:active{transform:scale(0.9)}
+        .back svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+        .torch{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1)}
+        .torch:active{transform:scale(0.9)}
+        .torch.on{background:rgba(0,229,160,0.2);border-color:rgba(0,229,160,0.3)}
+        .torch svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+        .help{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1);font-size:16px;font-weight:800;color:rgba(255,255,255,0.5)}
 
-        /* Status indicator */
-        .cam-status{position:absolute;top:110px;left:0;right:0;text-align:center;z-index:10;transition:all 0.3s}
-        .cam-status-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:all 0.3s}
-        .cam-status-pill.searching{background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1)}
-        .cam-status-pill.detected{background:rgba(0,229,160,0.15);color:#00E5A0;border:1px solid rgba(0,229,160,0.2)}
-        .cam-status-dot{width:6px;height:6px;border-radius:50%;transition:all 0.3s}
-        .searching .cam-status-dot{background:rgba(255,255,255,0.4);animation:pulse 1.5s ease infinite}
-        .detected .cam-status-dot{background:#00E5A0}
+        /* Status pill */
+        .status-area{position:absolute;top:110px;left:0;right:0;text-align:center;z-index:20}
+        .status-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;backdrop-filter:blur(20px);transition:all 0.3s}
+        .status-pill.searching{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.1)}
+        .status-pill.found{background:rgba(0,229,160,0.15);color:#00E5A0;border:1px solid rgba(0,229,160,0.25)}
+        .status-dot{width:6px;height:6px;border-radius:50%;transition:all 0.3s}
+        .searching .status-dot{background:rgba(255,255,255,0.3);animation:pulse 1.5s ease infinite}
+        .found .status-dot{background:#00E5A0}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
-        /* Document outline overlay */
-        .doc-outline{position:absolute;inset:0;z-index:5;pointer-events:none}
-        .doc-border{position:absolute;top:15%;left:8%;right:8%;bottom:30%;border:2px solid rgba(255,255,255,0.15);border-radius:12px;transition:all 0.4s ease}
-        .doc-border.detected{border-color:rgba(0,229,160,0.6);box-shadow:0 0 30px rgba(0,229,160,0.1)}
+        /* Bottom area */
+        .bottom{position:absolute;bottom:0;left:0;right:0;padding:16px 24px 40px;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);z-index:20;display:flex;flex-direction:column;align-items:center;gap:12px}
+        .hint{font-size:13px;font-weight:500;color:rgba(255,255,255,0.4);text-align:center;transition:all 0.3s}
+        .hint.found{color:#00E5A0}
+        .tip{font-size:11px;color:rgba(255,255,255,0.25);text-align:center;display:none}
+        .tip.show{display:block;animation:fadeIn 0.3s ease}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-        /* Bottom controls */
-        .cam-bottom{position:absolute;bottom:0;left:0;right:0;padding:20px 24px 40px;background:linear-gradient(to top,rgba(0,0,0,0.6),transparent);z-index:10;display:flex;flex-direction:column;align-items:center;gap:16px}
-        .cam-hint{font-size:13px;font-weight:500;color:rgba(255,255,255,0.5);text-align:center;transition:all 0.3s}
-        .cam-hint.detected{color:#00E5A0}
+        .controls{display:flex;align-items:center;justify-content:center;gap:24px}
+        .gallery-btn{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1)}
+        .gallery-btn:active{transform:scale(0.9)}
+        .gallery-btn svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
-        .cam-controls{display:flex;align-items:center;justify-content:center;gap:28px}
-        .cam-gallery{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1)}
-        .cam-gallery:active{transform:scale(0.9)}
-        .cam-gallery svg{width:20px;height:20px;stroke:#fff}
+        .photo-btn{width:64px;height:64px;border-radius:50%;border:3px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s}
+        .photo-btn.ready{border-color:#00E5A0}
+        .photo-btn:active{transform:scale(0.85)}
+        .photo-inner{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.1);transition:all 0.3s}
+        .photo-btn.ready .photo-inner{background:rgba(0,229,160,0.15)}
 
-        .shutter{width:68px;height:68px;border-radius:50%;border:3px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s}
-        .shutter.disabled{opacity:0.3;cursor:default}
-        .shutter.ready{border-color:#00E5A0}
-        .shutter:active:not(.disabled){transform:scale(0.85)}
-        .shutter-inner{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.15);transition:all 0.3s}
-        .shutter.ready .shutter-inner{background:rgba(0,229,160,0.2)}
+        .manual-link{font-size:11px;color:rgba(255,255,255,0.3);cursor:pointer;margin-top:4px}
+        .manual-link:active{color:rgba(255,255,255,0.5)}
 
-        .cam-flip{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1)}
-        .cam-flip:active{transform:scale(0.9)}
-        .cam-flip svg{width:20px;height:20px;stroke:#fff}
+        /* Flash */
+        .flash{position:absolute;inset:0;background:#fff;z-index:50;opacity:0;pointer-events:none;transition:opacity 0.15s}
+        .flash.on{opacity:0.6}
 
-        /* Gallery link */
-        .cam-gallery-link{font-size:11px;color:rgba(255,255,255,0.4);cursor:pointer}
-        .cam-gallery-link:hover{color:rgba(255,255,255,0.6)}
+        /* Success overlay */
+        .success-overlay{position:absolute;inset:0;z-index:60;background:rgba(0,0,0,0.8);display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px}
+        .success-overlay.show{display:flex;animation:fadeIn 0.3s ease}
+        .success-check{width:64px;height:64px;border-radius:50%;background:rgba(0,229,160,0.15);border:2px solid rgba(0,229,160,0.3);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+        .success-check svg{width:28px;height:28px;stroke:#00E5A0;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+        .success-name{font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;text-align:center}
+        .success-detail{font-size:13px;color:rgba(255,255,255,0.5);text-align:center}
+        .success-sub{font-size:11px;color:rgba(0,229,160,0.6);margin-top:12px}
 
-        /* Flash overlay */
-        .flash{position:absolute;inset:0;background:#fff;z-index:20;opacity:0;pointer-events:none;transition:opacity 0.15s}
-        .flash.active{opacity:0.6}
-
-        /* Hidden inputs */
-        .hidden-input{display:none}
+        .hidden{display:none}
     </style>
-    <link rel="stylesheet" href="vitae-core.css">
 </head>
 <body>
-<div class="camera-page">
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="canvas"></canvas>
+<div class="page">
+    <!-- Onboarding (first time) -->
+    <div class="onboard" id="onboard">
+        <div class="onboard-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                <line x1="7" y1="12" x2="17" y2="12"/>
+            </svg>
+        </div>
+        <div class="onboard-title">Aponte para o codigo de barras</div>
+        <div class="onboard-sub">Ele fica no verso ou na lateral da caixa do medicamento</div>
+        <div class="onboard-hint">A camera vai identificar automaticamente</div>
+        <button class="onboard-btn" onclick="dismissOnboard()">Entendi</button>
+    </div>
+
+    <!-- Scanner (html5-qrcode renders here) -->
+    <div id="scanner"></div>
+
+    <!-- Flash effect -->
     <div class="flash" id="flash"></div>
 
-    <!-- Top -->
-    <div class="cam-top">
-        <div class="cam-back" onclick="goBack()">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-        </div>
+    <!-- Top bar -->
+    <div class="top">
+        <div class="back" onclick="goBack()"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+        <div class="torch" id="torchBtn" onclick="toggleTorch()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div>
+        <div class="help" onclick="showOnboard()">?</div>
     </div>
 
     <!-- Status -->
-    <div class="cam-status">
-        <div class="cam-status-pill searching" id="statusPill">
-            <div class="cam-status-dot"></div>
-            <span id="statusText">Aponte para a receita ou embalagem</span>
+    <div class="status-area">
+        <div class="status-pill searching" id="statusPill">
+            <div class="status-dot"></div>
+            <span id="statusText">Procurando codigo de barras...</span>
         </div>
-    </div>
-
-    <!-- Document outline -->
-    <div class="doc-outline">
-        <div class="doc-border" id="docBorder"></div>
     </div>
 
     <!-- Bottom -->
-    <div class="cam-bottom">
-        <div class="cam-hint" id="camHint">Posicione o documento na frente da camera</div>
-        <div class="cam-controls">
-            <div class="cam-gallery" onclick="document.getElementById('galleryPick').click()">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </div>
-            <div class="shutter disabled" id="shutterBtn" onclick="capture()">
-                <div class="shutter-inner"></div>
-            </div>
-            <div class="cam-flip" onclick="flipCamera()">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>
-            </div>
+    <div class="bottom">
+        <div class="hint" id="hint">Posicione o codigo de barras na frente da camera</div>
+        <div class="tip" id="tip5s">Vire a caixa — o codigo fica no verso ou na lateral</div>
+        <div class="tip" id="tip10s">
+            <button style="padding:10px 20px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:12px;font-family:inherit;font-size:12px;font-weight:600;color:#fff;cursor:pointer" onclick="takePhoto()">Nao encontra? Tire uma foto da caixa</button>
         </div>
-        <div class="cam-gallery-link" onclick="document.getElementById('galleryPick').click()">Ja tem a foto salva? Escolha da galeria</div>
+        <div class="tip" id="tip15s">
+            <button style="padding:10px 20px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:12px;font-family:inherit;font-size:12px;font-weight:600;color:#00E5A0;cursor:pointer" onclick="goManual()">Ou digite o nome do medicamento</button>
+        </div>
+        <div class="controls">
+            <div class="gallery-btn" onclick="document.getElementById('fileInput').click()">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <div class="photo-btn" id="photoBtn" onclick="takePhoto()">
+                <div class="photo-inner"></div>
+            </div>
+            <div class="gallery-btn" style="visibility:hidden"><!-- spacer --></div>
+        </div>
+        <div class="manual-link" onclick="goManual()">Digitar o nome do medicamento</div>
     </div>
 
-    <input type="file" accept="image/*,application/pdf" class="hidden-input" id="galleryPick" onchange="handleGallery(event)">
+    <!-- Barcode found success -->
+    <div class="success-overlay" id="successOverlay">
+        <div class="success-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="success-name" id="successName">Medicamento encontrado</div>
+        <div class="success-detail" id="successDetail">Buscando informacoes...</div>
+        <div class="success-sub">Aguarde um momento</div>
+    </div>
+
+    <input type="file" accept="image/*,application/pdf" class="hidden" id="fileInput" onchange="handleFile(event)">
+    <input type="file" accept="image/*" capture="environment" class="hidden" id="cameraInput" onchange="handleFile(event)">
 </div>
 
+<script src="api.js"></script>
+<script src="cmed-search.js"></script>
 <script>
     const params = new URLSearchParams(window.location.search);
     const tipo = params.get('tipo') || 'receita';
     const from = params.get('from') || 'medicamentos';
 
-    let stream = null;
-    let facing = 'environment';
-    let documentDetected = false;
-    let stableFrames = 0;
-    let detectionInterval = null;
+    let scanner = null;
+    let torchOn = false;
+    let barcodeFound = false;
+    let tipTimers = [];
 
-    // Start camera
-    async function startCamera() {
+    // ---- Onboarding (first time only) ----
+    function dismissOnboard() {
+        document.getElementById('onboard').classList.add('hidden');
+        localStorage.setItem('vitae_scan_onboard_done', 'true');
+        startScanner();
+    }
+    function showOnboard() {
+        document.getElementById('onboard').classList.remove('hidden');
+    }
+
+    // ---- Progressive tips ----
+    function startTipTimers() {
+        tipTimers.push(setTimeout(() => {
+            if (!barcodeFound) document.getElementById('tip5s').classList.add('show');
+        }, 5000));
+        tipTimers.push(setTimeout(() => {
+            if (!barcodeFound) document.getElementById('tip10s').classList.add('show');
+        }, 10000));
+        tipTimers.push(setTimeout(() => {
+            if (!barcodeFound) document.getElementById('tip15s').classList.add('show');
+        }, 15000));
+    }
+    function clearTips() {
+        tipTimers.forEach(t => clearTimeout(t));
+        ['tip5s','tip10s','tip15s'].forEach(id => document.getElementById(id).classList.remove('show'));
+    }
+
+    // ---- Barcode scanner ----
+    async function startScanner() {
         try {
-            if (stream) stream.getTracks().forEach(t => t.stop());
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } }
-            });
-            document.getElementById('video').srcObject = stream;
-            startDetection();
+            // Pre-load CMED database
+            loadCmed();
+
+            scanner = new Html5Qrcode('scanner');
+            await scanner.start(
+                { facingMode: 'environment' },
+                {
+                    fps: 10,
+                    qrbox: { width: 280, height: 120 },
+                    aspectRatio: 1.0,
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.CODE_128,
+                    ]
+                },
+                onBarcodeSuccess,
+                () => {} // ignore scan misses
+            );
+            startTipTimers();
         } catch (e) {
-            // Camera not available — show gallery option only
+            console.log('Scanner error:', e);
+            // Camera not available — show file input only
             document.getElementById('statusText').textContent = 'Camera nao disponivel';
-            document.getElementById('camHint').textContent = 'Use o botao abaixo para escolher uma foto';
-            document.getElementById('shutterBtn').style.display = 'none';
+            document.getElementById('hint').textContent = 'Use os botoes abaixo para enviar uma foto';
         }
     }
 
-    function flipCamera() {
-        facing = facing === 'environment' ? 'user' : 'environment';
-        startCamera();
-    }
+    async function onBarcodeSuccess(decodedText) {
+        if (barcodeFound) return; // prevent double detection
+        barcodeFound = true;
 
-    // Simple document detection: analyze frame for edges and contrast
-    function startDetection() {
-        if (detectionInterval) clearInterval(detectionInterval);
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        // Stop scanner
+        if (scanner) try { await scanner.stop(); } catch(e) {}
+        clearTips();
 
-        detectionInterval = setInterval(() => {
-            if (video.readyState < 2) return;
+        // Flash
+        const flash = document.getElementById('flash');
+        flash.classList.add('on');
+        setTimeout(() => flash.classList.remove('on'), 200);
 
-            // Sample a small area for performance
-            canvas.width = 160;
-            canvas.height = 90;
-            ctx.drawImage(video, 0, 0, 160, 90);
-            const data = ctx.getImageData(0, 0, 160, 90).data;
+        // Vibrate
+        if (navigator.vibrate) navigator.vibrate(100);
 
-            // Detect high contrast edges (documents have sharp text edges)
-            let edgeCount = 0;
-            const threshold = 40;
-            for (let y = 10; y < 80; y += 2) {
-                for (let x = 10; x < 150; x += 2) {
-                    const i = (y * 160 + x) * 4;
-                    const r = data[i], g = data[i+4], b = data[i+8];
-                    const r2 = data[i + 160*4], g2 = data[i + 160*4 + 4];
-                    const diffH = Math.abs(r - data[i+4]) + Math.abs(g - data[i+8]);
-                    const diffV = Math.abs(r - r2) + Math.abs(g - g2);
-                    if (diffH > threshold || diffV > threshold) edgeCount++;
-                }
-            }
+        // Update status
+        document.getElementById('statusPill').className = 'status-pill found';
+        document.getElementById('statusText').textContent = 'Codigo encontrado!';
+        document.getElementById('hint').textContent = decodedText;
+        document.getElementById('hint').className = 'hint found';
 
-            // Also check brightness variance (documents are usually brighter than surroundings)
-            let sum = 0, sumSq = 0, count = 0;
-            for (let i = 0; i < data.length; i += 16) {
-                const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
-                sum += brightness;
-                sumSq += brightness * brightness;
-                count++;
-            }
-            const mean = sum / count;
-            const variance = (sumSq / count) - (mean * mean);
+        // Look up in CMED database
+        const med = await cmedLookupBarcode(decodedText);
 
-            // Document detected if: enough edges AND good contrast AND bright enough
-            const isDocument = edgeCount > 200 && variance > 800 && mean > 60;
+        if (med) {
+            // Found! Show success overlay
+            document.getElementById('successName').textContent = med.produto;
+            document.getElementById('successDetail').textContent = med.substancia + ' · ' + med.apresentacao;
+            document.getElementById('successOverlay').classList.add('show');
 
-            if (isDocument) {
-                stableFrames++;
-                if (stableFrames >= 3 && !documentDetected) {
-                    setDetected(true);
-                }
-            } else {
-                stableFrames = 0;
-                if (documentDetected) setDetected(false);
-            }
-        }, 200); // Check 5 times per second
-    }
+            // Store result and navigate to confirmation
+            sessionStorage.setItem('vitae_scan_result', JSON.stringify({
+                tipo: 'barcode',
+                confianca: 'alta',
+                medicamentos: [{
+                    nome: med.produto,
+                    substancia: med.substancia,
+                    dosagem: med.apresentacao,
+                    laboratorio: med.laboratorio,
+                    tipo: med.tipo,
+                    classe: med.classe,
+                    tarja: med.tarja,
+                    ean: decodedText,
+                    uncertain: false
+                }]
+            }));
+            sessionStorage.setItem('vitae_scan_filename', 'barcode_' + decodedText);
+            sessionStorage.setItem('vitae_scan_tipo', tipo);
 
-    function setDetected(detected) {
-        documentDetected = detected;
-        const pill = document.getElementById('statusPill');
-        const text = document.getElementById('statusText');
-        const hint = document.getElementById('camHint');
-        const border = document.getElementById('docBorder');
-        const shutter = document.getElementById('shutterBtn');
-
-        if (detected) {
-            pill.className = 'cam-status-pill detected';
-            text.textContent = 'Documento detectado';
-            hint.textContent = 'Toque para capturar ou aguarde';
-            hint.className = 'cam-hint detected';
-            border.className = 'doc-border detected';
-            shutter.className = 'shutter ready';
-
-            // Auto-capture after 1.5s of stable detection
             setTimeout(() => {
-                if (documentDetected && stableFrames >= 5) {
-                    capture();
-                }
+                window.location.href = '28-revisao-receita.html?from=' + from;
             }, 1500);
         } else {
-            pill.className = 'cam-status-pill searching';
-            text.textContent = 'Aponte para a receita ou embalagem';
-            hint.textContent = 'Posicione o documento na frente da camera';
-            hint.className = 'cam-hint';
-            border.className = 'doc-border';
-            shutter.className = 'shutter disabled';
+            // Barcode found but not in database
+            document.getElementById('statusText').textContent = 'Codigo nao reconhecido';
+            document.getElementById('hint').textContent = 'Vamos tentar de outra forma';
+
+            // Fall through to photo mode
+            setTimeout(() => {
+                barcodeFound = false;
+                takePhoto();
+            }, 1000);
         }
     }
 
-    // Capture photo
-    function capture() {
-        if (!documentDetected && !stream) return;
+    // ---- Take photo (for OCR fallback) ----
+    function takePhoto() {
+        if (scanner) try { scanner.stop(); } catch(e) {}
 
-        // Flash effect
-        const flash = document.getElementById('flash');
-        flash.classList.add('active');
-        setTimeout(() => flash.classList.remove('active'), 200);
-
-        // Stop detection
-        if (detectionInterval) clearInterval(detectionInterval);
-
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-
-        canvas.toBlob(function(blob) {
-            if (blob) processFile(blob, 'foto_receita.jpg');
-        }, 'image/jpeg', 0.9);
+        // On mobile: use native camera
+        if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+            document.getElementById('cameraInput').click();
+        } else {
+            document.getElementById('fileInput').click();
+        }
     }
 
-    function handleGallery(event) {
+    function handleFile(event) {
         const file = event.target.files[0];
         if (!file) return;
-        processFile(file, file.name);
-    }
-
-    function processFile(file, fileName) {
-        if (stream) stream.getTracks().forEach(t => t.stop());
-        if (detectionInterval) clearInterval(detectionInterval);
+        if (scanner) try { scanner.stop(); } catch(e) {}
 
         const reader = new FileReader();
         reader.onload = function(e) {
             sessionStorage.setItem('vitae_scan_file', e.target.result);
-            sessionStorage.setItem('vitae_scan_filename', fileName);
+            sessionStorage.setItem('vitae_scan_filename', file.name);
             sessionStorage.setItem('vitae_scan_tipo', tipo);
             window.location.href = '27-processando.html?tipo=' + tipo + '&from=' + from;
         };
         reader.readAsDataURL(file);
     }
 
+    // ---- Torch ----
+    function toggleTorch() {
+        torchOn = !torchOn;
+        document.getElementById('torchBtn').classList.toggle('on', torchOn);
+        if (scanner) {
+            try {
+                const track = scanner.getRunningTrackCameraCapabilities();
+                if (track && track.torchFeature && track.torchFeature().isSupported()) {
+                    track.torchFeature().apply(torchOn);
+                }
+            } catch(e) { console.log('Torch not supported'); }
+        }
+    }
+
+    // ---- Navigation ----
     function goBack() {
-        if (stream) stream.getTracks().forEach(t => t.stop());
-        if (detectionInterval) clearInterval(detectionInterval);
+        if (scanner) try { scanner.stop(); } catch(e) {}
+        clearTips();
         if (from === 'alergias' || tipo === 'alergia') {
             window.location.href = '17-alergias.html';
         } else {
@@ -289,8 +346,20 @@
         }
     }
 
-    // Init
-    startCamera();
+    function goManual() {
+        if (scanner) try { scanner.stop(); } catch(e) {}
+        if (from === 'alergias' || tipo === 'alergia') {
+            window.location.href = '17-alergias.html';
+        } else {
+            window.location.href = '16-medicamentos.html';
+        }
+    }
+
+    // ---- Init ----
+    if (localStorage.getItem('vitae_scan_onboard_done') === 'true') {
+        document.getElementById('onboard').classList.add('hidden');
+        startScanner();
+    }
 </script>
 </body>
 </html>
