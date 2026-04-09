@@ -3,6 +3,59 @@
  * Todas as telas HTML usam este arquivo para se comunicar com o backend.
  */
 
+// ---- Security: sanitize HTML to prevent XSS ----
+
+function sanitize(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// ---- Security: prevent double-click on buttons ----
+
+function disableBtn(btn) {
+  if (!btn) return;
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.style.pointerEvents = 'none';
+  btn.dataset.originalText = btn.textContent;
+  btn.textContent = 'Aguarde...';
+}
+
+function enableBtn(btn, text) {
+  if (!btn) return;
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.style.pointerEvents = 'auto';
+  btn.textContent = text || btn.dataset.originalText || 'OK';
+}
+
+// ---- Standard navigation (shared by all pages) ----
+
+function vitaeNav(target) {
+  const overlay = document.getElementById('exitOverlay');
+  if (overlay) { overlay.classList.add('active'); }
+  const routes = {
+    'perfil': '08-perfil.html?from=nav',
+    'score': '10-score.html',
+    'exames': '11-exames-lista.html',
+    'qrcode': '21-qrcode.html',
+    'editar': '09-dados-pessoais.html',
+    'medicamentos': '16-medicamentos.html',
+    'alergias': '17-alergias.html',
+    'agendamentos': '23-agendamentos.html',
+    'autorizacao': '22-autorizacao.html',
+    'bioage': '15-bioage-sem-dados.html',
+  };
+  setTimeout(() => {
+    window.location.href = routes[target] || '08-perfil.html';
+  }, 400);
+}
+
 const API_URL = ['localhost','127.0.0.1'].includes(window.location.hostname) || window.location.protocol === 'file:'
   ? 'http://localhost:3002'
   : 'https://vitae-app-production.up.railway.app';
