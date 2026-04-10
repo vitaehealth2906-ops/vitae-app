@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnostico do Scan</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0D0F14;color:#fff;font-family:system-ui;padding:16px}
+h1{font-size:18px;color:#00E5A0;margin-bottom:4px}
+h2{font-size:14px;color:#9CA3AF;margin-bottom:12px;font-weight:400}
+button{padding:12px 24px;background:#00E5A0;color:#000;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin:4px}
+#log{background:#161921;padding:12px;border-radius:8px;font-family:monospace;font-size:11px;white-space:pre-wrap;margin-top:12px;max-height:500px;overflow-y:auto;color:#9CA3AF}
+.ok{color:#00E5A0}
+.err{color:#EF4444}
+.warn{color:#F59E0B}
+img{max-width:150px;border-radius:8px;margin:8px 0}
+</style>
+</head>
+<body>
+<h1>Diagnostico do Scan — Caminho Real</h1>
+<h2>Simula EXATAMENTE o que o app faz quando voce toca "Enviar e identificar"</h2>
+
+<button onclick="document.getElementById('cam').click()">Tirar foto</button>
+<button onclick="document.getElementById('gal').click()">Galeria</button>
+<input type="file" accept="image/*" capture="environment" id="cam" style="display:none" onchange="startDiag(event)">
+<input type="file" accept="image/*" id="gal" style="display:none" onchange="startDiag(event)">
+
+<div id="preview"></div>
+<div id="log"></div>
+
+<script src="api.js"></script>
+<script>
+const L = document.getElementById('log');
+
+function log(msg, cls) {
+    const t = new Date().toLocaleTimeString();
+    L.innerHTML += `<span class="${cls||''}">[${t}] ${msg}</span>\n`;
+    L.scrollTop = L.scrollHeight;
+}
+
+async function startDiag(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+    L.innerHTML = '';
+
+    // Preview
+    const url = URL.createObjectURL(file);
+    document.getElementById('preview').innerHTML = `<img src="${url}">`;
+
+    log('=== DIAGNOSTICO COMPLETO ===', 'ok');
+    log('Arquivo: ' + file.name + ' | ' + file.type + ' | ' + (file.size/1024).toFixed(0) + 'KB');
+
+    // PASSO 1: api.js carregou?
+    log('');
+    log('--- PASSO 1: api.js carregou? ---', 'warn');
+    if (typeof vitaeAPI === 'undefined') {
+        log('ERRO: vitaeAPI NAO EXISTE! O api.js nao carregou.', 'err');
+        log('Isso significa que o botao "Enviar e identificar" nao consegue chamar o servidor.', 'err');
+        return;
+    }
+    log('vitaeAPI existe: SIM', 'ok');
+
+    // PASSO 2: Funcao scanReceita existe?
+    log('');
+    log('--- PASSO 2: scanReceita existe? ---', 'warn');
+    if (typeof vitaeAPI.scanReceita !== 'function') {
+        log('ERRO: vitaeAPI.scanReceita NAO E UMA FUNCAO!', 'err');
+        return;
+    }
+    log('vitaeAPI.scanReceita existe: SIM', 'ok');
+
+    // PASSO 3: Usuario logado?
+    log('');
+    log('--- PASSO 3: Usuario logado? ---', 'warn');
+    const logado = vitaeAPI.isLoggedIn();
+    log('isLoggedIn(): ' + logado, logado ? 'ok' : 'err');
+
+    if (!logado) {
+        log('PROBLEMA: Voce NAO esta logado!', 'err');
+        log('O app verifica login antes de enviar. Sem login, nao envia nada.', 'err');
+        log('Mas o app deveria mostrar "Faca login..." — se nao mostrou, pode ser erro silencioso.', 'err');
+        return;
+    }
+
+    const token = localStorage.getItem('vitae_token');
+    log('Token: ' + (token ? token.substring(0, 20) + '...' : 'NENHUM'), token ? 'ok' : 'err');
+
+    // PASSO 4: sessionStorage ANTES do envio
+    log('');
+    log('--- PASSO 4: sessionStorage ANTES do envio ---', 'warn');
+    const scanResultAntes = sessionStorage.getItem('vitae_scan_result');
+    log('vitae_scan_result: ' + (scanResultAntes ? scanResultAntes.substring(0, 100) + '...' : 'VAZIO (correto)'), scanResultAntes ? 'err' : 'ok');
+    if (scanResultAntes) {
+        log('PROBLEMA: Ja existem dados antigos no sessionStorage!', 'err');
+        log('Isso pode fazer a tela 28 mostrar dados velhos.', 'err');
+        try {
+            const dados = JSON.parse(scanResultAntes);
+            log('Dados antigos: tipo=' + dados.tipo + ' | meds=' + (dados.medicamentos ? dados.medicamentos.length : 0), 'err');
+            if (dados.medicamentos) {
+                dados.medicamentos.forEach(m => log('  → ' + m.nome, 'err'));
+            }
+        } catch(e) {}
+    }
+
+    const scanFile = sessionStorage.getItem('vitae_scan_file');
+    log('vitae_scan_file: ' + (scanFile ? (scanFile.substring(0, 30) + '... (' + (scanFile.length/1024).toFixed(0) + 'KB)') : 'VAZIO'), scanFile ? 'warn' : 'ok');
+
+    // PASSO 5: Enviar pro servidor (mesmo caminho do app)
+    log('');
+    log('--- PASSO 5: Enviando pro servidor via vitaeAPI.scanReceita() ---', 'warn');
+    log('Isso e EXATAMENTE o que o botao "Enviar e identificar" faz...', '');
+
+    const t0 = Date.now();
+
+    try {
+        const result = await vitaeAPI.scanReceita(file);
+        const dt = ((Date.now() - t0) / 1000).toFixed(1);
+
+        log('Resposta em ' + dt + 's', 'ok');
+        log('Resultado: ' + JSON.stringify(result).substring(0, 300), 'ok');
+
+        if (!result) {
+            log('PROBLEMA: resultado e null/undefined', 'err');
+        } else {
+            log('tipo: ' + (result.tipo || 'nao veio'), 'ok');
+            log('medico: ' + (result.medico || 'nao veio'), 'ok');
+
+            if (result.medicamentos) {
+                log('medicamentos: ' + result.medicamentos.length + ' encontrados', 'ok');
+                result.medicamentos.forEach(m => {
+                    log('  → ' + m.nome + ' | ' + (m.dosagem||'') + ' | ' + (m.principio_ativo||'') + ' | confianca: ' + (m.confianca||'?'), 'ok');
+                });
+            } else {
+                log('medicamentos: NENHUM (campo nao existe no resultado)', 'err');
+            }
+
+            if (result.alergias) {
+                log('alergias: ' + result.alergias.length, 'ok');
+            }
+        }
+
+        // PASSO 6: Validacao (mesmo if do app)
+        log('');
+        log('--- PASSO 6: Validacao do resultado (mesmo check do app) ---', 'warn');
+        if (!result || (!result.medicamentos && !result.alergias)) {
+            log('FALHA NA VALIDACAO: !result || (!result.medicamentos && !result.alergias)', 'err');
+            log('O app mostraria toast "Nao foi possivel identificar" e PARARIA aqui.', 'err');
+            log('NAO navegaria pra tela 28.', 'err');
+        } else {
+            log('Validacao OK — o app guardaria no sessionStorage e iria pra tela 28', 'ok');
+
+            // Simula o que o app faz
+            sessionStorage.setItem('vitae_scan_result', JSON.stringify(result));
+            log('sessionStorage.setItem("vitae_scan_result") feito', 'ok');
+
+            // PASSO 7: Simula o que a tela 28 faria
+            log('');
+            log('--- PASSO 7: Simulando tela 28 ---', 'warn');
+            const scanResult = JSON.parse(sessionStorage.getItem('vitae_scan_result'));
+            if (scanResult && scanResult.medicamentos && scanResult.medicamentos.length > 0) {
+                log('Tela 28 mostraria: ' + scanResult.medicamentos.length + ' identificados', 'ok');
+                scanResult.medicamentos.forEach(m => {
+                    const nome = m.nome || '(sem nome)';
+                    const sub = m.substancia || m.principio_ativo || '(sem substancia)';
+                    const dos = m.dosagem || '(sem dosagem)';
+                    const freq = m.frequencia || '(sem frequencia)';
+                    log('  Card: ' + nome + ' — ' + sub + ' — ' + dos + ' — ' + freq, 'ok');
+                });
+                log('');
+                log('=== TUDO FUNCIONOU! Os cards deveriam aparecer na tela 28. ===', 'ok');
+            } else {
+                log('Tela 28 mostraria: "Nao conseguimos identificar"', 'err');
+            }
+        }
+
+    } catch(e) {
+        const dt = ((Date.now() - t0) / 1000).toFixed(1);
+        log('ERRO em ' + dt + 's: ' + e.message, 'err');
+        log('');
+        log('Esse erro e o que o app recebe. O catch mostra toast com essa mensagem.', 'err');
+        log('Depois o botao volta pro normal. NAO deveria navegar pra tela 28.', 'err');
+        log('');
+        log('Se mesmo assim voce vai pra tela 28, tem OUTRO codigo redirecionando.', 'err');
+    }
+
+    // PASSO 8: Estado final
+    log('');
+    log('--- ESTADO FINAL ---', 'warn');
+    log('vitae_scan_result: ' + (sessionStorage.getItem('vitae_scan_result') ? 'TEM DADOS' : 'VAZIO'), '');
+    log('vitae_scan_file: ' + (sessionStorage.getItem('vitae_scan_file') ? 'TEM DADOS' : 'VAZIO'), '');
+    log('vitae_scan_tipo: ' + (sessionStorage.getItem('vitae_scan_tipo') || 'VAZIO'), '');
+}
+</script>
+</body>
+</html>
