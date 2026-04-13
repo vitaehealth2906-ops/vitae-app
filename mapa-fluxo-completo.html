@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Mapa de Fluxo Visual</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#08080d;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+
+/* TOOLBAR */
+.toolbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(8,8,13,.94);backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  padding:10px 20px;display:flex;align-items:center;gap:14px;
+}
+.toolbar h1{font-size:15px;font-weight:600;color:#fff;letter-spacing:-.3px}
+.toolbar h1 span{color:#6c5ce7}
+.toolbar .sub{font-size:11px;color:#666}
+.legend{display:flex;gap:10px;margin-left:auto;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#888}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+.btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#ccc;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:12px}
+.btn:hover{background:rgba(255,255,255,.12);color:#fff}
+.search-box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:5px 8px;color:#fff;font-size:11px;width:140px;outline:none}
+.search-box::placeholder{color:#555}
+.search-box:focus{border-color:#6c5ce7}
+
+/* CANVAS */
+.canvas-wrap{position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
+.canvas-wrap.dragging{cursor:grabbing}
+.canvas{position:absolute;transform-origin:0 0}
+svg.connections{position:absolute;top:0;left:0;pointer-events:none;overflow:visible}
+
+/* ROW LABELS */
+.row-label{
+  position:absolute;left:20px;
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+  color:rgba(255,255,255,.12);writing-mode:horizontal-tb;
+  pointer-events:none;
+}
+.row-divider{
+  position:absolute;left:0;height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.02),transparent);
+  pointer-events:none;
+}
+
+/* NODES */
+.node{
+  position:absolute;border-radius:10px;cursor:pointer;
+  transition:transform .18s,box-shadow .18s;
+  border:1.5px solid rgba(255,255,255,.08);
+  width:170px;overflow:hidden;
+  background:#111118;
+}
+.node:hover{transform:scale(1.05);z-index:50}
+.node.selected{z-index:60}
+
+.node .preview{
+  width:170px;height:280px;overflow:hidden;position:relative;
+  background:#1a1a24;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.node .preview iframe{
+  width:375px;height:667px;border:none;
+  transform:scale(0.4533);transform-origin:top left;
+  pointer-events:none;
+}
+.node .preview .loading{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:10px;color:#444;
+}
+.node .info{padding:8px 10px}
+.node .info .label{font-size:11px;font-weight:600;line-height:1.2;color:#fff}
+.node .info .desc{font-size:9px;margin-top:3px;color:#888;line-height:1.3}
+.node .info .file{font-size:8px;margin-top:4px;color:#555;font-family:monospace}
+
+/* Type borders */
+.node.entry{border-color:#6c5ce7;box-shadow:0 0 16px rgba(108,92,231,.15)}
+.node.onboard{border-color:#3498db;box-shadow:0 0 12px rgba(52,152,219,.1)}
+.node.auth{border-color:#f39c12;box-shadow:0 0 12px rgba(243,156,18,.1)}
+.node.hub{border-color:#2ecc71;box-shadow:0 0 20px rgba(46,204,113,.2);width:190px}
+.node.hub .preview{width:190px}
+.node.hub .preview iframe{transform:scale(0.5066)}
+.node.feature{border-color:#00cec9;box-shadow:0 0 10px rgba(0,206,201,.08)}
+.node.doctor{border-color:#e84393;box-shadow:0 0 12px rgba(232,67,147,.1)}
+.node.public{border-color:#95a5a6;box-shadow:0 0 8px rgba(149,165,166,.08)}
+.node.missing{border:1.5px dashed #e74c3c;opacity:.65}
+.node.missing .preview{background:rgba(231,76,60,.05);display:flex;align-items:center;justify-content:center}
+.node.missing .preview .missing-label{color:#e74c3c;font-size:11px;font-weight:600;text-align:center;padding:20px}
+.node.static{border-color:rgba(255,255,255,.12)}
+
+/* Tooltip */
+.tooltip{
+  position:fixed;z-index:200;background:rgba(16,16,24,.97);backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 18px;
+  max-width:300px;pointer-events:none;opacity:0;transition:opacity .12s;
+  box-shadow:0 8px 30px rgba(0,0,0,.6);
+}
+.tooltip.show{opacity:1}
+.tooltip h3{font-size:13px;color:#fff;margin-bottom:4px}
+.tooltip p{font-size:11px;color:#aaa;line-height:1.5;margin-bottom:6px}
+.tooltip .ts{font-size:10px;color:#777;margin-top:4px}
+.tooltip .ts strong{color:#999}
+
+/* SVG */
+svg path.edge{fill:none;stroke-width:1.5;opacity:.25}
+svg path.edge.highlighted{opacity:.7;stroke-width:2.5}
+svg circle.arrow-dot{opacity:.3}
+svg circle.arrow-dot.highlighted{opacity:.8}
+
+/* Modal preview */
+.modal-overlay{
+  position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.8);
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);
+}
+.modal-overlay.show{display:flex}
+.modal{
+  width:390px;height:720px;background:#111;border-radius:16px;overflow:hidden;
+  border:2px solid rgba(255,255,255,.1);position:relative;
+  box-shadow:0 20px 60px rgba(0,0,0,.7);
+}
+.modal iframe{width:390px;height:720px;border:none}
+.modal-close{
+  position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;
+  background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.2);color:#fff;
+  cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;
+  z-index:10;
+}
+.modal-close:hover{background:rgba(255,255,255,.15)}
+.modal-title{
+  position:absolute;bottom:0;left:0;right:0;padding:10px 14px;
+  background:linear-gradient(transparent,rgba(0,0,0,.9));
+  font-size:12px;color:#fff;font-weight:600;z-index:10;pointer-events:none;
+}
+
+/* Minimap */
+.minimap{
+  position:fixed;bottom:14px;right:14px;width:180px;height:120px;
+  background:rgba(8,8,13,.92);border:1px solid rgba(255,255,255,.08);
+  border-radius:7px;z-index:100;overflow:hidden;
+}
+.minimap canvas{width:100%;height:100%}
+.minimap-vp{position:absolute;border:1.5px solid #6c5ce7;border-radius:2px;pointer-events:none}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h1><span>vita</span> id — Mapa Visual</h1>
+  <span class="sub">38 telas • clique pra abrir • arraste pra mover</span>
+  <input class="search-box" placeholder="Buscar tela..." id="search"/>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#6c5ce7"></div>Entrada</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3498db"></div>Onboarding</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>Login</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2ecc71"></div>Hub</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#00cec9"></div>Feature</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#e84393"></div>Medico</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#95a5a6"></div>Publico</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div>Faltando</div>
+  </div>
+  <button class="btn" onclick="resetView()">Reset</button>
+  <button class="btn" onclick="zoomIn()">+</button>
+  <button class="btn" onclick="zoomOut()">−</button>
+</div>
+
+<div class="canvas-wrap" id="wrap">
+  <svg class="connections" id="svg" width="4000" height="3000"></svg>
+  <div class="canvas" id="canvas"></div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <iframe id="modalFrame" src=""></iframe>
+    <div class="modal-title" id="modalTitle"></div>
+  </div>
+</div>
+
+<div class="minimap" id="minimap">
+  <canvas id="mmCanvas"></canvas>
+  <div class="minimap-vp" id="mmVp"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  LAYOUT — Fileiras organizadas
+// ════════════════════════════════════════════
+
+const NW = 170; // node width
+const NH = 350; // node total height
+const HNW = 190; // hub node width
+const GAPH = 60; // horizontal gap
+const GAPV = 50; // vertical gap between rows
+
+// Row Y positions
+const ROW = {
+  entrada: 80,
+  escolha: 80 + NH + GAPV,          // ~480
+  onboard: 80 + (NH+GAPV)*2,        // ~880
+  auth:    80 + (NH+GAPV)*3,         // ~1280
+  hub:     80 + (NH+GAPV)*4,         // ~1680
+  feat1:   80 + (NH+GAPV)*5,        // ~2080
+  feat2:   80 + (NH+GAPV)*6,        // ~2480
+  scan:    80 + (NH+GAPV)*7,        // ~2880
+};
+
+// Center X reference
+const CX = 1000;
+
+const nodes = [
+  // ── ROW 1: ENTRADA ──
+  { id:'index', file:'index.html', label:'Index', desc:'Redirect automatico para splash', type:'entry',
+    x:CX - NW/2, y:ROW.entrada },
+
+  // ── ROW 2: ESCOLHA ──
+  { id:'splash', file:'01-splash.html', label:'Splash', desc:'Tela de abertura animada (8s)', type:'entry',
+    x:CX - NW/2, y:ROW.escolha },
+  { id:'lgpd', file:'lgpd.html', label:'LGPD', desc:'Politica de privacidade', type:'static',
+    x:CX - NW*2 - GAPH*2, y:ROW.escolha },
+  { id:'termos', file:'termos.html', label:'Termos de Uso', desc:'Termos de uso do app', type:'static',
+    x:CX + NW + GAPH*2, y:ROW.escolha },
+
+  // ── ROW 3: ONBOARDING ──
+  { id:'escolha', file:'00-escolha.html', label:'Escolha Perfil', desc:'Paciente ou Medico?', type:'onboard',
+    x:CX - NW/2, y:ROW.onboard },
+  { id:'slides-pac', file:'02-slides-paciente.html', label:'Slides Paciente', desc:'3 slides explicando vita id', type:'onboard',
+    x:CX - NW - GAPH - NW/2, y:ROW.onboard },
+  { id:'slides-med', file:'02-slides-medico.html', label:'Slides Medico', desc:'Proposta de valor pra medicos', type:'onboard',
+    x:CX + NW + GAPH - NW/2 + NW, y:ROW.onboard },
+
+  // ── ROW 4: AUTH ──
+  { id:'cadastro', file:'03-cadastro.html', label:'Cadastro / Login', desc:'Criar conta ou fazer login', type:'auth',
+    x:CX - NW/2, y:ROW.auth },
+  { id:'verif', file:'04-verificacao.html', label:'Verificacao SMS', desc:'Codigo 6 digitos', type:'auth',
+    x:CX - NW - GAPH - NW/2, y:ROW.auth },
+  { id:'esqueci', file:'14-esqueci-senha.html', label:'Esqueci Senha', desc:'Receber link de reset por email', type:'auth',
+    x:CX + NW + GAPH + NW/2, y:ROW.auth },
+  { id:'nova-senha', file:'15-nova-senha.html', label:'Nova Senha', desc:'Definir nova senha via token', type:'auth',
+    x:CX + NW*2 + GAPH*2 + NW/2, y:ROW.auth },
+
+  // ── ROW 5: HUBS + QUIZ ──
+  { id:'quiz', file:'05-quiz.html', label:'Quiz de Saude', desc:'Nascimento, sangue, CPF, altura, peso...', type:'onboard',
+    x:CX - HNW - GAPH*3 - NW, y:ROW.hub },
+  { id:'concluido', file:'06-concluido.html', label:'Perfil Criado!', desc:'Tela de celebracao com confetti', type:'onboard',
+    x:CX - HNW - GAPH*3 - NW*2 - GAPH, y:ROW.hub },
+  { id:'perfil', file:'08-perfil.html', label:'PERFIL (Home)', desc:'Hub principal paciente. RG da Saude.', type:'hub',
+    x:CX - HNW/2 - GAPH*2, y:ROW.hub },
+  { id:'med-dash', file:'20-medico-dashboard.html', label:'DASHBOARD MEDICO', desc:'Hub principal medico. 4 abas.', type:'hub',
+    x:CX + HNW/2 + GAPH*2, y:ROW.hub },
+  { id:'med-cad', file:'20-medico-cadastro.html', label:'Cadastro Medico', desc:'CRM, UF, especialidade, clinica', type:'doctor',
+    x:CX + HNW + GAPH*4 + NW, y:ROW.hub },
+
+  // ── ROW 6: FEATURES PACIENTE (esquerda) + MEDICO (direita) ──
+  { id:'dados', file:'09-dados-pessoais.html', label:'Dados Pessoais', desc:'Editar nome, CPF, contato', type:'feature',
+    x:80, y:ROW.feat1 },
+  { id:'score', file:'10-score.html', label:'Score de Saude', desc:'Pontuacao calculada de saude', type:'feature',
+    x:80 + NW + GAPH, y:ROW.feat1 },
+  { id:'exames', file:'11-exames-lista.html', label:'Lista de Exames', desc:'Todos os exames enviados', type:'feature',
+    x:80 + (NW+GAPH)*2, y:ROW.feat1 },
+  { id:'qrcode', file:'21-qrcode.html', label:'QR Code', desc:'QR compartilhavel do RG da Saude', type:'feature',
+    x:80 + (NW+GAPH)*3, y:ROW.feat1 },
+  { id:'bioage', file:'15-bioage-sem-dados.html', label:'Idade Biologica', desc:'Sem dados — CTA adicionar exames', type:'feature',
+    x:80 + (NW+GAPH)*4, y:ROW.feat1 },
+  { id:'summary', file:'25-summary.html', label:'Resumo Pre-Consulta', desc:'Resumo IA da pre-consulta', type:'doctor',
+    x:CX + HNW/2 + GAPH*2, y:ROW.feat1 },
+  { id:'pre-consulta', file:'pre-consulta.html', label:'Pre-Consulta', desc:'Formulario antes da consulta (link medico)', type:'public',
+    x:CX + HNW + GAPH*4 + NW, y:ROW.feat1 },
+
+  // ── ROW 7: FEATURES PACIENTE 2 + PUBLICO ──
+  { id:'meds', file:'16-medicamentos.html', label:'Medicamentos', desc:'Gerenciar medicamentos', type:'feature',
+    x:80, y:ROW.feat2 },
+  { id:'alergias', file:'17-alergias.html', label:'Alergias', desc:'Gerenciar alergias', type:'feature',
+    x:80 + NW + GAPH, y:ROW.feat2 },
+  { id:'autoriz', file:'22-autorizacao.html', label:'Autorizacoes', desc:'Quem pode ver seus dados', type:'feature',
+    x:80 + (NW+GAPH)*2, y:ROW.feat2 },
+  { id:'agenda', file:'23-agendamentos.html', label:'Agendamentos', desc:'Consultas marcadas', type:'feature',
+    x:80 + (NW+GAPH)*3, y:ROW.feat2 },
+  { id:'lembretes', file:'30-lembretes.html', label:'Lembretes', desc:'Lembretes de medicamentos', type:'feature',
+    x:80 + (NW+GAPH)*4, y:ROW.feat2 },
+  { id:'rg-pub', file:'rg-publico.html', label:'RG Publico', desc:'RG da Saude publico via QR', type:'public',
+    x:CX + HNW/2 + GAPH*2, y:ROW.feat2 },
+  { id:'exame-pub', file:'exame-publico.html', label:'Exame Publico', desc:'Exame publico compartilhado', type:'public',
+    x:CX + HNW + GAPH*4 + NW, y:ROW.feat2 },
+
+  // ── ROW 8: SCAN (faltando) ──
+  { id:'revisao-alergias', file:'31-revisao-alergias.html', label:'Revisao Alergias', desc:'Revisar alergias do scan', type:'feature',
+    x:80, y:ROW.scan },
+  { id:'scan-receita', file:'26-scan-receita.html', label:'Scan Receita', desc:'FALTANDO — Camera/galeria scan', type:'missing',
+    x:80 + NW + GAPH, y:ROW.scan },
+  { id:'processando', file:'27-processando.html', label:'Processando', desc:'FALTANDO — Loading do scan', type:'missing',
+    x:80 + (NW+GAPH)*2, y:ROW.scan },
+  { id:'quiz-precon', file:'quiz-preconsulta.html', label:'Quiz Pre-Consulta', desc:'FALTANDO — Quiz pre-consulta', type:'missing',
+    x:80 + (NW+GAPH)*3, y:ROW.scan },
+  { id:'login-old', file:'01-login.html', label:'Login Antigo', desc:'FALTANDO — Ref. no logout medico', type:'missing',
+    x:80 + (NW+GAPH)*4, y:ROW.scan },
+];
+
+// Row labels
+const rowLabels = [
+  { y:ROW.entrada, text:'ENTRADA' },
+  { y:ROW.escolha, text:'SPLASH + LEGAL' },
+  { y:ROW.onboard, text:'ONBOARDING' },
+  { y:ROW.auth, text:'AUTENTICACAO' },
+  { y:ROW.hub, text:'HUBS PRINCIPAIS' },
+  { y:ROW.feat1, text:'FEATURES 1' },
+  { y:ROW.feat2, text:'FEATURES 2' },
+  { y:ROW.scan, text:'SCAN + FALTANDO' },
+];
+
+const edges = [
+  { from:'index', to:'splash', why:'Redirect automatico' },
+  { from:'splash', to:'perfil', why:'Ja logado' },
+  { from:'splash', to:'escolha', why:'Nao logado' },
+  { from:'escolha', to:'slides-pac', why:'Clicou Paciente' },
+  { from:'escolha', to:'slides-med', why:'Clicou Medico' },
+  { from:'escolha', to:'termos', why:'Footer' },
+  { from:'escolha', to:'lgpd', why:'Footer' },
+  { from:'slides-pac', to:'cadastro', why:'CTA criar conta' },
+  { from:'slides-med', to:'cadastro', why:'CTA criar conta' },
+  { from:'cadastro', to:'quiz', why:'Novo paciente' },
+  { from:'cadastro', to:'perfil', why:'Login paciente' },
+  { from:'cadastro', to:'med-cad', why:'Novo medico' },
+  { from:'cadastro', to:'med-dash', why:'Login medico' },
+  { from:'cadastro', to:'esqueci', why:'Esqueci senha' },
+  { from:'verif', to:'quiz', why:'Codigo verificado' },
+  { from:'esqueci', to:'nova-senha', why:'Link por email' },
+  { from:'nova-senha', to:'cadastro', why:'Senha resetada' },
+  { from:'quiz', to:'perfil', why:'Quiz completo' },
+  { from:'concluido', to:'perfil', why:'Auto-redirect 5s' },
+  { from:'perfil', to:'dados', why:'Aba Editar' },
+  { from:'perfil', to:'score', why:'Aba Score' },
+  { from:'perfil', to:'exames', why:'Aba Exames' },
+  { from:'perfil', to:'qrcode', why:'Aba QR Code' },
+  { from:'perfil', to:'meds', why:'Menu Medicamentos' },
+  { from:'perfil', to:'alergias', why:'Menu Alergias' },
+  { from:'perfil', to:'autoriz', why:'Menu Autorizacoes' },
+  { from:'perfil', to:'agenda', why:'Menu Agendamentos' },
+  { from:'perfil', to:'lembretes', why:'Menu Lembretes' },
+  { from:'perfil', to:'bioage', why:'Menu Idade Bio' },
+  { from:'meds', to:'scan-receita', why:'Scan camera' },
+  { from:'meds', to:'processando', why:'Importacao manual' },
+  { from:'alergias', to:'scan-receita', why:'Scan camera' },
+  { from:'alergias', to:'processando', why:'Importacao manual' },
+  { from:'alergias', to:'revisao-alergias', why:'Resultado scan' },
+  { from:'revisao-alergias', to:'alergias', why:'Salvar' },
+  { from:'revisao-alergias', to:'scan-receita', why:'Tentar novamente' },
+  { from:'qrcode', to:'rg-pub', why:'Medico escaneia QR' },
+  { from:'rg-pub', to:'exame-pub', why:'Ver exame' },
+  { from:'exame-pub', to:'rg-pub', why:'Ver perfil' },
+  { from:'med-cad', to:'med-dash', why:'Salvar perfil' },
+  { from:'med-dash', to:'summary', why:'Ver pre-consulta' },
+  { from:'summary', to:'med-dash', why:'Voltar' },
+  { from:'med-dash', to:'login-old', why:'Logout (quebrado)' },
+  { from:'pre-consulta', to:'quiz-precon', why:'Enviar form' },
+  { from:'pre-consulta', to:'esqueci', why:'Esqueci senha' },
+  { from:'pre-consulta', to:'lgpd', why:'Link LGPD' },
+  { from:'bioage', to:'exames', why:'CTA adicionar exames' },
+  { from:'dados', to:'perfil', why:'Voltar' },
+  { from:'score', to:'perfil', why:'Voltar' },
+  { from:'exames', to:'perfil', why:'Voltar' },
+  { from:'qrcode', to:'perfil', why:'Voltar' },
+  { from:'meds', to:'perfil', why:'Voltar' },
+  { from:'alergias', to:'perfil', why:'Voltar' },
+  { from:'autoriz', to:'perfil', why:'Voltar' },
+  { from:'agenda', to:'perfil', why:'Voltar' },
+  { from:'lembretes', to:'perfil', why:'Voltar' },
+];
+
+// ════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════
+const canvas = document.getElementById('canvas');
+const svg = document.getElementById('svg');
+const tooltip = document.getElementById('tooltip');
+const wrap = document.getElementById('wrap');
+const searchInput = document.getElementById('search');
+
+let scale=.32, panX=60, panY=-10;
+let dragging=false, dsx, dsy, psx, psy;
+let selectedNode=null;
+const nodeMap={}, nodeEls={};
+
+const typeColors = {
+  entry:'#6c5ce7', onboard:'#3498db', auth:'#f39c12',
+  hub:'#2ecc71', feature:'#00cec9', doctor:'#e84393',
+  public:'#95a5a6', missing:'#e74c3c', static:'#555'
+};
+
+// Row labels + dividers
+rowLabels.forEach(r => {
+  const lbl = document.createElement('div');
+  lbl.className = 'row-label';
+  lbl.style.left = '20px';
+  lbl.style.top = (r.y - 25) + 'px';
+  lbl.textContent = r.text;
+  canvas.appendChild(lbl);
+
+  const div = document.createElement('div');
+  div.className = 'row-divider';
+  div.style.top = (r.y - 15) + 'px';
+  div.style.width = '4000px';
+  canvas.appendChild(div);
+});
+
+// Create nodes
+nodes.forEach(n => {
+  nodeMap[n.id] = n;
+  const w = n.type === 'hub' ? HNW : NW;
+  const el = document.createElement('div');
+  el.className = `node ${n.type}`;
+  el.style.left = n.x + 'px';
+  el.style.top = n.y + 'px';
+  el.style.width = w + 'px';
+
+  let previewHTML;
+  if (n.type === 'missing') {
+    previewHTML = `<div class="preview"><div class="missing-label">⚠ ARQUIVO<br>NAO EXISTE</div></div>`;
+  } else {
+    previewHTML = `<div class="preview"><div class="loading">Carregando...</div><iframe src="${n.file}" loading="lazy" sandbox="allow-same-origin" tabindex="-1"></iframe></div>`;
+  }
+
+  el.innerHTML = `
+    ${previewHTML}
+    <div class="info">
+      <div class="label">${n.label}</div>
+      <div class="desc">${n.desc}</div>
+      <div class="file">${n.file}</div>
+    </div>
+  `;
+
+  el.addEventListener('mouseenter', e => showTT(e, n));
+  el.addEventListener('mouseleave', hideTT);
+  el.addEventListener('click', e => { e.stopPropagation(); handleClick(n, e); });
+  el.addEventListener('dblclick', e => { e.stopPropagation(); openModal(n); });
+
+  canvas.appendChild(el);
+  nodeEls[n.id] = el;
+});
+
+// Tooltip
+function showTT(e, n) {
+  const inc = edges.filter(ed => ed.to===n.id).map(ed => `← ${nodeMap[ed.from]?.label}: ${ed.why}`);
+  const out = edges.filter(ed => ed.from===n.id).map(ed => `→ ${nodeMap[ed.to]?.label}: ${ed.why}`);
+  tooltip.innerHTML = `
+    <h3>${n.label}</h3><p>${n.desc}</p>
+    <div class="ts"><strong>Arquivo:</strong> ${n.file}</div>
+    ${inc.length ? `<div class="ts"><strong>Vem de (${inc.length}):</strong><br>${inc.join('<br>')}</div>` : ''}
+    ${out.length ? `<div class="ts"><strong>Vai para (${out.length}):</strong><br>${out.join('<br>')}</div>` : ''}
+    ${n.type==='missing'?'<div class="ts" style="color:#e74c3c"><strong>⚠ Nao existe!</strong></div>':''}
+    <div class="ts" style="color:#6c5ce7;margin-top:6px">Duplo clique = abrir tela grande</div>
+  `;
+  tooltip.classList.add('show');
+  const r = tooltip.getBoundingClientRect();
+  let tx = e.clientX+14, ty = e.clientY+14;
+  if(tx+r.width>innerWidth) tx=e.clientX-r.width-14;
+  if(ty+r.height>innerHeight) ty=e.clientY-r.height-14;
+  tooltip.style.left=tx+'px'; tooltip.style.top=ty+'px';
+}
+function hideTT(){ tooltip.classList.remove('show') }
+
+// Click = highlight connections
+function handleClick(n, e) {
+  selectedNode = selectedNode===n.id ? null : n.id;
+  highlight();
+}
+
+// Double click = modal
+function openModal(n) {
+  if(n.type==='missing') return;
+  document.getElementById('modalFrame').src = n.file;
+  document.getElementById('modalTitle').textContent = `${n.label} — ${n.file}`;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(e) {
+  if(e && e.target !== document.getElementById('modal') && !e.target.classList.contains('modal-close')) return;
+  document.getElementById('modal').classList.remove('show');
+  document.getElementById('modalFrame').src = '';
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') { closeModal({target:document.getElementById('modal')}); }});
+
+function highlight() {
+  Object.values(nodeEls).forEach(el => el.style.opacity = selectedNode ? '.2' : '1');
+  document.querySelectorAll('svg path.edge').forEach(p => {
+    p.classList.remove('highlighted');
+    p.style.opacity = selectedNode ? '.06' : '.25';
+  });
+  document.querySelectorAll('svg circle.arrow-dot').forEach(c => {
+    c.classList.remove('highlighted');
+    c.style.opacity = selectedNode ? '.06' : '.3';
+  });
+  if(!selectedNode) return;
+  nodeEls[selectedNode].style.opacity='1';
+  edges.forEach((ed,i)=>{
+    if(ed.from===selectedNode||ed.to===selectedNode){
+      if(nodeEls[ed.from]) nodeEls[ed.from].style.opacity='1';
+      if(nodeEls[ed.to]) nodeEls[ed.to].style.opacity='1';
+      const p=document.getElementById('e'+i);
+      const d=document.getElementById('d'+i);
+      if(p){p.classList.add('highlighted');p.style.opacity='.7'}
+      if(d){d.classList.add('highlighted');d.style.opacity='.8'}
+    }
+  });
+}
+
+// Draw edges with orthogonal paths
+function drawEdges() {
+  svg.innerHTML='';
+  // defs for arrow markers
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  svg.appendChild(defs);
+
+  edges.forEach((ed,i) => {
+    const f = nodeMap[ed.from], t = nodeMap[ed.to];
+    if(!f||!t) return;
+
+    const fw = f.type==='hub'?HNW:NW;
+    const tw = t.type==='hub'?HNW:NW;
+
+    // center points
+    const fx = f.x + fw/2, fy = f.y + NH/2;
+    const tx = t.x + tw/2, ty = t.y + NH/2;
+
+    // connection points on edges of nodes
+    let x1,y1,x2,y2;
+
+    // determine best sides
+    const dy = ty - fy;
+    const dx = tx - fx;
+
+    if(Math.abs(dy) > Math.abs(dx)*0.3) {
+      // mostly vertical
+      if(dy > 0) {
+        x1=fx; y1=f.y+NH; x2=tx; y2=t.y;
+      } else {
+        x1=fx; y1=f.y; x2=tx; y2=t.y+NH;
+      }
+    } else {
+      // mostly horizontal
+      if(dx > 0) {
+        x1=f.x+fw; y1=fy; x2=t.x; y2=ty;
+      } else {
+        x1=f.x; y1=fy; x2=t.x+tw; y2=ty;
+      }
+    }
+
+    // Orthogonal path with one bend
+    const midY = (y1+y2)/2;
+    const midX = (x1+x2)/2;
+    let d;
+    if(Math.abs(dy) > Math.abs(dx)*0.3) {
+      // vertical dominant: go down, bend horizontal, then down
+      d = `M${x1},${y1} L${x1},${midY} L${x2},${midY} L${x2},${y2}`;
+    } else {
+      // horizontal dominant
+      d = `M${x1},${y1} L${midX},${y1} L${midX},${y2} L${x2},${y2}`;
+    }
+
+    const color = typeColors[f.type]||'#555';
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.id = 'e'+i;
+    path.className.baseVal = 'edge';
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', color);
+    svg.appendChild(path);
+
+    // arrow dot at target
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.id = 'd'+i;
+    dot.className.baseVal = 'arrow-dot';
+    dot.setAttribute('cx', x2);
+    dot.setAttribute('cy', y2);
+    dot.setAttribute('r', 4);
+    dot.setAttribute('fill', color);
+    svg.appendChild(dot);
+  });
+}
+
+// Pan & Zoom
+function updateTransform(){
+  const t = `translate(${panX}px,${panY}px) scale(${scale})`;
+  canvas.style.transform=t;
+  svg.style.transform=t;
+  updateMM();
+}
+
+wrap.addEventListener('mousedown',e=>{
+  if(e.target.closest('.node'))return;
+  dragging=true;wrap.classList.add('dragging');
+  dsx=e.clientX;dsy=e.clientY;psx=panX;psy=panY;
+  selectedNode=null;highlight();
+});
+addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  panX=psx+(e.clientX-dsx);panY=psy+(e.clientY-dsy);
+  updateTransform();
+});
+addEventListener('mouseup',()=>{dragging=false;wrap.classList.remove('dragging')});
+
+wrap.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const d=e.deltaY>0?.9:1.1;
+  const ns=Math.min(1.5,Math.max(.12,scale*d));
+  const r=wrap.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  panX=mx-(mx-panX)*(ns/scale);
+  panY=my-(my-panY)*(ns/scale);
+  scale=ns;updateTransform();
+},{passive:false});
+
+function resetView(){scale=.32;panX=60;panY=-10;updateTransform()}
+function zoomIn(){scale=Math.min(1.5,scale*1.25);updateTransform()}
+function zoomOut(){scale=Math.max(.12,scale*.8);updateTransform()}
+
+// Search
+searchInput.addEventListener('input',e=>{
+  const q=e.target.value.toLowerCase();
+  nodes.forEach(n=>{
+    const m=!q||n.label.toLowerCase().includes(q)||n.file.toLowerCase().includes(q)||n.desc.toLowerCase().includes(q);
+    nodeEls[n.id].style.opacity=m?'1':'.12';
+  });
+});
+
+// Minimap
+function updateMM(){
+  const mc=document.getElementById('mmCanvas');
+  const ctx=mc.getContext('2d');
+  const mw=180,mh=120;mc.width=mw;mc.height=mh;
+  ctx.clearRect(0,0,mw,mh);
+  let mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity;
+  nodes.forEach(n=>{mnx=Math.min(mnx,n.x);mny=Math.min(mny,n.y);mxx=Math.max(mxx,n.x+200);mxy=Math.max(mxy,n.y+NH)});
+  const w=mxx-mnx+80,h=mxy-mny+80,s=Math.min(mw/w,mh/h);
+  ctx.globalAlpha=.12;
+  edges.forEach(ed=>{
+    const f=nodeMap[ed.from],t=nodeMap[ed.to];if(!f||!t)return;
+    ctx.beginPath();ctx.moveTo((f.x-mnx+40)*s,(f.y-mny+40)*s);
+    ctx.lineTo((t.x-mnx+40)*s,(t.y-mny+40)*s);ctx.strokeStyle='#666';ctx.stroke();
+  });
+  ctx.globalAlpha=.85;
+  nodes.forEach(n=>{ctx.fillStyle=typeColors[n.type]||'#666';ctx.fillRect((n.x-mnx+40)*s,(n.y-mny+40)*s,6,4)});
+  const vp=document.getElementById('mmVp');
+  const vx=(-panX/scale-mnx+40)*s,vy=(-panY/scale-mny+40)*s;
+  const vw=(innerWidth/scale)*s,vh=(innerHeight/scale)*s;
+  vp.style.left=Math.max(0,vx)+'px';vp.style.top=Math.max(0,vy)+'px';
+  vp.style.width=Math.min(mw,vw)+'px';vp.style.height=Math.min(mh,vh)+'px';
+}
+
+// Init
+requestAnimationFrame(()=>{drawEdges();updateTransform()});
+</script>
+</body>
+</html>
