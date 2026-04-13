@@ -718,11 +718,20 @@ Regras:
  * @param {string} textoVoz - Texto natural para narração.
  * @returns {Buffer} Buffer do audio MP3.
  */
-async function gerarAudioElevenLabs(textoVoz) {
+async function gerarAudioElevenLabs(textoVoz, pacienteNome) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) throw new Error('ELEVENLABS_API_KEY nao configurada');
 
-  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL'; // Sarah — voz feminina profissional
+  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'x6uRgOliu4lpcrqMH3s1'; // Flavio Francisco — voz masculina profissional
+
+  // LGPD: anonimizar nome do paciente antes de enviar pro ElevenLabs
+  let textoAnonimizado = textoVoz;
+  if (pacienteNome) {
+    const nomes = pacienteNome.split(' ').filter(n => n.length > 2);
+    nomes.forEach(nome => {
+      textoAnonimizado = textoAnonimizado.replace(new RegExp(nome, 'gi'), 'o paciente');
+    });
+  }
 
   const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
     method: 'POST',
@@ -731,9 +740,9 @@ async function gerarAudioElevenLabs(textoVoz) {
       'xi-api-key': apiKey,
     },
     body: JSON.stringify({
-      text: textoVoz,
+      text: textoAnonimizado,
       model_id: 'eleven_multilingual_v2',
-      voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+      voice_settings: { stability: 0.7, similarity_boost: 0.8 },
     }),
   });
 

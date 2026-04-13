@@ -257,6 +257,26 @@ router.post('/t/:token/responder-audio', audioUpload.fields([
       data: { respostas, transcricao, audioUrl, pacienteFotoUrl, summaryIA, summaryJson, status: 'RESPONDIDA', respondidaEm: new Date() },
     });
 
+    // TTS: Generate ElevenLabs audio in background (fire-and-forget)
+    if (summaryJson && (summaryJson.textoVoz || summaryIA)) {
+      const textoVoz = summaryJson.textoVoz || summaryIA;
+      gerarAudioElevenLabs(textoVoz, preConsulta.pacienteNome)
+        .then(async (audioBuffer) => {
+          const ttsUrl = await storage.upload({
+            buffer: audioBuffer,
+            nomeOriginal: `tts-summary-${preConsulta.id}.mp3`,
+            mimetype: 'audio/mpeg',
+            pasta: 'tts',
+          });
+          await prisma.preConsulta.update({
+            where: { id: preConsulta.id },
+            data: { audioSummaryUrl: ttsUrl },
+          });
+          console.log('[TTS] Audio gerado e salvo:', preConsulta.id);
+        })
+        .catch(e => console.error('[TTS] Erro (nao bloqueante):', e.message));
+    }
+
     // Notifications
     const nomeMedico = preConsulta.medico.usuario.nome;
     const emailMedico = preConsulta.medico.usuario.email;
@@ -388,6 +408,26 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
       data: updateData,
     });
 
+    // TTS: Generate ElevenLabs audio in background (fire-and-forget)
+    if (summaryJson && (summaryJson.textoVoz || summaryIA)) {
+      const textoVoz = summaryJson.textoVoz || summaryIA;
+      gerarAudioElevenLabs(textoVoz, preConsulta.pacienteNome)
+        .then(async (audioBuffer) => {
+          const ttsUrl = await storage.upload({
+            buffer: audioBuffer,
+            nomeOriginal: `tts-summary-${preConsulta.id}.mp3`,
+            mimetype: 'audio/mpeg',
+            pasta: 'tts',
+          });
+          await prisma.preConsulta.update({
+            where: { id: preConsulta.id },
+            data: { audioSummaryUrl: ttsUrl },
+          });
+          console.log('[TTS] Audio gerado e salvo:', preConsulta.id);
+        })
+        .catch(e => console.error('[TTS] Erro (nao bloqueante):', e.message));
+    }
+
     // Notificacoes (fire-and-forget — nao bloqueia a resposta)
     const nomeMedico = preConsulta.medico.usuario.nome;
     const emailMedico = preConsulta.medico.usuario.email;
@@ -480,13 +520,32 @@ router.post('/:id/tts', verificarAuth, async (req, res, next) => {
       return res.status(404).json({ erro: 'Pre-consulta nao encontrada' });
     }
 
+    // Check cache first (unless ?force=true)
+    if (preConsulta.audioSummaryUrl && req.query.force !== 'true') {
+      return res.redirect(preConsulta.audioSummaryUrl);
+    }
+
     const textoVoz = preConsulta.summaryJson?.textoVoz || preConsulta.summaryIA;
     if (!textoVoz) {
       return res.status(422).json({ erro: 'Nao ha summary disponivel para gerar audio' });
     }
 
     try {
-      const audioBuffer = await gerarAudioElevenLabs(textoVoz);
+      const audioBuffer = await gerarAudioElevenLabs(textoVoz, preConsulta.pacienteNome);
+
+      // Cache: upload to Supabase and save URL
+      storage.upload({
+        buffer: audioBuffer,
+        nomeOriginal: `tts-summary-${preConsulta.id}.mp3`,
+        mimetype: 'audio/mpeg',
+        pasta: 'tts',
+      }).then(async (ttsUrl) => {
+        await prisma.preConsulta.update({
+          where: { id: preConsulta.id },
+          data: { audioSummaryUrl: ttsUrl },
+        });
+      }).catch(e => console.error('[TTS] Erro ao cachear:', e.message));
+
       res.set('Content-Type', 'audio/mpeg');
       res.set('Content-Length', audioBuffer.length);
       return res.send(audioBuffer);
