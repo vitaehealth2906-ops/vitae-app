@@ -4,333 +4,509 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>vitaid — One Minute Summary</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:#F4F6FA; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif; }
-        .phone {
-            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#F4F6FA;
-            border-radius:52px; overflow:hidden; position:relative;
-            box-shadow: 0 0 0 1px rgba(0,229,160,0.15), 0 0 0 3px #E5E7EB, 0 40px 120px rgba(0,0,0,0.1);
-        }
-        .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#F4F6FA; border-radius:0 0 20px 20px; z-index:10; }
-        .header { position:sticky; top:0; left:0; right:0; padding:48px 28px 12px; background:#F4F6FA; z-index:5; display:flex; flex-direction:column; gap:10px; margin:-24px -24px 12px; width:calc(100% + 48px); }
-        .back-btn { width:40px; height:40px; border-radius:12px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.07); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:18px; color:#9CA3AF; }
-        .header-title { flex:1; text-align:center; font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#0D0F14; }
-
-        .content { height:100%; overflow-y:auto; padding:24px 24px 40px; scrollbar-width:none; }
-        .content::-webkit-scrollbar { display:none; }
-
-        .patient-bar {
-            display:flex; align-items:center; gap:12px;
-            background:#FFFFFF; border:1px solid rgba(0,0,0,0.07);
-            border-radius:16px; padding:14px 16px; margin-bottom:20px;
-            box-shadow:0 1px 12px rgba(0,0,0,0.07);
-        }
-        .patient-avatar { width:40px; height:40px; border-radius:50%; background:rgba(0,229,160,0.08); display:flex; align-items:center; justify-content:center; font-size:18px; }
-        .patient-name { font-size:15px; font-weight:600; color:#0D0F14; }
-        .patient-date { font-size:12px; color:#9CA3AF; }
-
-        /* Audio player */
-        .audio-player {
-            width:100%; padding:12px 16px; margin-bottom:20px;
-            background:rgba(0,229,160,0.04); border:1px solid rgba(0,229,160,0.12);
-            border-radius:16px;
-            display:flex; align-items:center; gap:12px;
-        }
-        .audio-play-btn {
-            width:42px; height:42px; border-radius:50%; flex-shrink:0;
-            background:linear-gradient(120deg, #00E5A0, #00B4D8);
-            display:flex; align-items:center; justify-content:center;
-            cursor:pointer; border:none; box-shadow:0 4px 16px rgba(0,229,160,0.25);
-        }
-        .audio-play-btn svg { width:18px; height:18px; stroke:#fff; fill:none; }
-        .audio-info { flex:1; min-width:0; }
-        .audio-info-name { font-size:13px; font-weight:600; color:#0D0F14; }
-        .audio-info-meta { font-size:11px; color:#4B5563; margin-top:2px; }
-        .audio-wave {
-            width:80px; height:28px; flex-shrink:0;
-            display:flex; align-items:center; gap:2px;
-        }
-        .audio-wave-bar {
-            width:3px; border-radius:2px;
-            background:rgba(0,229,160,0.3);
-        }
-        /* TTS fallback button */
-        .tts-btn {
-            width:100%; padding:14px; margin-bottom:20px;
-            background:rgba(74,144,226,0.08); border:1px solid rgba(74,144,226,0.2);
-            border-radius:16px; cursor:pointer;
-            display:flex; align-items:center; justify-content:center; gap:10px;
-            font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:600;
-            color:#3B82F6; transition:all 0.2s;
-        }
-        .tts-btn:hover { background:rgba(74,144,226,0.12); }
-        .tts-btn.playing { border-color:#00E5A0; color:#00E5A0; background:rgba(0,229,160,0.08); }
-
-        /* Summary text */
-        .summary-box {
-            background:rgba(0,229,160,0.04);
-            border:1px solid rgba(0,229,160,0.12);
-            border-radius:18px; padding:18px;
-            margin-bottom:20px;
-        }
-        .summary-label { font-size:11px; font-weight:700; color:#00E5A0; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; }
-        .summary-text { font-size:14px; color:#4B5563; line-height:1.6; }
-
-        /* Blocks */
-        .block {
-            background:#FFFFFF; border:1px solid rgba(0,0,0,0.07);
-            border-radius:18px; padding:16px; margin-bottom:12px;
-            box-shadow:0 1px 12px rgba(0,0,0,0.07);
-        }
-        .block-header { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
-        .block-priority { width:8px; height:8px; border-radius:50%; }
-        .block-priority.alta { background:#EF4444; }
-        .block-priority.media { background:#00E5A0; }
-        .block-priority.baixa { background:#00C47A; }
-        .block-title { font-size:14px; font-weight:600; color:#0D0F14; }
-        .block-content { font-size:13px; color:#4B5563; line-height:1.5; }
-
-        /* Alerts */
-        .alert {
-            display:flex; align-items:flex-start; gap:10px;
-            padding:14px; border-radius:14px; margin-bottom:10px;
-        }
-        .alert.URGENTE { background:rgba(217,68,82,0.08); border:1px solid rgba(217,68,82,0.2); }
-        .alert.ATENCAO { background:rgba(0,229,160,0.08); border:1px solid rgba(0,229,160,0.2); }
-        .alert.INFO { background:rgba(74,144,226,0.08); border:1px solid rgba(74,144,226,0.2); }
-        .alert-icon { font-size:16px; flex-shrink:0; margin-top:2px; }
-        .alert-text { font-size:13px; color:#4B5563; line-height:1.4; }
-
-        /* Questions */
-        .questions-title { font-size:14px; font-weight:600; color:#0D0F14; margin:16px 0 10px; }
-        .question {
-            padding:10px 14px;
-            background:#FFFFFF; border:1px solid rgba(0,0,0,0.07);
-            border-radius:12px; margin-bottom:8px;
-            font-size:13px; color:#4B5563;
-            box-shadow:0 1px 12px rgba(0,0,0,0.07);
-        }
-
-        .loading { text-align:center; padding:40px; color:#9CA3AF; }
-    @media(max-width:480px){body{padding:0!important;background:#F4F6FA!important}.phone{width:100vw!important;height:100vh!important;height:100svh!important;max-width:100vw!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}.notch,.status{display:none!important}}</style>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="vitae-core.css">
     <link rel="stylesheet" href="vitae-glass.css">
     <link rel="stylesheet" href="vitae-light.css">
+    <style>
+        /* ── Summary-specific styles (using design tokens) ── */
+
+        .summary-header {
+            display: flex; align-items: center; gap: 10px;
+            padding: var(--v-s5) var(--v-s6) var(--v-s3);
+        }
+        .summary-header-title {
+            flex: 1; text-align: center;
+            font-size: 17px; font-weight: 700; color: var(--v-ink);
+            margin-right: 40px;
+        }
+
+        /* Patient hero */
+        .patient-hero {
+            display: flex; flex-direction: column; align-items: center;
+            padding: var(--v-s2) var(--v-s6) var(--v-s6);
+            gap: 6px;
+        }
+        .patient-photo {
+            width: 88px; height: 88px; border-radius: 50%;
+            background: var(--v-grad); padding: 3px; margin-bottom: var(--v-s1);
+        }
+        .patient-photo-inner {
+            width: 100%; height: 100%; border-radius: 50%;
+            background: var(--v-surface);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; font-weight: 800; color: var(--v-green);
+            overflow: hidden;
+        }
+        .patient-photo-inner img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .patient-name { font-size: 22px; font-weight: 800; color: var(--v-ink); letter-spacing: -0.5px; }
+        .patient-age { font-size: 14px; font-weight: 500; color: var(--v-ink3); }
+        .patient-desc {
+            font-size: 14px; color: var(--v-ink2); text-align: center;
+            line-height: 1.5; max-width: 300px; margin-top: var(--v-s1);
+            font-style: italic;
+        }
+        .date-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: var(--v-r-pill);
+            background: rgba(0,229,160,0.08);
+            font-size: 11px; font-weight: 600; color: var(--v-green2);
+        }
+        .date-badge svg { width: 12px; height: 12px; stroke: var(--v-green2); fill: none; stroke-width: 2; stroke-linecap: round; }
+
+        /* Stale warning */
+        .stale-warning {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 14px; border-radius: var(--v-r-md);
+            background: rgba(245,158,11,0.06); border: var(--v-border-warn);
+            font-size: 12px; color: var(--v-warn); font-weight: 600;
+            margin: 0 var(--v-s5) var(--v-s4);
+        }
+        .stale-warning svg { width: 16px; height: 16px; stroke: var(--v-warn); fill: none; stroke-width: 2; flex-shrink: 0; }
+
+        /* Audio button (collapsed) */
+        .audio-btn {
+            display: flex; align-items: center; gap: 12px;
+            margin: 0 var(--v-s5) var(--v-s4);
+            padding: 14px 18px;
+            background: var(--v-surface); border: var(--v-border);
+            border-radius: var(--v-r-lg);
+            box-shadow: var(--v-sh);
+            cursor: pointer; transition: all 0.2s var(--v-ease);
+        }
+        .audio-btn:active { transform: scale(0.98); }
+        .audio-btn-icon {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: var(--v-grad);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            box-shadow: var(--v-sh-green);
+        }
+        .audio-btn-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .audio-btn-text { flex: 1; }
+        .audio-btn-label { font-size: 14px; font-weight: 700; color: var(--v-ink); }
+        .audio-btn-sub { font-size: 12px; color: var(--v-ink4); margin-top: 2px; }
+        .audio-btn-bars {
+            display: flex; align-items: center; gap: 2px; height: 24px;
+        }
+        .audio-btn-bar {
+            width: 3px; border-radius: 3px;
+            background: var(--v-green);
+            opacity: 0.3;
+        }
+        .audio-btn.playing .audio-btn-bar {
+            animation: barPulse 0.6s ease-in-out infinite alternate;
+            opacity: 1;
+        }
+        @keyframes barPulse {
+            from { transform: scaleY(0.3); }
+            to { transform: scaleY(1); }
+        }
+        .audio-btn-bar:nth-child(1) { height: 8px; animation-delay: 0s; }
+        .audio-btn-bar:nth-child(2) { height: 16px; animation-delay: 0.1s; }
+        .audio-btn-bar:nth-child(3) { height: 12px; animation-delay: 0.05s; }
+        .audio-btn-bar:nth-child(4) { height: 20px; animation-delay: 0.15s; }
+        .audio-btn-bar:nth-child(5) { height: 10px; animation-delay: 0.08s; }
+        .audio-btn-bar:nth-child(6) { height: 14px; animation-delay: 0.12s; }
+        .audio-btn-bar:nth-child(7) { height: 8px; animation-delay: 0.02s; }
+
+        /* Alert cards */
+        .alert-card {
+            padding: 14px 16px;
+            border-radius: var(--v-r-md);
+            margin: 0 var(--v-s5) var(--v-s2);
+            display: flex; align-items: flex-start; gap: 12px;
+        }
+        .alert-card.urgente { background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.15); }
+        .alert-card.atencao { background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.15); }
+        .alert-card.info { background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.15); }
+        .alert-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            flex-shrink: 0; margin-top: 4px;
+        }
+        .urgente .alert-dot { background: var(--v-bad); box-shadow: 0 0 8px rgba(239,68,68,0.4); }
+        .atencao .alert-dot { background: var(--v-warn); box-shadow: 0 0 8px rgba(245,158,11,0.4); }
+        .info .alert-dot { background: var(--v-info); box-shadow: 0 0 8px rgba(59,130,246,0.4); }
+        .alert-content { flex: 1; }
+        .alert-type { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px; }
+        .urgente .alert-type { color: var(--v-bad); }
+        .atencao .alert-type { color: var(--v-warn); }
+        .info .alert-type { color: var(--v-info); }
+        .alert-msg { font-size: 13px; color: var(--v-ink2); line-height: 1.5; }
+
+        /* Context grid */
+        .context-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 10px; padding: 0 var(--v-s5); margin-bottom: var(--v-s4);
+        }
+        .ctx-card {
+            background: var(--v-surface); border: var(--v-border);
+            border-radius: var(--v-r-md); padding: 14px;
+            box-shadow: var(--v-sh); position: relative; overflow: hidden;
+        }
+        .ctx-card.priority-high::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+            width: 4px; background: var(--v-bad); border-radius: 4px 0 0 4px;
+        }
+        .ctx-card.priority-high { padding-left: 18px; }
+        .ctx-icon {
+            width: 32px; height: 32px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 10px;
+        }
+        .ctx-icon svg { width: 18px; height: 18px; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .ctx-icon.queixa { background: rgba(239,68,68,0.08); }
+        .ctx-icon.queixa svg { stroke: var(--v-bad); }
+        .ctx-icon.meds { background: rgba(0,229,160,0.08); }
+        .ctx-icon.meds svg { stroke: var(--v-green); }
+        .ctx-icon.alergias { background: rgba(245,158,11,0.08); }
+        .ctx-icon.alergias svg { stroke: var(--v-warn); }
+        .ctx-icon.habitos { background: rgba(59,130,246,0.08); }
+        .ctx-icon.habitos svg { stroke: var(--v-info); }
+        .ctx-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--v-ink4); margin-bottom: 6px; }
+        .ctx-value { font-size: 13px; font-weight: 500; color: var(--v-ink); line-height: 1.5; }
+        .ctx-value span { display: block; color: var(--v-ink3); font-size: 12px; }
+
+        /* Raw response cards */
+        .raw-card {
+            background: var(--v-surface); border: var(--v-border);
+            border-radius: var(--v-r-md); padding: var(--v-s4);
+            margin: 0 var(--v-s5) var(--v-s2); box-shadow: var(--v-sh);
+        }
+        .raw-label { font-size: 12px; font-weight: 700; color: var(--v-ink4); margin-bottom: 4px; }
+        .raw-value { font-size: 14px; color: var(--v-ink2); line-height: 1.5; }
+
+        /* Animations */
+        .anim { opacity: 0; transform: translateY(20px); animation: fadeUp 0.4s var(--v-ease) forwards; }
+        .anim-d1 { animation-delay: 0.05s; }
+        .anim-d2 { animation-delay: 0.1s; }
+        .anim-d3 { animation-delay: 0.15s; }
+        .anim-d4 { animation-delay: 0.2s; }
+        .anim-d5 { animation-delay: 0.25s; }
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+        .loading-state { text-align: center; padding: 80px 20px; color: var(--v-ink4); font-size: 13px; }
+    </style>
 </head>
 <body>
 <div class="phone">
+    <div class="notch"></div>
     <div class="content" id="mainContent">
-        <!-- Top bar -->
-        <div style="display:flex;align-items:center;margin-bottom:16px;padding-top:48px;">
-            <div class="back-btn" onclick="var p=new URLSearchParams(window.location.search);window.location.href=p.get('from')==='pacientes'?'20-medico-dashboard.html?view=pacientes':'20-medico-dashboard.html'">‹</div>
-            <div class="header-title">One Minute Summary</div>
-            <div style="width:40px;"></div>
-        </div>
-        <!-- Patient info -->
-        <div class="patient-bar" id="headerPatient" style="display:none;">
-            <div class="patient-avatar" id="headerAvatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(0,229,160,0.6)" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-            <div><div class="patient-name" id="headerPatientName"></div></div>
-        </div>
-        <!-- Audio + summary injected here by JS -->
-        <div id="loadingState" class="loading">Carregando resumo...</div>
-        <div id="dynamicContent"></div>
+        <div id="loadingState" class="loading-state">Carregando resumo...</div>
+        <div id="dynamicContent" style="display:none;"></div>
     </div>
 </div>
 
 <script src="api.js"></script>
 <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const pcId = urlParams.get('id');
-    let summaryText = '';
-    let isSpeaking = false;
+const urlParams = new URLSearchParams(window.location.search);
+const pcId = urlParams.get('id');
 
-    async function init() {
-        if (!pcId) return;
+// Fields to hide in raw fallback
+const HIDE_FIELDS = ['metodo','audioUrl','fotoUrl','linkToken','pacienteId','consentimento','lgpdAceito','audio','foto','audioBase64','fotoBase64'];
 
-        try {
-            const data = await vitaeAPI.getPreConsulta(pcId);
-            const pc = data.preConsulta;
-            const summary = pc.summaryJson || {};
-            summaryText = pc.summaryIA || summary.summaryTexto || 'Resumo não disponível';
+const LABELS = {
+    nomeCompleto:'Nome completo', dataNascimento:'Data de nascimento',
+    cpf:'CPF', telefone:'Telefone', email:'E-mail', sexo:'Sexo',
+    queixaPrincipal:'Queixa principal', duracaoSintomas:'Duracao dos sintomas',
+    medicamentosEmUso:'Medicamentos em uso', alergias:'Alergias',
+    reacoesAdversas:'Reacoes adversas', doencasAtuais:'Doencas atuais',
+    historicoInternacoes:'Historico de internacoes', cirurgias:'Cirurgias',
+    historiaFamiliar:'Historia familiar', tabagismo:'Tabagismo',
+    alcool:'Alcool', exercicio:'Exercicio fisico', sono:'Sono',
+    cafeina:'Cafeina', mudancasRotina:'Mudancas na rotina',
+    examesAnteriores:'Exames anteriores', observacoes:'Observacoes',
+    queixa:'Queixa principal', motivoConsulta:'Motivo da consulta',
+    genero:'Genero', estadoCivil:'Estado civil',
+    q_queixa:'Queixa principal', q_medicamentos:'Medicamentos', q_alergias:'Alergias',
+};
 
-            const respondidaEm = pc.respondidaEm ? new Date(pc.respondidaEm).toLocaleDateString('pt-BR') : '';
+function calcAge(dateStr) {
+    if (!dateStr) return null;
+    let d;
+    if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        d = new Date(parts[2], parts[1] - 1, parts[0]);
+    } else {
+        d = new Date(dateStr);
+    }
+    if (isNaN(d.getTime())) return null;
+    return Math.floor((Date.now() - d.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+}
 
-            // Show patient name + photo in fixed header
-            document.getElementById('headerPatientName').textContent = pc.pacienteNome;
-            document.getElementById('headerPatient').style.display = 'flex';
-            if (pc.pacienteFotoUrl) {
-                document.getElementById('headerAvatar').innerHTML = `<img src="${sanitize(pc.pacienteFotoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-            }
+function getInitials(name) {
+    return (name || '').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+}
 
-            // Generate waveform bars
-            const waveBars = Array.from({length:18}, () => {
-                const h = Math.floor(Math.random() * 18) + 6;
-                return `<div class="audio-wave-bar" style="height:${h}px"></div>`;
-            }).join('');
+function daysSince(dateStr) {
+    if (!dateStr) return 999;
+    return Math.floor((Date.now() - new Date(dateStr).getTime()) / (86400000));
+}
 
-            // Audio player or TTS fallback
-            let audioSection = '';
-            const realAudioUrl = pc.audioUrl || (pc.respostas && pc.respostas.audioUrl) || null;
-            const realFotoUrl = pc.pacienteFotoUrl || (pc.respostas && pc.respostas.fotoUrl) || null;
-            if (realFotoUrl) {
-                document.getElementById('headerAvatar').innerHTML = `<img src="${realFotoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-            }
-            if (realAudioUrl) {
-                audioSection = `
-                <div class="audio-player" id="audioPlayer">
-                    <button class="audio-play-btn" onclick="toggleAudio()">
-                        <svg id="audioPlayIcon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    </button>
-                    <div class="audio-info">
-                        <div class="audio-info-name">${pc.pacienteNome}</div>
-                        <div class="audio-info-meta">${respondidaEm} · <span id="audioDuration">--:--</span></div>
-                    </div>
-                    <div class="audio-wave">${waveBars}</div>
-                    <audio id="patientAudio" src="${realAudioUrl}" preload="metadata" onloadedmetadata="showDuration()"></audio>
-                </div>`;
-            } else {
-                audioSection = `
-                <button class="tts-btn" id="ttsBtn" onclick="toggleTTS()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg> Ouvir resumo
-                </button>`;
-            }
+// TTS state
+let ttsAudio = null;
+let ttsPlaying = false;
 
-            let html = audioSection + `
-                <div class="summary-box">
-                    <div class="summary-label">Resumo</div>
-                    <div class="summary-text">${summaryText}</div>
-                </div>
-            `;
+function toggleTTS() {
+    const btn = document.getElementById('audioBtn');
+    if (!btn) return;
 
-            // Blocks
-            if (summary.blocos && summary.blocos.length > 0) {
-                html += summary.blocos.map(b => `
-                    <div class="block">
-                        <div class="block-header">
-                            <div class="block-priority ${b.prioridade || 'media'}"></div>
-                            <div class="block-title">${b.titulo}</div>
-                        </div>
-                        <div class="block-content">${b.conteudo}</div>
-                    </div>
-                `).join('');
-            }
-
-            // Alerts
-            if (summary.alertas && summary.alertas.length > 0) {
-                html += summary.alertas.map(a => {
-                    const icons = { URGENTE:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>', ATENCAO:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', INFO:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' };
-                    return `
-                        <div class="alert ${a.tipo}">
-                            <div class="alert-icon">${icons[a.tipo] || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'}</div>
-                            <div class="alert-text">${a.mensagem}</div>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            // Suggested questions
-            if (summary.perguntasSugeridas && summary.perguntasSugeridas.length > 0) {
-                html += '<div class="questions-title">Perguntas sugeridas</div>';
-                html += summary.perguntasSugeridas.map(q => `
-                    <div class="question">❓ ${q}</div>
-                `).join('');
-            }
-
-            // Raw responses if no AI summary
-            if (!summary.blocos && pc.respostas) {
-                const LABELS = {
-                    nomeCompleto:'Nome completo', dataNascimento:'Data de nascimento',
-                    cpf:'CPF', telefone:'Telefone', email:'E-mail', sexo:'Sexo biológico',
-                    queixaPrincipal:'Queixa principal', duracaoSintomas:'Duração dos sintomas',
-                    medicamentosEmUso:'Medicamentos em uso', alergias:'Alergias',
-                    reacoesAdversas:'Reações adversas', doencasAtuais:'Doenças atuais',
-                    historicoInternacoes:'Histórico de internações', cirurgias:'Cirurgias',
-                    historiaFamiliar:'História familiar', tabagismo:'Tabagismo',
-                    tabagismoDetalhe:'Detalhe tabagismo', alcool:'Álcool',
-                    exercicio:'Exercício físico', exercicioTipo:'Tipo de exercício',
-                    cafeina:'Cafeína', sono:'Sono', mudancasRotina:'Mudanças na rotina',
-                    examesAnteriores:'Exames anteriores', observacoes:'Observações',
-                };
-                html += '<div class="questions-title">Respostas do paciente</div>';
-                const r = pc.respostas;
-                for (const [key, val] of Object.entries(r)) {
-                    if (!val || typeof val === 'object') continue;
-                    const label = LABELS[key] || key;
-                    html += `<div class="block">
-                        <div class="block-title">${label}</div>
-                        <div class="block-content">${val}</div>
-                    </div>`;
-                }
-            }
-
-            document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('dynamicContent').innerHTML = html;
-        } catch (e) {
-            document.getElementById('loadingState').textContent = 'Erro: ' + e.message;
-        }
+    if (ttsPlaying) {
+        if (ttsAudio) ttsAudio.pause();
+        speechSynthesis.cancel();
+        ttsPlaying = false;
+        btn.classList.remove('playing');
+        btn.querySelector('.audio-btn-label').textContent = 'Ouvir resumo';
+        return;
     }
 
-    function toggleTTS() {
-        const btn = document.getElementById('ttsBtn');
-        if (isSpeaking) {
-            speechSynthesis.cancel();
-            isSpeaking = false;
-            btn.classList.remove('playing');
-            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg> Ouvir resumo';
-            return;
-        }
-
-        const utterance = new SpeechSynthesisUtterance(summaryText);
-        utterance.lang = 'pt-BR';
-        utterance.rate = 0.95;
-
-        utterance.onstart = () => {
-            isSpeaking = true;
+    // Try cached ElevenLabs audio first
+    const cachedUrl = btn.dataset.audioUrl;
+    if (cachedUrl) {
+        if (!ttsAudio) ttsAudio = new Audio(cachedUrl);
+        ttsAudio.play().then(() => {
+            ttsPlaying = true;
             btn.classList.add('playing');
-            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Parar';
-        };
-
-        utterance.onend = () => {
-            isSpeaking = false;
+            btn.querySelector('.audio-btn-label').textContent = 'Pausar';
+        }).catch(() => fallbackBrowserTTS());
+        ttsAudio.onended = () => {
+            ttsPlaying = false;
             btn.classList.remove('playing');
-            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg> Ouvir resumo';
+            btn.querySelector('.audio-btn-label').textContent = 'Ouvir resumo';
         };
-
-        speechSynthesis.speak(utterance);
+        return;
     }
 
-    // Audio player functions
-    let audioPlaying = false;
-    function showDuration() {
-        const audio = document.getElementById('patientAudio');
-        if (audio && audio.duration && isFinite(audio.duration)) {
-            const m = Math.floor(audio.duration / 60);
-            const s = Math.floor(audio.duration % 60);
-            document.getElementById('audioDuration').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        }
+    // Try generate via ElevenLabs endpoint
+    const pcIdLocal = urlParams.get('id');
+    if (pcIdLocal && getToken()) {
+        btn.querySelector('.audio-btn-sub').textContent = 'Gerando audio...';
+        fetch(API_URL + '/pre-consulta/' + pcIdLocal + '/tts', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + getToken() }
+        }).then(r => {
+            if (!r.ok) throw new Error('TTS failed');
+            return r.blob();
+        }).then(blob => {
+            const url = URL.createObjectURL(blob);
+            ttsAudio = new Audio(url);
+            btn.dataset.audioUrl = url;
+            ttsAudio.play();
+            ttsPlaying = true;
+            btn.classList.add('playing');
+            btn.querySelector('.audio-btn-label').textContent = 'Pausar';
+            btn.querySelector('.audio-btn-sub').textContent = '~1 minuto';
+            ttsAudio.onended = () => {
+                ttsPlaying = false;
+                btn.classList.remove('playing');
+                btn.querySelector('.audio-btn-label').textContent = 'Ouvir resumo';
+            };
+        }).catch(() => {
+            btn.querySelector('.audio-btn-sub').textContent = '~1 minuto';
+            fallbackBrowserTTS();
+        });
+        return;
     }
-    function toggleAudio() {
-        const audio = document.getElementById('patientAudio');
-        const icon = document.getElementById('audioPlayIcon');
-        if (!audio) return;
-        if (audioPlaying) {
-            audio.pause();
-            audioPlaying = false;
-            icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+
+    fallbackBrowserTTS();
+}
+
+function fallbackBrowserTTS() {
+    const btn = document.getElementById('audioBtn');
+    const text = btn ? btn.dataset.summaryText : '';
+    if (!text || !window.speechSynthesis) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'pt-BR';
+    utterance.rate = 0.95;
+    utterance.onstart = () => {
+        ttsPlaying = true;
+        if (btn) { btn.classList.add('playing'); btn.querySelector('.audio-btn-label').textContent = 'Pausar'; }
+    };
+    utterance.onend = () => {
+        ttsPlaying = false;
+        if (btn) { btn.classList.remove('playing'); btn.querySelector('.audio-btn-label').textContent = 'Ouvir resumo'; }
+    };
+    speechSynthesis.speak(utterance);
+}
+
+async function init() {
+    if (!pcId) { document.getElementById('loadingState').textContent = 'ID nao fornecido.'; return; }
+
+    try {
+        const data = await vitaeAPI.getPreConsulta(pcId);
+        const pc = data.preConsulta;
+        const summary = pc.summaryJson || {};
+        const r = pc.respostas || {};
+        const summaryText = summary.summaryTexto || pc.summaryIA || '';
+        const descBreve = summary.descricaoBreve || (summaryText ? summaryText.split('. ')[0] + '.' : '');
+        const respondidaEm = pc.respondidaEm ? new Date(pc.respondidaEm).toLocaleDateString('pt-BR') : '';
+        const days = daysSince(pc.respondidaEm);
+        const foto = pc.pacienteFotoUrl || r.fotoUrl || null;
+        const age = calcAge(r.dataNascimento || (r.nascimento));
+        const initials = getInitials(pc.pacienteNome);
+        const audioUrl = pc.audioSummaryUrl || null;
+
+        // Back URL
+        const fromParam = urlParams.get('from');
+        const backUrl = fromParam === 'pacientes' ? '20-medico-dashboard.html?view=pacientes' : '20-medico-dashboard.html';
+
+        let html = '';
+
+        // Header
+        html += '<div class="summary-header anim">';
+        html += '<div class="btn-back" onclick="window.location.href=\'' + backUrl + '\'"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>';
+        html += '<div class="summary-header-title">One Minute Summary</div>';
+        html += '</div>';
+
+        // Patient hero
+        html += '<div class="patient-hero anim anim-d1">';
+        html += '<div class="patient-photo"><div class="patient-photo-inner">';
+        if (foto) {
+            html += '<img src="' + foto + '" onerror="this.parentElement.textContent=\'' + initials + '\'">';
         } else {
-            audio.play();
-            audioPlaying = true;
-            icon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+            html += initials;
         }
-        audio.onended = () => {
-            audioPlaying = false;
-            icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
-        };
-    }
+        html += '</div></div>';
+        html += '<div class="patient-name">' + (pc.pacienteNome || 'Paciente') + '</div>';
+        if (age) html += '<div class="patient-age">' + age + ' anos</div>';
+        if (respondidaEm) {
+            html += '<div class="date-badge"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Respondida em ' + respondidaEm + '</div>';
+        }
+        if (descBreve) html += '<div class="patient-desc">"' + descBreve + '"</div>';
+        html += '</div>';
 
-    init();
+        // Stale warning
+        if (days > 7) {
+            html += '<div class="stale-warning anim anim-d1"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Pre-consulta com mais de 7 dias. Dados podem estar desatualizados.</div>';
+        }
+
+        // Audio button (collapsed)
+        if (summaryText) {
+            html += '<div class="audio-btn anim anim-d2" id="audioBtn" onclick="toggleTTS()" data-summary-text="' + summaryText.replace(/"/g, '&quot;') + '"' + (audioUrl ? ' data-audio-url="' + audioUrl + '"' : '') + '>';
+            html += '<div class="audio-btn-icon"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke="#fff" fill="none"/><path d="M15.54 8.46a5 5 0 010 7.07" stroke="#fff"/></svg></div>';
+            html += '<div class="audio-btn-text"><div class="audio-btn-label">Ouvir resumo</div><div class="audio-btn-sub">~1 minuto</div></div>';
+            html += '<div class="audio-btn-bars">';
+            for (let i = 0; i < 7; i++) html += '<div class="audio-btn-bar"></div>';
+            html += '</div></div>';
+        }
+
+        // Alerts
+        const alertas = summary.alertas || [];
+        if (alertas.length > 0) {
+            html += '<div class="section-label anim anim-d2">Alertas clinicos</div>';
+            alertas.forEach(function(a) {
+                const tipo = (a.tipo || 'INFO').toLowerCase();
+                const tipoLabel = { urgente: 'Urgente', atencao: 'Atencao', info: 'Informacao' }[tipo] || a.tipo;
+                html += '<div class="alert-card ' + tipo + ' anim anim-d3">';
+                html += '<div class="alert-dot"></div>';
+                html += '<div class="alert-content"><div class="alert-type">' + tipoLabel + '</div>';
+                html += '<div class="alert-msg">' + a.mensagem + '</div></div></div>';
+            });
+        }
+
+        // Context grid
+        const blocos = summary.blocos || [];
+        const queixa = findBloco(blocos, 'queixa') || r.queixaPrincipal || r.queixa || r.q_queixa || '';
+        const meds = findBloco(blocos, 'medicament') || r.medicamentosEmUso || r.q_medicamentos || '';
+        const alergias = findBloco(blocos, 'alergia') || r.alergias || r.q_alergias || '';
+        const habitos = findBloco(blocos, 'habit') || buildHabitos(r) || '';
+
+        const hasContext = queixa || meds || alergias || habitos;
+        if (hasContext) {
+            html += '<div class="section-label anim anim-d3">Contexto rapido</div>';
+            html += '<div class="context-grid anim anim-d4">';
+
+            if (queixa) {
+                const queixaPrio = findBlocoPrio(blocos, 'queixa') === 'alta';
+                html += '<div class="ctx-card' + (queixaPrio ? ' priority-high' : '') + '">';
+                html += '<div class="ctx-icon queixa"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>';
+                html += '<div class="ctx-title">Queixa</div>';
+                html += '<div class="ctx-value">' + truncate(queixa, 60) + '</div></div>';
+            }
+            if (meds) {
+                html += '<div class="ctx-card">';
+                html += '<div class="ctx-icon meds"><svg viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div>';
+                html += '<div class="ctx-title">Medicamentos</div>';
+                html += '<div class="ctx-value">' + truncate(meds, 60) + '</div></div>';
+            }
+            if (alergias) {
+                html += '<div class="ctx-card priority-high">';
+                html += '<div class="ctx-icon alergias"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>';
+                html += '<div class="ctx-title">Alergias</div>';
+                html += '<div class="ctx-value">' + truncate(alergias, 60) + '</div></div>';
+            }
+            if (habitos) {
+                html += '<div class="ctx-card">';
+                html += '<div class="ctx-icon habitos"><svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>';
+                html += '<div class="ctx-title">Habitos</div>';
+                html += '<div class="ctx-value">' + truncate(habitos, 60) + '</div></div>';
+            }
+
+            html += '</div>';
+        }
+
+        // Suggested questions
+        const perguntas = summary.perguntasSugeridas || [];
+        if (perguntas.length > 0) {
+            html += '<div class="section-label anim anim-d4">Perguntas para a consulta</div>';
+            perguntas.forEach(function(q) {
+                html += '<div class="raw-card anim anim-d5"><div class="raw-value">' + q + '</div></div>';
+            });
+        }
+
+        // Raw fallback (if no blocos AND no context)
+        if (!hasContext && !blocos.length && pc.respostas) {
+            html += '<div class="section-label anim anim-d3">Respostas do paciente</div>';
+            const entries = Object.entries(pc.respostas);
+            entries.forEach(function(pair) {
+                const key = pair[0];
+                const val = pair[1];
+                if (!val || typeof val === 'object') return;
+                if (HIDE_FIELDS.indexOf(key) !== -1) return;
+                if (typeof val === 'string' && val.startsWith('http')) return;
+                const label = LABELS[key] || key;
+                html += '<div class="raw-card anim anim-d4"><div class="raw-label">' + label + '</div><div class="raw-value">' + val + '</div></div>';
+            });
+        }
+
+        html += '<div style="height:40px"></div>';
+
+        document.getElementById('loadingState').style.display = 'none';
+        const dc = document.getElementById('dynamicContent');
+        dc.style.display = '';
+        dc.innerHTML = html;
+
+    } catch (e) {
+        document.getElementById('loadingState').textContent = 'Erro ao carregar: ' + e.message;
+    }
+}
+
+function findBloco(blocos, keyword) {
+    const b = blocos.find(function(bl) { return bl.titulo && bl.titulo.toLowerCase().indexOf(keyword) !== -1; });
+    return b ? b.conteudo : '';
+}
+
+function findBlocoPrio(blocos, keyword) {
+    const b = blocos.find(function(bl) { return bl.titulo && bl.titulo.toLowerCase().indexOf(keyword) !== -1; });
+    return b ? b.prioridade : '';
+}
+
+function buildHabitos(r) {
+    const parts = [];
+    if (r.tabagismo) parts.push(r.tabagismo === 'nao' || r.tabagismo === 'Não' ? 'Nao fuma' : 'Fuma');
+    if (r.alcool) parts.push(r.alcool);
+    if (r.sono) parts.push(r.sono + ' sono');
+    if (r.exercicio) parts.push(r.exercicio);
+    return parts.join(', ');
+}
+
+function truncate(text, max) {
+    if (!text) return '';
+    return text.length > max ? text.substring(0, max) + '...' : text;
+}
+
+init();
 </script>
 </body>
 </html>

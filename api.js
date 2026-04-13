@@ -418,6 +418,13 @@ const vitaeAPI = {
     return apiRequest(`/pre-consulta/${id}`, { method: 'DELETE' });
   },
 
+  async deletarPaciente(pacienteNome, pacienteTel) {
+    return apiRequest('/pre-consulta/by-patient', {
+      method: 'DELETE',
+      body: { pacienteNome, pacienteTel },
+    });
+  },
+
   async verificarTranscricao(token, transcricao) {
     return apiRequest(`/pre-consulta/t/${token}/verificar`, {
       method: 'POST',

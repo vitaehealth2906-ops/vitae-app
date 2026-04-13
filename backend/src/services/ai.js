@@ -657,6 +657,7 @@ ${transcricao ? `Transcrição do paciente:\n"${transcricao}"` : ''}
 
 Retorne EXCLUSIVAMENTE um JSON válido:
 {
+  "descricaoBreve": "string (1-2 frases SIMPLES sobre o que o paciente esta sentindo, como se explicasse a um colega. Ex: 'Dor no peito ha 3 dias, piora com esforco')",
   "summaryTexto": "string (resumo corrido de 3-5 frases para o medico ler em 1 minuto)",
   "textoVoz": "string (texto natural para narração em voz, começando com 'Olá Doutor...' ou 'Olá Doutora...', informal, fluido, 4-6 frases)",
   "blocos": [
@@ -678,6 +679,7 @@ Retorne EXCLUSIVAMENTE um JSON válido:
 }
 
 Regras:
+- descricaoBreve: linguagem simples, 1-2 frases curtas, foco no motivo da consulta e sintoma principal. Sem termos tecnicos.
 - summaryTexto: direto, clínico, objetivo — para ler em menos de 1 minuto.
 - textoVoz: conversacional, natural, como se um assistente falasse ao médico antes de ele entrar na sala. Ex: 'Olá, Doutor! Antes de você entrar, deixa eu te adiantar: ...'
 - Gere de 3 a 6 blocos organizados por relevância clínica.

@@ -525,6 +525,49 @@ router.post('/t/:token/verificar', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
+// DELETE /by-patient — Apagar TODAS pre-consultas de um paciente (autenticado)
+// ---------------------------------------------------------------------------
+
+router.delete('/by-patient', verificarAuth, async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) {
+      return res.status(403).json({ erro: 'Apenas medicos podem apagar pre-consultas' });
+    }
+
+    const { pacienteNome, pacienteTel } = req.body || {};
+    if (!pacienteNome) {
+      return res.status(400).json({ erro: 'pacienteNome e obrigatorio' });
+    }
+
+    const where = { medicoId: medico.id, pacienteNome };
+    if (pacienteTel) where.pacienteTel = pacienteTel;
+
+    const preConsultas = await prisma.preConsulta.findMany({ where });
+
+    if (preConsultas.length === 0) {
+      return res.status(404).json({ erro: 'Nenhuma pre-consulta encontrada para este paciente' });
+    }
+
+    // Clean up all storage files
+    const deletePromises = preConsultas.flatMap((pc) => {
+      const promises = [];
+      if (pc.audioUrl) promises.push(storage.deletar(pc.audioUrl).catch(() => {}));
+      if (pc.pacienteFotoUrl) promises.push(storage.deletar(pc.pacienteFotoUrl).catch(() => {}));
+      if (pc.audioSummaryUrl) promises.push(storage.deletar(pc.audioSummaryUrl).catch(() => {}));
+      return promises;
+    });
+    await Promise.allSettled(deletePromises);
+
+    await prisma.preConsulta.deleteMany({ where });
+
+    return res.status(200).json({ ok: true, deletedCount: preConsultas.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // DELETE /:id — Apagar pre-consulta (autenticado — medico)
 // ---------------------------------------------------------------------------
 
@@ -543,12 +586,15 @@ router.delete('/:id', verificarAuth, async (req, res, next) => {
       return res.status(404).json({ erro: 'Pre-consulta nao encontrada' });
     }
 
-    // Delete audio and photo from storage if they exist
+    // Delete audio, photo and TTS from storage if they exist
     if (preConsulta.audioUrl) {
       storage.deletar(preConsulta.audioUrl).catch(() => {});
     }
     if (preConsulta.pacienteFotoUrl) {
       storage.deletar(preConsulta.pacienteFotoUrl).catch(() => {});
+    }
+    if (preConsulta.audioSummaryUrl) {
+      storage.deletar(preConsulta.audioSummaryUrl).catch(() => {});
     }
 
     await prisma.preConsulta.delete({ where: { id: req.params.id } });
