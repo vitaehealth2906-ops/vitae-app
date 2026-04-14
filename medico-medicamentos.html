@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>vitaid — Medicamentos do Paciente</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vitae-core.css">
+    <link rel="stylesheet" href="vitae-glass.css">
+    <link rel="stylesheet" href="vitae-light.css">
+    <style>
+        .page-back-row { display:flex; align-items:center; gap:10px; padding:var(--v-s5) var(--v-s6) var(--v-s3); }
+        .page-back-title { flex:1; font-size:17px; font-weight:700; color:var(--v-ink); }
+        .med-card { display:flex; align-items:center; gap:14px; background:var(--v-surface); border:var(--v-border); border-radius:var(--v-r-md); padding:16px; margin:0 var(--v-s5) var(--v-s2); box-shadow:var(--v-sh); }
+        .med-icon { width:42px; height:42px; border-radius:12px; background:rgba(0,229,160,0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .med-icon svg { width:20px; height:20px; stroke:var(--v-green); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+        .med-info { flex:1; }
+        .med-name { font-size:15px; font-weight:700; color:var(--v-ink); }
+        .med-dosagem { font-size:13px; color:var(--v-ink2); margin-top:2px; }
+        .med-detail { font-size:11px; color:var(--v-ink4); margin-top:2px; }
+        .med-badge { padding:4px 10px; border-radius:var(--v-r-pill); font-size:10px; font-weight:700; background:rgba(0,229,160,0.08); color:var(--v-green); }
+        .empty-state { text-align:center; padding:60px 20px; }
+        .empty-title { font-size:16px; font-weight:700; color:var(--v-ink3); margin-bottom:6px; }
+        .empty-sub { font-size:13px; color:var(--v-ink4); }
+        .anim { opacity:0; transform:translateY(20px); animation:fadeUp 0.4s var(--v-ease) forwards; }
+        @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="content">
+        <div class="page-back-row anim">
+            <div class="btn-back" onclick="history.back()"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+            <div class="page-back-title" id="pageTitle">Medicamentos</div>
+        </div>
+        <div id="list"></div>
+        <div id="loadingState" style="text-align:center;padding:40px;color:var(--v-ink4);font-size:13px;">Carregando medicamentos...</div>
+    </div>
+</div>
+<script src="api.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const pacienteId = params.get('pacienteId');
+const pacienteNome = decodeURIComponent(params.get('nome') || 'Paciente');
+document.getElementById('pageTitle').textContent = 'Medicamentos de ' + pacienteNome;
+
+async function load() {
+    if (!pacienteId) { document.getElementById('loadingState').textContent = 'Erro: ID nao fornecido'; return; }
+    try {
+        const data = await vitaeAPI.getPerfilPacienteMedico(pacienteId);
+        const meds = (data.paciente && data.paciente.medicamentos) || [];
+        document.getElementById('loadingState').style.display = 'none';
+
+        if (meds.length === 0) {
+            document.getElementById('list').innerHTML = '<div class="empty-state anim"><div class="empty-title">Nenhum medicamento</div><div class="empty-sub">Este paciente nao registrou medicamentos em uso.</div></div>';
+            return;
+        }
+
+        var html = '';
+        meds.forEach(function(m, i) {
+            var dosagem = [m.dosagem, m.frequencia].filter(Boolean).join(' - ') || '';
+            var detail = [m.horario, m.motivo].filter(Boolean).join(' | ') || '';
+            html += '<div class="med-card anim" style="animation-delay:' + (0.05 + i * 0.05) + 's;">';
+            html += '<div class="med-icon"><svg viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div>';
+            html += '<div class="med-info"><div class="med-name">' + m.nome + '</div>';
+            if (dosagem) html += '<div class="med-dosagem">' + dosagem + '</div>';
+            if (detail) html += '<div class="med-detail">' + detail + '</div>';
+            html += '</div>';
+            if (m.ativo) html += '<div class="med-badge">Ativo</div>';
+            html += '</div>';
+        });
+        document.getElementById('list').innerHTML = html;
+    } catch (err) {
+        document.getElementById('loadingState').textContent = 'Erro: ' + err.message;
+    }
+}
+load();
+</script>
+</body>
+</html>

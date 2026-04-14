@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>vitaid — Condicoes do Paciente</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vitae-core.css">
+    <link rel="stylesheet" href="vitae-glass.css">
+    <link rel="stylesheet" href="vitae-light.css">
+    <style>
+        .page-back-row { display:flex; align-items:center; gap:10px; padding:var(--v-s5) var(--v-s6) var(--v-s3); }
+        .page-back-title { flex:1; font-size:17px; font-weight:700; color:var(--v-ink); }
+        .section-card { background:var(--v-surface); border:var(--v-border); border-radius:var(--v-r-md); padding:18px; margin:0 var(--v-s5) var(--v-s3); box-shadow:var(--v-sh); }
+        .section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--v-ink4); margin-bottom:10px; }
+        .condition-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:var(--v-r-pill); background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.12); font-size:13px; font-weight:600; color:var(--v-ink2); margin:0 6px 6px 0; }
+        .condition-dot { width:8px; height:8px; border-radius:50%; background:var(--v-warn); }
+        .surgery-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.04); font-size:14px; color:var(--v-ink2); }
+        .surgery-item:last-child { border-bottom:none; }
+        .surgery-icon { width:28px; height:28px; border-radius:8px; background:rgba(59,130,246,0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .surgery-icon svg { width:14px; height:14px; stroke:var(--v-info); fill:none; stroke-width:2; }
+        .family-item { display:flex; align-items:center; gap:10px; padding:8px 0; font-size:13px; color:var(--v-ink2); }
+        .family-dot { width:6px; height:6px; border-radius:50%; background:var(--v-ink4); flex-shrink:0; }
+        .empty-state { text-align:center; padding:60px 20px; }
+        .empty-title { font-size:16px; font-weight:700; color:var(--v-ink3); margin-bottom:6px; }
+        .empty-sub { font-size:13px; color:var(--v-ink4); }
+        .anim { opacity:0; transform:translateY(20px); animation:fadeUp 0.4s var(--v-ease) forwards; }
+        .anim-d1 { animation-delay:0.05s; } .anim-d2 { animation-delay:0.1s; } .anim-d3 { animation-delay:0.15s; }
+        @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="content">
+        <div class="page-back-row anim">
+            <div class="btn-back" onclick="history.back()"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+            <div class="page-back-title" id="pageTitle">Condicoes</div>
+        </div>
+        <div id="sections"></div>
+        <div id="loadingState" style="text-align:center;padding:40px;color:var(--v-ink4);font-size:13px;">Carregando condicoes...</div>
+    </div>
+</div>
+<script src="api.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const pacienteId = params.get('pacienteId');
+const pacienteNome = decodeURIComponent(params.get('nome') || 'Paciente');
+document.getElementById('pageTitle').textContent = 'Condicoes de ' + pacienteNome;
+
+async function load() {
+    if (!pacienteId) { document.getElementById('loadingState').textContent = 'Erro: ID nao fornecido'; return; }
+    try {
+        const data = await vitaeAPI.getPerfilPacienteMedico(pacienteId);
+        const perfil = (data.paciente && data.paciente.perfilSaude) || {};
+        document.getElementById('loadingState').style.display = 'none';
+
+        var condicoes = perfil.condicoes ? perfil.condicoes.split(',').map(function(s){return s.trim()}).filter(Boolean) : [];
+        var cirurgias = perfil.cirurgias ? (Array.isArray(perfil.cirurgias) ? perfil.cirurgias : perfil.cirurgias.split(',').map(function(s){return s.trim()})).filter(Boolean) : [];
+        var familia = perfil.historicoFamiliar ? (Array.isArray(perfil.historicoFamiliar) ? perfil.historicoFamiliar : [perfil.historicoFamiliar]).filter(Boolean) : [];
+
+        if (condicoes.length === 0 && cirurgias.length === 0 && familia.length === 0) {
+            document.getElementById('sections').innerHTML = '<div class="empty-state anim"><div class="empty-title">Nenhuma condicao</div><div class="empty-sub">Este paciente nao registrou condicoes, cirurgias ou historico familiar.</div></div>';
+            return;
+        }
+
+        var html = '';
+
+        if (condicoes.length > 0) {
+            html += '<div class="section-card anim anim-d1"><div class="section-title">Condicoes cronicas</div>';
+            condicoes.forEach(function(c) {
+                html += '<span class="condition-pill"><span class="condition-dot"></span>' + c + '</span>';
+            });
+            html += '</div>';
+        }
+
+        if (cirurgias.length > 0) {
+            html += '<div class="section-card anim anim-d2"><div class="section-title">Cirurgias anteriores</div>';
+            cirurgias.forEach(function(c) {
+                html += '<div class="surgery-item"><div class="surgery-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>' + c + '</div>';
+            });
+            html += '</div>';
+        }
+
+        if (familia.length > 0) {
+            html += '<div class="section-card anim anim-d3"><div class="section-title">Historico familiar</div>';
+            familia.forEach(function(f) {
+                html += '<div class="family-item"><span class="family-dot"></span>' + f + '</div>';
+            });
+            html += '</div>';
+        }
+
+        document.getElementById('sections').innerHTML = html;
+    } catch (err) {
+        document.getElementById('loadingState').textContent = 'Erro: ' + err.message;
+    }
+}
+load();
+</script>
+</body>
+</html>
