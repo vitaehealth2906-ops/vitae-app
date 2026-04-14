@@ -722,7 +722,7 @@ async function gerarAudioElevenLabs(textoVoz, pacienteNome) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) throw new Error('ELEVENLABS_API_KEY nao configurada');
 
-  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'x6uRgOliu4lpcrqMH3s1'; // Flavio Francisco — voz masculina profissional
+  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'onwK4e9ZLuTAKqWW03F9'; // Daniel — voz masculina seria (Steady Broadcaster)
 
   // LGPD: anonimizar nome do paciente antes de enviar pro ElevenLabs
   let textoAnonimizado = textoVoz;
