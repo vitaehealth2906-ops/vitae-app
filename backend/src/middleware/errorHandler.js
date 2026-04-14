@@ -24,16 +24,35 @@ function errorHandler(err, req, res, _next) {
 
   // --- Erros do Prisma (PrismaClientKnownRequestError) ---
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    console.error('[PRISMA_CODE]', err.code, '[META]', JSON.stringify(err.meta || {}));
     const mapped = PRISMA_ERROR_MAP[err.code];
     if (mapped) {
       return res.status(mapped.status).json({ erro: mapped.mensagem });
     }
-    return res.status(400).json({ erro: 'Erro no banco de dados.' });
+    return res.status(400).json({
+      erro: 'Erro no banco de dados.',
+      debug_code: err.code,
+      debug_meta: err.meta,
+      debug_message: err.message ? err.message.substring(0, 500) : null,
+    });
   }
 
   // --- Erros de validacao do Prisma ---
   if (err instanceof Prisma.PrismaClientValidationError) {
-    return res.status(400).json({ erro: 'Dados invalidos enviados ao banco de dados.' });
+    console.error('[PRISMA_VALIDATION]', err.message);
+    return res.status(400).json({
+      erro: 'Dados invalidos enviados ao banco de dados.',
+      debug_message: err.message ? err.message.substring(0, 800) : null,
+    });
+  }
+
+  // --- Erros de inicializacao do Prisma (DB down, schema mismatch) ---
+  if (err instanceof Prisma.PrismaClientInitializationError || err instanceof Prisma.PrismaClientUnknownRequestError) {
+    console.error('[PRISMA_INIT_OR_UNKNOWN]', err.message);
+    return res.status(500).json({
+      erro: 'Banco de dados indisponivel ou fora de sincronia.',
+      debug_message: err.message ? err.message.substring(0, 800) : null,
+    });
   }
 
   // --- Erros do JWT ---
