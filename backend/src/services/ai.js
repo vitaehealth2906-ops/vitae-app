@@ -688,26 +688,54 @@ Regras:
 - Use linguagem técnica para o summaryTexto e blocos. textoVoz pode ser mais informal.
 - NAO faça diagnósticos.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2048,
-    system:
-      'Voce e um assistente clinico da plataforma VITAE. Organiza informacoes de pre-consulta ' +
-      'em resumos concisos para medicos. Use linguagem tecnica nos blocos e resumo. ' +
-      'NAO faca diagnosticos — apenas organize e resuma os dados do paciente.',
-    messages: [{ role: 'user', content: userPrompt }],
-  });
+  const systemPrompt = 'Voce e um assistente clinico da plataforma VITAE. Organiza informacoes de pre-consulta ' +
+    'em resumos concisos para medicos. Use linguagem tecnica nos blocos e resumo. ' +
+    'NAO faca diagnosticos — apenas organize e resuma os dados do paciente.';
 
-  const conteudo = response.content[0].text.trim();
+  // TRY GEMINI FIRST (free), fallback to Claude
+  if (genAI) {
+    try {
+      console.log('[SUMMARY-AI] Tentando Gemini 2.5 Flash (gratuito)...');
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash',
+        generationConfig: { responseMimeType: 'application/json' },
+      });
 
-  try {
-    return JSON.parse(conteudo);
-  } catch {
-    const jsonMatch = conteudo.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[1].trim());
+      const geminiPrompt = systemPrompt + '\n\n' + userPrompt;
+      const result = await model.generateContent(geminiPrompt);
+      const text = result.response.text();
+      const parsed = JSON.parse(text);
+      console.log('[SUMMARY-AI] Gemini sucesso! Blocos:', (parsed.blocos || []).length);
+      return parsed;
+    } catch (geminiErr) {
+      console.error('[SUMMARY-AI] Gemini falhou:', geminiErr.message, '— tentando Claude...');
     }
-    throw new Error('Falha ao gerar summary da pre-consulta. Tente novamente.');
+  }
+
+  // FALLBACK: Claude (Anthropic) — requer creditos
+  try {
+    console.log('[SUMMARY-AI] Tentando Claude Sonnet...');
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+
+    const conteudo = response.content[0].text.trim();
+
+    try {
+      return JSON.parse(conteudo);
+    } catch {
+      const jsonMatch = conteudo.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1].trim());
+      }
+      throw new Error('Falha ao parsear resposta do Claude');
+    }
+  } catch (claudeErr) {
+    console.error('[SUMMARY-AI] Claude tambem falhou:', claudeErr.message);
+    throw new Error('Nenhuma IA disponivel para gerar resumo: ' + claudeErr.message);
   }
 }
 
