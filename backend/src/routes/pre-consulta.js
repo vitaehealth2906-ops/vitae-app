@@ -555,6 +555,46 @@ router.get('/:id', verificarAuth, async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /:id/regenerar — Regenerar resumo IA de uma pre-consulta (autenticado)
+// ---------------------------------------------------------------------------
+
+router.post('/:id/regenerar', verificarAuth, async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) return res.status(403).json({ erro: 'Apenas medicos' });
+
+    const pc = await prisma.preConsulta.findFirst({
+      where: { id: req.params.id, medicoId: medico.id, status: 'RESPONDIDA' },
+    });
+    if (!pc) return res.status(404).json({ erro: 'Pre-consulta nao encontrada' });
+
+    const resultado = await gerarSummaryPreConsulta(
+      pc.pacienteNome, pc.respostas || {}, pc.transcricao || '', pc.templatePerguntas
+    );
+
+    await prisma.preConsulta.update({
+      where: { id: pc.id },
+      data: { summaryIA: resultado.summaryTexto, summaryJson: resultado },
+    });
+
+    // TTS em background
+    if (resultado.textoVoz || resultado.summaryTexto) {
+      gerarAudioElevenLabs(resultado.textoVoz || resultado.summaryTexto, pc.pacienteNome)
+        .then(async (buf) => {
+          const url = await storage.upload({ buffer: buf, nomeOriginal: 'tts-' + pc.id + '.mp3', mimetype: 'audio/mpeg', pasta: 'tts' });
+          await prisma.preConsulta.update({ where: { id: pc.id }, data: { audioSummaryUrl: url } });
+          console.log('[REGEN] TTS salvo:', pc.id);
+        })
+        .catch(e => console.error('[REGEN] TTS erro:', e.message));
+    }
+
+    return res.status(200).json({ ok: true, summary: resultado });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // POST /:id/tts — Gerar audio ElevenLabs do summary (autenticado — medico)
 // ---------------------------------------------------------------------------
 
