@@ -762,7 +762,9 @@ async function gerarAudioElevenLabs(textoVoz, pacienteNome) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) throw new Error('ELEVENLABS_API_KEY nao configurada');
 
-  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'x6uRgOliu4lpcrqMH3s1'; // Flavio Francisco — voz masculina PT-BR institucional
+  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'onwK4e9ZLuTAKqWW03F9'; // Daniel fallback — trocar por voz PT-BR quando testar
+
+  console.log('[TTS] Gerando audio — voiceId:', voiceId, '| texto length:', textoVoz.length);
 
   // LGPD: anonimizar nome do paciente antes de enviar pro ElevenLabs
   let textoAnonimizado = textoVoz;
@@ -782,14 +784,17 @@ async function gerarAudioElevenLabs(textoVoz, pacienteNome) {
     body: JSON.stringify({
       text: textoAnonimizado,
       model_id: 'eleven_multilingual_v2',
-      voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.35, use_speaker_boost: true },
+      voice_settings: { stability: 0.5, similarity_boost: 0.75 },
     }),
   });
 
   if (!response.ok) {
     const err = await response.text();
+    console.error('[TTS] ElevenLabs FALHOU:', response.status, '| voiceId:', voiceId, '| erro:', err);
     throw new Error(`ElevenLabs error: ${response.status} — ${err}`);
   }
+
+  console.log('[TTS] Audio gerado com sucesso — size:', response.headers.get('content-length'));
 
   const arrayBuffer = await response.arrayBuffer();
   return Buffer.from(arrayBuffer);
