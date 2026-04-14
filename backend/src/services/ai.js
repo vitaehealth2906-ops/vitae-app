@@ -646,7 +646,7 @@ async function gerarSummaryPreConsulta(pacienteNome, respostas, transcricao, tem
   if (r.sexo) identificacao.push(`Sexo: ${r.sexo}`);
   if (r.estadoCivil) identificacao.push(`Estado civil: ${r.estadoCivil}`);
 
-  const userPrompt = `Gere um resumo clinico conciso (One Minute Summary) para o medico, baseado nas informacoes da pre-consulta do paciente ${pacienteNome}.
+  const userPrompt = `Analise e INTERPRETE clinicamente os dados da pre-consulta do paciente ${pacienteNome}. Seu papel NAO e reorganizar dados — e CONECTAR PONTOS que o medico levaria minutos lendo um prontuario para perceber.
 
 ${identificacao.length > 0 ? `Identificação: ${identificacao.join(' | ')}` : ''}
 
@@ -655,42 +655,54 @@ ${dadosPaciente}
 ${templateContext}
 ${transcricao ? `Transcrição do paciente:\n"${transcricao}"` : ''}
 
+ANTES de gerar o JSON, faca esta analise mental (nao inclua no output):
+1. Cruzar medicamentos × alergias documentadas (ex: paciente toma Dipirona mas tem alergia = URGENTE)
+2. Cruzar sintomas × medicamentos em uso (ex: prurido + novo medicamento = possivel reacao?)
+3. Cruzar historico de doencas × queixa atual (ex: diabetes + lesoes cutaneas = investigar controle glicemico)
+4. Identificar padroes temporais (ex: sintomas ha X dias + evento recente = possivel correlacao)
+5. Identificar omissoes relevantes (ex: paciente nao mencionou se parou/iniciou medicamento recentemente)
+6. Cruzar habitos × queixa (ex: tabagismo + tosse, alcool + dor abdominal, sono ruim + fadiga)
+7. Cruzar historico familiar × queixa (ex: historico de cancer + nodulo)
+
 Retorne EXCLUSIVAMENTE um JSON válido:
 {
-  "descricaoBreve": "string (1-2 frases SIMPLES sobre o que o paciente esta sentindo, como se explicasse a um colega. Ex: 'Dor no peito ha 3 dias, piora com esforco')",
-  "summaryTexto": "string (resumo corrido de 3-5 frases para o medico ler em 1 minuto)",
-  "textoVoz": "string (texto natural para narração em voz, começando com 'Olá Doutor...' ou 'Olá Doutora...', informal, fluido, 4-6 frases)",
+  "descricaoBreve": "string (1-2 frases SIMPLES, linguagem leiga. Foco no motivo da consulta. Ex: 'Paciente de 19 anos com coceira e manchas vermelhas pelo corpo ha 3 dias')",
+  "summaryTexto": "string (3-5 frases clinicas INTERPRETATIVAS — nao liste dados, CONECTE-OS. Ex: 'Chama atencao a associacao entre o quadro dermatologico agudo e o historico de Diabetes Mellitus, que pode indicar...')",
+  "textoVoz": "string (BRIEFING MEDICO de ~150-180 palavras para narração de ~1 minuto. Tom: colega medico adiantando o caso antes de entrar na sala. Estrutura obrigatoria: 1) Abertura direta 'Doutor(a), antes de entrar — resumo rapido.' 2) Quem e o paciente e o que sente (20s) 3) Pontos de atencao — cruzamentos e correlacoes que voce identificou (25s) 4) Alertas de seguranca — alergias, conflitos medicamentosos (10s) 5) Fechamento 'Sugiro atencao em X e Y. Boa consulta.' NUNCA transcreva perguntas e respostas do formulario. INTERPRETE. NUNCA diga 'O paciente respondeu que...' ou 'No formulario consta...'. Fale como medico.)",
   "blocos": [
     {
-      "titulo": "string (ex: 'Queixa Principal', 'Medicamentos', 'Alergias', 'Histórico', 'Hábitos')",
-      "conteudo": "string (resumo objetivo deste bloco)",
+      "titulo": "string (ex: 'Queixa Principal', 'Medicamentos em Uso', 'Alergias e Reacoes', 'Historico Relevante', 'Habitos de Vida', 'Historico Familiar', 'Acessibilidade')",
+      "conteudo": "string (resumo OBJETIVO deste bloco — aqui pode ser factual, servira como referencia durante a consulta)",
       "prioridade": "string ('alta', 'media', 'baixa')"
     }
   ],
   "alertas": [
     {
-      "tipo": "string ('URGENTE', 'ATENCAO', 'INFO')",
-      "mensagem": "string (alerta clínico relevante)"
+      "tipo": "string ('URGENTE' = risco real como conflito medicamento×alergia | 'ATENCAO' = correlacao clinica que merece investigacao | 'INFO' = contexto util)",
+      "titulo": "string (acao curta: 'Evitar prescricao de Dipirona', 'Investigar controle glicemico', 'Paciente cadeirante')",
+      "mensagem": "string (explicacao clinica objetiva em 1-2 frases)"
     }
-  ],
-  "perguntasSugeridas": [
-    "string (perguntas que o médico poderia fazer ao paciente)"
   ]
 }
 
-Regras:
-- descricaoBreve: linguagem simples, 1-2 frases curtas, foco no motivo da consulta e sintoma principal. Sem termos tecnicos.
-- summaryTexto: direto, clínico, objetivo — para ler em menos de 1 minuto.
-- textoVoz: conversacional, natural, como se um assistente falasse ao médico antes de ele entrar na sala. Ex: 'Olá, Doutor! Antes de você entrar, deixa eu te adiantar: ...'
-- Gere de 3 a 6 blocos organizados por relevância clínica.
-- Alertas: apenas se houver info que exija atenção (interações medicamentosas, sintomas graves, GLP-1 + anestesia, etc.).
-- 2-4 perguntas sugeridas baseadas nos dados.
-- Use linguagem técnica para o summaryTexto e blocos. textoVoz pode ser mais informal.
-- NAO faça diagnósticos.`;
+Regras ABSOLUTAS:
+- NUNCA diagnosticar. Nunca dizer "o paciente tem X" ou "isso indica Y doenca".
+- NUNCA recomendar tratamento. Nunca dizer "receite X" ou "considere prescrever Y".
+- SEMPRE interpretar. Dizer "chama atencao a combinacao de X com Y" ou "vale investigar a relacao entre X e Y".
+- descricaoBreve: linguagem SIMPLES, leiga, como explicaria para o proprio paciente.
+- summaryTexto: CLINICO e INTERPRETATIVO. Conecte dados, nao os liste.
+- textoVoz: TOM DE COLEGA MEDICO. Natural, fluido, como briefing antes de entrar na sala. NUNCA soe robotico ou como leitura de formulario.
+- blocos: 3-6 blocos. Estes servem como FICHA DE REFERENCIA durante a consulta — podem ser factuais.
+- alertas: SOMENTE quando houver cruzamento real (medicamento×alergia, doenca×sintoma, habito×queixa). Cada alerta DEVE ter titulo curto de acao + mensagem explicativa. NAO gere alertas genericos.
+- NAO inclua campo perguntasSugeridas.
+- Use linguagem tecnica no summaryTexto e blocos. textoVoz deve ser conversacional.`;
 
-  const systemPrompt = 'Voce e um assistente clinico da plataforma VITAE. Organiza informacoes de pre-consulta ' +
-    'em resumos concisos para medicos. Use linguagem tecnica nos blocos e resumo. ' +
-    'NAO faca diagnosticos — apenas organize e resuma os dados do paciente.';
+  const systemPrompt = 'Voce e um interpretador clinico da plataforma VITAE. Seu papel e INTERPRETAR — nao reorganizar — dados de pre-consulta. ' +
+    'Voce pensa como um medico experiente analisando um caso: cruza medicamentos com alergias, sintomas com historico, habitos com queixa. ' +
+    'Identifica correlacoes que o medico levaria minutos para perceber sozinho lendo um prontuario. ' +
+    'Use linguagem tecnica nos blocos e resumo. O textoVoz deve soar como um colega medico adiantando o caso antes da consulta — natural e fluido, NUNCA como leitura de formulario. ' +
+    'REGRAS ABSOLUTAS: NAO diagnostique. NAO recomende tratamento. APENAS interprete, conecte pontos e sinalize o que merece atencao. ' +
+    'Respeite LGPD: nao exponha dados pessoais alem do necessario clinicamente.';
 
   // TRY GEMINI FIRST (free), fallback to Claude
   if (genAI) {
@@ -750,7 +762,7 @@ async function gerarAudioElevenLabs(textoVoz, pacienteNome) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) throw new Error('ELEVENLABS_API_KEY nao configurada');
 
-  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'onwK4e9ZLuTAKqWW03F9'; // Daniel — voz masculina seria (Steady Broadcaster)
+  const voiceId = process.env.ELEVENLABS_VOICE_ID || 'x6uRgOliu4lpcrqMH3s1'; // Flavio Francisco — voz masculina PT-BR institucional
 
   // LGPD: anonimizar nome do paciente antes de enviar pro ElevenLabs
   let textoAnonimizado = textoVoz;
@@ -770,7 +782,7 @@ async function gerarAudioElevenLabs(textoVoz, pacienteNome) {
     body: JSON.stringify({
       text: textoAnonimizado,
       model_id: 'eleven_multilingual_v2',
-      voice_settings: { stability: 0.7, similarity_boost: 0.8 },
+      voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.35, use_speaker_boost: true },
     }),
   });
 

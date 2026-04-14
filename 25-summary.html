@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="vitae-glass.css">
     <link rel="stylesheet" href="vitae-light.css">
     <style>
-        /* ── Summary-specific styles (using design tokens) ── */
+        /* ── Summary-specific styles ── */
 
         .summary-header {
             display: flex; align-items: center; gap: 10px;
@@ -64,110 +64,167 @@
         }
         .stale-warning svg { width: 16px; height: 16px; stroke: var(--v-warn); fill: none; stroke-width: 2; flex-shrink: 0; }
 
-        /* Audio button (collapsed) */
-        .audio-btn {
-            display: flex; align-items: center; gap: 12px;
-            margin: 0 var(--v-s5) var(--v-s4);
-            padding: 14px 18px;
-            background: var(--v-surface); border: var(--v-border);
-            border-radius: var(--v-r-lg);
-            box-shadow: var(--v-sh);
-            cursor: pointer; transition: all 0.2s var(--v-ease);
+        /* ── Premium Audio Player (dark, real waveform) ── */
+        .audio-player {
+            margin: 0 var(--v-s5) var(--v-s5);
+            background: #0D0F14;
+            border-radius: 18px;
+            padding: 18px 20px 14px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15), 0 0 40px rgba(0,229,160,0.06);
+            transition: box-shadow 0.6s ease;
         }
-        .audio-btn:active { transform: scale(0.98); }
-        .audio-btn-icon {
+        .audio-player.playing {
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15), 0 0 40px rgba(0,229,160,0.1);
+        }
+        .audio-player-top {
+            display: flex; align-items: center; gap: 14px;
+            margin-bottom: 14px;
+        }
+        .audio-play-btn {
             width: 44px; height: 44px; border-radius: 50%;
             background: var(--v-grad);
             display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-            box-shadow: var(--v-sh-green);
+            flex-shrink: 0; cursor: pointer;
+            box-shadow: 0 2px 12px rgba(0,229,160,0.3);
+            transition: transform 0.2s var(--v-ease), box-shadow 0.2s;
+            border: none; outline: none;
         }
-        .audio-btn-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-        .audio-btn-text { flex: 1; }
-        .audio-btn-label { font-size: 14px; font-weight: 700; color: var(--v-ink); }
-        .audio-btn-sub { font-size: 12px; color: var(--v-ink4); margin-top: 2px; }
-        .audio-btn-bars {
-            display: flex; align-items: center; gap: 2px; height: 24px;
+        .audio-play-btn:active { transform: scale(0.92); }
+        .audio-play-btn svg { width: 18px; height: 18px; fill: #fff; stroke: none; }
+        .audio-play-btn .icon-pause { display: none; }
+        .audio-player.playing .audio-play-btn .icon-play { display: none; }
+        .audio-player.playing .audio-play-btn .icon-pause { display: block; }
+        .audio-info { flex: 1; }
+        .audio-label {
+            font-size: 14px; font-weight: 700; color: #fff;
+            letter-spacing: -0.2px;
         }
-        .audio-btn-bar {
-            width: 3px; border-radius: 3px;
-            background: var(--v-green);
-            opacity: 0.3;
+        .audio-sub {
+            font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.4);
+            margin-top: 2px;
         }
-        .audio-btn.playing .audio-btn-bar {
-            animation: barPulse 0.6s ease-in-out infinite alternate;
-            opacity: 1;
+        .audio-timer {
+            font-family: 'Plus Jakarta Sans', monospace;
+            font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35);
+            letter-spacing: 0.5px; flex-shrink: 0;
         }
-        @keyframes barPulse {
-            from { transform: scaleY(0.3); }
-            to { transform: scaleY(1); }
-        }
-        .audio-btn-bar:nth-child(1) { height: 8px; animation-delay: 0s; }
-        .audio-btn-bar:nth-child(2) { height: 16px; animation-delay: 0.1s; }
-        .audio-btn-bar:nth-child(3) { height: 12px; animation-delay: 0.05s; }
-        .audio-btn-bar:nth-child(4) { height: 20px; animation-delay: 0.15s; }
-        .audio-btn-bar:nth-child(5) { height: 10px; animation-delay: 0.08s; }
-        .audio-btn-bar:nth-child(6) { height: 14px; animation-delay: 0.12s; }
-        .audio-btn-bar:nth-child(7) { height: 8px; animation-delay: 0.02s; }
 
-        /* Alert cards */
-        .alert-card {
-            padding: 14px 16px;
-            border-radius: var(--v-r-md);
-            margin: 0 var(--v-s5) var(--v-s2);
-            display: flex; align-items: flex-start; gap: 12px;
-        }
-        .alert-card.urgente { background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.15); }
-        .alert-card.atencao { background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.15); }
-        .alert-card.info { background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.15); }
-        .alert-dot {
-            width: 10px; height: 10px; border-radius: 50%;
-            flex-shrink: 0; margin-top: 4px;
-        }
-        .urgente .alert-dot { background: var(--v-bad); box-shadow: 0 0 8px rgba(239,68,68,0.4); }
-        .atencao .alert-dot { background: var(--v-warn); box-shadow: 0 0 8px rgba(245,158,11,0.4); }
-        .info .alert-dot { background: var(--v-info); box-shadow: 0 0 8px rgba(59,130,246,0.4); }
-        .alert-content { flex: 1; }
-        .alert-type { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px; }
-        .urgente .alert-type { color: var(--v-bad); }
-        .atencao .alert-type { color: var(--v-warn); }
-        .info .alert-type { color: var(--v-info); }
-        .alert-msg { font-size: 13px; color: var(--v-ink2); line-height: 1.5; }
-
-        /* Context grid */
-        .context-grid {
-            display: grid; grid-template-columns: 1fr 1fr;
-            gap: 10px; padding: 0 var(--v-s5); margin-bottom: var(--v-s4);
-        }
-        .ctx-card {
-            background: var(--v-surface); border: var(--v-border);
-            border-radius: var(--v-r-md); padding: 14px;
-            box-shadow: var(--v-sh); position: relative; overflow: hidden;
-        }
-        .ctx-card.priority-high::before {
-            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-            width: 4px; background: var(--v-bad); border-radius: 4px 0 0 4px;
-        }
-        .ctx-card.priority-high { padding-left: 18px; }
-        .ctx-icon {
-            width: 32px; height: 32px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
+        /* Waveform canvas */
+        .audio-waveform {
+            width: 100%; height: 48px;
+            border-radius: 8px;
             margin-bottom: 10px;
         }
-        .ctx-icon svg { width: 18px; height: 18px; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
-        .ctx-icon.queixa { background: rgba(239,68,68,0.08); }
-        .ctx-icon.queixa svg { stroke: var(--v-bad); }
-        .ctx-icon.meds { background: rgba(0,229,160,0.08); }
-        .ctx-icon.meds svg { stroke: var(--v-green); }
-        .ctx-icon.alergias { background: rgba(245,158,11,0.08); }
-        .ctx-icon.alergias svg { stroke: var(--v-warn); }
-        .ctx-icon.habitos { background: rgba(59,130,246,0.08); }
-        .ctx-icon.habitos svg { stroke: var(--v-info); }
-        .ctx-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--v-ink4); margin-bottom: 6px; }
-        .ctx-value { font-size: 13px; font-weight: 500; color: var(--v-ink); line-height: 1.5; }
-        .ctx-value span { display: block; color: var(--v-ink3); font-size: 12px; }
 
-        /* Raw response cards */
+        /* Progress bar */
+        .audio-progress-wrap {
+            width: 100%; height: 3px; background: rgba(255,255,255,0.08);
+            border-radius: 3px; cursor: pointer; position: relative;
+        }
+        .audio-progress-fill {
+            height: 100%; background: var(--v-grad);
+            border-radius: 3px; width: 0%; transition: width 0.1s linear;
+        }
+
+        /* Glow pulse when idle */
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 4px 24px rgba(0,0,0,0.15), 0 0 30px rgba(0,229,160,0.05); }
+            50% { box-shadow: 0 4px 24px rgba(0,0,0,0.15), 0 0 50px rgba(0,229,160,0.1); }
+        }
+        .audio-player.idle { animation: glowPulse 3s ease-in-out infinite; }
+        .audio-player.playing { animation: none; }
+
+        /* ── Pontos de Atencao (redesigned alerts) ── */
+        .insight-card {
+            display: flex; gap: 12px;
+            padding: 14px 16px;
+            margin: 0 var(--v-s5) var(--v-s2);
+            background: var(--v-surface);
+            border-radius: var(--v-r-md);
+            border: var(--v-border);
+            position: relative; overflow: hidden;
+        }
+        .insight-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+            width: 4px; border-radius: 4px 0 0 4px;
+        }
+        .insight-card.urgente::before { background: var(--v-bad); }
+        .insight-card.atencao::before { background: var(--v-warn); }
+        .insight-card.info::before { background: var(--v-info); }
+        .insight-card { padding-left: 20px; }
+
+        .insight-icon {
+            width: 32px; height: 32px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .insight-icon svg { width: 16px; height: 16px; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .urgente .insight-icon { background: rgba(239,68,68,0.08); }
+        .urgente .insight-icon svg { stroke: var(--v-bad); }
+        .atencao .insight-icon { background: rgba(245,158,11,0.08); }
+        .atencao .insight-icon svg { stroke: var(--v-warn); }
+        .info .insight-icon { background: rgba(59,130,246,0.08); }
+        .info .insight-icon svg { stroke: var(--v-info); }
+
+        .insight-content { flex: 1; min-width: 0; }
+        .insight-title {
+            font-size: 13px; font-weight: 700; color: var(--v-ink);
+            margin-bottom: 3px; line-height: 1.3;
+        }
+        .insight-msg { font-size: 12px; color: var(--v-ink3); line-height: 1.5; }
+
+        /* ── Ficha do Paciente (collapsible accordion) ── */
+        .ficha-toggle {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px;
+            margin: 0 var(--v-s5) var(--v-s2);
+            background: var(--v-surface);
+            border: var(--v-border); border-radius: var(--v-r-md);
+            cursor: pointer; transition: all 0.2s var(--v-ease);
+        }
+        .ficha-toggle:active { transform: scale(0.98); }
+        .ficha-toggle-left {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .ficha-toggle-icon {
+            width: 32px; height: 32px; border-radius: 10px;
+            background: rgba(0,229,160,0.08);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .ficha-toggle-icon svg { width: 16px; height: 16px; stroke: var(--v-green); fill: none; stroke-width: 2; stroke-linecap: round; }
+        .ficha-toggle-text { font-size: 14px; font-weight: 600; color: var(--v-ink); }
+        .ficha-chevron {
+            width: 20px; height: 20px; stroke: var(--v-ink4); fill: none; stroke-width: 2;
+            transition: transform 0.3s var(--v-ease);
+        }
+        .ficha-toggle.open .ficha-chevron { transform: rotate(180deg); }
+
+        .ficha-body {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.35s var(--v-ease);
+            margin: 0 var(--v-s5);
+        }
+        .ficha-body.open { max-height: 2000px; }
+        .ficha-body-inner {
+            background: var(--v-surface); border: var(--v-border);
+            border-radius: 0 0 var(--v-r-md) var(--v-r-md);
+            border-top: none;
+            padding: 4px 16px 12px;
+        }
+        .ficha-row {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+        .ficha-row:last-child { border-bottom: none; }
+        .ficha-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.12em; color: var(--v-ink4); margin-bottom: 3px;
+        }
+        .ficha-value { font-size: 13px; font-weight: 500; color: var(--v-ink); line-height: 1.5; }
+
+        /* Raw fallback */
         .raw-card {
             background: var(--v-surface); border: var(--v-border);
             border-radius: var(--v-r-md); padding: var(--v-s4);
@@ -202,7 +259,6 @@
 const urlParams = new URLSearchParams(window.location.search);
 const pcId = urlParams.get('id');
 
-// Fields to hide in raw fallback
 const HIDE_FIELDS = ['metodo','audioUrl','fotoUrl','linkToken','pacienteId','consentimento','lgpdAceito','audio','foto','audioBase64','fotoBase64'];
 
 const LABELS = {
@@ -240,69 +296,145 @@ function getInitials(name) {
 
 function daysSince(dateStr) {
     if (!dateStr) return 999;
-    return Math.floor((Date.now() - new Date(dateStr).getTime()) / (86400000));
+    return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
 }
 
-// TTS state
+// ── Audio Player State ──
+let audioCtx = null;
+let analyser = null;
+let audioSource = null;
 let ttsAudio = null;
 let ttsPlaying = false;
+let animFrameId = null;
+let canvasEl = null;
+let canvasCtx = null;
 
-function toggleTTS() {
-    const btn = document.getElementById('audioBtn');
-    if (!btn) return;
+function initAudioContext() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 128;
+    analyser.smoothingTimeConstant = 0.8;
+}
+
+function connectAudioToAnalyser(audioElement) {
+    if (audioSource) { try { audioSource.disconnect(); } catch(e){} }
+    audioSource = audioCtx.createMediaElementSource(audioElement);
+    audioSource.connect(analyser);
+    analyser.connect(audioCtx.destination);
+}
+
+function drawWaveform() {
+    if (!canvasEl || !canvasCtx || !analyser) return;
+    const W = canvasEl.width;
+    const H = canvasEl.height;
+    const bufLen = analyser.frequencyBinCount;
+    const dataArr = new Uint8Array(bufLen);
+
+    function draw() {
+        animFrameId = requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArr);
+
+        canvasCtx.clearRect(0, 0, W, H);
+
+        const barCount = 40;
+        const gap = 3;
+        const barW = (W - (barCount - 1) * gap) / barCount;
+        const step = Math.floor(bufLen / barCount);
+
+        for (let i = 0; i < barCount; i++) {
+            const val = dataArr[i * step] / 255;
+            const barH = Math.max(3, val * H * 0.9);
+            const x = i * (barW + gap);
+            const y = (H - barH) / 2;
+
+            // Gradient from green to cyan
+            const ratio = i / barCount;
+            const r = 0;
+            const g = Math.round(229 - ratio * 40);
+            const b = Math.round(160 + ratio * 56);
+            const alpha = 0.5 + val * 0.5;
+
+            canvasCtx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+            canvasCtx.beginPath();
+            canvasCtx.roundRect(x, y, barW, barH, barW / 2);
+            canvasCtx.fill();
+        }
+    }
+    draw();
+}
+
+function drawIdleWaveform() {
+    if (!canvasEl || !canvasCtx) return;
+    const W = canvasEl.width;
+    const H = canvasEl.height;
+    canvasCtx.clearRect(0, 0, W, H);
+
+    const barCount = 40;
+    const gap = 3;
+    const barW = (W - (barCount - 1) * gap) / barCount;
+
+    for (let i = 0; i < barCount; i++) {
+        const val = 0.15 + 0.12 * Math.sin(i * 0.3);
+        const barH = Math.max(3, val * H);
+        const x = i * (barW + gap);
+        const y = (H - barH) / 2;
+
+        const ratio = i / barCount;
+        const g = Math.round(229 - ratio * 40);
+        const b = Math.round(160 + ratio * 56);
+
+        canvasCtx.fillStyle = `rgba(0,${g},${b},0.2)`;
+        canvasCtx.beginPath();
+        canvasCtx.roundRect(x, y, barW, barH, barW / 2);
+        canvasCtx.fill();
+    }
+}
+
+function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function toggleAudio() {
+    const player = document.getElementById('audioPlayer');
+    if (!player) return;
 
     if (ttsPlaying) {
         if (ttsAudio) ttsAudio.pause();
-        speechSynthesis.cancel();
         ttsPlaying = false;
-        btn.classList.remove('playing');
-        btn.querySelector('.audio-btn-label').textContent = 'Ouvir resumo';
+        player.classList.remove('playing');
+        player.classList.add('idle');
+        document.querySelector('.audio-label').textContent = 'Ouvir briefing';
+        if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+        drawIdleWaveform();
         return;
     }
 
-    // Try cached ElevenLabs audio first
-    const cachedUrl = btn.dataset.audioUrl;
+    const cachedUrl = player.dataset.audioUrl;
     if (cachedUrl) {
-        if (!ttsAudio) ttsAudio = new Audio(cachedUrl);
-        ttsAudio.play().then(() => {
-            ttsPlaying = true;
-            btn.classList.add('playing');
-            btn.querySelector('.audio-btn-label').textContent = 'Pausar';
-        }).catch(() => fallbackBrowserTTS());
-        ttsAudio.onended = () => {
-            ttsPlaying = false;
-            btn.classList.remove('playing');
-            btn.querySelector('.audio-btn-label').textContent = 'Ouvir resumo';
-        };
+        playAudioUrl(cachedUrl);
         return;
     }
 
-    // Try generate via ElevenLabs endpoint
-    const pcIdLocal = urlParams.get('id');
-    if (pcIdLocal && getToken()) {
-        btn.querySelector('.audio-btn-sub').textContent = 'Gerando audio...';
-        fetch(API_URL + '/pre-consulta/' + pcIdLocal + '/tts', {
+    // Generate via backend
+    const id = urlParams.get('id');
+    if (id && getToken()) {
+        document.querySelector('.audio-sub').textContent = 'Gerando audio...';
+        fetch(API_URL + '/pre-consulta/' + id + '/tts', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + getToken() }
-        }).then(r => {
+        }).then(function(r) {
             if (!r.ok) throw new Error('TTS failed');
             return r.blob();
-        }).then(blob => {
+        }).then(function(blob) {
             const url = URL.createObjectURL(blob);
-            ttsAudio = new Audio(url);
-            btn.dataset.audioUrl = url;
-            ttsAudio.play();
-            ttsPlaying = true;
-            btn.classList.add('playing');
-            btn.querySelector('.audio-btn-label').textContent = 'Pausar';
-            btn.querySelector('.audio-btn-sub').textContent = '~1 minuto';
-            ttsAudio.onended = () => {
-                ttsPlaying = false;
-                btn.classList.remove('playing');
-                btn.querySelector('.audio-btn-label').textContent = 'Ouvir resumo';
-            };
-        }).catch(() => {
-            btn.querySelector('.audio-btn-sub').textContent = '~1 minuto';
+            player.dataset.audioUrl = url;
+            document.querySelector('.audio-sub').textContent = '~1 minuto';
+            playAudioUrl(url);
+        }).catch(function() {
+            document.querySelector('.audio-sub').textContent = '~1 minuto';
             fallbackBrowserTTS();
         });
         return;
@@ -311,47 +443,111 @@ function toggleTTS() {
     fallbackBrowserTTS();
 }
 
+function playAudioUrl(url) {
+    const player = document.getElementById('audioPlayer');
+    initAudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    if (!ttsAudio || ttsAudio.src !== url) {
+        ttsAudio = new Audio(url);
+        ttsAudio.crossOrigin = 'anonymous';
+        try { connectAudioToAnalyser(ttsAudio); } catch(e) {}
+    }
+
+    ttsAudio.play().then(function() {
+        ttsPlaying = true;
+        player.classList.add('playing');
+        player.classList.remove('idle');
+        document.querySelector('.audio-label').textContent = 'Pausar';
+        drawWaveform();
+    }).catch(function() { fallbackBrowserTTS(); });
+
+    ttsAudio.ontimeupdate = function() {
+        const pct = ttsAudio.duration ? (ttsAudio.currentTime / ttsAudio.duration * 100) : 0;
+        const fill = document.getElementById('progressFill');
+        if (fill) fill.style.width = pct + '%';
+        const timer = document.getElementById('audioTimer');
+        if (timer && ttsAudio.duration) {
+            timer.textContent = formatTime(ttsAudio.currentTime) + ' / ' + formatTime(ttsAudio.duration);
+        }
+    };
+
+    ttsAudio.onended = function() {
+        ttsPlaying = false;
+        player.classList.remove('playing');
+        player.classList.add('idle');
+        document.querySelector('.audio-label').textContent = 'Ouvir novamente';
+        if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+        drawIdleWaveform();
+        var fill = document.getElementById('progressFill');
+        if (fill) fill.style.width = '0%';
+    };
+}
+
+function seekAudio(e) {
+    if (!ttsAudio || !ttsAudio.duration) return;
+    var wrap = e.currentTarget;
+    var rect = wrap.getBoundingClientRect();
+    var pct = (e.clientX - rect.left) / rect.width;
+    ttsAudio.currentTime = pct * ttsAudio.duration;
+}
+
 function fallbackBrowserTTS() {
-    const btn = document.getElementById('audioBtn');
-    const text = btn ? btn.dataset.summaryText : '';
+    var player = document.getElementById('audioPlayer');
+    var text = player ? player.dataset.summaryText : '';
     if (!text || !window.speechSynthesis) return;
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    var utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'pt-BR';
     utterance.rate = 0.95;
-    utterance.onstart = () => {
+    utterance.onstart = function() {
         ttsPlaying = true;
-        if (btn) { btn.classList.add('playing'); btn.querySelector('.audio-btn-label').textContent = 'Pausar'; }
+        if (player) {
+            player.classList.add('playing');
+            player.classList.remove('idle');
+            document.querySelector('.audio-label').textContent = 'Pausar';
+        }
     };
-    utterance.onend = () => {
+    utterance.onend = function() {
         ttsPlaying = false;
-        if (btn) { btn.classList.remove('playing'); btn.querySelector('.audio-btn-label').textContent = 'Ouvir resumo'; }
+        if (player) {
+            player.classList.remove('playing');
+            player.classList.add('idle');
+            document.querySelector('.audio-label').textContent = 'Ouvir briefing';
+        }
     };
     speechSynthesis.speak(utterance);
+}
+
+function toggleFicha() {
+    var toggle = document.getElementById('fichaToggle');
+    var body = document.getElementById('fichaBody');
+    if (!toggle || !body) return;
+    toggle.classList.toggle('open');
+    body.classList.toggle('open');
 }
 
 async function init() {
     if (!pcId) { document.getElementById('loadingState').textContent = 'ID nao fornecido.'; return; }
 
     try {
-        const data = await vitaeAPI.getPreConsulta(pcId);
-        const pc = data.preConsulta;
-        const summary = pc.summaryJson || {};
-        const r = pc.respostas || {};
-        const summaryText = summary.summaryTexto || pc.summaryIA || '';
-        const descBreve = summary.descricaoBreve || (summaryText ? summaryText.split('. ')[0] + '.' : '');
-        const respondidaEm = pc.respondidaEm ? new Date(pc.respondidaEm).toLocaleDateString('pt-BR') : '';
-        const days = daysSince(pc.respondidaEm);
-        const foto = pc.pacienteFotoUrl || r.fotoUrl || null;
-        const age = calcAge(r.dataNascimento || (r.nascimento));
-        const initials = getInitials(pc.pacienteNome);
-        const audioUrl = pc.audioSummaryUrl || null;
+        var data = await vitaeAPI.getPreConsulta(pcId);
+        var pc = data.preConsulta;
+        var summary = pc.summaryJson || {};
+        var r = pc.respostas || {};
+        var summaryText = summary.textoVoz || summary.summaryTexto || pc.summaryIA || '';
+        var descBreve = summary.descricaoBreve || (summaryText ? summaryText.split('. ')[0] + '.' : '');
+        var respondidaEm = pc.respondidaEm ? new Date(pc.respondidaEm).toLocaleDateString('pt-BR') : '';
+        var days = daysSince(pc.respondidaEm);
+        var foto = pc.pacienteFotoUrl || r.fotoUrl || null;
+        var age = calcAge(r.dataNascimento || r.nascimento);
+        var initials = getInitials(pc.pacienteNome);
+        var audioUrl = pc.audioSummaryUrl || null;
 
-        // Back URL
-        const fromParam = urlParams.get('from');
-        const backUrl = fromParam === 'pacientes' ? '20-medico-dashboard.html?view=pacientes' : '20-medico-dashboard.html';
+        var fromParam = urlParams.get('from');
+        var backUrl = fromParam === 'pacientes' ? '20-medico-dashboard.html?view=pacientes' : '20-medico-dashboard.html';
 
-        let html = '';
+        var html = '';
 
         // Header
         html += '<div class="summary-header anim">';
@@ -381,93 +577,103 @@ async function init() {
             html += '<div class="stale-warning anim anim-d1"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Pre-consulta com mais de 7 dias. Dados podem estar desatualizados.</div>';
         }
 
-        // Audio button (collapsed)
+        // ── Premium Audio Player ──
         if (summaryText) {
-            html += '<div class="audio-btn anim anim-d2" id="audioBtn" onclick="toggleTTS()" data-summary-text="' + summaryText.replace(/"/g, '&quot;') + '"' + (audioUrl ? ' data-audio-url="' + audioUrl + '"' : '') + '>';
-            html += '<div class="audio-btn-icon"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke="#fff" fill="none"/><path d="M15.54 8.46a5 5 0 010 7.07" stroke="#fff"/></svg></div>';
-            html += '<div class="audio-btn-text"><div class="audio-btn-label">Ouvir resumo</div><div class="audio-btn-sub">~1 minuto</div></div>';
-            html += '<div class="audio-btn-bars">';
-            for (let i = 0; i < 7; i++) html += '<div class="audio-btn-bar"></div>';
-            html += '</div></div>';
-        }
-
-        // Alerts
-        const alertas = summary.alertas || [];
-        if (alertas.length > 0) {
-            html += '<div class="section-label anim anim-d2">Alertas clinicos</div>';
-            alertas.forEach(function(a) {
-                const tipo = (a.tipo || 'INFO').toLowerCase();
-                const tipoLabel = { urgente: 'Urgente', atencao: 'Atencao', info: 'Informacao' }[tipo] || a.tipo;
-                html += '<div class="alert-card ' + tipo + ' anim anim-d3">';
-                html += '<div class="alert-dot"></div>';
-                html += '<div class="alert-content"><div class="alert-type">' + tipoLabel + '</div>';
-                html += '<div class="alert-msg">' + a.mensagem + '</div></div></div>';
-            });
-        }
-
-        // Context grid
-        const blocos = summary.blocos || [];
-        const queixa = findBloco(blocos, 'queixa') || r.queixaPrincipal || r.queixa || r.q_queixa || '';
-        const meds = findBloco(blocos, 'medicament') || r.medicamentosEmUso || r.q_medicamentos || '';
-        const alergias = findBloco(blocos, 'alergia') || r.alergias || r.q_alergias || '';
-        const habitos = findBloco(blocos, 'habit') || buildHabitos(r) || '';
-
-        const hasContext = queixa || meds || alergias || habitos;
-        if (hasContext) {
-            html += '<div class="section-label anim anim-d3">Contexto rapido</div>';
-            html += '<div class="context-grid anim anim-d4">';
-
-            if (queixa) {
-                const queixaPrio = findBlocoPrio(blocos, 'queixa') === 'alta';
-                html += '<div class="ctx-card' + (queixaPrio ? ' priority-high' : '') + '">';
-                html += '<div class="ctx-icon queixa"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>';
-                html += '<div class="ctx-title">Queixa</div>';
-                html += '<div class="ctx-value">' + truncate(queixa, 60) + '</div></div>';
-            }
-            if (meds) {
-                html += '<div class="ctx-card">';
-                html += '<div class="ctx-icon meds"><svg viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div>';
-                html += '<div class="ctx-title">Medicamentos</div>';
-                html += '<div class="ctx-value">' + truncate(meds, 60) + '</div></div>';
-            }
-            if (alergias) {
-                html += '<div class="ctx-card priority-high">';
-                html += '<div class="ctx-icon alergias"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>';
-                html += '<div class="ctx-title">Alergias</div>';
-                html += '<div class="ctx-value">' + truncate(alergias, 60) + '</div></div>';
-            }
-            if (habitos) {
-                html += '<div class="ctx-card">';
-                html += '<div class="ctx-icon habitos"><svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>';
-                html += '<div class="ctx-title">Habitos</div>';
-                html += '<div class="ctx-value">' + truncate(habitos, 60) + '</div></div>';
-            }
-
+            html += '<div class="audio-player idle anim anim-d2" id="audioPlayer" data-summary-text="' + summaryText.replace(/"/g, '&quot;') + '"' + (audioUrl ? ' data-audio-url="' + audioUrl + '"' : '') + '>';
+            html += '<div class="audio-player-top">';
+            html += '<div class="audio-play-btn" onclick="toggleAudio()">';
+            html += '<svg class="icon-play" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>';
+            html += '<svg class="icon-pause" viewBox="0 0 24 24"><rect x="5" y="3" width="4" height="18" rx="1"/><rect x="15" y="3" width="4" height="18" rx="1"/></svg>';
+            html += '</div>';
+            html += '<div class="audio-info"><div class="audio-label">Ouvir briefing</div><div class="audio-sub">~1 minuto</div></div>';
+            html += '<div class="audio-timer" id="audioTimer">0:00</div>';
+            html += '</div>';
+            html += '<canvas class="audio-waveform" id="waveformCanvas"></canvas>';
+            html += '<div class="audio-progress-wrap" onclick="seekAudio(event)"><div class="audio-progress-fill" id="progressFill"></div></div>';
             html += '</div>';
         }
 
-        // Exames removidos da Summary — medico acessa pela tela dedicada (medico-exames.html)
+        // ── Pontos de Atencao (insights clinicos) ──
+        var alertas = summary.alertas || [];
+        if (alertas.length > 0) {
+            html += '<div class="section-label anim anim-d3">Pontos de atencao</div>';
+            alertas.forEach(function(a) {
+                var tipo = (a.tipo || 'INFO').toLowerCase();
+                var titulo = a.titulo || a.mensagem.substring(0, 40);
+                var msg = a.titulo ? a.mensagem : '';
+                var iconSvg = {
+                    urgente: '<svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>',
+                    atencao: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>',
+                    info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'
+                }[tipo] || '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
 
-        // Suggested questions
-        const perguntas = summary.perguntasSugeridas || [];
-        if (perguntas.length > 0) {
-            html += '<div class="section-label anim anim-d4">Perguntas para a consulta</div>';
-            perguntas.forEach(function(q) {
-                html += '<div class="raw-card anim anim-d5"><div class="raw-value">' + q + '</div></div>';
+                html += '<div class="insight-card ' + tipo + ' anim anim-d3">';
+                html += '<div class="insight-icon">' + iconSvg + '</div>';
+                html += '<div class="insight-content">';
+                html += '<div class="insight-title">' + titulo + '</div>';
+                if (msg) html += '<div class="insight-msg">' + msg + '</div>';
+                html += '</div></div>';
             });
         }
 
-        // Raw fallback (if no blocos AND no context)
-        if (!hasContext && !blocos.length && pc.respostas) {
+        // ── Ficha do Paciente (collapsible) ──
+        var blocos = summary.blocos || [];
+        var fichaRows = [];
+
+        // Build from blocos first
+        blocos.forEach(function(b) {
+            if (b.conteudo && b.conteudo.trim()) {
+                fichaRows.push({ label: b.titulo, value: b.conteudo });
+            }
+        });
+
+        // Fallback from raw responses if no blocos
+        if (fichaRows.length === 0) {
+            if (r.queixaPrincipal || r.queixa) fichaRows.push({ label: 'Queixa Principal', value: r.queixaPrincipal || r.queixa });
+            if (r.duracaoSintomas) fichaRows.push({ label: 'Duracao', value: r.duracaoSintomas });
+            if (r.medicamentosEmUso) fichaRows.push({ label: 'Medicamentos', value: r.medicamentosEmUso });
+            if (r.alergias) fichaRows.push({ label: 'Alergias', value: r.alergias });
+            if (r.reacoesAdversas) fichaRows.push({ label: 'Reacoes Adversas', value: r.reacoesAdversas });
+            if (r.doencasAtuais) fichaRows.push({ label: 'Doencas Atuais', value: r.doencasAtuais });
+            if (r.cirurgias) fichaRows.push({ label: 'Cirurgias', value: r.cirurgias });
+            if (r.historicoFamiliar) fichaRows.push({ label: 'Historico Familiar', value: r.historicoFamiliar });
+            var habStr = buildHabitos(r);
+            if (habStr) fichaRows.push({ label: 'Habitos', value: habStr });
+            if (r.examesRecentes) fichaRows.push({ label: 'Exames Recentes', value: r.examesRecentes });
+            if (r.observacoes) fichaRows.push({ label: 'Observacoes', value: r.observacoes });
+        }
+
+        if (fichaRows.length > 0) {
+            html += '<div class="section-label anim anim-d4">Referencia</div>';
+            html += '<div class="ficha-toggle anim anim-d4" id="fichaToggle" onclick="toggleFicha()">';
+            html += '<div class="ficha-toggle-left">';
+            html += '<div class="ficha-toggle-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>';
+            html += '<div class="ficha-toggle-text">Dados do paciente</div>';
+            html += '</div>';
+            html += '<svg class="ficha-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
+            html += '</div>';
+
+            html += '<div class="ficha-body" id="fichaBody"><div class="ficha-body-inner">';
+            fichaRows.forEach(function(row) {
+                html += '<div class="ficha-row">';
+                html += '<div class="ficha-label">' + row.label + '</div>';
+                html += '<div class="ficha-value">' + row.value + '</div>';
+                html += '</div>';
+            });
+            html += '</div></div>';
+        }
+
+        // Raw fallback (if absolutely no summary AND no ficha data)
+        if (!fichaRows.length && !blocos.length && !alertas.length && pc.respostas) {
             html += '<div class="section-label anim anim-d3">Respostas do paciente</div>';
-            const entries = Object.entries(pc.respostas);
+            var entries = Object.entries(pc.respostas);
             entries.forEach(function(pair) {
-                const key = pair[0];
-                const val = pair[1];
+                var key = pair[0];
+                var val = pair[1];
                 if (!val || typeof val === 'object') return;
                 if (HIDE_FIELDS.indexOf(key) !== -1) return;
                 if (typeof val === 'string' && val.startsWith('http')) return;
-                const label = LABELS[key] || key;
+                var label = LABELS[key] || key;
                 html += '<div class="raw-card anim anim-d4"><div class="raw-label">' + label + '</div><div class="raw-value">' + val + '</div></div>';
             });
         }
@@ -475,37 +681,37 @@ async function init() {
         html += '<div style="height:40px"></div>';
 
         document.getElementById('loadingState').style.display = 'none';
-        const dc = document.getElementById('dynamicContent');
+        var dc = document.getElementById('dynamicContent');
         dc.style.display = '';
         dc.innerHTML = html;
+
+        // Initialize waveform canvas
+        canvasEl = document.getElementById('waveformCanvas');
+        if (canvasEl) {
+            var dpr = window.devicePixelRatio || 1;
+            var rect = canvasEl.getBoundingClientRect();
+            canvasEl.width = rect.width * dpr;
+            canvasEl.height = rect.height * dpr;
+            canvasCtx = canvasEl.getContext('2d');
+            canvasCtx.scale(dpr, dpr);
+            canvasEl.style.width = rect.width + 'px';
+            canvasEl.style.height = rect.height + 'px';
+            drawIdleWaveform();
+        }
 
     } catch (e) {
         document.getElementById('loadingState').textContent = 'Erro ao carregar: ' + e.message;
     }
 }
 
-function findBloco(blocos, keyword) {
-    const b = blocos.find(function(bl) { return bl.titulo && bl.titulo.toLowerCase().indexOf(keyword) !== -1; });
-    return b ? b.conteudo : '';
-}
-
-function findBlocoPrio(blocos, keyword) {
-    const b = blocos.find(function(bl) { return bl.titulo && bl.titulo.toLowerCase().indexOf(keyword) !== -1; });
-    return b ? b.prioridade : '';
-}
-
 function buildHabitos(r) {
-    const parts = [];
-    if (r.tabagismo) parts.push(r.tabagismo === 'nao' || r.tabagismo === 'Não' ? 'Nao fuma' : 'Fuma');
-    if (r.alcool) parts.push(r.alcool);
-    if (r.sono) parts.push(r.sono + ' sono');
-    if (r.exercicio) parts.push(r.exercicio);
-    return parts.join(', ');
-}
-
-function truncate(text, max) {
-    if (!text) return '';
-    return text.length > max ? text.substring(0, max) + '...' : text;
+    var parts = [];
+    if (r.tabagismo) parts.push(r.tabagismo === 'nao' || r.tabagismo === 'Não' ? 'Nao fuma' : 'Fuma, ' + r.tabagismo);
+    if (r.alcool) parts.push('Alcool: ' + r.alcool);
+    if (r.horasSono || r.sono) parts.push('Sono: ' + (r.horasSono || r.sono) + 'h');
+    if (r.exercicio) parts.push('Exercicio: ' + r.exercicio);
+    if (r.cafe) parts.push('Cafe: ' + r.cafe + ' xic/dia');
+    return parts.join(' | ');
 }
 
 init();
