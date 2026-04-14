@@ -410,7 +410,7 @@
 
             <div class="field">
                 <div class="field-label">Data de Nascimento</div>
-                <input class="field-input" type="text" id="nascimentoInput" placeholder="dd/mm/aaaa" autocomplete="off" inputmode="numeric" style="cursor:pointer;">
+                <input class="field-input" type="text" id="nascimentoInput" placeholder="dd/mm/aaaa" autocomplete="off" inputmode="numeric" style="cursor:pointer;" oninput="formatDate(this)" maxlength="10">
                 <input type="hidden" id="nascimentoISO">
             </div>
 
@@ -595,6 +595,24 @@
     function goBack() {
         if (currentStep === 0) window.location.href = '03-cadastro.html';
         else goToStep(currentStep - 1);
+    }
+
+    // ===== Date formatter (dd/mm/aaaa) =====
+    function formatDate(el) {
+        let v = el.value.replace(/\D/g, '');
+        if (v.length > 8) v = v.slice(0, 8);
+        if (v.length > 4) v = v.replace(/(\d{2})(\d{2})(\d{1,4})/, '$1/$2/$3');
+        else if (v.length > 2) v = v.replace(/(\d{2})(\d{1,2})/, '$1/$2');
+        el.value = v;
+        if (v.length === 10) {
+            const parts = v.split('/');
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+            const year = parseInt(parts[2]);
+            if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900 && year <= 2026) {
+                document.getElementById('nascimentoISO').value = year + '-' + parts[1] + '-' + parts[0];
+            }
+        }
     }
 
     // ===== CPF formatter =====
