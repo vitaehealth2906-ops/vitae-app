@@ -299,6 +299,24 @@ function daysSince(dateStr) {
     return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
 }
 
+// ── roundRect polyfill for older browsers ──
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        if (typeof r === 'number') r = [r,r,r,r];
+        var rad = r[0] || 0;
+        this.moveTo(x + rad, y);
+        this.lineTo(x + w - rad, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + rad);
+        this.lineTo(x + w, y + h - rad);
+        this.quadraticCurveTo(x + w, y + h, x + w - rad, y + h);
+        this.lineTo(x + rad, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - rad);
+        this.lineTo(x, y + rad);
+        this.quadraticCurveTo(x, y, x + rad, y);
+        this.closePath();
+    };
+}
+
 // ── Audio Player State ──
 let audioCtx = null;
 let analyser = null;
@@ -326,8 +344,9 @@ function connectAudioToAnalyser(audioElement) {
 
 function drawWaveform() {
     if (!canvasEl || !canvasCtx || !analyser) return;
-    const W = canvasEl.width;
-    const H = canvasEl.height;
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvasEl.width / dpr;
+    const H = canvasEl.height / dpr;
     const bufLen = analyser.frequencyBinCount;
     const dataArr = new Uint8Array(bufLen);
 
@@ -366,8 +385,9 @@ function drawWaveform() {
 
 function drawIdleWaveform() {
     if (!canvasEl || !canvasCtx) return;
-    const W = canvasEl.width;
-    const H = canvasEl.height;
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvasEl.width / dpr;
+    const H = canvasEl.height / dpr;
     canvasCtx.clearRect(0, 0, W, H);
 
     const barCount = 40;
@@ -682,22 +702,26 @@ async function init() {
 
         document.getElementById('loadingState').style.display = 'none';
         var dc = document.getElementById('dynamicContent');
-        dc.style.display = '';
         dc.innerHTML = html;
+        dc.style.display = '';
 
-        // Initialize waveform canvas
-        canvasEl = document.getElementById('waveformCanvas');
-        if (canvasEl) {
-            var dpr = window.devicePixelRatio || 1;
-            var rect = canvasEl.getBoundingClientRect();
-            canvasEl.width = rect.width * dpr;
-            canvasEl.height = rect.height * dpr;
-            canvasCtx = canvasEl.getContext('2d');
-            canvasCtx.scale(dpr, dpr);
-            canvasEl.style.width = rect.width + 'px';
-            canvasEl.style.height = rect.height + 'px';
-            drawIdleWaveform();
-        }
+        // Wait for layout before initializing canvas
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                canvasEl = document.getElementById('waveformCanvas');
+                if (canvasEl) {
+                    var dpr = window.devicePixelRatio || 1;
+                    var rect = canvasEl.getBoundingClientRect();
+                    var cssW = rect.width || 300;
+                    var cssH = rect.height || 48;
+                    canvasEl.width = cssW * dpr;
+                    canvasEl.height = cssH * dpr;
+                    canvasCtx = canvasEl.getContext('2d');
+                    canvasCtx.scale(dpr, dpr);
+                    drawIdleWaveform();
+                }
+            });
+        });
 
     } catch (e) {
         document.getElementById('loadingState').textContent = 'Erro ao carregar: ' + e.message;
