@@ -366,6 +366,31 @@
     <link rel="stylesheet" href="vitae-glass.css">
     <link rel="stylesheet" href="vitae-light.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        /* Exam upload components (copied from 11-exames-lista.html) */
+        @keyframes shimmerWave{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+        .quiz-shimmer{position:relative;overflow:hidden;pointer-events:none;opacity:0.7;}
+        .quiz-shimmer::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(0,229,160,0.08) 40%,rgba(0,229,160,0.15) 50%,rgba(0,229,160,0.08) 60%,transparent 100%);animation:shimmerWave 1.8s ease-in-out infinite;}
+        .quiz-exam-card{border-radius:14px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);border:none;padding:10px;margin-bottom:10px;animation:fadeUp 0.4s ease both;}
+        .quiz-exam-inner{display:flex;gap:14px;align-items:stretch;}
+        .quiz-exam-thumb{width:80px;min-height:96px;border-radius:8px;background:#f0f2f5;overflow:hidden;flex-shrink:0;}
+        .quiz-exam-thumb img{width:100%;height:100%;object-fit:cover;}
+        .quiz-exam-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0;}
+        .quiz-exam-type{font-size:11px;color:rgba(13,15,20,0.4);text-transform:capitalize;}
+        .quiz-exam-name{font-size:14px;font-weight:700;color:#00E5A0;line-height:1.35;}
+        .quiz-exam-meta{font-size:11px;color:rgba(13,15,20,0.35);margin-top:2px;}
+        .quiz-exam-status{font-size:11px;font-weight:600;color:#00C47A;margin-top:4px;display:flex;align-items:center;gap:4px;}
+        .quiz-upload-area{border-radius:16px;background:rgba(0,229,160,0.03);border:1.5px dashed rgba(0,229,160,0.2);padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:background 0.2s;}
+        .quiz-upload-area:active{background:rgba(0,229,160,0.06);}
+        .quiz-upload-icon{width:44px;height:44px;border-radius:12px;background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.15);display:flex;align-items:center;justify-content:center;}
+        .quiz-upload-title{font-size:15px;font-weight:600;color:#0D0F14;}
+        .quiz-upload-sub{font-size:12px;color:#9CA3AF;}
+        .quiz-upload-btn{margin-top:4px;padding:10px 24px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;border:none;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,229,160,0.2);}
+        .quiz-skip-link{display:block;text-align:center;margin-top:12px;font-size:13px;color:#9CA3AF;cursor:pointer;font-weight:500;}
+        .quiz-skip-link:hover{color:#00E5A0;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    </style>
     <style>
         .air-datepicker { --adp-font-family:'Plus Jakarta Sans',sans-serif; --adp-background-color:#fff; --adp-color:#0D0F14; --adp-color-secondary:rgba(13,15,20,0.35); --adp-accent-color:#00E5A0; --adp-color-current-date:#00E5A0; --adp-cell-background-color-selected:#00E5A0; --adp-cell-background-color-selected-hover:#00B4D8; --adp-color-other-month:rgba(13,15,20,0.2); --adp-day-name-color:rgba(13,15,20,0.35); --adp-border-color:rgba(0,0,0,0.08); --adp-cell-border-radius:10px; --adp-pointer-size:0; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.12); border:1px solid rgba(0,0,0,0.06); z-index:100; }
         .air-datepicker-nav { border-bottom:1px solid rgba(0,0,0,0.06); padding:12px 16px; }
@@ -518,23 +543,26 @@
             <button class="btn-next" onclick="goToStep(5)">Próximo</button>
         </div>
 
-        <!-- STEP 5: Últimos exames -->
+        <!-- STEP 5: Últimos exames (upload real) -->
         <div class="step" id="step5">
-            <div class="step-title">Últimos <span>exames</span></div>
-            <div class="step-subtitle">Para contexto clínico da consulta</div>
+            <div class="step-title">Ultimos <span>exames</span></div>
+            <div class="step-subtitle">Anexe resultados recentes para seu medico</div>
 
-            <div class="field">
-                <div class="field-label">Exames recentes</div>
-                <textarea class="field-input" id="examesInput" placeholder="Ex: hemograma em 03/2026, ressonância lombar em 02/2026, colesterol alterado..." rows="4" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
-                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Liste os principais. Deixe vazio se nenhum.</div>
+            <!-- Upload area -->
+            <div class="quiz-upload-area" id="examUploadArea" onclick="triggerExamUpload()">
+                <div class="quiz-upload-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(0,229,160,0.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div class="quiz-upload-title">Anexar exame</div>
+                <div class="quiz-upload-sub">PDF, foto ou imagem do laboratorio</div>
+                <button class="quiz-upload-btn" type="button">Escolher arquivo</button>
             </div>
 
-            <div style="padding:20px; background:rgba(0,229,160,0.06); border:1px solid rgba(0,229,160,0.15); border-radius:16px; margin:16px 0;">
-                <div style="font-size:14px; font-weight:600; color:#00E5A0; margin-bottom:4px;">Quase lá!</div>
-                <div style="font-size:13px; color:rgba(13,15,20,0.45); line-height:1.5;">Seu RG da Saúde será criado e você será levado de volta à pré-consulta do seu médico.</div>
-            </div>
+            <!-- Exam cards list (populated by JS) -->
+            <div id="examCardsList" style="margin-top:12px;"></div>
 
-            <button class="btn-next" onclick="conclude()">Continuar para a pré-consulta</button>
+            <button class="btn-next" onclick="conclude()" id="step5ContinueBtn">Continuar para a pre-consulta</button>
+            <div class="quiz-skip-link" onclick="conclude()">Pular esta etapa</div>
         </div>
 
     </div>
@@ -1020,20 +1048,8 @@
             }
         } catch (e) { console.log('erro meds:', e.message); }
 
-        // Exames (nesta etapa guardamos como texto livre em PerfilSaude.condicoes como complemento
-        // ou apenas como referencia rapida — nao criamos Exame sem arquivo)
-        try {
-            const examesTxt = (document.getElementById('examesInput') || {}).value || '';
-            if (examesTxt.trim()) {
-                // Guarda resumo de exames no perfil (campo livre condicoes como append)
-                const perfilAtual = await vitaeAPI.getPerfil().catch(() => ({}));
-                const condAtuais = (perfilAtual.perfil && perfilAtual.perfil.condicoes) || '';
-                const novoTexto = condAtuais
-                  ? (condAtuais + ' | Exames recentes: ' + examesTxt.trim())
-                  : ('Exames recentes: ' + examesTxt.trim());
-                await vitaeAPI.atualizarPerfil({ condicoes: novoTexto });
-            }
-        } catch (e) { console.log('erro exames:', e.message); }
+        // Exames: nao precisa salvar aqui — ja foram uploadeados via API durante o passo 6
+        // Os exames ficam na tabela Exame vinculados ao usuario
 
         // Register LGPD consents (non-blocking)
         if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
@@ -1058,6 +1074,89 @@
                 }
             }, 800);
         }
+    }
+
+    // ═══════════════════════════════════
+    // EXAM UPLOAD (Step 5)
+    // ═══════════════════════════════════
+
+    const examFileInput = document.createElement('input');
+    examFileInput.type = 'file';
+    examFileInput.accept = 'image/*,.pdf';
+    examFileInput.style.display = 'none';
+    document.body.appendChild(examFileInput);
+
+    let uploadedExams = [];
+
+    function triggerExamUpload() {
+        examFileInput.click();
+    }
+
+    examFileInput.addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Arquivo muito grande. Maximo 10MB.');
+            return;
+        }
+
+        // Show shimmer card immediately
+        const cardId = 'exam-temp-' + Date.now();
+        const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+        addShimmerCard(cardId, previewUrl, file.name);
+
+        // Update continue button text
+        const btn = document.getElementById('step5ContinueBtn');
+        if (btn) btn.textContent = 'Continuar — seus exames serao analisados em seguida';
+
+        try {
+            const result = await vitaeAPI.uploadExame(file);
+            const exameId = result.exameId || (result.exame && result.exame.id);
+            uploadedExams.push({ id: exameId, fileName: file.name, previewUrl });
+            updateExamCard(cardId, file.name, previewUrl);
+        } catch (err) {
+            removeExamCard(cardId);
+            alert('Erro ao enviar exame: ' + (err.message || 'tente novamente'));
+        }
+        examFileInput.value = '';
+    });
+
+    function addShimmerCard(cardId, previewUrl, fileName) {
+        const list = document.getElementById('examCardsList');
+        const thumbHtml = previewUrl
+            ? '<img src="' + previewUrl + '" style="width:100%;height:100%;object-fit:cover;">'
+            : '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f6f8;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,0.12)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>';
+
+        list.innerHTML += '<div class="quiz-exam-card quiz-shimmer" id="' + cardId + '">' +
+            '<div class="quiz-exam-inner">' +
+            '<div class="quiz-exam-thumb">' + thumbHtml + '</div>' +
+            '<div class="quiz-exam-info">' +
+            '<div class="quiz-exam-type">Enviando</div>' +
+            '<div class="quiz-exam-name">Processando seu exame...</div>' +
+            '<div class="quiz-exam-meta">' + (fileName || '') + '</div>' +
+            '</div></div></div>';
+    }
+
+    function updateExamCard(cardId, fileName, previewUrl) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+        card.classList.remove('quiz-shimmer');
+        const thumbHtml = previewUrl
+            ? '<img src="' + previewUrl + '" style="width:100%;height:100%;object-fit:cover;">'
+            : '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f6f8;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(0,229,160,0.4)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>';
+
+        card.innerHTML = '<div class="quiz-exam-inner">' +
+            '<div class="quiz-exam-thumb">' + thumbHtml + '</div>' +
+            '<div class="quiz-exam-info">' +
+            '<div class="quiz-exam-type">Exame</div>' +
+            '<div class="quiz-exam-name">' + (fileName || 'Exame anexado') + '</div>' +
+            '<div class="quiz-exam-status"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Exame anexado</div>' +
+            '</div></div>';
+    }
+
+    function removeExamCard(cardId) {
+        const card = document.getElementById(cardId);
+        if (card) card.remove();
     }
 </script>
 </body>
