@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const { z } = require('zod');
 const prisma = require('../utils/prisma');
-const { verificarAuth } = require('../middleware/auth');
+const { verificarAuth, authOpcional } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { gerarSummaryPreConsulta, gerarAudioElevenLabs, verificarCompletudeTopicos } = require('../services/ai');
 const { enviarEmailPreConsultaRespondida } = require('../services/email');
@@ -69,7 +69,7 @@ router.post('/', verificarAuth, validate(criarPreConsultaSchema), async (req, re
         linkToken,
         templateId: templateId || null,
         templatePerguntas,
-        expiraEm: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000), // 10 anos
+        expiraEm: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias
       },
     });
 
@@ -201,7 +201,7 @@ router.get('/t/:token', async (req, res, next) => {
 // ---------------------------------------------------------------------------
 
 // POST /t/:token/responder-audio — Paciente responde com audio (publico)
-router.post('/t/:token/responder-audio', audioUpload.fields([
+router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
   { name: 'audio', maxCount: 1 },
   { name: 'foto', maxCount: 1 },
 ]), async (req, res, next) => {
@@ -252,10 +252,41 @@ router.post('/t/:token/responder-audio', audioUpload.fields([
       console.error('[PRE-CONSULTA] Erro ao gerar summary IA:', aiErr.message);
     }
 
+    // Capturar pacienteId se o usuario estiver logado (auth opcional)
+    const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
+
     const atualizada = await prisma.preConsulta.update({
       where: { id: preConsulta.id },
-      data: { respostas, transcricao, audioUrl, pacienteFotoUrl, summaryIA, summaryJson, status: 'RESPONDIDA', respondidaEm: new Date() },
+      data: {
+        respostas,
+        transcricao,
+        audioUrl,
+        pacienteFotoUrl,
+        summaryIA,
+        summaryJson,
+        status: 'RESPONDIDA',
+        respondidaEm: new Date(),
+        ...(pacienteIdLogado && { pacienteId: pacienteIdLogado }),
+      },
     });
+
+    // Registrar consentimento LGPD (compartilhamento com medico)
+    if (pacienteIdLogado) {
+      try {
+        await prisma.consentimento.create({
+          data: {
+            usuarioId: pacienteIdLogado,
+            tipo: 'COMPARTILHAMENTO_MEDICO',
+            versao: '1.0',
+            aceito: true,
+            ipAddress: (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim(),
+            userAgent: req.headers['user-agent'] || null,
+          },
+        });
+      } catch (e) {
+        console.error('[CONSENT] Erro ao registrar:', e.message);
+      }
+    }
 
     // TTS: Generate ElevenLabs audio in background (fire-and-forget)
     if (summaryJson && (summaryJson.textoVoz || summaryIA)) {
@@ -298,7 +329,7 @@ router.post('/t/:token/responder-audio', audioUpload.fields([
   }
 });
 
-router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (req, res, next) => {
+router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSchema), async (req, res, next) => {
   try {
     const preConsulta = await prisma.preConsulta.findUnique({
       where: { linkToken: req.params.token },
@@ -389,6 +420,9 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
       console.error('[PRE-CONSULTA] Erro ao gerar summary IA:', aiErr.message);
     }
 
+    // Capturar pacienteId se o usuario estiver logado (auth opcional)
+    const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
+
     const updateData = {
       respostas,
       transcricao: finalTranscricao || transcricao,
@@ -396,6 +430,7 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
       summaryJson,
       status: 'RESPONDIDA',
       respondidaEm: new Date(),
+      ...(pacienteIdLogado && { pacienteId: pacienteIdLogado }),
     };
     // Check audioUrl from base64 upload OR from respostas (Supabase direct upload)
     const finalAudioUrl = audioUrl || (respostas && respostas.audioUrl) || null;
@@ -407,6 +442,24 @@ router.post('/t/:token/responder', validate(responderPreConsultaSchema), async (
       where: { id: preConsulta.id },
       data: updateData,
     });
+
+    // Registrar consentimento LGPD (compartilhamento com medico)
+    if (pacienteIdLogado) {
+      try {
+        await prisma.consentimento.create({
+          data: {
+            usuarioId: pacienteIdLogado,
+            tipo: 'COMPARTILHAMENTO_MEDICO',
+            versao: '1.0',
+            aceito: true,
+            ipAddress: (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim(),
+            userAgent: req.headers['user-agent'] || null,
+          },
+        });
+      } catch (e) {
+        console.error('[CONSENT] Erro ao registrar:', e.message);
+      }
+    }
 
     // TTS: Generate ElevenLabs audio in background (fire-and-forget)
     if (summaryJson && (summaryJson.textoVoz || summaryIA)) {

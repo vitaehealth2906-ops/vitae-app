@@ -178,4 +178,84 @@ router.get('/dashboard', async (req, res, next) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /pacientes/:pacienteId — Perfil completo do paciente (medico)
+// Busca Usuario + PerfilSaude + Exames + Alergias + Medicamentos
+// Só retorna se houve pelo menos 1 pré-consulta entre esse paciente e o médico
+// ---------------------------------------------------------------------------
+
+router.get('/pacientes/:pacienteId', async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) {
+      return res.status(403).json({ erro: 'Perfil medico nao encontrado' });
+    }
+
+    const { pacienteId } = req.params;
+
+    // Verifica vinculo: o paciente respondeu pelo menos 1 pre-consulta desse medico
+    const vinculo = await prisma.preConsulta.findFirst({
+      where: { medicoId: medico.id, pacienteId },
+      select: { id: true },
+    });
+
+    if (!vinculo) {
+      return res.status(403).json({ erro: 'Voce nao tem acesso a esse paciente' });
+    }
+
+    const paciente = await prisma.usuario.findUnique({
+      where: { id: pacienteId },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        celular: true,
+        fotoUrl: true,
+        perfilSaude: true,
+        medicamentos: {
+          where: { ativo: true },
+          orderBy: { criadoEm: 'desc' },
+        },
+        alergias: { orderBy: { criadoEm: 'desc' } },
+        exames: {
+          orderBy: { dataExame: 'desc' },
+          take: 10,
+          select: {
+            id: true,
+            tipoExame: true,
+            laboratorio: true,
+            dataExame: true,
+            statusGeral: true,
+            resumoIA: true,
+            arquivoUrl: true,
+            criadoEm: true,
+          },
+        },
+      },
+    });
+
+    if (!paciente) {
+      return res.status(404).json({ erro: 'Paciente nao encontrado' });
+    }
+
+    const preConsultas = await prisma.preConsulta.findMany({
+      where: { medicoId: medico.id, pacienteId },
+      orderBy: { criadoEm: 'desc' },
+      select: {
+        id: true,
+        status: true,
+        respondidaEm: true,
+        criadoEm: true,
+        summaryIA: true,
+        audioUrl: true,
+        audioSummaryUrl: true,
+      },
+    });
+
+    return res.status(200).json({ paciente, preConsultas });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

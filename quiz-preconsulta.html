@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>vitaid — RG da Saúde</title>
+    <title>vitaid — Pré-Consulta</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -387,7 +387,7 @@
         <div class="back-btn" onclick="goBack()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18L9 12L15 6"/></svg>
         </div>
-        <div class="step-indicator">Passo <span id="stepNum">1</span> de 4</div>
+        <div class="step-indicator">Passo <span id="stepNum">1</span> de 6</div>
     </div>
 
     <div class="progress-bar">
@@ -487,12 +487,54 @@
                 <input class="field-input" type="tel" id="emergenciaTel" placeholder="(11) 99999-9999">
             </div>
 
-            <div style="padding:20px; background:rgba(0,229,160,0.06); border:1px solid rgba(0,229,160,0.15); border-radius:16px; margin:16px 0;">
-                <div style="font-size:14px; font-weight:600; color:#00E5A0; margin-bottom:4px;">Quase lá!</div>
-                <div style="font-size:13px; color:rgba(13,15,20,0.45); line-height:1.5;">Seu RG da Saúde será gerado com todas as informações que você preencheu. Você poderá editar depois.</div>
+            <button class="btn-next" onclick="goToStep(3)">Próximo</button>
+        </div>
+
+        <!-- STEP 3: Alergias -->
+        <div class="step" id="step3">
+            <div class="step-title">Suas <span>alergias</span></div>
+            <div class="step-subtitle">Importante para segurança em medicações e procedimentos</div>
+
+            <div class="field">
+                <div class="field-label">Tem alguma alergia?</div>
+                <textarea class="field-input" id="alergiasInput" placeholder="Ex: dipirona, penicilina, amendoim, frutos do mar..." rows="3" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
+                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Separe por vírgula. Deixe vazio se nenhuma.</div>
             </div>
 
-            <button class="btn-next" onclick="conclude()">Criar meu RG da Saúde</button>
+            <button class="btn-next" onclick="goToStep(4)">Próximo</button>
+        </div>
+
+        <!-- STEP 4: Medicamentos em uso -->
+        <div class="step" id="step4">
+            <div class="step-title">Medicamentos em <span>uso</span></div>
+            <div class="step-subtitle">Para seu médico saber o que você já toma</div>
+
+            <div class="field">
+                <div class="field-label">Medicamentos que usa atualmente</div>
+                <textarea class="field-input" id="medicamentosInput" placeholder="Ex: losartana 50mg manhã, sertralina 50mg noite, omeprazol 20mg jejum..." rows="4" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
+                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Separe por vírgula. Inclua dose e horário se souber. Deixe vazio se nenhum.</div>
+            </div>
+
+            <button class="btn-next" onclick="goToStep(5)">Próximo</button>
+        </div>
+
+        <!-- STEP 5: Últimos exames -->
+        <div class="step" id="step5">
+            <div class="step-title">Últimos <span>exames</span></div>
+            <div class="step-subtitle">Para contexto clínico da consulta</div>
+
+            <div class="field">
+                <div class="field-label">Exames recentes</div>
+                <textarea class="field-input" id="examesInput" placeholder="Ex: hemograma em 03/2026, ressonância lombar em 02/2026, colesterol alterado..." rows="4" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
+                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Liste os principais. Deixe vazio se nenhum.</div>
+            </div>
+
+            <div style="padding:20px; background:rgba(0,229,160,0.06); border:1px solid rgba(0,229,160,0.15); border-radius:16px; margin:16px 0;">
+                <div style="font-size:14px; font-weight:600; color:#00E5A0; margin-bottom:4px;">Quase lá!</div>
+                <div style="font-size:13px; color:rgba(13,15,20,0.45); line-height:1.5;">Seu RG da Saúde será criado e você será levado de volta à pré-consulta do seu médico.</div>
+            </div>
+
+            <button class="btn-next" onclick="conclude()">Continuar para a pré-consulta</button>
         </div>
 
     </div>
@@ -515,8 +557,17 @@
 <script>
     // ===== State =====
     let currentStep = 0;
-    const totalSteps = 3;
-    const steps = [0,1,2].map(i => document.getElementById('step'+i));
+    const totalSteps = 6;
+    const steps = [0,1,2,3,4,5].map(i => document.getElementById('step'+i));
+
+    // Guardar o token da pre-consulta (se vier na URL) — para voltar depois
+    const urlParams = new URLSearchParams(window.location.search);
+    const preConsultaToken = urlParams.get('retorno')
+      || urlParams.get('token')
+      || localStorage.getItem('vitae_quiz_retorno')
+      || localStorage.getItem('vitae_pre_consulta_token')
+      || '';
+    if (preConsultaToken) localStorage.setItem('vitae_pre_consulta_token', preConsultaToken);
     const progressFill = document.getElementById('progressFill');
     const stepNum = document.getElementById('stepNum');
 
@@ -948,21 +999,63 @@
             return;
         }
 
-        // Register LGPD consents (non-blocking — don't prevent redirect)
+        // Salvar alergias, medicamentos e exames (novos passos)
+        try {
+            const alergiasTxt = (document.getElementById('alergiasInput') || {}).value || '';
+            if (alergiasTxt.trim()) {
+                const lista = alergiasTxt.split(',').map(s => s.trim()).filter(Boolean);
+                for (const nome of lista) {
+                    try { await vitaeAPI.adicionarAlergia({ nome }); } catch (e) { console.log('alergia', nome, e.message); }
+                }
+            }
+        } catch (e) { console.log('erro alergias:', e.message); }
+
+        try {
+            const medsTxt = (document.getElementById('medicamentosInput') || {}).value || '';
+            if (medsTxt.trim()) {
+                const lista = medsTxt.split(',').map(s => s.trim()).filter(Boolean);
+                for (const item of lista) {
+                    try { await vitaeAPI.adicionarMedicamento({ nome: item }); } catch (e) { console.log('med', item, e.message); }
+                }
+            }
+        } catch (e) { console.log('erro meds:', e.message); }
+
+        // Exames (nesta etapa guardamos como texto livre em PerfilSaude.condicoes como complemento
+        // ou apenas como referencia rapida — nao criamos Exame sem arquivo)
+        try {
+            const examesTxt = (document.getElementById('examesInput') || {}).value || '';
+            if (examesTxt.trim()) {
+                // Guarda resumo de exames no perfil (campo livre condicoes como append)
+                const perfilAtual = await vitaeAPI.getPerfil().catch(() => ({}));
+                const condAtuais = (perfilAtual.perfil && perfilAtual.perfil.condicoes) || '';
+                const novoTexto = condAtuais
+                  ? (condAtuais + ' | Exames recentes: ' + examesTxt.trim())
+                  : ('Exames recentes: ' + examesTxt.trim());
+                await vitaeAPI.atualizarPerfil({ condicoes: novoTexto });
+            }
+        } catch (e) { console.log('erro exames:', e.message); }
+
+        // Register LGPD consents (non-blocking)
         if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
             try {
                 await vitaeAPI.registrarConsentimento({ tipo: 'TERMOS_USO', aceito: true });
                 await vitaeAPI.registrarConsentimento({ tipo: 'POLITICA_PRIVACIDADE', aceito: true });
-                await vitaeAPI.registrarConsentimento({ tipo: 'PROCESSAMENTO_IA', aceito: true });
+                await vitaeAPI.registrarConsentimento({ tipo: 'DADOS_SAUDE', aceito: true });
             } catch (e) {
                 console.log('Erro ao registrar consentimentos:', e.message);
             }
         }
 
-        // Only redirect after data is confirmed saved
+        // Voltar para a pre-consulta com o token original
         if (saveSuccess) {
             setTimeout(() => {
-                window.location.href = '08-perfil.html';
+                if (preConsultaToken) {
+                    localStorage.removeItem('vitae_pre_consulta_token');
+                    localStorage.removeItem('vitae_quiz_retorno');
+                    window.location.href = 'pre-consulta.html?token=' + encodeURIComponent(preConsultaToken);
+                } else {
+                    window.location.href = '08-perfil.html';
+                }
             }, 800);
         }
     }

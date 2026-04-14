@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vitaid — Preview: One Minute Summary (Redesign)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* ── VITAE DESIGN TOKENS ── */
+        :root {
+            --v-green: #00E5A0;
+            --v-green2: #00C47A;
+            --v-cyan: #00B4D8;
+            --v-grad: linear-gradient(120deg, #00E5A0, #00B4D8);
+            --v-grad-red: linear-gradient(120deg, #EF4444, #F87171);
+            --v-bg: #F4F6FA;
+            --v-surface: #FFFFFF;
+            --v-ink: #0D0F14;
+            --v-ink2: #4B5563;
+            --v-ink3: #6B7280;
+            --v-ink4: #9CA3AF;
+            --v-ink5: #C4C9D4;
+            --v-ok: #00C47A;
+            --v-warn: #F59E0B;
+            --v-bad: #EF4444;
+            --v-info: #3B82F6;
+            --v-border: 1px solid rgba(0,0,0,0.07);
+            --v-sh: 0 1px 12px rgba(0,0,0,0.07);
+            --v-sh-green: 0 4px 20px rgba(0,229,160,0.18);
+            --v-r-md: 14px;
+            --v-r-lg: 18px;
+            --v-r-pill: 100px;
+            --v-r-phone: 52px;
+            --v-ease: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #E8EAEE;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* ── PHONE FRAME ── */
+        .phone {
+            width: 393px; max-width: 100vw;
+            height: 852px; max-height: 100vh;
+            background: var(--v-bg);
+            border-radius: var(--v-r-phone);
+            overflow: hidden; position: relative;
+            box-shadow: 0 0 0 1px rgba(0,229,160,0.15), 0 0 0 3px #E5E7EB, 0 40px 120px rgba(0,0,0,0.12);
+        }
+        .notch {
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 126px; height: 34px;
+            background: var(--v-bg); border-radius: 0 0 20px 20px; z-index: 10;
+        }
+        .content {
+            height: 100%; overflow-y: auto;
+            padding: 0 20px 40px;
+            scrollbar-width: none;
+        }
+        .content::-webkit-scrollbar { display: none; }
+
+        /* ── HEADER ── */
+        .header {
+            position: sticky; top: 0; z-index: 5;
+            background: var(--v-bg);
+            padding: 52px 0 14px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .back-btn {
+            width: 40px; height: 40px; border-radius: 12px;
+            background: var(--v-surface); border: var(--v-border);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0;
+        }
+        .back-btn svg { width: 20px; height: 20px; stroke: var(--v-ink4); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .header-title {
+            flex: 1; text-align: center;
+            font-size: 17px; font-weight: 700; color: var(--v-ink);
+            margin-right: 40px;
+        }
+
+        /* ── PATIENT HERO ── */
+        .patient-hero {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 8px 0 24px; gap: 6px;
+            animation: fadeUp 0.5s var(--v-ease) both;
+        }
+        .patient-photo {
+            width: 88px; height: 88px; border-radius: 50%;
+            background: var(--v-grad);
+            padding: 3px; margin-bottom: 4px;
+        }
+        .patient-photo-inner {
+            width: 100%; height: 100%; border-radius: 50%;
+            background: var(--v-surface);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; font-weight: 800; color: var(--v-green);
+            overflow: hidden;
+        }
+        .patient-photo-inner img {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+        }
+        .patient-name {
+            font-size: 22px; font-weight: 800; color: var(--v-ink);
+            letter-spacing: -0.5px;
+        }
+        .patient-age {
+            font-size: 14px; font-weight: 500; color: var(--v-ink3);
+            margin-top: -2px;
+        }
+        .patient-desc {
+            font-size: 14px; color: var(--v-ink2);
+            text-align: center; line-height: 1.5;
+            max-width: 300px; margin-top: 4px;
+            font-style: italic;
+        }
+
+        /* ── AUDIO PLAYER (PREMIUM) ── */
+        .audio-card {
+            background: var(--v-surface);
+            border: var(--v-border);
+            border-radius: var(--v-r-lg);
+            padding: 18px 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--v-sh);
+            animation: fadeUp 0.5s var(--v-ease) 0.05s both;
+        }
+        .audio-top {
+            display: flex; align-items: center; gap: 14px;
+            margin-bottom: 16px;
+        }
+        .audio-play {
+            width: 52px; height: 52px; border-radius: 50%;
+            background: var(--v-grad);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border: none;
+            box-shadow: var(--v-sh-green);
+            flex-shrink: 0;
+            transition: transform 0.2s var(--v-ease), box-shadow 0.2s;
+        }
+        .audio-play:hover { transform: scale(1.06); }
+        .audio-play:active { transform: scale(0.96); }
+        .audio-play svg { width: 22px; height: 22px; fill: #fff; stroke: none; }
+        .audio-play .pause-icon { display: none; }
+        .audio-play.playing .play-icon { display: none; }
+        .audio-play.playing .pause-icon { display: block; }
+
+        .audio-meta { flex: 1; }
+        .audio-label {
+            font-size: 15px; font-weight: 700; color: var(--v-ink);
+        }
+        .audio-sublabel {
+            font-size: 12px; color: var(--v-ink4); margin-top: 2px;
+        }
+
+        /* Waveform */
+        .waveform-wrap {
+            width: 100%; height: 48px;
+            display: flex; align-items: center; gap: 2px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            position: relative;
+        }
+        .wave-bar {
+            flex: 1; min-width: 3px; border-radius: 3px;
+            background: #E2E8F0;
+            transition: background 0.15s, transform 0.1s;
+            transform-origin: bottom center;
+        }
+        .wave-bar.played {
+            background: var(--v-green);
+        }
+        .wave-bar.active {
+            background: var(--v-cyan);
+        }
+
+        /* Progress bar */
+        .progress-row {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .progress-time {
+            font-size: 11px; font-weight: 600; color: var(--v-ink4);
+            min-width: 36px;
+            font-variant-numeric: tabular-nums;
+        }
+        .progress-track {
+            flex: 1; height: 4px; border-radius: 4px;
+            background: #E2E8F0; position: relative;
+            cursor: pointer;
+        }
+        .progress-fill {
+            height: 100%; border-radius: 4px;
+            background: var(--v-grad);
+            width: 0%; transition: width 0.1s linear;
+        }
+        .progress-thumb {
+            width: 14px; height: 14px; border-radius: 50%;
+            background: var(--v-surface);
+            border: 3px solid var(--v-green);
+            position: absolute; top: 50%; transform: translate(-50%, -50%);
+            left: 0%; transition: left 0.1s linear;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        }
+
+        /* Speed pills */
+        .speed-row {
+            display: flex; gap: 8px; margin-top: 12px;
+            justify-content: center;
+        }
+        .speed-pill {
+            padding: 5px 14px; border-radius: var(--v-r-pill);
+            font-size: 12px; font-weight: 700; color: var(--v-ink4);
+            background: var(--v-bg); border: none;
+            cursor: pointer; transition: all 0.2s var(--v-ease);
+        }
+        .speed-pill.active {
+            background: var(--v-green);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(0,229,160,0.3);
+        }
+        .speed-pill:hover:not(.active) {
+            background: #E2E8F0;
+        }
+
+        /* ── SECTION LABELS ── */
+        .section-label {
+            font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.5px;
+            color: var(--v-ink4);
+            margin-bottom: 12px;
+            padding-left: 2px;
+        }
+
+        /* ── ALERTAS ── */
+        .alerts-section {
+            margin-bottom: 24px;
+            animation: fadeUp 0.5s var(--v-ease) 0.1s both;
+        }
+        .alert-card {
+            padding: 14px 16px;
+            border-radius: var(--v-r-md);
+            margin-bottom: 10px;
+            display: flex; align-items: flex-start; gap: 12px;
+        }
+        .alert-card.urgente {
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+        }
+        .alert-card.atencao {
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.15);
+        }
+        .alert-card.info {
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+        }
+        .alert-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            flex-shrink: 0; margin-top: 4px;
+        }
+        .urgente .alert-dot { background: var(--v-bad); box-shadow: 0 0 8px rgba(239,68,68,0.4); }
+        .atencao .alert-dot { background: var(--v-warn); box-shadow: 0 0 8px rgba(245,158,11,0.4); }
+        .info .alert-dot { background: var(--v-info); box-shadow: 0 0 8px rgba(59,130,246,0.4); }
+
+        .alert-content { flex: 1; }
+        .alert-type {
+            font-size: 11px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 0.8px;
+            margin-bottom: 3px;
+        }
+        .urgente .alert-type { color: var(--v-bad); }
+        .atencao .alert-type { color: var(--v-warn); }
+        .info .alert-type { color: var(--v-info); }
+        .alert-msg {
+            font-size: 13px; color: var(--v-ink2); line-height: 1.5;
+        }
+
+        /* ── CONTEXTO RAPIDO ── */
+        .context-section {
+            margin-bottom: 24px;
+            animation: fadeUp 0.5s var(--v-ease) 0.15s both;
+        }
+        .context-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .context-card {
+            background: var(--v-surface);
+            border: var(--v-border);
+            border-radius: var(--v-r-md);
+            padding: 14px;
+            box-shadow: var(--v-sh);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s var(--v-ease);
+        }
+        .context-card:active { transform: scale(0.97); }
+        .context-card.priority-high::before {
+            content: '';
+            position: absolute; left: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: var(--v-bad);
+            border-radius: 4px 0 0 4px;
+        }
+        .context-card.priority-high { padding-left: 18px; }
+
+        .context-icon {
+            width: 32px; height: 32px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 10px;
+        }
+        .context-icon svg { width: 18px; height: 18px; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .context-icon.queixa { background: rgba(239,68,68,0.08); }
+        .context-icon.queixa svg { stroke: var(--v-bad); }
+        .context-icon.meds { background: rgba(0,229,160,0.08); }
+        .context-icon.meds svg { stroke: var(--v-green); }
+        .context-icon.alergias { background: rgba(245,158,11,0.08); }
+        .context-icon.alergias svg { stroke: var(--v-warn); }
+        .context-icon.habitos { background: rgba(59,130,246,0.08); }
+        .context-icon.habitos svg { stroke: var(--v-info); }
+
+        .context-title {
+            font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.2px;
+            color: var(--v-ink4);
+            margin-bottom: 6px;
+        }
+        .context-value {
+            font-size: 13px; font-weight: 500; color: var(--v-ink);
+            line-height: 1.5;
+        }
+        .context-value span {
+            display: block; color: var(--v-ink3); font-size: 12px;
+        }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+        }
+        @keyframes breathe {
+            0%, 100% { transform: scaleY(0.25); }
+            50% { transform: scaleY(0.7); }
+        }
+
+        /* Waveform loading animation */
+        .waveform-wrap.loading .wave-bar {
+            animation: breathe 1.5s ease-in-out infinite;
+            background: linear-gradient(180deg, rgba(0,229,160,0.3), rgba(0,180,216,0.3));
+        }
+        /* Stagger the animation */
+        .waveform-wrap.loading .wave-bar:nth-child(1) { animation-delay: 0s; }
+        .waveform-wrap.loading .wave-bar:nth-child(2) { animation-delay: 0.05s; }
+        .waveform-wrap.loading .wave-bar:nth-child(3) { animation-delay: 0.1s; }
+        .waveform-wrap.loading .wave-bar:nth-child(4) { animation-delay: 0.15s; }
+        .waveform-wrap.loading .wave-bar:nth-child(5) { animation-delay: 0.2s; }
+        .waveform-wrap.loading .wave-bar:nth-child(6) { animation-delay: 0.25s; }
+        .waveform-wrap.loading .wave-bar:nth-child(7) { animation-delay: 0.3s; }
+        .waveform-wrap.loading .wave-bar:nth-child(8) { animation-delay: 0.35s; }
+        .waveform-wrap.loading .wave-bar:nth-child(9) { animation-delay: 0.4s; }
+        .waveform-wrap.loading .wave-bar:nth-child(10) { animation-delay: 0.45s; }
+        .waveform-wrap.loading .wave-bar:nth-child(11) { animation-delay: 0.5s; }
+        .waveform-wrap.loading .wave-bar:nth-child(12) { animation-delay: 0.55s; }
+        .waveform-wrap.loading .wave-bar:nth-child(13) { animation-delay: 0.6s; }
+        .waveform-wrap.loading .wave-bar:nth-child(14) { animation-delay: 0.65s; }
+        .waveform-wrap.loading .wave-bar:nth-child(15) { animation-delay: 0.7s; }
+        .waveform-wrap.loading .wave-bar:nth-child(16) { animation-delay: 0.75s; }
+        .waveform-wrap.loading .wave-bar:nth-child(17) { animation-delay: 0.8s; }
+        .waveform-wrap.loading .wave-bar:nth-child(18) { animation-delay: 0.85s; }
+        .waveform-wrap.loading .wave-bar:nth-child(19) { animation-delay: 0.9s; }
+        .waveform-wrap.loading .wave-bar:nth-child(20) { animation-delay: 0.95s; }
+        .waveform-wrap.loading .wave-bar:nth-child(21) { animation-delay: 0.05s; }
+        .waveform-wrap.loading .wave-bar:nth-child(22) { animation-delay: 0.1s; }
+        .waveform-wrap.loading .wave-bar:nth-child(23) { animation-delay: 0.15s; }
+        .waveform-wrap.loading .wave-bar:nth-child(24) { animation-delay: 0.2s; }
+        .waveform-wrap.loading .wave-bar:nth-child(25) { animation-delay: 0.25s; }
+        .waveform-wrap.loading .wave-bar:nth-child(26) { animation-delay: 0.3s; }
+        .waveform-wrap.loading .wave-bar:nth-child(27) { animation-delay: 0.35s; }
+        .waveform-wrap.loading .wave-bar:nth-child(28) { animation-delay: 0.4s; }
+        .waveform-wrap.loading .wave-bar:nth-child(29) { animation-delay: 0.45s; }
+        .waveform-wrap.loading .wave-bar:nth-child(30) { animation-delay: 0.5s; }
+
+        /* Playing waveform - reactive bars */
+        .waveform-wrap.playing .wave-bar {
+            transition: transform 0.08s ease-out;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 480px) {
+            .phone {
+                width: 100%; height: 100vh;
+                border-radius: 0; box-shadow: none;
+            }
+            .notch { display: none; }
+            .header { padding-top: 16px; }
+        }
+
+        /* ── DATE BADGE ── */
+        .date-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: var(--v-r-pill);
+            background: rgba(0,229,160,0.08);
+            font-size: 11px; font-weight: 600; color: var(--v-green2);
+            margin-top: 2px;
+        }
+        .date-badge svg { width: 12px; height: 12px; stroke: var(--v-green2); fill: none; stroke-width: 2; stroke-linecap: round; }
+
+        /* ── STALE WARNING ── */
+        .stale-warning {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 14px; border-radius: var(--v-r-md);
+            background: rgba(245,158,11,0.06);
+            border: 1px solid rgba(245,158,11,0.12);
+            font-size: 12px; color: var(--v-warn);
+            font-weight: 600;
+            margin-bottom: 20px;
+            animation: fadeUp 0.5s var(--v-ease) 0.02s both;
+        }
+        .stale-warning svg { width: 16px; height: 16px; stroke: var(--v-warn); fill: none; stroke-width: 2; flex-shrink: 0; }
+
+        /* ── AUDIO ERROR STATE ── */
+        .audio-error {
+            text-align: center; padding: 20px;
+            font-size: 13px; color: var(--v-ink4);
+        }
+        .audio-error-btn {
+            margin-top: 10px; padding: 8px 20px;
+            border-radius: var(--v-r-pill);
+            background: var(--v-bg); border: var(--v-border);
+            font-size: 12px; font-weight: 600; color: var(--v-ink3);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone">
+        <div class="notch"></div>
+        <div class="content">
+            <!-- HEADER -->
+            <div class="header">
+                <div class="back-btn">
+                    <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                <div class="header-title">One Minute Summary</div>
+            </div>
+
+            <!-- PATIENT HERO -->
+            <div class="patient-hero">
+                <div class="patient-photo">
+                    <div class="patient-photo-inner">JS</div>
+                </div>
+                <div class="patient-name">Joao Silva</div>
+                <div class="patient-age">34 anos</div>
+                <div class="date-badge">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Respondida em 13/04/2026
+                </div>
+                <div class="patient-desc">"Dor no peito ha 3 dias, de inicio subito, que piora com esforco fisico"</div>
+            </div>
+
+            <!-- AUDIO PLAYER -->
+            <div class="audio-card">
+                <div class="audio-top">
+                    <button class="audio-play" id="playBtn" onclick="togglePlay()">
+                        <svg class="play-icon" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+                        <svg class="pause-icon" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>
+                    </button>
+                    <div class="audio-meta">
+                        <div class="audio-label">Resumo em audio</div>
+                        <div class="audio-sublabel">~1 minuto</div>
+                    </div>
+                </div>
+
+                <!-- WAVEFORM -->
+                <div class="waveform-wrap" id="waveform"></div>
+
+                <!-- PROGRESS -->
+                <div class="progress-row">
+                    <span class="progress-time" id="timeElapsed">0:00</span>
+                    <div class="progress-track" id="progressTrack" onclick="seekAudio(event)">
+                        <div class="progress-fill" id="progressFill"></div>
+                        <div class="progress-thumb" id="progressThumb"></div>
+                    </div>
+                    <span class="progress-time" id="timeTotal">1:12</span>
+                </div>
+
+                <!-- SPEED -->
+                <div class="speed-row">
+                    <button class="speed-pill" onclick="setSpeed(this, 0.75)">0.75x</button>
+                    <button class="speed-pill active" onclick="setSpeed(this, 1)">1x</button>
+                    <button class="speed-pill" onclick="setSpeed(this, 1.5)">1.5x</button>
+                    <button class="speed-pill" onclick="setSpeed(this, 2)">2x</button>
+                </div>
+            </div>
+
+            <!-- ALERTAS CLINICOS -->
+            <div class="alerts-section">
+                <div class="section-label">Alertas clinicos</div>
+
+                <div class="alert-card urgente">
+                    <div class="alert-dot"></div>
+                    <div class="alert-content">
+                        <div class="alert-type">Urgente</div>
+                        <div class="alert-msg">Paciente alergico a Dipirona. Inclui Novalgina, Metamizol e derivados. Verificar antes de prescrever analgesicos.</div>
+                    </div>
+                </div>
+
+                <div class="alert-card atencao">
+                    <div class="alert-dot"></div>
+                    <div class="alert-content">
+                        <div class="alert-type">Atencao</div>
+                        <div class="alert-msg">Uso continuo de Losartana 50mg. Combinacao com anti-inflamatorios (AINEs) pode comprometer funcao renal.</div>
+                    </div>
+                </div>
+
+                <div class="alert-card info">
+                    <div class="alert-dot"></div>
+                    <div class="alert-content">
+                        <div class="alert-type">Informacao</div>
+                        <div class="alert-msg">Paciente relata mudanca recente nos habitos alimentares e reducao de atividade fisica nas ultimas 2 semanas.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTEXTO RAPIDO -->
+            <div class="context-section">
+                <div class="section-label">Contexto rapido</div>
+
+                <div class="context-grid">
+                    <!-- QUEIXA -->
+                    <div class="context-card priority-high">
+                        <div class="context-icon queixa">
+                            <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        </div>
+                        <div class="context-title">Queixa</div>
+                        <div class="context-value">
+                            Dor toracica
+                            <span>Ha 3 dias, piora ao esforco</span>
+                        </div>
+                    </div>
+
+                    <!-- MEDICAMENTOS -->
+                    <div class="context-card">
+                        <div class="context-icon meds">
+                            <svg viewBox="0 0 24 24"><path d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/></svg>
+                        </div>
+                        <div class="context-title">Medicamentos</div>
+                        <div class="context-value">
+                            Losartana 50mg
+                            <span>1x ao dia, continuo</span>
+                        </div>
+                    </div>
+
+                    <!-- ALERGIAS -->
+                    <div class="context-card priority-high">
+                        <div class="context-icon alergias">
+                            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                        <div class="context-title">Alergias</div>
+                        <div class="context-value">
+                            Dipirona
+                            <span>Penicilina</span>
+                        </div>
+                    </div>
+
+                    <!-- HABITOS -->
+                    <div class="context-card">
+                        <div class="context-icon habitos">
+                            <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                        </div>
+                        <div class="context-title">Habitos</div>
+                        <div class="context-value">
+                            Nao fuma
+                            <span>6h sono, sedentario</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="height: 40px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // ── GENERATE WAVEFORM BARS ──
+        const waveformEl = document.getElementById('waveform');
+        const barCount = 45;
+        const barHeights = [];
+
+        // Generate realistic waveform shape (louder in middle, quieter at ends)
+        for (let i = 0; i < barCount; i++) {
+            const pos = i / barCount;
+            const base = Math.sin(pos * Math.PI) * 0.6 + 0.2;
+            const noise = (Math.random() - 0.5) * 0.35;
+            const h = Math.max(0.08, Math.min(1, base + noise));
+            barHeights.push(h);
+        }
+
+        barHeights.forEach((h, i) => {
+            const bar = document.createElement('div');
+            bar.className = 'wave-bar';
+            bar.style.height = (h * 44) + 'px';
+            waveformEl.appendChild(bar);
+        });
+
+        // ── AUDIO SIMULATION ──
+        let isPlaying = false;
+        let progress = 0;
+        let playInterval = null;
+        let currentSpeed = 1;
+        const totalDuration = 72; // 1:12 in seconds
+        const bars = waveformEl.querySelectorAll('.wave-bar');
+
+        function togglePlay() {
+            const btn = document.getElementById('playBtn');
+            isPlaying = !isPlaying;
+
+            if (isPlaying) {
+                btn.classList.add('playing');
+                waveformEl.classList.remove('loading');
+                waveformEl.classList.add('playing');
+                startPlayback();
+            } else {
+                btn.classList.remove('playing');
+                waveformEl.classList.remove('playing');
+                stopPlayback();
+            }
+        }
+
+        function startPlayback() {
+            if (playInterval) clearInterval(playInterval);
+            playInterval = setInterval(() => {
+                progress += (100 / totalDuration) * (currentSpeed * 0.1);
+                if (progress >= 100) {
+                    progress = 100;
+                    isPlaying = false;
+                    document.getElementById('playBtn').classList.remove('playing');
+                    waveformEl.classList.remove('playing');
+                    stopPlayback();
+                }
+                updateUI();
+                animateBars();
+            }, 100);
+        }
+
+        function stopPlayback() {
+            if (playInterval) { clearInterval(playInterval); playInterval = null; }
+        }
+
+        function updateUI() {
+            const elapsed = (progress / 100) * totalDuration;
+            const min = Math.floor(elapsed / 60);
+            const sec = Math.floor(elapsed % 60);
+            document.getElementById('timeElapsed').textContent = min + ':' + String(sec).padStart(2, '0');
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressThumb').style.left = progress + '%';
+
+            // Color bars based on progress
+            const playedBars = Math.floor((progress / 100) * barCount);
+            bars.forEach((bar, i) => {
+                bar.classList.remove('played', 'active');
+                if (i < playedBars) bar.classList.add('played');
+                else if (i === playedBars) bar.classList.add('active');
+            });
+        }
+
+        function animateBars() {
+            if (!isPlaying) return;
+            // Simulate reactive waveform near playhead
+            const playedBars = Math.floor((progress / 100) * barCount);
+            bars.forEach((bar, i) => {
+                const dist = Math.abs(i - playedBars);
+                if (dist < 5) {
+                    const intensity = 1 - (dist / 5);
+                    const randomPulse = 0.7 + Math.random() * 0.5 * intensity;
+                    bar.style.transform = 'scaleY(' + randomPulse + ')';
+                } else {
+                    bar.style.transform = 'scaleY(1)';
+                }
+            });
+        }
+
+        function seekAudio(e) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            progress = ((e.clientX - rect.left) / rect.width) * 100;
+            progress = Math.max(0, Math.min(100, progress));
+            updateUI();
+        }
+
+        function setSpeed(btn, speed) {
+            currentSpeed = speed;
+            document.querySelectorAll('.speed-pill').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // Initialize
+        updateUI();
+    </script>
+</body>
+</html>

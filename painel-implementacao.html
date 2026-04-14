@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vitaid — Painel de Implementacao</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --v-green: #00E5A0; --v-cyan: #00B4D8;
+            --v-grad: linear-gradient(120deg, #00E5A0, #00B4D8);
+            --v-bg: #0D0F14; --v-surface: #1A1D24; --v-surface2: #22262E;
+            --v-ink: #FFFFFF; --v-ink2: #9CA3AF; --v-ink3: #6B7280;
+            --v-bad: #EF4444; --v-warn: #F59E0B; --v-ok: #00C47A;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--v-bg); font-family: 'Plus Jakarta Sans', sans-serif; color: var(--v-ink); min-height: 100vh; }
+
+        .top-bar {
+            padding: 24px 32px; display: flex; align-items: center; gap: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .top-logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+        .top-logo span { background: var(--v-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .top-status { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+        .top-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .top-dot.waiting { background: var(--v-ink3); }
+        .top-dot.running { background: var(--v-green); animation: blink 1s infinite; }
+        .top-dot.done { background: var(--v-ok); }
+
+        .main { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 73px); }
+
+        /* SIDEBAR */
+        .sidebar { border-right: 1px solid rgba(255,255,255,0.06); overflow-y: auto; padding: 20px 0; }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+        .phase-group { margin-bottom: 8px; }
+        .phase-header {
+            padding: 10px 20px; font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.5px; color: var(--v-ink3);
+        }
+        .step {
+            padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+            transition: background 0.15s; border-left: 3px solid transparent;
+        }
+        .step:hover { background: rgba(255,255,255,0.03); }
+        .step.active { background: rgba(0,229,160,0.06); border-left-color: var(--v-green); }
+        .step-icon {
+            width: 28px; height: 28px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 800; flex-shrink: 0;
+        }
+        .step-icon.pending { background: var(--v-surface2); color: var(--v-ink3); }
+        .step-icon.running { background: rgba(0,229,160,0.15); color: var(--v-green); }
+        .step-icon.done { background: rgba(0,196,122,0.15); color: var(--v-ok); }
+        .step-icon.error { background: rgba(239,68,68,0.15); color: var(--v-bad); }
+        .step-icon.manual { background: rgba(245,158,11,0.15); color: var(--v-warn); }
+
+        .step-text { flex: 1; min-width: 0; }
+        .step-name { font-size: 13px; font-weight: 600; color: var(--v-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .step-desc { font-size: 11px; color: var(--v-ink3); margin-top: 2px; }
+        .step-badge {
+            padding: 3px 8px; border-radius: 100px; font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+        }
+        .step-badge.pending { background: var(--v-surface2); color: var(--v-ink3); }
+        .step-badge.running { background: rgba(0,229,160,0.15); color: var(--v-green); }
+        .step-badge.done { background: rgba(0,196,122,0.15); color: var(--v-ok); }
+        .step-badge.manual { background: rgba(245,158,11,0.15); color: var(--v-warn); }
+
+        /* DETAIL PANEL */
+        .detail { overflow-y: auto; padding: 32px; }
+        .detail::-webkit-scrollbar { width: 4px; }
+        .detail::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+        .detail-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+        .detail-subtitle { font-size: 14px; color: var(--v-ink2); margin-bottom: 24px; line-height: 1.6; }
+
+        .detail-section { margin-bottom: 28px; }
+        .detail-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1.5px; color: var(--v-ink3); margin-bottom: 12px;
+        }
+        .detail-card {
+            background: var(--v-surface); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px; padding: 16px; margin-bottom: 8px;
+        }
+        .detail-card-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+        .detail-card-text { font-size: 13px; color: var(--v-ink2); line-height: 1.6; }
+
+        .log-line {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px; padding: 6px 12px; border-radius: 6px;
+            margin-bottom: 4px; display: flex; align-items: center; gap: 8px;
+        }
+        .log-line .time { color: var(--v-ink3); min-width: 60px; }
+        .log-line .agent { color: var(--v-cyan); min-width: 100px; font-weight: 600; }
+        .log-line .msg { color: var(--v-ink2); }
+        .log-line.success { background: rgba(0,196,122,0.06); }
+        .log-line.success .msg { color: var(--v-ok); }
+        .log-line.error { background: rgba(239,68,68,0.06); }
+        .log-line.error .msg { color: var(--v-bad); }
+
+        /* PROGRESS BAR */
+        .progress-bar-wrap { margin: 20px 32px; }
+        .progress-stats { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .progress-stat { font-size: 12px; color: var(--v-ink3); }
+        .progress-stat strong { color: var(--v-ink); font-weight: 700; }
+        .progress-track { height: 6px; background: var(--v-surface2); border-radius: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--v-grad); border-radius: 6px; width: 0%; transition: width 0.5s ease; }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .check-svg { width: 14px; height: 14px; stroke: var(--v-ok); fill: none; stroke-width: 2.5; }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="top-logo">vita<span>id</span> — Painel de Implementacao</div>
+        <div class="top-status">
+            <div class="top-dot waiting" id="globalDot"></div>
+            <span id="globalStatus">Aguardando inicio</span>
+        </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+        <div class="progress-stats">
+            <div class="progress-stat">Progresso: <strong id="progressPct">0%</strong></div>
+            <div class="progress-stat"><strong id="progressDone">0</strong> de <strong>22</strong> etapas</div>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="sidebar" id="sidebar"></div>
+        <div class="detail" id="detail">
+            <div class="detail-title">Selecione uma etapa</div>
+            <div class="detail-subtitle">Clique em qualquer etapa na barra lateral pra ver os detalhes, o que sera feito, e o log em tempo real dos agentes.</div>
+        </div>
+    </div>
+
+    <script>
+    const PHASES = [
+        {
+            name: 'FASE 0 — FUNDACAO',
+            steps: [
+                {
+                    id: 'db-migrate', name: 'Criar tabelas no banco de dados',
+                    desc: 'Rodar prisma db push pra criar as 17 tabelas',
+                    status: 'pending',
+                    detail: 'O banco de dados (PostgreSQL no Supabase) esta VAZIO. O codigo define 17 tabelas mas ninguem nunca rodou o comando pra cria-las. Sem isso, NADA funciona — qualquer requisicao ao servidor crasheia.',
+                    whatDoes: ['Conecta no banco Supabase usando a URL do .env', 'Cria todas as 17 tabelas definidas no schema.prisma', 'Verifica se cada tabela foi criada com sucesso'],
+                    logs: []
+                },
+                {
+                    id: 'test-backend', name: 'Testar se o servidor inicia',
+                    desc: 'Ligar o servidor e verificar se responde',
+                    status: 'pending',
+                    detail: 'Depois de criar as tabelas, precisamos confirmar que o servidor Express inicia na porta 3002 e responde a requisicoes sem crashear.',
+                    whatDoes: ['Inicia o servidor com node backend/src/index.js', 'Faz uma requisicao de teste pra verificar se responde', 'Confirma que o banco esta conectado'],
+                    logs: []
+                },
+                {
+                    id: 'test-preconsulta', name: 'Testar fluxo paciente→medico',
+                    desc: 'Criar pre-consulta de teste e simular resposta',
+                    status: 'pending',
+                    detail: 'Teste de ponta a ponta: criar um medico, criar uma pre-consulta, simular a resposta do paciente, e verificar se a IA gera o resumo corretamente com blocos, alertas e perguntas sugeridas.',
+                    whatDoes: ['Cria um medico de teste no banco', 'Cria uma pre-consulta com template', 'Simula resposta do paciente com dados medicos', 'Verifica se a IA (Claude) gerou summaryTexto, blocos, alertas, perguntasSugeridas', 'Confirma que tudo foi salvo no banco'],
+                    logs: []
+                },
+            ]
+        },
+        {
+            name: 'FASE 1 — ELEVENLABS + VOZ',
+            steps: [
+                {
+                    id: 'env-elevenlabs', name: 'Configurar ElevenLabs no servidor',
+                    desc: 'Preparar o .env e testar a conexao',
+                    status: 'manual',
+                    detail: 'O codigo do ElevenLabs ja existe no servidor mas a chave da API nunca foi adicionada. VOCE precisa criar conta no ElevenLabs, pegar a API key, e escolher uma voz masculina seria.',
+                    whatDoes: ['VOCE: Criar conta em elevenlabs.io', 'VOCE: Copiar a API Key', 'VOCE: Escolher voz masculina (testar no site)', 'VOCE: Copiar o Voice ID da voz escolhida', 'EU: Adicionar as chaves no .env do servidor'],
+                    logs: []
+                },
+                {
+                    id: 'test-elevenlabs', name: 'Testar geracao de audio',
+                    desc: 'Gerar 1 audio de teste e confirmar que funciona',
+                    status: 'pending',
+                    detail: 'Depois que voce adicionar a chave, eu vou gerar um audio de teste com um texto medico pra confirmar que a voz soa profissional e que o MP3 e gerado corretamente.',
+                    whatDoes: ['Chama a funcao gerarAudioElevenLabs com texto de teste', 'Verifica se retorna um buffer MP3 valido', 'Salva o audio de teste pra voce ouvir'],
+                    logs: []
+                },
+                {
+                    id: 'voice-change', name: 'Trocar voz padrao pra masculina',
+                    desc: 'Mudar de Sarah (feminina) pra voz escolhida',
+                    status: 'pending',
+                    detail: 'O codigo atual usa a voz "Sarah" (feminina) como padrao. Vamos trocar pro ID da voz masculina que voce escolher, e ajustar as configuracoes de estabilidade pra soar mais seria.',
+                    whatDoes: ['Troca o voice ID padrao no codigo', 'Ajusta estabilidade pra 0.7 (mais consistente)', 'Ajusta similaridade pra 0.8 (mais fiel a voz)'],
+                    logs: []
+                },
+            ]
+        },
+        {
+            name: 'FASE 2 — BACKEND (NOVOS ENDPOINTS)',
+            steps: [
+                {
+                    id: 'tts-cache', name: 'Audio gerado em background + cache',
+                    desc: 'Gerar audio quando paciente responde, nao quando medico abre',
+                    status: 'pending',
+                    detail: 'Hoje o audio nunca e gerado. Vamos fazer o servidor gerar o audio ElevenLabs automaticamente quando o paciente envia a pre-consulta. O audio e salvo no Supabase Storage e o link guardado no banco. Quando o medico abrir, ja esta pronto.',
+                    whatDoes: ['Adiciona chamada ao ElevenLabs dentro do fluxo de resposta do paciente', 'Upload do MP3 pro Supabase Storage (pasta tts/)', 'Salva o link no campo audioSummaryUrl do banco', 'Se ElevenLabs falhar, continua normalmente (texto funciona sem audio)', 'Endpoint /:id/tts agora verifica cache antes de gerar'],
+                    logs: []
+                },
+                {
+                    id: 'delete-patient', name: 'Endpoint deletar paciente inteiro',
+                    desc: 'Apagar todas as pre-consultas de um paciente de uma vez',
+                    status: 'pending',
+                    detail: 'Criar novo endpoint no servidor que recebe o nome+telefone do paciente e deleta TUDO: todas pre-consultas, audios, fotos, e audios de TTS do Supabase Storage.',
+                    whatDoes: ['Novo endpoint DELETE /pre-consulta/by-patient', 'Busca todas pre-consultas do medico pra aquele paciente', 'Deleta arquivos do Supabase (audio, foto, TTS) de cada uma', 'Deleta todos os registros do banco em batch', 'Retorna quantos foram deletados'],
+                    logs: []
+                },
+                {
+                    id: 'ai-prompt', name: 'Melhorar prompt da IA',
+                    desc: 'Adicionar descricao breve ao resumo gerado',
+                    status: 'pending',
+                    detail: 'O prompt da IA ja gera summaryTexto, blocos, alertas e perguntasSugeridas. Vamos adicionar um campo "descricaoBreve" (1-2 frases simples sobre o que o paciente sente) pra mostrar abaixo do nome na nova tela.',
+                    whatDoes: ['Adiciona "descricaoBreve" ao schema JSON do prompt', 'Adiciona regra: 1-2 frases simples, foco no motivo da consulta', 'Backward-compatible: tela trata como opcional pra pre-consultas antigas'],
+                    logs: []
+                },
+            ]
+        },
+        {
+            name: 'FASE 3 — API.JS + CONEXOES',
+            steps: [
+                {
+                    id: 'api-methods', name: 'Novos metodos na api.js',
+                    desc: 'Conectar frontend ao backend (deletar paciente, perfil)',
+                    status: 'pending',
+                    detail: 'O arquivo api.js e a ponte entre as telas e o servidor. Precisamos adicionar metodos novos pra funcionalidades que nao existiam.',
+                    whatDoes: ['Adiciona deletarPaciente(nome, tel) que chama DELETE /pre-consulta/by-patient', 'Adiciona getPerfilPacienteMedico(id) pra buscar dados do paciente'],
+                    logs: []
+                },
+            ]
+        },
+        {
+            name: 'FASE 4 — DASHBOARD DO MEDICO',
+            steps: [
+                {
+                    id: 'rename-tab', name: 'Renomear aba "Pacientes" pra "Pre-Consulta"',
+                    desc: 'Trocar texto + icone na tab bar',
+                    status: 'pending',
+                    detail: 'Simples troca de texto na aba inferior do dashboard. Tambem trocar o icone de "pessoas" pra "clipboard/formulario".',
+                    whatDoes: ['Troca texto "Pacientes" pra "Pre-Consulta"', 'Troca icone SVG pra clipboard'],
+                    logs: []
+                },
+                {
+                    id: 'delete-btn', name: 'Botao "Remover paciente"',
+                    desc: 'Adicionar botao vermelho no perfil do paciente',
+                    status: 'pending',
+                    detail: 'No perfil expandido do paciente no dashboard, adicionar botao vermelho "Remover paciente" que apaga tudo dele. Pede confirmacao antes.',
+                    whatDoes: ['Adiciona botao com estilo danger gradient no perfil', 'Confirmacao: "Tem certeza? Vai apagar X pre-consultas de [nome]"', 'Chama vitaeAPI.deletarPaciente()', 'Refresh da lista apos deletar'],
+                    logs: []
+                },
+            ]
+        },
+        {
+            name: 'FASE 5 — NOVA TELA SUMMARY (DESIGN APROVADO)',
+            steps: [
+                {
+                    id: 'summary-rewrite', name: 'Rewrite completo da 25-summary.html',
+                    desc: 'Deletar tudo e reconstruir com design aprovado',
+                    status: 'pending',
+                    detail: 'A tela atual (335 linhas) sera DELETADA e reconstruida do zero seguindo o design que voce aprovou no preview. Inclui: foto paciente, nome+idade, descricao breve, player de audio premium com waveform animado, alertas clinicos, contexto rapido em grade 2x2.',
+                    whatDoes: ['Deleta todo o conteudo atual de 25-summary.html', 'Reconstroi com o layout do preview aprovado', 'Player de audio com Wavesurfer.js (onda real)', 'Barras pulsam reagindo ao som', 'Barra de progresso arrastavel com gradient', 'Velocidade 0.75x / 1x / 1.5x / 2x', 'Alertas URGENTE (vermelho), ATENCAO (amarelo), INFO (azul)', 'Contexto rapido em grade 2x2 (queixa, meds, alergias, habitos)', 'Barra vermelha lateral em cards de prioridade alta', 'Fallback: iniciais se sem foto, sem idade se sem nascimento', 'Fallback: respostas limpas se IA falhou (sem "metodo: audio")', 'Aviso "dados podem estar desatualizados" se +7 dias'],
+                    logs: []
+                },
+                {
+                    id: 'summary-audio', name: 'Conectar audio ElevenLabs na tela',
+                    desc: 'Player toca o audio real do servidor',
+                    status: 'pending',
+                    detail: 'Conectar o player de audio premium ao backend. Carrega o audio cacheado do Supabase, ou gera sob demanda se nao existir. Fallback pra voz do navegador se tudo falhar.',
+                    whatDoes: ['Busca audioSummaryUrl da pre-consulta (cache)', 'Se tem URL: carrega direto no player', 'Se nao tem: chama POST /:id/tts pra gerar', 'Se ElevenLabs falhou: mostra "Audio indisponivel" + botao "Tentar gerar"', 'Ultimo fallback: Web Speech API (voz robotica)', 'Nunca auto-play (respeita iOS Safari)'],
+                    logs: []
+                },
+                {
+                    id: 'summary-errors', name: 'Tratar todos os cenarios de erro',
+                    desc: 'Fallbacks pra cada coisa que pode dar errado',
+                    status: 'pending',
+                    detail: 'Implementar todos os 22 cenarios de erro que mapeamos: sem foto, sem idade, sem resumo, sem audio, sem alertas, pre-consulta antiga, iOS Safari, etc.',
+                    whatDoes: ['Sem foto: circulo com iniciais + gradient', 'Sem idade: campo nao aparece', 'Sem resumo IA: respostas limpas filtradas', 'Sem audio: player escondido ou "indisponivel"', 'Sem alertas: secao desaparece', 'Pre-consulta +7 dias: aviso amarelo', 'Campos metadata filtrados (metodo, fotoUrl, audioUrl)', 'Botoes minimo 48x48px (mobile)', 'Mobile full-screen sem frame'],
+                    logs: []
+                },
+            ]
+        },
+        {
+            name: 'FASE 6 — PWA + ICONE DO APP',
+            steps: [
+                {
+                    id: 'pwa-manifest', name: 'Criar manifest.json + icones',
+                    desc: 'App tem nome e icone ao instalar no celular',
+                    status: 'pending',
+                    detail: 'Criar o manifest.json que diz pro celular que somos um app. Gerar icones PNG a partir do logo. Adicionar meta tags em todas as telas principais.',
+                    whatDoes: ['Cria manifest.json com nome "vitaid", cores da marca, display standalone', 'VOCE: Enviar icone PNG 512x512 com a logo (ou eu gero do SVG)', 'Cria favicon 32x32 e apple-touch-icon 180x180', 'Adiciona link rel="manifest" nas telas principais', 'Adiciona meta theme-color, apple-mobile-web-app-capable', 'Testa instalacao no celular'],
+                    logs: []
+                },
+            ]
+        },
+        {
+            name: 'FASE 7 — TESTES FINAIS',
+            steps: [
+                {
+                    id: 'test-dashboard', name: 'Testar dashboard completo',
+                    desc: 'Aba renomeada, deletar paciente, deletar pre-consulta',
+                    status: 'pending',
+                    detail: 'Testes automatizados e manuais do dashboard do medico.',
+                    whatDoes: ['Aba diz "Pre-Consulta"', 'Criar paciente teste + 3 pre-consultas', 'Deletar paciente inteiro → tudo some', 'Criar outro + 2 pre-consultas → deletar 1 → outra fica', 'Busca funciona', 'Filtros de tempo funcionam'],
+                    logs: []
+                },
+                {
+                    id: 'test-summary', name: 'Testar tela Summary completa',
+                    desc: 'Foto, nome, audio, alertas, contexto, erros',
+                    status: 'pending',
+                    detail: 'Teste completo da nova tela com dados reais.',
+                    whatDoes: ['Abrir pre-consulta respondida → tela carrega com todos elementos', 'Foto ou iniciais aparecem', 'Nome + idade corretos', 'Apertar play → voz masculina toca', 'Barras da onda se movem', 'Pause + resume funciona', 'Arrastar progresso funciona', 'Velocidades 1x/1.5x/2x funcionam', 'Alertas coloridos aparecem', 'Contexto rapido com 4 cards', 'Cards criticos tem barra vermelha'],
+                    logs: []
+                },
+                {
+                    id: 'test-errors', name: 'Testar cenarios de erro',
+                    desc: 'Sem foto, sem IA, sem audio, iOS, mobile',
+                    status: 'pending',
+                    detail: 'Testar todos os fallbacks e cenarios de erro.',
+                    whatDoes: ['Pre-consulta sem summaryJson → respostas limpas', 'Pre-consulta sem audio → player mostra indisponivel', 'Paciente sem foto → iniciais', 'Paciente sem nascimento → sem idade', 'Sem alertas → secao some', 'Pre-consulta +7 dias → aviso amarelo', 'Mobile → full-screen', 'iOS Safari → play funciona com toque'],
+                    logs: []
+                },
+                {
+                    id: 'test-e2e', name: 'Teste ponta a ponta completo',
+                    desc: 'Medico cria → paciente responde → medico ve tudo',
+                    status: 'pending',
+                    detail: 'Fluxo completo de ponta a ponta como seria na vida real.',
+                    whatDoes: ['Medico cria pre-consulta no dashboard', 'Gera link e abre como paciente', 'Paciente preenche o formulario com dados medicos', 'Paciente envia', 'IA gera resumo (texto + blocos + alertas + audio)', 'Audio ElevenLabs e gerado e salvo', 'Medico abre dashboard → ve card RESPONDIDA', 'Medico clica → nova tela Summary abre', 'Tudo aparece: foto, audio, alertas, contexto', 'Audio toca com voz masculina'],
+                    logs: []
+                },
+            ]
+        },
+    ];
+
+    // Render sidebar
+    const sidebar = document.getElementById('sidebar');
+    let stepIndex = 0;
+    PHASES.forEach(phase => {
+        const group = document.createElement('div');
+        group.className = 'phase-group';
+        group.innerHTML = `<div class="phase-header">${phase.name}</div>`;
+        phase.steps.forEach(step => {
+            const el = document.createElement('div');
+            el.className = 'step';
+            el.dataset.id = step.id;
+            el.onclick = () => showDetail(step);
+            const statusLabel = { pending: 'Pendente', running: 'Rodando', done: 'Feito', error: 'Erro', manual: 'Voce' }[step.status];
+            el.innerHTML = `
+                <div class="step-icon ${step.status}">${stepIndex + 1}</div>
+                <div class="step-text">
+                    <div class="step-name">${step.name}</div>
+                    <div class="step-desc">${step.desc}</div>
+                </div>
+                <div class="step-badge ${step.status}">${statusLabel}</div>
+            `;
+            group.appendChild(el);
+            stepIndex++;
+        });
+        sidebar.appendChild(group);
+    });
+
+    function showDetail(step) {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.querySelector(`.step[data-id="${step.id}"]`)?.classList.add('active');
+
+        const detail = document.getElementById('detail');
+        const whatList = step.whatDoes.map(w => {
+            const isManual = w.startsWith('VOCE:');
+            return `<div class="detail-card" style="${isManual ? 'border-left: 3px solid var(--v-warn);' : ''}">
+                <div class="detail-card-text">${isManual ? '<strong style="color:var(--v-warn);">' + w + '</strong>' : w}</div>
+            </div>`;
+        }).join('');
+
+        const statusColors = { pending: 'var(--v-ink3)', running: 'var(--v-green)', done: 'var(--v-ok)', error: 'var(--v-bad)', manual: 'var(--v-warn)' };
+        const statusNames = { pending: 'Pendente', running: 'Em execucao', done: 'Concluido', error: 'Erro', manual: 'Requer sua acao' };
+
+        detail.innerHTML = `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <div class="detail-title">${step.name}</div>
+                <div style="padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;background:${statusColors[step.status]}22;color:${statusColors[step.status]};">${statusNames[step.status]}</div>
+            </div>
+            <div class="detail-subtitle">${step.detail}</div>
+
+            <div class="detail-section">
+                <div class="detail-label">O que sera feito</div>
+                ${whatList}
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Log de execucao</div>
+                <div style="background:var(--v-surface);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px;min-height:120px;">
+                    ${step.logs.length ? step.logs.map(l => `
+                        <div class="log-line ${l.type || ''}">
+                            <span class="time">${l.time}</span>
+                            <span class="agent">${l.agent}</span>
+                            <span class="msg">${l.msg}</span>
+                        </div>
+                    `).join('') : '<div style="color:var(--v-ink3);font-size:13px;text-align:center;padding:24px;">Aguardando execucao...</div>'}
+                </div>
+            </div>
+        `;
+    }
+
+    // Show first step by default
+    showDetail(PHASES[0].steps[0]);
+    document.querySelector('.step')?.classList.add('active');
+
+    // Update progress
+    function updateProgress() {
+        const total = PHASES.reduce((sum, p) => sum + p.steps.length, 0);
+        const done = PHASES.reduce((sum, p) => sum + p.steps.filter(s => s.status === 'done').length, 0);
+        const pct = Math.round((done / total) * 100);
+        document.getElementById('progressPct').textContent = pct + '%';
+        document.getElementById('progressDone').textContent = done;
+        document.getElementById('progressFill').style.width = pct + '%';
+
+        const running = PHASES.some(p => p.steps.some(s => s.status === 'running'));
+        const dot = document.getElementById('globalDot');
+        const status = document.getElementById('globalStatus');
+        if (done === total) { dot.className = 'top-dot done'; status.textContent = 'Implementacao completa'; }
+        else if (running) { dot.className = 'top-dot running'; status.textContent = 'Agentes trabalhando...'; }
+        else { dot.className = 'top-dot waiting'; status.textContent = 'Aguardando inicio'; }
+    }
+    updateProgress();
+    </script>
+</body>
+</html>

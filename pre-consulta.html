@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>vitaid — Pré-Consulta</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -13,7 +13,11 @@
             border-radius:52px; overflow:hidden; position:relative;
             box-shadow: 0 1px 12px rgba(0,0,0,0.07);
         }
-        @media(max-width:480px){ .phone{border-radius:0;height:100vh;} }
+        @media(max-width:480px){
+          html,body{padding:0!important;background:inherit!important;overflow-x:hidden;min-height:100vh;min-height:100dvh;}
+          .phone{width:100vw!important;max-width:100vw!important;height:100vh!important;height:100dvh!important;max-height:none!important;border-radius:0!important;box-shadow:none!important;}
+          .notch,.status{display:none!important;}
+        }
         .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#F4F6FA; border-radius:0 0 20px 20px; z-index:10; }
 
         .content { height:100%; overflow-y:auto; padding:52px 20px 40px; scrollbar-width:none; }
@@ -607,9 +611,11 @@
 
                     <!-- LGPD consent for audio mode -->
                     <div class="lgpd-consent" id="lgpdConsentAudioWrap" style="margin:12px 0;">
-                        <input type="checkbox" id="lgpdConsentAudio" onchange="var t=document.getElementById('lgpdConsentTpl');var d=document.getElementById('lgpdConsentDefault');if(t)t.checked=this.checked;if(d)d.checked=this.checked;">
+                        <input type="checkbox" id="lgpdConsentAudio" onchange="var t=document.getElementById('lgpdConsentTpl');var d=document.getElementById('lgpdConsentDefault');if(t)t.checked=this.checked;if(d)d.checked=this.checked;atualizarEstadoBotao();">
                         <label class="lgpd-consent-label" for="lgpdConsentAudio">Autorizo o compartilhamento dos meus dados de saúde com o(a) Dr(a). <span class="lgpd-doc-name">seu médico</span>. <a href="lgpd.html" target="_blank">Ver termos</a></label>
                     </div>
+
+                    <div id="faltamMsg" style="text-align:center;font-size:13px;font-weight:600;color:rgba(13,15,20,0.50);margin:6px 0 10px;">Falta: foto, áudio, aceite dos termos</div>
 
                     <button class="rec-send-btn" id="sendBtn" onclick="enviarAudio()" style="display:none;">
                         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -645,7 +651,7 @@
 
             <!-- LGPD consent (template mode) -->
             <div class="lgpd-consent">
-                <input type="checkbox" id="lgpdConsentTpl">
+                <input type="checkbox" id="lgpdConsentTpl" onchange="atualizarEstadoBotao()">
                 <label class="lgpd-consent-label" for="lgpdConsentTpl">
                     Autorizo o compartilhamento dos meus dados de saúde com o(a) Dr(a). <span class="lgpd-doc-name">seu médico</span>.
                     <a href="lgpd.html" target="_blank">Ver termos completos</a>
@@ -892,7 +898,7 @@
 
         <!-- LGPD consent (default form mode) -->
         <div class="lgpd-consent">
-            <input type="checkbox" id="lgpdConsentDefault">
+            <input type="checkbox" id="lgpdConsentDefault" onchange="atualizarEstadoBotao()">
             <label class="lgpd-consent-label" for="lgpdConsentDefault">
                 Autorizo o compartilhamento dos meus dados de saúde com o(a) Dr(a). <span class="lgpd-doc-name">seu médico</span>.
                 <a href="lgpd.html" target="_blank">Ver termos completos</a>
@@ -908,8 +914,8 @@
     <!-- Loading -->
     <div class="overlay-screen" id="loadingScreen">
         <div class="spinner"></div>
-        <div class="overlay-title" style="font-size:18px;">Enviando...</div>
-        <div class="overlay-sub">A IA está preparando o resumo para o seu médico</div>
+        <div class="overlay-title" style="font-size:18px;">Um momento</div>
+        <div class="overlay-sub">Estruturando seu resumo clínico para o médico</div>
     </div>
 
     <!-- Sucesso -->
@@ -994,6 +1000,54 @@ function handlePhoto(input) {
             document.getElementById('photoSub').textContent = 'Toque para trocar';
         };
         reader.readAsDataURL(input.files[0]);
+        atualizarEstadoBotao();
+    }
+}
+
+// ── Validação das 3 bandeirinhas (foto + áudio + termos) ──
+function atualizarEstadoBotao() {
+    const fotoOK = !!fotoBlob;
+    const audioOK = !!(audioBlob || fullTranscript);
+    const c1 = document.getElementById('lgpdConsentAudio');
+    const c2 = document.getElementById('lgpdConsentTpl');
+    const c3 = document.getElementById('lgpdConsentDefault');
+    const termosOK = (c1 && c1.checked) || (c2 && c2.checked) || (c3 && c3.checked);
+
+    const sendBtns = [
+        document.getElementById('sendBtn'),
+        document.getElementById('sendBtnForm'),
+    ].filter(Boolean);
+
+    const tudoOK = fotoOK && audioOK && termosOK;
+
+    sendBtns.forEach(btn => {
+        if (!btn) return;
+        if (tudoOK) {
+            btn.disabled = false;
+            btn.style.opacity = '';
+            btn.style.cursor = '';
+            btn.style.filter = '';
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            btn.style.filter = 'grayscale(0.6)';
+        }
+    });
+
+    // Mensagem do que falta (visualizada no topo do botão de envio)
+    let msgEl = document.getElementById('faltamMsg');
+    if (!msgEl) return;
+    if (tudoOK) {
+        msgEl.textContent = 'Pronto para enviar!';
+        msgEl.style.color = '#00C47A';
+    } else {
+        const faltam = [];
+        if (!fotoOK) faltam.push('foto');
+        if (!audioOK) faltam.push('áudio');
+        if (!termosOK) faltam.push('aceite dos termos');
+        msgEl.textContent = 'Falta: ' + faltam.join(', ');
+        msgEl.style.color = 'rgba(13,15,20,0.50)';
     }
 }
 
@@ -1060,6 +1114,7 @@ async function startRecording() {
             audioElement.onended = () => { isPlaying = false; updatePlayBtn(); };
             stream.getTracks().forEach(t => t.stop());
             showReviewState();
+            atualizarEstadoBotao();
         };
 
         mediaRecorder.start();
@@ -1100,7 +1155,7 @@ async function showReviewState() {
     // Show loading state in IA box
     const iaBox = document.getElementById('iaBox');
     iaBox.className = 'ia-box loading active';
-    iaBox.textContent = '<div style="width:16px;height:16px;border:2px solid rgba(0,0,0,0.1);border-top-color:#00E5A0;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;"></div> Analisando sua gravação...';
+    iaBox.innerHTML = '<div style="width:16px;height:16px;border:2px solid rgba(0,0,0,0.1);border-top-color:#00E5A0;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;"></div> Analisando sua gravação...';
     document.getElementById('sendBtn').style.display = 'none';
 
     // Call backend to verify topics
@@ -1109,18 +1164,18 @@ async function showReviewState() {
 
         if (resultado.completo) {
             iaBox.className = 'ia-box success active';
-            iaBox.textContent = '<svg class="ia-icon" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><div class="ia-text"><strong>Tudo certo!</strong> ' + resultado.mensagem + '</div>';
+            iaBox.innerHTML = '<svg class="ia-icon" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><div class="ia-text"><strong>Tudo certo!</strong> ' + resultado.mensagem + '</div>';
             document.getElementById('sendBtn').style.display = '';
         } else {
             iaBox.className = 'ia-box warning active';
-            iaBox.textContent = '<svg class="ia-icon" viewBox="0 0 24 24" fill="none" stroke="#92700C" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><div class="ia-text">' + resultado.mensagem + '</div>';
+            iaBox.innerHTML = '<svg class="ia-icon" viewBox="0 0 24 24" fill="none" stroke="#92700C" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><div class="ia-text">' + resultado.mensagem + '</div>';
             // Still show send button — patient can send anyway
             document.getElementById('sendBtn').style.display = '';
         }
     } catch (err) {
         // If verification fails, let them send anyway
         iaBox.className = 'ia-box success active';
-        iaBox.textContent = '<svg class="ia-icon" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><div class="ia-text">Não foi possível verificar os tópicos, mas você pode enviar mesmo assim.</div>';
+        iaBox.innerHTML = '<svg class="ia-icon" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><div class="ia-text">Não foi possível verificar os tópicos, mas você pode enviar mesmo assim.</div>';
         document.getElementById('sendBtn').style.display = '';
     }
 }
@@ -1138,6 +1193,7 @@ function deleteRecording() {
     document.getElementById('iaBox').className = 'ia-box';
     document.getElementById('sendBtn').style.display = 'none';
     document.getElementById('recTimer').textContent = '00:00';
+    atualizarEstadoBotao();
 }
 
 // ── Playback ──
@@ -1264,8 +1320,12 @@ async function uploadToSupabase(blob, folder, filename) {
 // ── Send audio ──
 async function enviarAudio() {
     const transcricao = fullTranscript.trim();
+    if (!fotoBlob) {
+        alert('Por favor, tire uma foto do seu rosto antes de enviar.');
+        return;
+    }
     if (!transcricao && !audioBlob) {
-        alert('Nenhuma gravação detectada. Por favor, grave novamente.');
+        alert('Nenhuma gravação detectada. Por favor, grave sua mensagem.');
         return;
     }
     // LGPD consent check — use whichever checkbox is visible
@@ -1274,7 +1334,7 @@ async function enviarAudio() {
     const lgpdAudio = document.getElementById('lgpdConsentAudio');
     const lgpdChecked = (lgpdAudio && lgpdAudio.checked) || (lgpdTpl && lgpdTpl.checked) || (lgpdDef && lgpdDef.checked);
     if (!lgpdChecked) {
-        alert('Por favor, aceite os termos de consentimento para continuar.');
+        alert('Por favor, aceite os termos de compartilhamento para continuar.');
         return;
     }
     document.getElementById('loadingScreen').classList.add('active');
@@ -1610,15 +1670,16 @@ document.addEventListener('keydown', function(e) {
 });
 
 function redirectCriarConta() {
-    // Save current pre-consulta token for return
+    // Save current pre-consulta token — vai ser usado apos cadastro para voltar
     if (token) {
         localStorage.setItem('vitae_quiz_retorno', token);
     }
-    window.location.href = `quiz-preconsulta.html${token ? '?retorno=' + encodeURIComponent(token) : ''}`;
+    // Vai para cadastro primeiro; depois do cadastro, 03-cadastro redireciona pro quiz-preconsulta
+    window.location.href = `03-cadastro.html${token ? '?retorno=' + encodeURIComponent(token) : ''}`;
 }
 
 function redirectCompletarPerfil() {
-    // Save current pre-consulta token for return
+    // Paciente ja logado mas perfil incompleto — vai direto pro quiz-preconsulta
     if (token) {
         localStorage.setItem('vitae_quiz_retorno', token);
     }
@@ -1719,6 +1780,7 @@ function showMainContent() {
     document.getElementById('loginGate').classList.remove('active');
     document.getElementById('loginFormWrap').classList.remove('active');
     document.getElementById('profileIncomplete').classList.remove('active');
+    setTimeout(atualizarEstadoBotao, 50);
 }
 
 // ── Update LGPD doctor name in consent checkboxes ──

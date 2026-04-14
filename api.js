@@ -370,6 +370,10 @@ const vitaeAPI = {
     return apiRequest('/medico/pacientes');
   },
 
+  async getPerfilPacienteMedico(pacienteId) {
+    return apiRequest(`/medico/pacientes/${pacienteId}`);
+  },
+
   async getDashboardMedico() {
     return apiRequest('/medico/dashboard');
   },

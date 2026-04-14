@@ -40,6 +40,7 @@ model Usuario {
   autorizacoesComoP  AutorizacaoAcesso[] @relation("paciente_autorizacoes")
   agendamentos       Agendamento[]
   consentimentos     Consentimento[]
+  preConsultasComoP  PreConsulta[]       @relation("paciente_pre_consultas")
 
   @@map("usuarios")
 }
@@ -304,6 +305,7 @@ model PreConsulta {
   medicoId        String   @map("medico_id")
   templateId      String?  @map("template_id")
   templatePerguntas Json?  @map("template_perguntas") // snapshot das perguntas no momento da criação
+  pacienteId      String?  @map("paciente_id")
   pacienteNome    String   @map("paciente_nome")
   pacienteTel     String?  @map("paciente_tel")
   pacienteEmail   String?  @map("paciente_email")
@@ -325,6 +327,7 @@ model PreConsulta {
 
   medico          Medico   @relation(fields: [medicoId], references: [id], onDelete: Cascade)
   template        FormTemplate? @relation(fields: [templateId], references: [id])
+  paciente        Usuario? @relation("paciente_pre_consultas", fields: [pacienteId], references: [id], onDelete: SetNull)
 
   @@map("pre_consultas")
 }

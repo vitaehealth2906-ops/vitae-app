@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>vitaid — Cadastro</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -263,6 +263,29 @@
     let termsAccepted = false;
     let isLogin = false;
 
+    // ===== Fluxo de volta pra pre-consulta =====
+    // Se o usuario veio do link de uma pre-consulta, guardamos o token
+    // para depois do cadastro/login voltar direto pro fluxo correto.
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const retornoToken = params.get('retorno') || params.get('token');
+      if (retornoToken) localStorage.setItem('vitae_quiz_retorno', retornoToken);
+    })();
+
+    // Helpers de redirecionamento: respeitam o token de retorno se existir.
+    function _redirectAfterAuth_quizVazio() {
+      const t = localStorage.getItem('vitae_quiz_retorno') || '';
+      return t ? ('quiz-preconsulta.html?retorno=' + encodeURIComponent(t)) : '05-quiz.html';
+    }
+    function _redirectAfterAuth_perfilOk() {
+      const t = localStorage.getItem('vitae_quiz_retorno') || '';
+      if (t) {
+        localStorage.removeItem('vitae_quiz_retorno');
+        return 'pre-consulta.html?token=' + encodeURIComponent(t);
+      }
+      return '08-perfil.html';
+    }
+
     const inputs = document.querySelectorAll('.field-input');
     const nomeInput = inputs[0];
     const celularInput = inputs[1];
@@ -333,9 +356,9 @@
                         const perfilData = await vitaeAPI.getPerfil();
                         const p = perfilData.perfil || {};
                         const vazio = !p.dataNascimento && !p.tipoSanguineo && !p.genero && !p.cpf;
-                        window.location.href = vazio ? '05-quiz.html' : '08-perfil.html';
+                        window.location.href = vazio ? _redirectAfterAuth_quizVazio() : _redirectAfterAuth_perfilOk();
                     } catch(e) {
-                        window.location.href = '08-perfil.html';
+                        window.location.href = _redirectAfterAuth_perfilOk();
                     }
                 }
             } else {
@@ -357,7 +380,7 @@
                 if (tipoEscolhido === 'MEDICO') {
                     window.location.href = '20-medico-cadastro.html';
                 } else {
-                    window.location.href = '05-quiz.html';
+                    window.location.href = _redirectAfterAuth_quizVazio();
                 }
             }
         } catch (err) {
@@ -446,9 +469,9 @@
                             const perfilData = await vitaeAPI.getPerfil();
                             const p = perfilData.perfil || {};
                             const vazio = !p.dataNascimento && !p.tipoSanguineo && !p.genero && !p.cpf;
-                            window.location.href = vazio ? '05-quiz.html' : '08-perfil.html';
+                            window.location.href = vazio ? _redirectAfterAuth_quizVazio() : _redirectAfterAuth_perfilOk();
                         } catch(e) {
-                            window.location.href = '05-quiz.html';
+                            window.location.href = _redirectAfterAuth_quizVazio();
                         }
                     }
                 } catch (err) {
@@ -483,7 +506,7 @@
                     const vazio = !p.dataNascimento && !p.tipoSanguineo && !p.genero && !p.cpf;
                     window.location.href = vazio ? '05-quiz.html' : '08-perfil.html';
                 } catch(e) {
-                    window.location.href = '08-perfil.html';
+                    window.location.href = _redirectAfterAuth_perfilOk();
                 }
             })();
         }
