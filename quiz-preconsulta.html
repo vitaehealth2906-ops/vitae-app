@@ -453,9 +453,11 @@
             <div class="field">
                 <div class="field-label">CPF</div>
                 <input class="field-input" type="text" id="cpfInput" placeholder="000.000.000-00" maxlength="14" oninput="formatCPF(this)">
+                <div id="cpfError" style="display:none;font-size:11px;color:#EF4444;margin-top:4px;font-weight:600;"></div>
             </div>
+            <div id="nascError" style="display:none;font-size:11px;color:#EF4444;margin-top:-8px;margin-bottom:8px;font-weight:600;"></div>
 
-            <button class="btn-next" onclick="goToStep(1)">Próximo</button>
+            <button class="btn-next" onclick="validateAndGoNext(1)">Próximo</button>
         </div>
 
         <!-- STEP 1: Blood Type + Conditions + Surgeries -->
@@ -562,7 +564,6 @@
             <div id="examCardsList" style="margin-top:12px;"></div>
 
             <button class="btn-next" onclick="conclude()" id="step5ContinueBtn">Continuar para a pre-consulta</button>
-            <div class="quiz-skip-link" onclick="conclude()">Pular esta etapa</div>
         </div>
 
     </div>
@@ -675,6 +676,98 @@
         if (currentStep === 0) window.location.href = '03-cadastro.html';
         else goToStep(currentStep - 1);
     }
+
+    // ===== Validation before step change =====
+    function validateAndGoNext(nextStep) {
+        // Validate step 0 (dados basicos)
+        if (currentStep === 0) {
+            let valid = true;
+            const cpfEl = document.getElementById('cpfInput');
+            const cpfErr = document.getElementById('cpfError');
+            const nascEl = document.getElementById('nascimentoInput');
+            const nascErr = document.getElementById('nascError');
+            const nascISO = document.getElementById('nascimentoISO');
+
+            // Reset errors
+            cpfEl.style.borderColor = '';
+            cpfErr.style.display = 'none';
+            nascErr.style.display = 'none';
+
+            // Validate CPF
+            const cpfDigits = cpfEl.value.replace(/\D/g, '');
+            if (!cpfDigits || cpfDigits.length !== 11) {
+                cpfEl.style.borderColor = '#EF4444';
+                cpfErr.textContent = 'CPF precisa ter 11 digitos';
+                cpfErr.style.display = 'block';
+                valid = false;
+            }
+
+            // Validate date
+            const hasDate = nascISO.value || nascEl.value;
+            if (!hasDate) {
+                nascErr.textContent = 'Selecione sua data de nascimento';
+                nascErr.style.display = 'block';
+                valid = false;
+            }
+
+            if (!valid) return;
+        }
+        goToStep(nextStep);
+    }
+
+    // ===== Pre-fill from existing profile =====
+    (async function prefillFromProfile() {
+        if (typeof vitaeAPI === 'undefined' || !vitaeAPI.isLoggedIn()) return;
+        try {
+            const result = await vitaeAPI.getPerfil();
+            const p = result.perfil || result || {};
+
+            if (p.cpf) {
+                const el = document.getElementById('cpfInput');
+                let v = p.cpf.replace(/\D/g, '');
+                if (v.length === 11) {
+                    el.value = v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+                }
+            }
+            if (p.dataNascimento) {
+                const iso = typeof p.dataNascimento === 'string' ? p.dataNascimento.split('T')[0] : '';
+                if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+                    document.getElementById('nascimentoISO').value = iso;
+                    const parts = iso.split('-');
+                    document.getElementById('nascimentoInput').value = parts[2] + '/' + parts[1] + '/' + parts[0];
+                }
+            }
+            if (p.alturaCm) document.getElementById('alturaInput').value = p.alturaCm;
+            if (p.pesoKg) document.getElementById('pesoInput').value = p.pesoKg;
+            if (p.genero) {
+                const sexoField = document.getElementById('sexoField');
+                if (sexoField) {
+                    const map = { MASCULINO: 'Masculino', FEMININO: 'Feminino', OUTRO: 'Outro' };
+                    const label = map[p.genero] || p.genero;
+                    sexoField.textContent = label;
+                    sexoField.dataset.value = label;
+                }
+            }
+            if (p.tipoSanguineo) {
+                const sangueField = document.getElementById('tipoSangueField');
+                if (sangueField) {
+                    const label = p.tipoSanguineo.replace('_POS', '+').replace('_NEG', '-');
+                    sangueField.textContent = label;
+                    sangueField.dataset.value = label;
+                }
+            }
+            if (p.contatoEmergenciaNome) {
+                const el = document.getElementById('emergNomeInput');
+                if (el) el.value = p.contatoEmergenciaNome;
+            }
+            if (p.contatoEmergenciaTel) {
+                const el = document.getElementById('emergTelInput');
+                if (el) el.value = p.contatoEmergenciaTel;
+            }
+        } catch (e) {
+            console.log('[QUIZ] Prefill error:', e.message);
+        }
+    })();
 
     // ===== CPF formatter =====
     function formatCPF(el) {
@@ -1007,6 +1100,18 @@
             window.location.href = '03-cadastro.html';
             return;
         }
+        // Check critical fields before saving
+        if (!profileData.cpf) {
+            alert('CPF nao preenchido ou invalido. Volte ao passo 1 e preencha corretamente.');
+            goToStep(0);
+            return;
+        }
+        if (!profileData.dataNascimento) {
+            alert('Data de nascimento nao preenchida. Volte ao passo 1 e selecione no calendario.');
+            goToStep(0);
+            return;
+        }
+
         try {
             await vitaeAPI.atualizarPerfil(profileData);
             saveSuccess = true;

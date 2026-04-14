@@ -500,7 +500,8 @@
     <div class="profile-incomplete" id="profileIncomplete">
         <svg style="width:56px;height:56px;color:#00E5A0;margin-bottom:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <div class="overlay-title" style="font-size:20px;">Complete seu perfil</div>
-        <div class="profile-incomplete-msg">Complete seu perfil antes de enviar a pré-consulta. Precisamos de algumas informações básicas.</div>
+        <div class="profile-incomplete-msg">Precisamos de algumas informacoes antes de enviar a pre-consulta.</div>
+        <div id="missingFieldsList" style="margin:12px 0 20px;text-align:left;width:100%;max-width:300px;"></div>
         <button class="btn-criar-conta" onclick="redirectCompletarPerfil()">Completar perfil</button>
     </div>
 
@@ -1695,6 +1696,19 @@ async function afterLogin() {
         const isProfileComplete = !!(perfil.cpf && perfil.dataNascimento);
 
         if (!isProfileComplete) {
+            // Show WHAT is missing
+            const missing = [];
+            if (!perfil.cpf) missing.push('CPF');
+            if (!perfil.dataNascimento) missing.push('Data de nascimento');
+            const listEl = document.getElementById('missingFieldsList');
+            if (listEl && missing.length > 0) {
+                listEl.innerHTML = '<div style="font-size:13px;font-weight:600;color:#EF4444;margin-bottom:8px;">Falta preencher:</div>' +
+                    missing.map(function(f) {
+                        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:6px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);border-radius:10px;font-size:13px;color:#0D0F14;font-weight:500;">' +
+                            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
+                            f + '</div>';
+                    }).join('');
+            }
             document.getElementById('profileIncomplete').classList.add('active');
             return;
         }
@@ -1870,6 +1884,18 @@ async function init() {
             const isProfileComplete = !!(p.cpf && p.dataNascimento);
 
             if (!isProfileComplete) {
+                const missing2 = [];
+                if (!p.cpf) missing2.push('CPF');
+                if (!p.dataNascimento) missing2.push('Data de nascimento');
+                const listEl2 = document.getElementById('missingFieldsList');
+                if (listEl2 && missing2.length > 0) {
+                    listEl2.innerHTML = '<div style="font-size:13px;font-weight:600;color:#EF4444;margin-bottom:8px;">Falta preencher:</div>' +
+                        missing2.map(function(f) {
+                            return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:6px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);border-radius:10px;font-size:13px;color:#0D0F14;font-weight:500;">' +
+                                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
+                                f + '</div>';
+                        }).join('');
+                }
                 document.getElementById('profileIncomplete').classList.add('active');
                 return;
             }
