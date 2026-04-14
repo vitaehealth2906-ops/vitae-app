@@ -121,6 +121,35 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`[VITAE] Servidor rodando na porta ${PORT}`);
   console.log(`[VITAE] Ambiente: ${process.env.NODE_ENV || 'development'}`);
 
+  // ── MIGRACAO AUTO: garante colunas novas no banco (idempotente) ──
+  try {
+    const prisma = require('./utils/prisma');
+    // Adiciona paciente_id se nao existir (segura — IF NOT EXISTS)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "paciente_id" TEXT`);
+    console.log('[MIGRATE] coluna pre_consultas.paciente_id OK');
+    // Indice pra acelerar joins do medico -> paciente
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "pre_consultas_paciente_id_idx" ON "pre_consultas"("paciente_id")`);
+    console.log('[MIGRATE] indice paciente_id OK');
+    // Foreign key (com SET NULL para manter historico se usuario deletar)
+    // Usa DO block pra ser idempotente no Postgres
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'pre_consultas_paciente_id_fkey'
+        ) THEN
+          ALTER TABLE "pre_consultas"
+          ADD CONSTRAINT "pre_consultas_paciente_id_fkey"
+          FOREIGN KEY ("paciente_id") REFERENCES "usuarios"("id")
+          ON DELETE SET NULL ON UPDATE CASCADE;
+        END IF;
+      END $$;
+    `);
+    console.log('[MIGRATE] foreign key paciente_id OK');
+  } catch (e) {
+    console.error('[MIGRATE] Erro ao aplicar migracao manual:', e.message);
+  }
+
   // Limpa exames travados em PROCESSANDO/ENVIADO de deploys anteriores
   try {
     const prisma = require('./utils/prisma');
