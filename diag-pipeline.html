@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vitaid — Pipeline de Interpretacao</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #0D0F14; color: #E5E7EB;
+            min-height: 100vh; padding: 24px;
+        }
+        h1 { font-size: 24px; font-weight: 900; letter-spacing: -0.8px; margin-bottom: 4px; }
+        h1 span { color: #00E5A0; font-style: italic; }
+        .subtitle { font-size: 13px; color: #6B7280; margin-bottom: 32px; }
+        .pipeline { display: flex; flex-direction: column; gap: 0; max-width: 900px; margin: 0 auto; }
+
+        /* Step */
+        .step {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 20px 24px;
+            position: relative;
+        }
+        .step + .step { margin-top: -1px; border-top-left-radius: 0; border-top-right-radius: 0; }
+        .step:not(:last-child) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+        .step-header {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 12px;
+        }
+        .step-num {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: linear-gradient(120deg, #00E5A0, #00B4D8);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 800; color: #0D0F14; flex-shrink: 0;
+        }
+        .step-num.waiting { background: rgba(255,255,255,0.1); color: #6B7280; }
+        .step-num.done { background: #00C47A; }
+        .step-num.error { background: #EF4444; }
+        .step-title { font-size: 15px; font-weight: 700; color: #fff; }
+        .step-desc { font-size: 12px; color: #6B7280; margin-bottom: 12px; line-height: 1.5; }
+
+        /* Content blocks */
+        .data-block {
+            background: rgba(0,0,0,0.3); border-radius: 10px;
+            padding: 14px 16px; margin-top: 8px;
+            font-size: 12px; line-height: 1.6; color: #9CA3AF;
+            max-height: 300px; overflow-y: auto;
+            white-space: pre-wrap; word-break: break-word;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+        .data-block.prompt { color: #00E5A0; font-size: 11px; }
+        .data-block.result { color: #E5E7EB; }
+        .data-block.error { color: #EF4444; border-color: rgba(239,68,68,0.2); }
+
+        .data-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.12em; color: #6B7280; margin-top: 12px; margin-bottom: 4px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 20px; border-radius: 12px;
+            font-family: inherit; font-size: 13px; font-weight: 700;
+            cursor: pointer; border: none; transition: all 0.2s;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary {
+            background: linear-gradient(120deg, #00E5A0, #00B4D8);
+            color: #0D0F14; box-shadow: 0 4px 16px rgba(0,229,160,0.2);
+        }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-secondary {
+            background: rgba(255,255,255,0.06); color: #9CA3AF;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .btn-danger {
+            background: rgba(239,68,68,0.1); color: #EF4444;
+            border: 1px solid rgba(239,68,68,0.15);
+        }
+        .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+        /* Status */
+        .status {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 11px; font-weight: 600; padding: 4px 10px;
+            border-radius: 100px;
+        }
+        .status.ok { background: rgba(0,196,122,0.1); color: #00C47A; }
+        .status.warn { background: rgba(245,158,11,0.1); color: #F59E0B; }
+        .status.err { background: rgba(239,68,68,0.1); color: #EF4444; }
+        .status.loading { background: rgba(59,130,246,0.1); color: #3B82F6; }
+
+        /* Connector */
+        .connector {
+            width: 2px; height: 20px; background: rgba(0,229,160,0.15);
+            margin: 0 auto;
+        }
+
+        /* Audio player mini */
+        .audio-mini {
+            margin-top: 12px; background: rgba(0,0,0,0.4);
+            border-radius: 10px; padding: 12px 16px;
+        }
+        .audio-mini audio { width: 100%; height: 36px; }
+
+        /* Metrics */
+        .metrics {
+            display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px;
+        }
+        .metric {
+            background: rgba(0,0,0,0.3); border-radius: 10px;
+            padding: 10px 14px; flex: 1; min-width: 120px;
+        }
+        .metric-value { font-size: 20px; font-weight: 800; color: #00E5A0; }
+        .metric-label { font-size: 10px; color: #6B7280; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.1em; }
+
+        /* Select */
+        select {
+            background: rgba(0,0,0,0.4); color: #E5E7EB; border: 1px solid rgba(255,255,255,0.08);
+            padding: 8px 12px; border-radius: 8px; font-family: inherit; font-size: 13px;
+        }
+
+        .hidden { display: none; }
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #0D0F14; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Analysis tags */
+        .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .tag {
+            font-size: 10px; font-weight: 600; padding: 3px 8px;
+            border-radius: 6px; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .tag.used { background: rgba(0,229,160,0.1); color: #00E5A0; }
+        .tag.not-used { background: rgba(239,68,68,0.08); color: #EF4444; }
+    </style>
+</head>
+<body>
+    <h1>Pipeline de <span>Interpretacao</span></h1>
+    <p class="subtitle">Diagnostico completo: dados do paciente → IA → audio ElevenLabs</p>
+
+    <div class="pipeline">
+
+        <!-- STEP 0: Select pre-consulta -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-num">0</div>
+                <div class="step-title">Selecionar pre-consulta</div>
+            </div>
+            <div class="step-desc">Escolha uma pre-consulta respondida para inspecionar o pipeline completo.</div>
+            <select id="pcSelect" onchange="loadPC()">
+                <option value="">Carregando...</option>
+            </select>
+            <div id="pcStatus" style="margin-top:8px;"></div>
+        </div>
+
+        <!-- STEP 1: Dados brutos -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-num waiting" id="step1num">1</div>
+                <div class="step-title">Dados brutos do paciente</div>
+            </div>
+            <div class="step-desc">O que o paciente preencheu no formulario ou falou no audio. Estes dados entram na IA.</div>
+            <div id="step1content" class="hidden">
+                <div class="metrics" id="step1metrics"></div>
+                <div class="data-label">Respostas do formulario (JSON)</div>
+                <div class="data-block" id="rawRespostas"></div>
+                <div id="transcricaoWrap" class="hidden">
+                    <div class="data-label">Transcricao do audio do paciente</div>
+                    <div class="data-block" id="rawTranscricao"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: Prompt enviado pra IA -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-num waiting" id="step2num">2</div>
+                <div class="step-title">Prompt enviado para a IA</div>
+            </div>
+            <div class="step-desc">O prompt exato (system + user) que monta o contexto e pede interpretacao clinica. Este e o "cerebro" do produto.</div>
+            <div id="step2content" class="hidden">
+                <div class="data-label">System prompt (define o papel da IA)</div>
+                <div class="data-block prompt" id="systemPrompt"></div>
+                <div class="data-label">User prompt (dados + instrucoes)</div>
+                <div class="data-block prompt" id="userPrompt"></div>
+
+                <div class="data-label">Analise do prompt</div>
+                <div class="tag-row" id="promptAnalysis"></div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Resposta da IA -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-num waiting" id="step3num">3</div>
+                <div class="step-title">Resposta da IA (summaryJson)</div>
+            </div>
+            <div class="step-desc">O JSON estruturado que a IA retornou. Isto e o que aparece na tela 25-summary.html.</div>
+            <div id="step3content" class="hidden">
+                <div class="metrics" id="step3metrics"></div>
+
+                <div class="data-label">descricaoBreve (o que o paciente ve)</div>
+                <div class="data-block result" id="descBreve"></div>
+
+                <div class="data-label">summaryTexto (resumo clinico pro medico)</div>
+                <div class="data-block result" id="summaryTexto"></div>
+
+                <div class="data-label">textoVoz (o que vira audio — ~1 minuto)</div>
+                <div class="data-block result" id="textoVoz" style="color:#00E5A0;"></div>
+
+                <div class="data-label">blocos (ficha de referencia)</div>
+                <div class="data-block result" id="blocos"></div>
+
+                <div class="data-label">alertas / pontos de atencao</div>
+                <div class="data-block result" id="alertas"></div>
+
+                <div class="data-label">Analise da qualidade</div>
+                <div class="tag-row" id="qualityAnalysis"></div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="regenerar()">Regenerar com novo prompt</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: ElevenLabs -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-num waiting" id="step4num">4</div>
+                <div class="step-title">Audio ElevenLabs</div>
+            </div>
+            <div class="step-desc">O textoVoz e anonimizado (LGPD) e enviado pro ElevenLabs. O audio MP3 e salvo no Supabase.</div>
+            <div id="step4content" class="hidden">
+                <div class="metrics" id="step4metrics"></div>
+
+                <div class="data-label">Texto enviado ao ElevenLabs (anonimizado)</div>
+                <div class="data-block" id="textoAnonimizado"></div>
+
+                <div class="data-label">Config da voz</div>
+                <div class="data-block" id="voiceConfig"></div>
+
+                <div id="audioPlayerWrap" class="hidden">
+                    <div class="data-label">Audio gerado</div>
+                    <div class="audio-mini">
+                        <audio id="ttsAudioPlayer" controls></audio>
+                    </div>
+                </div>
+
+                <div id="noAudioMsg" class="hidden">
+                    <div class="data-block error">Audio nao foi gerado ainda. Clique em "Gerar audio" para testar o ElevenLabs.</div>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" id="btnGerarAudio" onclick="gerarAudio()">Gerar audio agora</button>
+                    <button class="btn btn-secondary" onclick="gerarAudioForce()">Forcar nova geracao</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 5: Resultado final -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-num waiting" id="step5num">5</div>
+                <div class="step-title">Resultado final no app</div>
+            </div>
+            <div class="step-desc">Como fica a tela 25-summary.html para o medico.</div>
+            <div id="step5content" class="hidden">
+                <div class="btn-row">
+                    <a class="btn btn-primary" id="linkSummary" href="#" target="_blank">Abrir tela do medico</a>
+                    <a class="btn btn-secondary" id="linkDash" href="20-medico-dashboard.html" target="_blank">Abrir dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="api.js"></script>
+<script>
+var currentPC = null;
+
+// System prompt (replica do backend)
+var SYSTEM_PROMPT = 'Voce e um interpretador clinico da plataforma VITAE. Seu papel e INTERPRETAR — nao reorganizar — dados de pre-consulta. Voce pensa como um medico experiente analisando um caso: cruza medicamentos com alergias, sintomas com historico, habitos com queixa. Identifica correlacoes que o medico levaria minutos para perceber sozinho lendo um prontuario. Use linguagem tecnica nos blocos e resumo. O textoVoz deve soar como um colega medico adiantando o caso antes da consulta — natural e fluido, NUNCA como leitura de formulario. REGRAS ABSOLUTAS: NAO diagnostique. NAO recomende tratamento. APENAS interprete, conecte pontos e sinalize o que merece atencao. Respeite LGPD: nao exponha dados pessoais alem do necessario clinicamente.';
+
+async function loadList() {
+    try {
+        var data = await vitaeAPI.listarPreConsultas();
+        var list = data.preConsultas || data || [];
+        var sel = document.getElementById('pcSelect');
+        sel.innerHTML = '<option value="">— Selecione —</option>';
+        list.forEach(function(pc) {
+            if (pc.status !== 'RESPONDIDA') return;
+            var opt = document.createElement('option');
+            opt.value = pc.id;
+            opt.textContent = pc.pacienteNome + ' (' + new Date(pc.respondidaEm || pc.criadoEm).toLocaleDateString('pt-BR') + ') — ' + pc.status;
+            sel.appendChild(opt);
+        });
+    } catch(e) {
+        document.getElementById('pcStatus').innerHTML = '<span class="status err">Erro: ' + e.message + '. Faca login como medico primeiro.</span>';
+    }
+}
+
+async function loadPC() {
+    var id = document.getElementById('pcSelect').value;
+    if (!id) return;
+
+    try {
+        var data = await vitaeAPI.getPreConsulta(id);
+        currentPC = data.preConsulta;
+        renderStep1();
+        renderStep2();
+        renderStep3();
+        renderStep4();
+        renderStep5();
+    } catch(e) {
+        document.getElementById('pcStatus').innerHTML = '<span class="status err">' + e.message + '</span>';
+    }
+}
+
+function renderStep1() {
+    var pc = currentPC;
+    var r = pc.respostas || {};
+    document.getElementById('step1num').className = 'step-num done';
+    document.getElementById('step1content').className = '';
+
+    // Metrics
+    var fields = Object.keys(r).filter(function(k) { return r[k] && typeof r[k] !== 'object'; });
+    var method = r.metodo || (pc.audioUrl ? 'audio' : 'formulario');
+    document.getElementById('step1metrics').innerHTML =
+        '<div class="metric"><div class="metric-value">' + fields.length + '</div><div class="metric-label">Campos preenchidos</div></div>' +
+        '<div class="metric"><div class="metric-value">' + method + '</div><div class="metric-label">Metodo de envio</div></div>' +
+        '<div class="metric"><div class="metric-value">' + (pc.transcricao ? pc.transcricao.split(' ').length : 0) + '</div><div class="metric-label">Palavras transcritas</div></div>';
+
+    // Raw data
+    var cleanR = Object.assign({}, r);
+    ['audioBase64','fotoBase64','audio','foto','consentimento','lgpdAceito'].forEach(function(k) { delete cleanR[k]; });
+    document.getElementById('rawRespostas').textContent = JSON.stringify(cleanR, null, 2);
+
+    if (pc.transcricao) {
+        document.getElementById('transcricaoWrap').className = '';
+        document.getElementById('rawTranscricao').textContent = pc.transcricao;
+    }
+}
+
+function renderStep2() {
+    var pc = currentPC;
+    var r = pc.respostas || {};
+    document.getElementById('step2num').className = 'step-num done';
+    document.getElementById('step2content').className = '';
+
+    document.getElementById('systemPrompt').textContent = SYSTEM_PROMPT;
+
+    // Reconstruct user prompt locally (approximation)
+    var secoes = [];
+    if (r.queixaPrincipal) secoes.push('QUEIXA PRINCIPAL: ' + r.queixaPrincipal);
+    if (r.duracaoSintomas) secoes.push('Duracao dos sintomas: ' + r.duracaoSintomas);
+    if (r.sintomas) secoes.push('Sintomas adicionais: ' + r.sintomas);
+    if (r.medicamentosEmUso) secoes.push('MEDICAMENTOS EM USO: ' + r.medicamentosEmUso);
+    if (r.alergias) secoes.push('ALERGIAS: ' + r.alergias);
+    if (r.reacoesAdversas) secoes.push('Reacoes adversas: ' + r.reacoesAdversas);
+    if (r.doencasAtuais) secoes.push('DOENCAS/CONDICOES ATUAIS: ' + r.doencasAtuais);
+    if (r.hospitalizacoes) secoes.push('Hospitalizacoes: ' + r.hospitalizacoes);
+    if (r.cirurgias) secoes.push('CIRURGIAS ANTERIORES: ' + r.cirurgias);
+    if (r.historicoFamiliar) secoes.push('HISTORICO FAMILIAR: ' + r.historicoFamiliar);
+    var hab = [];
+    if (r.tabagismo && r.tabagismo !== 'nao') hab.push('tabagismo: ' + r.tabagismo);
+    if (r.alcool && r.alcool !== 'nao') hab.push('alcool: ' + r.alcool);
+    if (r.exercicio) hab.push('exercicio: ' + r.exercicio);
+    if (r.horasSono) hab.push('sono: ' + r.horasSono + 'h/noite');
+    if (hab.length) secoes.push('HABITOS: ' + hab.join('; '));
+    if (r.examesRecentes) secoes.push('EXAMES RECENTES: ' + r.examesRecentes);
+    if (r.observacoes) secoes.push('OBSERVACOES: ' + r.observacoes);
+
+    var ident = [];
+    if (r.dataNascimento) {
+        var age = Math.floor((Date.now() - new Date(r.dataNascimento)) / (365.25*24*60*60*1000));
+        ident.push('Idade: ' + age + ' anos');
+    }
+    if (r.sexo) ident.push('Sexo: ' + r.sexo);
+
+    var userP = 'Analise e INTERPRETE clinicamente os dados da pre-consulta do paciente ' + pc.pacienteNome + '.\n\n';
+    if (ident.length) userP += 'Identificacao: ' + ident.join(' | ') + '\n\n';
+    userP += 'Dados clinicos:\n' + secoes.join('\n') + '\n';
+    if (pc.transcricao) userP += '\nTranscricao do paciente:\n"' + pc.transcricao.substring(0, 500) + '..."\n';
+    userP += '\n[... instrucoes de cruzamento e formato JSON ...]';
+
+    document.getElementById('userPrompt').textContent = userP;
+
+    // Analyze prompt quality
+    var tags = '';
+    var checks = [
+        { name: 'Cruzamento med x alergia', present: true },
+        { name: 'Cruzamento sintoma x historico', present: true },
+        { name: 'Cruzamento habito x queixa', present: true },
+        { name: 'Padroes temporais', present: true },
+        { name: 'Omissoes relevantes', present: true },
+        { name: 'LGPD', present: true },
+        { name: 'Sem diagnostico', present: true },
+        { name: 'Sem tratamento', present: true },
+        { name: 'Tom colega medico', present: true },
+        { name: 'Obsidian/MDS consultado', present: true },
+        { name: 'Neurociencia aplicada', present: false },
+        { name: 'Agentes paralelos', present: false },
+    ];
+    checks.forEach(function(c) {
+        tags += '<span class="tag ' + (c.present ? 'used' : 'not-used') + '">' + (c.present ? '✓' : '✗') + ' ' + c.name + '</span>';
+    });
+    document.getElementById('promptAnalysis').innerHTML = tags;
+}
+
+function renderStep3() {
+    var pc = currentPC;
+    var s = pc.summaryJson || {};
+    document.getElementById('step3num').className = 'step-num' + (s.summaryTexto ? ' done' : ' waiting');
+    document.getElementById('step3content').className = '';
+
+    if (!s.summaryTexto) {
+        document.getElementById('descBreve').textContent = '(sem summary gerado — clique "Regenerar")';
+        document.getElementById('descBreve').className = 'data-block error';
+        return;
+    }
+
+    document.getElementById('descBreve').textContent = s.descricaoBreve || '(vazio)';
+    document.getElementById('summaryTexto').textContent = s.summaryTexto || '(vazio)';
+    document.getElementById('textoVoz').textContent = s.textoVoz || '(vazio)';
+
+    var blocosText = (s.blocos || []).map(function(b) {
+        return '[' + b.prioridade + '] ' + b.titulo + '\n' + b.conteudo;
+    }).join('\n\n');
+    document.getElementById('blocos').textContent = blocosText || '(nenhum bloco)';
+
+    var alertasText = (s.alertas || []).map(function(a) {
+        return '[' + a.tipo + '] ' + (a.titulo || '') + '\n' + a.mensagem;
+    }).join('\n\n');
+    document.getElementById('alertas').textContent = alertasText || '(nenhum alerta)';
+
+    // Metrics
+    var textoVoz = s.textoVoz || '';
+    var words = textoVoz.split(/\s+/).filter(Boolean).length;
+    var estimatedMinutes = (words / 150).toFixed(1);
+    document.getElementById('step3metrics').innerHTML =
+        '<div class="metric"><div class="metric-value">' + words + '</div><div class="metric-label">Palavras no textoVoz</div></div>' +
+        '<div class="metric"><div class="metric-value">~' + estimatedMinutes + 'min</div><div class="metric-label">Duracao estimada</div></div>' +
+        '<div class="metric"><div class="metric-value">' + (s.blocos || []).length + '</div><div class="metric-label">Blocos</div></div>' +
+        '<div class="metric"><div class="metric-value">' + (s.alertas || []).length + '</div><div class="metric-label">Alertas</div></div>';
+
+    // Quality analysis
+    var tags = '';
+    var hasInterpretation = textoVoz.indexOf('chama aten') !== -1 || textoVoz.indexOf('vale investigar') !== -1 || textoVoz.indexOf('correlac') !== -1 || textoVoz.indexOf('cruzament') !== -1;
+    var hasFormReadback = textoVoz.indexOf('respondeu que') !== -1 || textoVoz.indexOf('formulario') !== -1 || textoVoz.indexOf('consta') !== -1;
+    var hasDiagnosis = textoVoz.indexOf('paciente tem') !== -1 || textoVoz.indexOf('diagnostico') !== -1;
+    var hasDoctorTone = textoVoz.indexOf('Doutor') !== -1 || textoVoz.indexOf('Doutora') !== -1;
+    var hasClosing = textoVoz.indexOf('Boa consulta') !== -1 || textoVoz.indexOf('boa consulta') !== -1;
+    var rightLength = words >= 120 && words <= 220;
+
+    var qChecks = [
+        { name: 'Interpretacao (nao lista)', ok: hasInterpretation },
+        { name: 'Sem leitura de formulario', ok: !hasFormReadback },
+        { name: 'Sem diagnostico', ok: !hasDiagnosis },
+        { name: 'Tom de colega medico', ok: hasDoctorTone },
+        { name: 'Fechamento adequado', ok: hasClosing },
+        { name: 'Tamanho ~1min (120-220 palavras)', ok: rightLength },
+    ];
+    qChecks.forEach(function(c) {
+        tags += '<span class="tag ' + (c.ok ? 'used' : 'not-used') + '">' + (c.ok ? '✓' : '✗') + ' ' + c.name + '</span>';
+    });
+    document.getElementById('qualityAnalysis').innerHTML = tags;
+}
+
+function renderStep4() {
+    var pc = currentPC;
+    var s = pc.summaryJson || {};
+    document.getElementById('step4num').className = 'step-num' + (pc.audioSummaryUrl ? ' done' : ' waiting');
+    document.getElementById('step4content').className = '';
+
+    // Anonymize preview
+    var textoVoz = s.textoVoz || s.summaryTexto || pc.summaryIA || '';
+    var anonimizado = textoVoz;
+    if (pc.pacienteNome) {
+        var nomes = pc.pacienteNome.split(' ').filter(function(n) { return n.length > 2; });
+        nomes.forEach(function(nome) {
+            anonimizado = anonimizado.replace(new RegExp(nome, 'gi'), 'o paciente');
+        });
+    }
+    document.getElementById('textoAnonimizado').textContent = anonimizado || '(sem texto para gerar audio)';
+
+    document.getElementById('voiceConfig').textContent =
+        'Voice ID: ' + (pc.audioSummaryUrl ? '(usado o configurado no Railway)' : 'env ELEVENLABS_VOICE_ID || onwK4e9ZLuTAKqWW03F9') + '\n' +
+        'Modelo: eleven_multilingual_v2\n' +
+        'Stability: 0.5 (natural, nao monotono)\n' +
+        'Similarity Boost: 0.75\n' +
+        'Caracteres enviados: ' + anonimizado.length + '\n' +
+        'Creditos estimados: ~' + anonimizado.length + ' caracteres';
+
+    // Metrics
+    document.getElementById('step4metrics').innerHTML =
+        '<div class="metric"><div class="metric-value">' + anonimizado.length + '</div><div class="metric-label">Caracteres</div></div>' +
+        '<div class="metric"><div class="metric-value">' + (pc.audioSummaryUrl ? 'Sim' : 'Nao') + '</div><div class="metric-label">Audio cacheado</div></div>';
+
+    if (pc.audioSummaryUrl) {
+        document.getElementById('audioPlayerWrap').className = '';
+        document.getElementById('noAudioMsg').className = 'hidden';
+        document.getElementById('ttsAudioPlayer').src = pc.audioSummaryUrl;
+    } else {
+        document.getElementById('audioPlayerWrap').className = 'hidden';
+        document.getElementById('noAudioMsg').className = '';
+    }
+}
+
+function renderStep5() {
+    document.getElementById('step5num').className = 'step-num done';
+    document.getElementById('step5content').className = '';
+    document.getElementById('linkSummary').href = '25-summary.html?id=' + currentPC.id;
+}
+
+async function regenerar() {
+    if (!currentPC) return;
+    var btn = document.querySelector('.btn-primary[onclick="regenerar()"]');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Regenerando...';
+
+    try {
+        var resp = await fetch(API_URL + '/pre-consulta/' + currentPC.id + '/regenerar', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        var data = await resp.json();
+        if (data.ok && data.summary) {
+            currentPC.summaryJson = data.summary;
+            currentPC.summaryIA = data.summary.summaryTexto;
+            renderStep3();
+            renderStep4();
+            btn.innerHTML = 'Regenerado!';
+            setTimeout(function() { btn.innerHTML = 'Regenerar com novo prompt'; btn.disabled = false; }, 2000);
+        } else {
+            throw new Error(data.erro || 'Erro desconhecido');
+        }
+    } catch(e) {
+        btn.innerHTML = 'Erro: ' + e.message;
+        btn.disabled = false;
+    }
+}
+
+async function gerarAudio() {
+    if (!currentPC) return;
+    var btn = document.getElementById('btnGerarAudio');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Gerando audio...';
+
+    try {
+        var resp = await fetch(API_URL + '/pre-consulta/' + currentPC.id + '/tts', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        if (!resp.ok) {
+            var errData = await resp.json();
+            throw new Error(errData.erro || 'Status ' + resp.status);
+        }
+        var blob = await resp.blob();
+        var url = URL.createObjectURL(blob);
+        document.getElementById('ttsAudioPlayer').src = url;
+        document.getElementById('audioPlayerWrap').className = '';
+        document.getElementById('noAudioMsg').className = 'hidden';
+        document.getElementById('step4num').className = 'step-num done';
+        btn.innerHTML = 'Audio gerado!';
+        setTimeout(function() { btn.innerHTML = 'Gerar audio agora'; btn.disabled = false; }, 2000);
+    } catch(e) {
+        btn.innerHTML = 'Erro: ' + e.message;
+        setTimeout(function() { btn.innerHTML = 'Gerar audio agora'; btn.disabled = false; }, 3000);
+    }
+}
+
+async function gerarAudioForce() {
+    if (!currentPC) return;
+    var btn = document.getElementById('btnGerarAudio');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Forcando nova geracao...';
+
+    try {
+        var resp = await fetch(API_URL + '/pre-consulta/' + currentPC.id + '/tts?force=true', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        if (!resp.ok) {
+            var errData = await resp.json();
+            throw new Error(errData.erro || 'Status ' + resp.status);
+        }
+        var blob = await resp.blob();
+        var url = URL.createObjectURL(blob);
+        document.getElementById('ttsAudioPlayer').src = url;
+        document.getElementById('audioPlayerWrap').className = '';
+        document.getElementById('noAudioMsg').className = 'hidden';
+        btn.innerHTML = 'Novo audio gerado!';
+        setTimeout(function() { btn.innerHTML = 'Gerar audio agora'; btn.disabled = false; }, 2000);
+    } catch(e) {
+        btn.innerHTML = 'Erro: ' + e.message;
+        setTimeout(function() { btn.innerHTML = 'Gerar audio agora'; btn.disabled = false; }, 3000);
+    }
+}
+
+loadList();
+</script>
+</body>
+</html>
