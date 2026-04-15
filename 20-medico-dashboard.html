@@ -575,8 +575,7 @@
         /* Accordion chevron + body */
         .summary-chevron{width:18px;height:18px;stroke:#9CA3AF;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);flex-shrink:0}
         .summary-row.open .summary-chevron{transform:rotate(180deg);stroke:#00E5A0}
-        .accordion-body{max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1);background:rgba(0,229,160,0.015);border-bottom:1px solid rgba(0,0,0,0.07);margin:0 -16px;padding:0 16px}
-        .accordion-body.open{max-height:2000px}
+        .accordion-body{max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1);background:rgba(0,229,160,0.015);margin:0 -16px;padding:0 16px}
         .accordion-body:last-child{border-bottom:none}
         .accordion-inner{padding:12px 0}
         .accordion-item{padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.04)}
@@ -1012,18 +1011,30 @@
         document.querySelectorAll('.accordion-body.open').forEach(function(el) {
             if (el !== target) {
                 el.classList.remove('open');
+                el.style.maxHeight = '0px';
                 var otherRow = document.getElementById('row-' + el.id.replace('acc-', ''));
                 if (otherRow) otherRow.classList.remove('open');
             }
         });
 
-        // Toggle o clicado
+        // Toggle o clicado — usa scrollHeight pra suportar listas grandes sem truncar
         if (isOpen) {
+            // Fechar: seta altura atual, depois anima pra 0
+            target.style.maxHeight = target.scrollHeight + 'px';
+            requestAnimationFrame(function() {
+                target.style.maxHeight = '0px';
+            });
             target.classList.remove('open');
             if (row) row.classList.remove('open');
         } else {
+            // Abrir: seta altura real + listener pra liberar max-height apos animacao
+            target.style.maxHeight = target.scrollHeight + 'px';
             target.classList.add('open');
             if (row) row.classList.add('open');
+            target.addEventListener('transitionend', function handler() {
+                if (target.classList.contains('open')) target.style.maxHeight = 'none';
+                target.removeEventListener('transitionend', handler);
+            }, { once: true });
         }
     }
     window.toggleAccordion = toggleAccordion;
@@ -1886,6 +1897,53 @@
         }
         var chevronSvg = '<svg class="summary-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
 
+        // Tabela de equivalencias BR (brand <-> generico + familias) — uso critico de seguranca
+        // Chave: nome normalizado → array de equivalentes (incluindo a propria chave)
+        var MED_EQUIV = {
+            'dipirona': ['dipirona','novalgina','anador','magnopyrol','metamizol'],
+            'novalgina': ['novalgina','dipirona','anador','magnopyrol','metamizol'],
+            'paracetamol': ['paracetamol','tylenol','acetaminofeno'],
+            'tylenol': ['tylenol','paracetamol','acetaminofeno'],
+            'aas': ['aas','aspirina','acido acetilsalicilico','asa'],
+            'aspirina': ['aspirina','aas','acido acetilsalicilico','asa'],
+            'acido acetilsalicilico': ['acido acetilsalicilico','aas','aspirina','asa'],
+            'ibuprofeno': ['ibuprofeno','advil','alivium','motrin','buscofem'],
+            'advil': ['advil','ibuprofeno'],
+            'amoxicilina': ['amoxicilina','amoxil','amoxitrex','penicilina'],
+            'penicilina': ['penicilina','amoxicilina','ampicilina','benzetacil'],
+            'dexametasona': ['dexametasona','decadron','dexacort'],
+            'omeprazol': ['omeprazol','losec','peprazol'],
+            'losartana': ['losartana','cozaar','aradois'],
+            'captopril': ['captopril','capoten'],
+            'enalapril': ['enalapril','renitec','vasopril'],
+            'sinvastatina': ['sinvastatina','zocor','sinvascor'],
+            'metformina': ['metformina','glifage','dimefor']
+        };
+        function normalizeMedName(s) {
+            return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        }
+        function medNamesEquiv(a, b) {
+            var na = normalizeMedName(a), nb = normalizeMedName(b);
+            if (!na || !nb) return false;
+            // Match direto por substring
+            if (na.indexOf(nb) !== -1 || nb.indexOf(na) !== -1) return true;
+            // Match por tabela de equivalencia
+            var keys = Object.keys(MED_EQUIV);
+            for (var i = 0; i < keys.length; i++) {
+                var k = keys[i];
+                if (na.indexOf(k) !== -1 || nb.indexOf(k) !== -1) {
+                    var equivList = MED_EQUIV[k];
+                    for (var j = 0; j < equivList.length; j++) {
+                        if (na.indexOf(equivList[j]) !== -1 && nb.indexOf(equivList[j]) !== -1) return true;
+                        // Se um lado tem a chave e outro tem um equivalente
+                        if ((na.indexOf(k) !== -1 && nb.indexOf(equivList[j]) !== -1) ||
+                            (nb.indexOf(k) !== -1 && na.indexOf(equivList[j]) !== -1)) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         // Build accordion bodies
         // CONDICOES: cronicas + cirurgias + historico familiar
         var condicoesBody = '<div class="accordion-inner">';
@@ -1897,22 +1955,23 @@
                 var emTratamento = medicamentos.some(function(m) {
                     return m.motivo && m.motivo.toLowerCase().indexOf(c.toLowerCase()) !== -1;
                 });
-                condicoesBody += '<div class="accordion-item"><div class="accordion-item-title">' + c +
+                condicoesBody += '<div class="accordion-item"><div class="accordion-item-title">' + sanitize(c) +
                     (emTratamento ? '<span class="treatment-chip">Em tratamento</span>' : '') + '</div></div>';
             });
         }
-        var cirurgias = (perfil && perfil.cirurgias) ? perfil.cirurgias.split(/[,;]/).map(function(c){return c.trim()}).filter(Boolean) : [];
+        // cirurgias e historicoFamiliar sao String[] no schema (array nativo do Postgres)
+        var cirurgias = (perfil && Array.isArray(perfil.cirurgias)) ? perfil.cirurgias.filter(Boolean) : [];
         if (cirurgias.length > 0) {
             condicoesBody += '<div class="accordion-group-label" style="margin-top:8px">Cirurgias anteriores</div>';
             cirurgias.forEach(function(c) {
-                condicoesBody += '<div class="accordion-item"><div class="accordion-item-title">' + c + '</div></div>';
+                condicoesBody += '<div class="accordion-item"><div class="accordion-item-title">' + sanitize(c) + '</div></div>';
             });
         }
-        var histFam = (perfil && perfil.historicoFamiliar) ? perfil.historicoFamiliar.split(/[,;]/).map(function(c){return c.trim()}).filter(Boolean) : [];
+        var histFam = (perfil && Array.isArray(perfil.historicoFamiliar)) ? perfil.historicoFamiliar.filter(Boolean) : [];
         if (histFam.length > 0) {
             condicoesBody += '<div class="accordion-group-label" style="margin-top:8px">Historico familiar</div>';
             histFam.forEach(function(c) {
-                condicoesBody += '<div class="accordion-item"><div class="accordion-item-sub">' + c + '</div></div>';
+                condicoesBody += '<div class="accordion-item"><div class="accordion-item-sub">' + sanitize(c) + '</div></div>';
             });
         }
         if (condicoesCronicas.length === 0 && cirurgias.length === 0 && histFam.length === 0) {
@@ -1930,16 +1989,16 @@
                 var gravLower = grav.toLowerCase();
                 alergiasBody += '<div class="accordion-group-label" style="margin-top:' + (grav === 'GRAVE' ? '0' : '8px') + '">' + grav.charAt(0) + grav.slice(1).toLowerCase() + ' (' + grupo.length + ')</div>';
                 grupo.forEach(function(a) {
-                    // Cross-match: medicamento em uso com nome igual a alergia?
+                    // Cross-match: medicamento em uso equivalente a alergia (inclui brand/generico BR)
                     var conflitos = medicamentos.filter(function(m) {
-                        return m.nome && a.nome && m.nome.toLowerCase().indexOf(a.nome.toLowerCase()) !== -1;
+                        return medNamesEquiv(m.nome, a.nome);
                     });
                     alergiasBody += '<div class="accordion-item">' +
-                        '<div class="accordion-item-title">' + a.nome +
+                        '<div class="accordion-item-title">' + sanitize(a.nome) +
                         ' <span class="severity-badge severity-' + gravLower + '">' + grav + '</span></div>';
-                    if (a.tipo) alergiasBody += '<div class="accordion-item-sub">Tipo: ' + a.tipo + '</div>';
+                    if (a.tipo) alergiasBody += '<div class="accordion-item-sub">Tipo: ' + sanitize(a.tipo) + '</div>';
                     conflitos.forEach(function(c) {
-                        alergiasBody += '<div class="conflict-badge"><svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>Presente em ' + c.nome + '</div>';
+                        alergiasBody += '<div class="conflict-badge"><svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>Em uso: ' + sanitize(c.nome) + ' — verificar</div>';
                     });
                     alergiasBody += '</div>';
                 });
@@ -1956,22 +2015,22 @@
         if (medsAtivos.length > 0) {
             medsAtivos.forEach(function(m) {
                 var conflitosAlerg = alergiasList.filter(function(a) {
-                    return m.nome && a.nome && m.nome.toLowerCase().indexOf(a.nome.toLowerCase()) !== -1;
+                    return medNamesEquiv(m.nome, a.nome);
                 });
                 medsBody += '<div class="accordion-item">' +
-                    '<div class="accordion-item-title">' + m.nome +
-                    (m.dosagem ? ' <span style="font-weight:500;color:#6B7280">' + m.dosagem + '</span>' : '') + '</div>';
+                    '<div class="accordion-item-title">' + sanitize(m.nome) +
+                    (m.dosagem ? ' <span style="font-weight:500;color:#6B7280">' + sanitize(m.dosagem) + '</span>' : '') + '</div>';
                 var metaParts = [];
-                if (m.frequencia) metaParts.push(m.frequencia);
+                if (m.frequencia) metaParts.push(sanitize(m.frequencia));
                 if (m.horario) {
                     var horarios = m.horario.split(/[,;]/).map(function(h){return h.trim()}).filter(Boolean);
-                    if (horarios.length > 0) metaParts.push(horarios.map(function(h){return '<span class="med-schedule-chip">' + h + '</span>'}).join(''));
+                    if (horarios.length > 0) metaParts.push(horarios.map(function(h){return '<span class="med-schedule-chip">' + sanitize(h) + '</span>'}).join(''));
                 }
-                if (metaParts.length > 0) medsBody += '<div class="accordion-item-sub" style="margin-top:4px">' + metaParts.join(' | ') + '</div>';
-                if (m.motivo) medsBody += '<div class="accordion-item-sub" style="margin-top:2px">Para: ' + m.motivo + '</div>';
-                if (m.medicoPrescritor) medsBody += '<div class="accordion-item-sub" style="margin-top:2px">Prescrito por: ' + m.medicoPrescritor + '</div>';
+                if (metaParts.length > 0) medsBody += '<div class="accordion-item-sub" style="margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:4px">' + metaParts.join(' | ') + '</div>';
+                if (m.motivo) medsBody += '<div class="accordion-item-sub" style="margin-top:2px">Para: ' + sanitize(m.motivo) + '</div>';
+                if (m.medicoPrescritor) medsBody += '<div class="accordion-item-sub" style="margin-top:2px">Prescrito por: ' + sanitize(m.medicoPrescritor) + '</div>';
                 conflitosAlerg.forEach(function(a) {
-                    medsBody += '<div class="conflict-badge"><svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>Paciente tem alergia a ' + a.nome + '</div>';
+                    medsBody += '<div class="conflict-badge"><svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>Paciente tem alergia a ' + sanitize(a.nome) + '</div>';
                 });
                 medsBody += '</div>';
             });
@@ -1980,8 +2039,8 @@
             medsBody += '<div class="accordion-group-label" style="margin-top:8px">Descontinuados</div>';
             medsInativos.forEach(function(m) {
                 medsBody += '<div class="accordion-item" style="opacity:0.6">' +
-                    '<div class="accordion-item-title">' + m.nome + '</div>' +
-                    (m.dosagem ? '<div class="accordion-item-sub">' + m.dosagem + '</div>' : '') +
+                    '<div class="accordion-item-title">' + sanitize(m.nome) + '</div>' +
+                    (m.dosagem ? '<div class="accordion-item-sub">' + sanitize(m.dosagem) + '</div>' : '') +
                     '</div>';
             });
         }
@@ -2000,19 +2059,20 @@
             // CONDICOES — accordion inline
             '<div class="summary-row' + disabledClass + '" id="row-condicoes" style="cursor:pointer;' + disabledStyle + '" onclick="' + accordionOnclick('acc-condicoes') + '">' +
             '<div class="summary-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>' +
-            '<div class="summary-info"><div class="summary-info-title">Condicoes</div><div class="summary-info-sub">' + condicoesText + '</div></div>' +
+            '<div class="summary-info"><div class="summary-info-title">Condicoes</div><div class="summary-info-sub">' + sanitize(condicoesText) + '</div></div>' +
+            '<div class="summary-info-count">' + (condicoesCronicas.length + cirurgias.length + histFam.length) + '</div>' +
             chevronSvg + '</div>' +
             '<div class="accordion-body" id="acc-condicoes">' + condicoesBody + '</div>' +
             // ALERGIAS — accordion inline
             '<div class="summary-row' + disabledClass + '" id="row-alergias" style="cursor:pointer;' + disabledStyle + '" onclick="' + accordionOnclick('acc-alergias') + '">' +
             '<div class="summary-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>' +
-            '<div class="summary-info"><div class="summary-info-title">Alergias</div><div class="summary-info-sub">' + alergNames + '</div></div>' +
+            '<div class="summary-info"><div class="summary-info-title">Alergias</div><div class="summary-info-sub">' + sanitize(alergNames) + '</div></div>' +
             '<div class="summary-info-count">' + alergiasList.length + '</div>' + chevronSvg + '</div>' +
             '<div class="accordion-body" id="acc-alergias">' + alergiasBody + '</div>' +
             // MEDICAMENTOS — accordion inline
-            '<div class="summary-row' + disabledClass + '" id="row-medicamentos" style="cursor:pointer;' + disabledStyle + '" onclick="' + accordionOnclick('acc-medicamentos') + '">' +
+            '<div class="summary-row' + disabledClass + '" id="row-medicamentos" style="cursor:pointer;border-bottom:none;' + disabledStyle + '" onclick="' + accordionOnclick('acc-medicamentos') + '">' +
             '<div class="summary-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></div>' +
-            '<div class="summary-info"><div class="summary-info-title">Medicamentos em uso</div><div class="summary-info-sub">' + medNames + '</div></div>' +
+            '<div class="summary-info"><div class="summary-info-title">Medicamentos em uso</div><div class="summary-info-sub">' + sanitize(medNames) + '</div></div>' +
             '<div class="summary-info-count">' + medicamentos.length + '</div>' + chevronSvg + '</div>' +
             '<div class="accordion-body" id="acc-medicamentos">' + medsBody + '</div>' +
             '</div></div>';
