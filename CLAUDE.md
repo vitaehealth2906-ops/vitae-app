@@ -589,6 +589,50 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 - Decidir futuro do frontend/ Next.js (manter ou deletar)
 - Decidir futuro da pasta vitae-app-git/ (arquivar ou deletar)
 
+### Sessao 6 — 15/04/2026 (tarde) — 7 fases completas
+**O que foi feito:** 7 fases independentes resolvendo os 8 problemas que Lucas listou. Cada fase passou por validacao de 10 agentes antes do deploy. ~20 bugs criticos foram pegos pelos agentes.
+
+**Problemas resolvidos:**
+1. Aba Score removida do paciente (tab bar 5→4 abas) — FASE 1
+2. Botao voltar pre-consulta volta pro perfil do paciente especifico — FASE 1
+3. Prompt IA do One Minute Summary reescrito com regras anti-falha + anti-alucinacao + linguagem segura — FASE 2
+4. Gemini agora usa systemInstruction separado (antes concatenava e perdia autoridade das regras) — FASE 2
+5. Tela de Exames do medico: 11-exames-lista.html aceita `?pacienteId=XXX` e entra em modo medico (reuso total) — FASE 3
+6. Backend GET /exames/:id libera acesso pra medicos com vinculo — FASE 3
+7. Alergias/Condicoes/Medicamentos agora sao accordions inline no perfil do paciente (nao abre tela separada) — FASE 4
+8. Tabela MED_EQUIV com 20+ pares brand↔generico BR — resolve Novalgina=Dipirona (caso original do Lucas!) — FASE 4
+9. 4 telas antigas apagadas (medico-exames/alergias/meds/condicoes = 1752 linhas removidas) — FASE 5
+10. Scan no PC: compressao de imagem (1600px/JPEG 0.75) + timeout 30s + mensagens amigaveis — FASE 6
+11. Novo Template: 4 telas (onboarding + form + preview + confirm) — FASE 7
+
+**Arquivos modificados:**
+- 08-perfil, 09-dados-pessoais, 11-exames-lista, 15-bioage-sem-dados, 16-medicamentos, 17-alergias, 21-qrcode, 25-summary, 30-lembretes, 31-revisao-alergias
+- 20-medico-dashboard.html (maior mudanca — accordions + 4 telas template)
+- 27-processando.html (compressao)
+- backend/src/services/ai.js (prompt + timeout)
+- backend/src/routes/exames.js (acesso medico)
+
+**Arquivos criados:**
+- preview-novo-template.html (dev only, preview visual das 4 telas)
+
+**Arquivos deletados:**
+- medico-exames.html, medico-alergias.html, medico-medicamentos.html, medico-condicoes.html
+
+**Metodologia:** planejar → Lucas aprovar → implementar → 10 agentes validam → corrigir criticos → commit → push → proxima fase.
+
+**Commits:** 12 commits (183e40d, 240bd83, 93c9147, b7fbe5d, 574a37e, b02c76d, ccd5660, 3ff8df0, 23ef8af, 4829625, e0ab1f1, d25f404)
+
+**Pendente pra proxima sessao:**
+- Testar tudo no celular real
+- Regenerar summary das pre-consultas existentes com novo prompt
+- Configurar voz ElevenLabs PT-BR definitiva no Railway
+- Linguagem "voce/seu/sua" nas telas de detalhe de exame (modo medico)
+- Bug Novalgina=Dipirona NO SCAN de receita (dashboard ja cruza, scan ainda nao)
+
+**Detalhes completos:** SESSAO-15-ABR-2026-tarde.md no Obsidian
+
+---
+
 ### Sessao 4 — 14/04/2026 (noite)
 **O que foi feito:**
 - Redesign completo das 4 telas dedicadas do medico (Exames, Condicoes, Alergias, Medicamentos)
