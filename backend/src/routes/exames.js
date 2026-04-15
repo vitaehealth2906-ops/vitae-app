@@ -238,7 +238,19 @@ router.get('/:id', async (req, res, next) => {
       include: { parametros: { orderBy: { nome: 'asc' } } },
     });
     if (!exame) return res.status(404).json({ erro: 'Exame nao encontrado' });
-    if (exame.usuarioId !== usuarioId) return res.status(403).json({ erro: 'Acesso negado' });
+
+    // Verifica acesso: dono do exame OU medico com vinculo (pre-consulta respondida)
+    let temAcesso = exame.usuarioId === usuarioId;
+    if (!temAcesso) {
+      const medico = await prisma.medico.findUnique({ where: { usuarioId } });
+      if (medico) {
+        const vinculo = await prisma.preConsulta.findFirst({
+          where: { medicoId: medico.id, pacienteId: exame.usuarioId, status: 'RESPONDIDA' },
+        });
+        if (vinculo) temAcesso = true;
+      }
+    }
+    if (!temAcesso) return res.status(403).json({ erro: 'Acesso negado' });
 
     // Enrich parameters with AI-generated data from dadosEstruturados
     const dadosDetail = exame.dadosEstruturados || {};
