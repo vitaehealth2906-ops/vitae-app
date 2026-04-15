@@ -291,7 +291,17 @@ const vitaeAPI = {
   async scanReceita(file) {
     const formData = new FormData();
     formData.append('arquivo', file);
-    return apiRequest('/medicamentos/scan', { method: 'POST', body: formData });
+    // AbortController: aborta em 28s (antes do Railway matar em 30s)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 28000);
+    try {
+      return await apiRequest('/medicamentos/scan', { method: 'POST', body: formData, signal: controller.signal });
+    } catch (err) {
+      if (err.name === 'AbortError') throw new Error('Processamento demorou demais. Tente com foto menor.');
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   },
 
   // Alergias
@@ -314,7 +324,16 @@ const vitaeAPI = {
   async scanAlergia(file) {
     const formData = new FormData();
     formData.append('arquivo', file);
-    return apiRequest('/alergias/scan', { method: 'POST', body: formData });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 28000);
+    try {
+      return await apiRequest('/alergias/scan', { method: 'POST', body: formData, signal: controller.signal });
+    } catch (err) {
+      if (err.name === 'AbortError') throw new Error('Processamento demorou demais. Tente com foto menor.');
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   },
 
   // Scores

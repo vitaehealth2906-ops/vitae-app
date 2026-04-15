@@ -980,6 +980,10 @@ async function scanReceita(arquivoBuffer, mimeType) {
   const tipo = (mimeType || '').toLowerCase();
   const mediaType = tipo === 'image/jpg' ? 'image/jpeg' : (tipo || 'image/jpeg');
 
+  // Deadline compartilhado: Gemini + Claude devem caber em 26s (Railway mata em 30s)
+  const deadline = Date.now() + 26000;
+  const timeLeft = () => Math.max(3000, deadline - Date.now());
+
   // USE GEMINI (free) as primary, Claude as fallback
   console.log('[SCAN-AI] genAI disponivel:', !!genAI, '| GEMINI_API_KEY:', !!process.env.GEMINI_API_KEY);
   console.log('[SCAN-AI] base64 size:', base64.length, '| mediaType:', mediaType);
@@ -1029,7 +1033,7 @@ REGRAS:
           { inlineData: { mimeType: mediaType, data: base64 } },
           prompt,
         ]),
-        30000,
+        Math.min(timeLeft(), 20000),
         'Gemini scan'
       );
 
@@ -1042,14 +1046,17 @@ REGRAS:
       } catch {
         const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
         if (jsonMatch) parsed = JSON.parse(jsonMatch[1].trim());
-        else throw new Error('JSON invalido do Gemini: ' + text.substring(0, 100));
+        else throw new Error('Resposta inesperada do servico de analise');
       }
 
       console.log('[SCAN-AI] Gemini identificou:', parsed.tipo, parsed.medicamentos?.length || 0, 'meds');
       return parsed;
     } catch (geminiErr) {
-      console.error('[SCAN] Gemini falhou, tentando Claude:', geminiErr.message);
-      // Fall through to Claude
+      console.error('[SCAN] Gemini falhou, tentando fallback:', geminiErr.message);
+      // Fall through to Claude — so ha tempo suficiente
+      if (timeLeft() < 5000) {
+        throw new Error('Processamento demorou demais. Tente novamente.');
+      }
     }
   }
 
@@ -1074,7 +1081,7 @@ REGRAS:
         ],
       }],
     }),
-    30000,
+    timeLeft(),
     'Claude scan receita'
   );
 
@@ -1107,6 +1114,10 @@ async function scanAlergia(arquivoBuffer, mimeType) {
   const base64 = arquivoBuffer.toString('base64');
   const tipo = (mimeType || '').toLowerCase();
   const mediaType = tipo === 'image/jpg' ? 'image/jpeg' : (tipo || 'image/jpeg');
+
+  // Deadline compartilhado
+  const deadline = Date.now() + 26000;
+  const timeLeft = () => Math.max(3000, deadline - Date.now());
 
   // USE GEMINI (free) as primary
   if (genAI) {
@@ -1142,7 +1153,7 @@ REGRAS:
           { inlineData: { mimeType: mediaType, data: base64 } },
           prompt,
         ]),
-        30000,
+        Math.min(timeLeft(), 20000),
         'Gemini scan'
       );
 
@@ -1153,11 +1164,14 @@ REGRAS:
       } catch {
         const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
         if (jsonMatch) parsed = JSON.parse(jsonMatch[1].trim());
-        else throw new Error('JSON invalido do Gemini');
+        else throw new Error('Resposta inesperada do servico de analise');
       }
       return parsed;
     } catch (geminiErr) {
-      console.error('[SCAN-ALERGIA] Gemini falhou, tentando Claude:', geminiErr.message);
+      console.error('[SCAN-ALERGIA] Gemini falhou, tentando fallback:', geminiErr.message);
+      if (timeLeft() < 5000) {
+        throw new Error('Processamento demorou demais. Tente novamente.');
+      }
     }
   }
 
@@ -1199,7 +1213,7 @@ Se o documento nao for um resultado de exame alergico, retorne: { "tipo": "nao_e
         ],
       }],
     }),
-    30000,
+    timeLeft(),
     'Claude scan alergia'
   );
 

@@ -68,19 +68,28 @@
 <script>
     if (!vitaeAPI.requireAuth()) { /* redireciona se nao logado */ }
 
-    // Comprime imagem pra max 1600px largura + qualidade 0.75 (reduz ~70% do tamanho)
-    async function comprimirImagem(file, maxWidth = 1600, quality = 0.75) {
+    // Comprime imagem pra max 1600px largura + 2400px altura + qualidade 0.75 (reduz ~70% do tamanho)
+    async function comprimirImagem(file, maxWidth = 1600, maxHeight = 2400, quality = 0.75) {
         if (!file.type.startsWith('image/')) return file; // PDFs passam direto
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
+            let settled = false;
+            const finish = (result) => { if (!settled) { settled = true; resolve(result); } };
+            // Safety net: se algo travar, fallback pro arquivo original em 8s
+            setTimeout(() => finish(file), 8000);
+
             const img = new Image();
             const reader = new FileReader();
             reader.onload = (e) => { img.src = e.target.result; };
-            reader.onerror = () => resolve(file); // fallback
+            reader.onerror = () => finish(file);
             img.onload = () => {
                 let { width, height } = img;
                 if (width > maxWidth) {
                     height = Math.round(height * (maxWidth / width));
                     width = maxWidth;
+                }
+                if (height > maxHeight) {
+                    width = Math.round(width * (maxHeight / height));
+                    height = maxHeight;
                 }
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
@@ -88,13 +97,13 @@
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
                 canvas.toBlob((blob) => {
-                    if (!blob) return resolve(file);
+                    if (!blob) return finish(file);
                     const compressed = new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' });
                     // Se comprimido ficou maior (PNG pequeno ja otimizado), usa original
-                    resolve(compressed.size < file.size ? compressed : file);
+                    finish(compressed.size < file.size ? compressed : file);
                 }, 'image/jpeg', quality);
             };
-            img.onerror = () => resolve(file);
+            img.onerror = () => finish(file);
             reader.readAsDataURL(file);
         });
     }
@@ -122,8 +131,13 @@
     }
 
     async function processar() {
+        // Le o tipo de scan da URL (receita ou alergia)
+        const urlParams = new URLSearchParams(window.location.search);
+        const tipoScan = urlParams.get('tipo') || 'receita'; // 'receita' | 'alergia'
+        const isAlergia = tipoScan === 'alergia';
+
         const blobUrl = sessionStorage.getItem('vitae_scan_blob');
-        const fname = sessionStorage.getItem('vitae_scan_name') || 'receita.jpg';
+        const fname = sessionStorage.getItem('vitae_scan_name') || (isAlergia ? 'alergia.jpg' : 'receita.jpg');
         const ftype = sessionStorage.getItem('vitae_scan_type') || 'image/jpeg';
 
         if (!blobUrl) {
@@ -131,6 +145,20 @@
             document.getElementById('err').textContent = 'Nenhum arquivo encontrado. Volte e tire uma foto.';
             document.getElementById('spinner').style.display = 'none';
             document.getElementById('retry').style.display = 'inline-block';
+            return;
+        }
+
+        // Valida formato antes (HEIC/HEIF do iPhone nao e aceito)
+        const tipoLower = (ftype || '').toLowerCase();
+        const formatosAceitos = ['image/jpeg','image/jpg','image/png','image/webp','application/pdf'];
+        if (tipoLower.includes('heic') || tipoLower.includes('heif')) {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('title').textContent = 'Formato nao suportado';
+            document.getElementById('sub').textContent = 'iPhone: ao tirar foto, escolha "Mais Compativel" em Ajustes > Camera > Formatos, ou compartilhe como JPEG.';
+            document.getElementById('err').style.display = 'block';
+            document.getElementById('err').textContent = 'Envie a foto como JPG, PNG ou PDF.';
+            document.getElementById('retry').style.display = 'inline-block';
+            document.getElementById('step').style.display = 'none';
             return;
         }
 
@@ -147,18 +175,23 @@
 
             document.getElementById('step').innerHTML = '<span class="done">&#10003;</span> Imagem carregada';
 
+            const labelAcao = isAlergia ? 'Identificando alergias...' : 'Identificando medicamentos...';
             setTimeout(() => {
-                document.getElementById('step').innerHTML = '<span class="done">&#10003;</span> Imagem carregada &middot; 2. Identificando medicamentos...';
+                document.getElementById('step').innerHTML = '<span class="done">&#10003;</span> Imagem carregada &middot; 2. ' + labelAcao;
             }, 400);
 
-            const resultado = await vitaeAPI.scanReceita(file);
+            // Chama endpoint correto baseado no tipo
+            const resultado = isAlergia
+                ? await vitaeAPI.scanAlergia(file)
+                : await vitaeAPI.scanReceita(file);
 
             // Guardar resultado e ir para revisao
             sessionStorage.setItem('vitae_scan_result', JSON.stringify(resultado));
             URL.revokeObjectURL(blobUrl);
             sessionStorage.removeItem('vitae_scan_blob');
 
-            document.getElementById('step').innerHTML = '<span class="done">&#10003;</span> Medicamentos identificados';
+            const labelOk = isAlergia ? 'Alergias identificadas' : 'Medicamentos identificados';
+            document.getElementById('step').innerHTML = '<span class="done">&#10003;</span> ' + labelOk;
             setTimeout(() => {
                 window.location.href = '31-revisao-alergias.html';
             }, 600);
@@ -168,8 +201,9 @@
             document.getElementById('spinner').style.display = 'none';
             document.getElementById('title').textContent = msg.titulo;
             document.getElementById('sub').textContent = msg.sub;
+            // Nao mostra mensagem tecnica crua — apenas um codigo generico pro suporte
             document.getElementById('err').style.display = 'block';
-            document.getElementById('err').textContent = (e && e.message) || 'Erro desconhecido.';
+            document.getElementById('err').textContent = 'Se persistir, tente novamente em alguns minutos.';
             document.getElementById('retry').style.display = 'inline-block';
             document.getElementById('step').style.display = 'none';
         }
