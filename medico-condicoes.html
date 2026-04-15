@@ -3,29 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>vitaid — Condicoes do Paciente</title>
+    <title>vitaid — Condições do Paciente</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="vitae-core.css">
     <link rel="stylesheet" href="vitae-glass.css">
     <link rel="stylesheet" href="vitae-light.css">
     <style>
-        .page-back-row { display:flex; align-items:center; gap:10px; padding:var(--v-s5) var(--v-s6) var(--v-s3); }
-        .page-back-title { flex:1; font-size:17px; font-weight:700; color:var(--v-ink); }
-        .section-card { background:var(--v-surface); border:var(--v-border); border-radius:var(--v-r-md); padding:18px; margin:0 var(--v-s5) var(--v-s3); box-shadow:var(--v-sh); }
-        .section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--v-ink4); margin-bottom:10px; }
-        .condition-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:var(--v-r-pill); background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.12); font-size:13px; font-weight:600; color:var(--v-ink2); margin:0 6px 6px 0; }
-        .condition-dot { width:8px; height:8px; border-radius:50%; background:var(--v-warn); }
-        .surgery-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.04); font-size:14px; color:var(--v-ink2); }
-        .surgery-item:last-child { border-bottom:none; }
-        .surgery-icon { width:28px; height:28px; border-radius:8px; background:rgba(59,130,246,0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-        .surgery-icon svg { width:14px; height:14px; stroke:var(--v-info); fill:none; stroke-width:2; }
-        .family-item { display:flex; align-items:center; gap:10px; padding:8px 0; font-size:13px; color:var(--v-ink2); }
-        .family-dot { width:6px; height:6px; border-radius:50%; background:var(--v-ink4); flex-shrink:0; }
-        .empty-state { text-align:center; padding:60px 20px; }
-        .empty-title { font-size:16px; font-weight:700; color:var(--v-ink3); margin-bottom:6px; }
-        .empty-sub { font-size:13px; color:var(--v-ink4); }
-        .anim { opacity:0; transform:translateY(20px); animation:fadeUp 0.4s var(--v-ease) forwards; }
-        .anim-d1 { animation-delay:0.05s; } .anim-d2 { animation-delay:0.1s; } .anim-d3 { animation-delay:0.15s; }
+        body { background:#F4F6FA; }
+        .content { padding: 0 0 32px; }
+
+        /* Patient subheader */
+        .patient-subheader {
+            display:flex; align-items:center; gap:12px;
+            padding: var(--v-s5) var(--v-s5) var(--v-s3);
+            position:sticky; top:0; background:#F4F6FA; z-index:5;
+        }
+        .patient-avatar-sm {
+            width:36px; height:36px; border-radius:50%;
+            background:linear-gradient(120deg, var(--v-green), var(--v-cyan));
+            display:flex; align-items:center; justify-content:center;
+            color:#0D0F14; font-weight:800; font-size:13px;
+            flex-shrink:0; overflow:hidden;
+        }
+        .patient-avatar-sm img { width:100%; height:100%; object-fit:cover; }
+        .patient-subheader-info { flex:1; min-width:0; }
+        .patient-subheader-name {
+            font-size:15px; font-weight:700; color:var(--v-ink);
+            overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+        }
+        .patient-subheader-meta {
+            font-size:11px; color:var(--v-ink4); font-weight:500;
+        }
+        .patient-subheader-count {
+            padding:5px 11px;
+            background:rgba(0,229,160,0.10);
+            border:1px solid rgba(0,229,160,0.20);
+            border-radius:100px;
+            font-size:11px; font-weight:700; color:var(--v-green2);
+            white-space:nowrap;
+        }
+
+        /* Tab strip */
+        .tab-strip {
+            display:flex; gap:6px; padding: 4px var(--v-s5) var(--v-s5);
+            overflow-x:auto; scrollbar-width:none;
+        }
+        .tab-strip::-webkit-scrollbar { display:none; }
+        .tab-chip {
+            padding:8px 14px; border-radius:100px;
+            background:#FFFFFF; border:1px solid rgba(0,0,0,0.06);
+            font-size:12px; font-weight:600; color:var(--v-ink3);
+            cursor:pointer; white-space:nowrap;
+            transition:all 0.15s;
+        }
+        .tab-chip:hover { background:rgba(0,0,0,0.02); }
+        .tab-chip.active {
+            background:rgba(0,229,160,0.10);
+            border-color:rgba(0,229,160,0.30);
+            color:var(--v-green2);
+        }
+
+        .section-label {
+            font-size:11px; font-weight:700; text-transform:uppercase;
+            letter-spacing:1.5px; color:var(--v-ink4);
+            padding: var(--v-s4) var(--v-s5) var(--v-s2);
+        }
+
+        .insight-card {
+            position:relative;
+            background:#FFFFFF; border-radius:14px;
+            padding:14px 16px 14px 20px;
+            margin: 0 var(--v-s5) 10px;
+            box-shadow:0 1px 12px rgba(0,0,0,0.04);
+            overflow:hidden;
+        }
+        .insight-card::before {
+            content:''; position:absolute; left:0; top:0; bottom:0;
+            width:4px; background:var(--v-warn);
+            border-radius:4px 0 0 4px;
+        }
+        .insight-card.info::before { background:var(--v-info); }
+        .insight-card.info-soft::before { background:#A5B4CB; }
+
+        .condition-card { display:flex; align-items:center; gap:14px; }
+        .condition-icon {
+            width:42px; height:42px; border-radius:12px;
+            background:rgba(245,158,11,0.10);
+            border:1px solid rgba(245,158,11,0.18);
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0;
+        }
+        .condition-icon svg { width:20px; height:20px; stroke:var(--v-warn); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+        .condition-info { flex:1; min-width:0; }
+        .condition-nome { font-size:15px; font-weight:700; color:var(--v-ink); }
+        .condition-categoria { font-size:11px; color:var(--v-ink4); margin-top:2px; font-weight:500; }
+        .condition-tag {
+            padding:4px 10px; border-radius:100px;
+            background:rgba(0,229,160,0.10);
+            border:1px solid rgba(0,229,160,0.22);
+            font-size:10px; font-weight:700; color:var(--v-green2);
+            text-transform:uppercase; letter-spacing:0.4px;
+            white-space:nowrap;
+        }
+        .condition-tag.outline {
+            background:transparent; color:var(--v-ink4);
+            border-color:rgba(0,0,0,0.10);
+        }
+
+        .item-line {
+            display:flex; align-items:center; gap:12px;
+            padding:12px 0;
+            border-bottom:1px solid rgba(0,0,0,0.05);
+        }
+        .item-line:last-child { border-bottom:none; }
+        .item-icon {
+            width:32px; height:32px; border-radius:10px;
+            background:rgba(59,130,246,0.10);
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0;
+        }
+        .item-icon svg { width:16px; height:16px; stroke:var(--v-info); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+        .item-icon.soft { background:rgba(165,180,203,0.16); }
+        .item-icon.soft svg { stroke:#5B6878; }
+        .item-text { flex:1; font-size:14px; font-weight:600; color:var(--v-ink2); }
+        .item-meta { font-size:11px; color:var(--v-ink4); font-weight:500; }
+
+        .empty-state { text-align:center; padding: 48px 32px 32px; }
+        .empty-icon { width:56px; height:56px; margin:0 auto 14px; opacity:0.35; }
+        .empty-icon svg { width:100%; height:100%; stroke:var(--v-ink4); fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+        .empty-title { font-size:15px; font-weight:700; color:var(--v-ink3); margin-bottom:6px; }
+        .empty-sub { font-size:13px; color:var(--v-ink4); line-height:1.5; }
+        .empty-hint { font-size:12px; color:var(--v-ink4); font-style:italic; margin-top:10px; padding: 0 12px; line-height:1.5; }
+
+        .skel { background:#FFFFFF; border-radius:14px; padding:14px 16px; margin:0 var(--v-s5) 10px; box-shadow:0 1px 12px rgba(0,0,0,0.04); }
+        .skel-bar {
+            background:linear-gradient(90deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.04) 100%);
+            background-size:200% 100%;
+            animation:shimmer 1.5s infinite;
+            border-radius:6px; height:14px; margin-bottom:8px;
+        }
+        .skel-bar.short { width:50%; }
+        @keyframes shimmer { 0% { background-position:-200% 0; } 100% { background-position:200% 0; } }
+
+        .identity-missing { text-align:center; padding: 56px 32px; }
+        .identity-missing-avatar {
+            width:80px; height:80px; border-radius:50%;
+            background:rgba(156,163,175,0.10); border:1px solid rgba(156,163,175,0.20);
+            display:flex; align-items:center; justify-content:center;
+            margin: 0 auto 18px;
+        }
+        .identity-missing-avatar svg { width:36px; height:36px; stroke:#9CA3AF; fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+        .identity-missing-title { font-size:17px; font-weight:800; color:var(--v-ink); margin-bottom:8px; letter-spacing:-0.3px; }
+        .identity-missing-msg { font-size:13px; color:var(--v-ink3); line-height:1.6; margin-bottom:22px; }
+        .identity-missing-btn {
+            display:inline-block; padding:14px 24px; border-radius:14px;
+            background:linear-gradient(120deg, var(--v-green), var(--v-cyan));
+            color:#0D0F14; font-weight:700; font-size:14px;
+            border:none; cursor:pointer; text-decoration:none;
+            font-family:'Plus Jakarta Sans',sans-serif;
+        }
+
+        .anim { opacity:0; transform:translateY(14px); animation: fadeUp 0.4s var(--v-ease) forwards; }
         @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
     </style>
 </head>
@@ -33,69 +171,232 @@
 <div class="phone">
     <div class="notch"></div>
     <div class="content">
-        <div class="page-back-row anim">
-            <div class="btn-back" onclick="history.back()"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
-            <div class="page-back-title" id="pageTitle">Condicoes</div>
+
+        <div class="patient-subheader anim" id="subheader">
+            <div class="btn-back" onclick="history.back()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="patient-avatar-sm" id="avatar">--</div>
+            <div class="patient-subheader-info">
+                <div class="patient-subheader-name" id="nome">Carregando...</div>
+                <div class="patient-subheader-meta" id="meta">&nbsp;</div>
+            </div>
+            <div class="patient-subheader-count" id="count" style="display:none;">0</div>
         </div>
-        <div id="sections"></div>
-        <div id="loadingState" style="text-align:center;padding:40px;color:var(--v-ink4);font-size:13px;">Carregando condicoes...</div>
+
+        <div class="tab-strip anim" id="tabStrip" style="animation-delay:0.05s;">
+            <div class="tab-chip" data-target="medico-exames">Exames</div>
+            <div class="tab-chip active" data-target="medico-condicoes">Condições</div>
+            <div class="tab-chip" data-target="medico-alergias">Alergias</div>
+            <div class="tab-chip" data-target="medico-medicamentos">Medicamentos</div>
+        </div>
+
+        <div id="body"></div>
     </div>
 </div>
+
 <script src="api.js"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const pacienteId = params.get('pacienteId');
 const pacienteNome = decodeURIComponent(params.get('nome') || 'Paciente');
-document.getElementById('pageTitle').textContent = 'Condicoes de ' + pacienteNome;
 
-async function load() {
-    if (!pacienteId) { document.getElementById('loadingState').textContent = 'Erro: ID nao fornecido'; return; }
+function getInitials(name) {
+    return (name || '').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+}
+function calcAge(dateStr) {
+    if (!dateStr) return null;
+    let d;
+    if (String(dateStr).includes('/')) {
+        const parts = String(dateStr).split('/');
+        d = new Date(parts[2], parts[1] - 1, parts[0]);
+    } else {
+        d = new Date(dateStr);
+    }
+    if (isNaN(d.getTime())) return null;
+    return Math.floor((Date.now() - d.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+}
+
+const CONDITION_KEYWORDS = {
+    cardio:       { keys:['hipertens','cardio','cora','arritmia','pressao','press\u00e3o','avc'], cat:'Cardiovascular',
+        svg:'<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>' },
+    diabetes:     { keys:['diabet','glicose','glicem','a1c'], cat:'Endócrino',
+        svg:'<path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>' },
+    respiratorio: { keys:['asma','bronqui','dpoc','pulmon','rinite','pneumon'], cat:'Respiratório',
+        svg:'<path d="M6 20c-.08-3.46-.16-6.92-.16-9.96 0-2.67 1.59-4.7 4.07-5.04l.01.93c0 1.32.93 2.45 2.21 2.74M18 20c.08-3.46.16-6.92.16-9.96 0-2.67-1.59-4.7-4.07-5.04l-.01.93c0 1.32-.93 2.45-2.21 2.74M12 7v13"/>' },
+    mental:       { keys:['ansied','depress','panic','p\u00e2nic','bipolar','tdah','tept'], cat:'Saúde mental',
+        svg:'<path d="M9.5 2A2.5 2.5 0 0112 4.5v15a2.5 2.5 0 01-4.96.44 2.5 2.5 0 01-2.96-3.08 3 3 0 01-.34-5.58 2.5 2.5 0 011.32-4.24 2.5 2.5 0 014.44-1.04zm5 0A2.5 2.5 0 0012 4.5v15a2.5 2.5 0 004.96.44 2.5 2.5 0 002.96-3.08 3 3 0 00.34-5.58 2.5 2.5 0 00-1.32-4.24 2.5 2.5 0 00-4.44-1.04z"/>' },
+    digestivo:    { keys:['gastrit','ulcera','\u00falcera','refluxo','colit','crohn','cel\u00edaca','celiaca','intestin'], cat:'Digestivo',
+        svg:'<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>' },
+    tireoide:     { keys:['tireoid','hipotireo','hipertireo'], cat:'Endócrino',
+        svg:'<circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>' },
+};
+function findConditionMeta(nome) {
+    var lower = (nome || '').toLowerCase();
+    for (var key in CONDITION_KEYWORDS) {
+        var c = CONDITION_KEYWORDS[key];
+        for (var i = 0; i < c.keys.length; i++) {
+            if (lower.indexOf(c.keys[i]) !== -1) return c;
+        }
+    }
+    return { cat:'Geral', svg:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' };
+}
+
+function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function parseList(value) {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.filter(Boolean);
+    return String(value).split(/[,;]/).map(s => s.trim()).filter(Boolean);
+}
+
+function setSubheaderLoading() {
+    document.getElementById('avatar').textContent = getInitials(pacienteNome);
+    document.getElementById('nome').textContent = pacienteNome;
+}
+
+function renderSkeleton() {
+    document.getElementById('body').innerHTML =
+        '<div class="section-label">&nbsp;</div>' +
+        '<div class="skel"><div class="skel-bar"></div><div class="skel-bar short"></div></div>' +
+        '<div class="skel"><div class="skel-bar"></div><div class="skel-bar short"></div></div>' +
+        '<div class="skel"><div class="skel-bar"></div><div class="skel-bar short"></div></div>';
+}
+
+function renderIdentityMissing() {
+    document.getElementById('count').style.display = 'none';
+    document.getElementById('body').innerHTML =
+        '<div class="identity-missing anim">' +
+        '<div class="identity-missing-avatar"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>' +
+        '<div class="identity-missing-title">Paciente sem vínculo</div>' +
+        '<div class="identity-missing-msg">Este paciente respondeu uma pré-consulta antes de criar conta no vita id. Sem cadastro, não há dados clínicos para mostrar aqui.</div>' +
+        '<button class="identity-missing-btn" onclick="history.back()">Voltar ao painel</button>' +
+        '</div>';
+}
+
+function renderEmpty() {
+    document.getElementById('count').textContent = '0';
+    document.getElementById('count').style.display = 'inline-block';
+    document.getElementById('body').innerHTML =
+        '<div class="empty-state anim">' +
+        '<div class="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>' +
+        '<div class="empty-title">Nenhuma condição registrada</div>' +
+        '<div class="empty-sub">Este paciente não declarou doenças crônicas, cirurgias ou histórico familiar.</div>' +
+        '<div class="empty-hint">Aborde durante a anamnese — pacientes frequentemente omitem condições controladas.</div>' +
+        '</div>';
+}
+
+function renderConteudo(perfil, medicamentos) {
+    var condicoes = parseList(perfil && perfil.condicoes);
+    var cirurgias = parseList(perfil && perfil.cirurgias);
+    var familiar  = parseList(perfil && perfil.historicoFamiliar);
+
+    var totalItens = condicoes.length + cirurgias.length + familiar.length;
+    document.getElementById('count').textContent = totalItens + ' ' + (totalItens === 1 ? 'item' : 'itens');
+    document.getElementById('count').style.display = 'inline-block';
+
+    if (totalItens === 0) { renderEmpty(); return; }
+
+    var medAtivos = (medicamentos || []).filter(function(m){ return m.ativo !== false; });
+    var html = '';
+    var delay = 0.05;
+
+    if (condicoes.length > 0) {
+        html += '<div class="section-label">Condições crônicas</div>';
+        condicoes.forEach(function(c) {
+            var meta = findConditionMeta(c);
+            var emTratamento = medAtivos.some(function(m) {
+                var motivo = (m.motivo || '').toLowerCase();
+                return motivo && motivo.indexOf(c.toLowerCase()) !== -1;
+            });
+            html += '<div class="insight-card anim" style="animation-delay:' + delay.toFixed(2) + 's;">' +
+                '<div class="condition-card">' +
+                '<div class="condition-icon"><svg viewBox="0 0 24 24">' + meta.svg + '</svg></div>' +
+                '<div class="condition-info">' +
+                '<div class="condition-nome">' + escapeHtml(c) + '</div>' +
+                '<div class="condition-categoria">' + meta.cat + '</div>' +
+                '</div>' +
+                (emTratamento
+                    ? '<div class="condition-tag">Em tratamento</div>'
+                    : '<div class="condition-tag outline">Sem registro</div>') +
+                '</div></div>';
+            delay += 0.05;
+        });
+    }
+
+    if (cirurgias.length > 0) {
+        html += '<div class="section-label">Cirurgias anteriores</div>';
+        html += '<div class="insight-card info anim" style="animation-delay:' + delay.toFixed(2) + 's;">';
+        cirurgias.forEach(function(s) {
+            var anoMatch = String(s).match(/(\d{4})/);
+            var ano = anoMatch ? anoMatch[1] : '';
+            var nomeLimpo = ano ? s.replace(ano,'').replace(/[(),\s]+$/,'').trim() : s;
+            html += '<div class="item-line">' +
+                '<div class="item-icon"><svg viewBox="0 0 24 24"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/></svg></div>' +
+                '<div class="item-text">' + escapeHtml(nomeLimpo) + '</div>' +
+                (ano ? '<div class="item-meta">' + ano + '</div>' : '') +
+                '</div>';
+        });
+        html += '</div>';
+        delay += 0.05;
+    }
+
+    if (familiar.length > 0) {
+        html += '<div class="section-label">Histórico familiar</div>';
+        html += '<div class="insight-card info-soft anim" style="animation-delay:' + delay.toFixed(2) + 's;">';
+        familiar.forEach(function(f) {
+            var lower = f.toLowerCase();
+            var parentesco = '';
+            ['pai','m\u00e3e','mae','av\u00f4','avo','av\u00f3','irm\u00e3o','irmao','irm\u00e3','irma','tio','tia','primo','prima','filho','filha'].forEach(function(p) {
+                if (lower.indexOf(p) !== -1) parentesco = p.charAt(0).toUpperCase() + p.slice(1);
+            });
+            html += '<div class="item-line">' +
+                '<div class="item-icon soft"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 14h8M6 14v4M18 14v4M9 22v-4M15 22v-4"/></svg></div>' +
+                '<div class="item-text">' + escapeHtml(f) + '</div>' +
+                (parentesco ? '<div class="item-meta">' + parentesco + '</div>' : '') +
+                '</div>';
+        });
+        html += '</div>';
+    }
+
+    document.getElementById('body').innerHTML = html;
+}
+
+document.querySelectorAll('.tab-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+        var target = chip.getAttribute('data-target');
+        if (!target || chip.classList.contains('active')) return;
+        var url = target + '.html?pacienteId=' + encodeURIComponent(pacienteId || '') +
+                  '&nome=' + encodeURIComponent(pacienteNome);
+        window.location.href = url;
+    });
+});
+
+async function init() {
+    setSubheaderLoading();
+    if (!pacienteId) { renderIdentityMissing(); return; }
+    renderSkeleton();
     try {
-        const data = await vitaeAPI.getPerfilPacienteMedico(pacienteId);
-        const perfil = (data.paciente && data.paciente.perfilSaude) || {};
-        document.getElementById('loadingState').style.display = 'none';
-
-        var condicoes = perfil.condicoes ? perfil.condicoes.split(',').map(function(s){return s.trim()}).filter(Boolean) : [];
-        var cirurgias = perfil.cirurgias ? (Array.isArray(perfil.cirurgias) ? perfil.cirurgias : perfil.cirurgias.split(',').map(function(s){return s.trim()})).filter(Boolean) : [];
-        var familia = perfil.historicoFamiliar ? (Array.isArray(perfil.historicoFamiliar) ? perfil.historicoFamiliar : [perfil.historicoFamiliar]).filter(Boolean) : [];
-
-        if (condicoes.length === 0 && cirurgias.length === 0 && familia.length === 0) {
-            document.getElementById('sections').innerHTML = '<div class="empty-state anim"><div class="empty-title">Nenhuma condicao</div><div class="empty-sub">Este paciente nao registrou condicoes, cirurgias ou historico familiar.</div></div>';
-            return;
+        var data = await vitaeAPI.getPerfilPacienteMedico(pacienteId);
+        var p = data.paciente || {};
+        var perfil = p.perfilSaude || {};
+        var idade = calcAge(perfil.dataNascimento);
+        var sangue = perfil.tipoSanguineo || '';
+        var sangueFmt = sangue ? sangue.replace('_POS','+').replace('_NEG','-') : '';
+        var partes = [];
+        if (idade) partes.push(idade + ' anos');
+        if (sangueFmt) partes.push(sangueFmt);
+        document.getElementById('meta').textContent = partes.join(' · ') || ' ';
+        if (p.fotoUrl) {
+            document.getElementById('avatar').innerHTML = '<img src="' + p.fotoUrl + '" alt="">';
         }
-
-        var html = '';
-
-        if (condicoes.length > 0) {
-            html += '<div class="section-card anim anim-d1"><div class="section-title">Condicoes cronicas</div>';
-            condicoes.forEach(function(c) {
-                html += '<span class="condition-pill"><span class="condition-dot"></span>' + c + '</span>';
-            });
-            html += '</div>';
-        }
-
-        if (cirurgias.length > 0) {
-            html += '<div class="section-card anim anim-d2"><div class="section-title">Cirurgias anteriores</div>';
-            cirurgias.forEach(function(c) {
-                html += '<div class="surgery-item"><div class="surgery-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>' + c + '</div>';
-            });
-            html += '</div>';
-        }
-
-        if (familia.length > 0) {
-            html += '<div class="section-card anim anim-d3"><div class="section-title">Historico familiar</div>';
-            familia.forEach(function(f) {
-                html += '<div class="family-item"><span class="family-dot"></span>' + f + '</div>';
-            });
-            html += '</div>';
-        }
-
-        document.getElementById('sections').innerHTML = html;
+        renderConteudo(perfil, p.medicamentos || []);
     } catch (err) {
-        document.getElementById('loadingState').textContent = 'Erro: ' + err.message;
+        renderIdentityMissing();
     }
 }
-load();
+init();
 </script>
 </body>
 </html>

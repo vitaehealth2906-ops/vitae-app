@@ -589,6 +589,64 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 - Decidir futuro do frontend/ Next.js (manter ou deletar)
 - Decidir futuro da pasta vitae-app-git/ (arquivar ou deletar)
 
+### Sessao 4 — 14/04/2026 (noite)
+**O que foi feito:**
+- Redesign completo das 4 telas dedicadas do medico (Exames, Condicoes, Alergias, Medicamentos)
+  - Patient subheader unificado (avatar + nome + idade/sangue + count)
+  - Tab strip interno: navegacao entre as 4 sem voltar ao dashboard
+  - Insight cards com borda lateral colorida 4px (padrao 25-summary): vermelha (grave/critico), amarela (atencao/moderado), verde (normal/leve/ativo), azul (informativo/passado)
+  - Empty states acolhedores com hint contextual
+  - Skeleton de loading com shimmer (sem texto "Carregando...")
+  - Identity-missing fallback: se pacienteId vazio, mostra tela bonita "Paciente sem vinculo" em vez de "Erro: ID nao fornecido"
+- **medico-condicoes.html:** icones contextuais por categoria (cardio/diabetes/respiratorio/mental/digestivo/tireoide), chip "Em tratamento" via cross-link com motivo dos medicamentos ativos
+- **medico-alergias.html:** painel "Antes de prescrever, revise" no topo com pills decrescentes por gravidade, botao "Copiar lista", cross-match com medicamentos ativos por nome (badge "Presente em [Med]")
+- **medico-medicamentos.html:** secao "Em uso agora" com horarios em chips, motivo, prescritor, tempo de uso calculado, alerta "Acaba em X dias" se estoque baixo, secao "Descontinuados" opacificada, cross-match com alergias
+- **medico-exames.html:** secao "Pontos de atencao" no topo (criticos/atencao primeiro), filtros (Todos/Alterados/Normais/Em leitura), linha do tempo agrupada por ano com timeline-card, parametros alterados como chips com setas (↑/↓), resumo clinico (sem mencionar IA)
+
+- **Bug "ID nao fornecido" — RESOLVIDO em 3 camadas:**
+  1. Backend: novo endpoint POST /medico/limpeza-antigas — apaga PreConsulta sem pacienteId criadas antes de 14/04/2026 (com limpeza de storage)
+  2. Dashboard: helper buildClinicalLink() — quando paciente sem vinculo, abre sheet bottom-up explicativo em vez de navegar pra tela quebrada. Cards desabilitados visualmente (opacity 0.5) + chip "Sem vinculo"
+  3. 4 telas: cada uma renderiza identity-missing fallback se pacienteId ausente (defesa em profundidade)
+
+- **Backend ajustes em medico.js GET /pacientes/:id:**
+  - Removido filtro "where ativo:true" em medicamentos (agora retorna todos pra mostrar descontinuados)
+  - Exames agora retornam parametros[], status, nomeArquivo, tipoArquivo (precisos pra mostrar chips alterados na tela)
+
+- **api.js:** nova funcao limpezaPreConsultasAntigas()
+
+**Skills usadas:**
+- /ultraplan (plan mode com Explore + Plan agents) pra projetar antes de implementar
+- AskUserQuestion pra clarificar 4 decisoes-chave com Lucas
+
+**Decisoes tomadas:**
+- Cruzamentos basicos por nome exato (sem mapa de familias farmacologicas nessa rodada)
+- Apagar pre-consultas antigas sem vinculo do banco (irreversivel — Lucas autorizou)
+- Dupla protecao contra "ID nao fornecido" (dashboard + 4 telas)
+- Chip "Sem vinculo" em vez de esconder o paciente — medico precisa ver que ele existe mas falta cadastro
+
+**Arquivos modificados:**
+- backend/src/routes/medico.js (endpoint limpeza + select expandido pra exames/medicamentos)
+- 20-medico-dashboard.html (CSS sheet, helper buildClinicalLink, banner "Sem vinculo", funcoes de identity-sheet e limpeza)
+- medico-condicoes.html (rewrite completo)
+- medico-alergias.html (rewrite completo)
+- medico-medicamentos.html (rewrite completo)
+- medico-exames.html (rewrite completo)
+- api.js (limpezaPreConsultasAntigas)
+
+**Como rodar a limpeza (uso unico):**
+1. Abrir 20-medico-dashboard.html logado como medico
+2. F12 (console)
+3. Digitar: `rodarLimpezaAntigas()`
+4. Confirmar — apaga todas PreConsulta sem pacienteId criadas antes de 14/04/2026
+
+**O que ficou pendente:**
+- Limpar campos debug do errorHandler.js (debug_code, debug_meta, debug_message expostos no response — uso temporario)
+- Testar fluxo completo no celular real
+- Decidir voz ElevenLabs definitiva (3 MP3s de teste na raiz: daniel/eric/george)
+- Regenerar summary das pre-consultas existentes (prompt antigo) usando diag-pipeline.html
+
+---
+
 ### Sessao 2 — 10/04/2026
 **O que foi feito:**
 - Analise profunda do fluxo de medicamentos (cada botao, cada link, cada funcao)
@@ -639,7 +697,20 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 - **Licao:** [o que aprendemos]
 ```
 
-(nenhum erro registrado ainda — cresce conforme trabalhamos)
+### ERRO-001: "Erro: ID nao fornecido" nas 4 telas dedicadas do medico
+- **Data:** 14/04/2026
+- **Onde:** medico-alergias.html, medico-medicamentos.html, medico-condicoes.html, medico-exames.html
+- **O que aconteceu:** Ao clicar nos cards Exames/Alergias/Meds/Condicoes no dashboard do medico, algumas vezes mostrava "Erro: ID nao fornecido" em vez dos dados.
+- **Causa:** Pre-consultas antigas (testes "ppppp" e similares) ficaram no banco SEM pacienteId vinculado a um Usuario. O dashboard montava as URLs com `pacienteId=` vazio, e as 4 telas rejeitavam.
+- **Tentativa 1:** Identificar pre-consultas antigas → SUCESSO (criadas antes de 14/04/2026 quando o fluxo novo de quiz obrigatorio entrou)
+- **Fix em 3 camadas:**
+  1. Backend POST /medico/limpeza-antigas — apaga PreConsulta sem pacienteId pre-fluxo-novo
+  2. Dashboard helper buildClinicalLink() — abre sheet "Paciente sem vinculo" se vazio, em vez de navegar
+  3. As 4 telas com identity-missing fallback (defesa em profundidade)
+- **Status:** RESOLVIDO
+- **Licao:** Quando uma feature exige pre-condicao (ex: paciente ter conta), o frontend NUNCA pode confiar que essa pre-condicao foi cumprida. Sempre validar e ter fallback bonito (NUNCA "Erro: ID nao fornecido" — sempre tela explicativa).
+
+(nenhum outro erro registrado ainda — cresce conforme trabalhamos)
 
 ---
 
