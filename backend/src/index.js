@@ -167,6 +167,10 @@ app.listen(PORT, '0.0.0.0', async () => {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "tarefas_pendentes_processado_proxima_idx" ON "tarefas_pendentes"("processado_em", "proxima_tentativa")`);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "tarefas_pendentes_tipo_processado_idx" ON "tarefas_pendentes"("tipo", "processado_em")`);
     console.log('[MIGRATE] indices tarefas_pendentes OK');
+
+    // Coluna transcricao_words (JSONB) — timestamps para karaoke sync
+    await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "transcricao_words" JSONB`);
+    console.log('[MIGRATE] coluna pre_consultas.transcricao_words OK');
   } catch (e) {
     console.error('[MIGRATE] Erro ao aplicar migracao manual:', e.message);
   }

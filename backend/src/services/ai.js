@@ -744,7 +744,15 @@ Retorne EXCLUSIVAMENTE um JSON valido:
 ═══ REGRAS DO textoVoz (MAIS IMPORTANTE — vira audio de 1 minuto) ═══
 
 ESTRUTURA OBRIGATORIA (4 blocos, nesta ordem):
-1. ABERTURA (~15 palavras): Contextualize de forma natural, variando o formato. Ex: "Doutor, antes de entrar — proximo paciente: Joao, 52 anos." ou "Antes de entrar, Doutora: Joao, 52 anos, veio por..." VARIE — nao repita frase identica toda vez.
+1. ABERTURA (~15-20 palavras): OBRIGATORIO conter, NESSA ORDEM:
+   (a) saudacao curta ("Doutor," ou "Doutora,")
+   (b) NOME do paciente (primeiro nome ou nome + sobrenome)
+   (c) IDADE em anos
+   (d) MOTIVO resumido da consulta (2-5 palavras)
+   Exemplo valido: "Doutora, Lucas, 19 anos, veio por prurido intenso ha tres dias."
+   Exemplo valido: "Doutor, proximo paciente: Maria Silva, 52 anos, queixa de dor toracica."
+   VARIE a construcao da frase (nao repita identica toda vez), mas SEMPRE mantenha a ordem nome-idade-motivo.
+   Se idade nao foi informada, use "paciente" sem numero ("Doutor, Lucas, paciente relata prurido..."). Se nome tem so iniciais, use iniciais.
 2. IDENTIFICACAO + QUEIXA (~45 palavras): Quem e, o que sente, ha quanto tempo. Usar "relata", "refere", "informa". NUNCA "tem", "possui", "sofre de".
 3. INTERPRETACAO (MAXIMO 80 palavras): Cruzamentos e correlacoes entre dados. Este e o bloco mais valioso. Usar "chama atencao", "destaca-se", "merece avaliacao", "vale considerar". NUNCA "recomendo", "sugiro prescrever". Se nao ha cruzamento real, este bloco pode ter apenas 1-2 frases ou ser omitido — melhor briefing curto e preciso que longo e inventado.
 4. SEGURANCA + FECHAMENTO (~30 palavras): Alergias documentadas + conflitos. Depois: uma frase objetiva com o ponto principal de atencao. Ex: "Sugiro atencao no controle glicemico." Pode encerrar sem pleonasmos tipo "Boa consulta" — melhor fechar com a observacao clinica.

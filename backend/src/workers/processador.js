@@ -13,7 +13,7 @@
 const prisma = require('../utils/prisma');
 const storage = require('../services/storage');
 const { gerarSummaryPreConsulta, gerarAudioElevenLabs } = require('../services/ai');
-const { transcreverAudio } = require('../services/transcription');
+const { transcreverAudio, transcreverAudioComTimestamps } = require('../services/transcription');
 const { enviarEmailPreConsultaRespondida } = require('../services/email');
 const { enviarSMSConfirmacaoPreConsulta } = require('../services/sms');
 
@@ -71,23 +71,40 @@ async function processarGerarSummaryETts(tarefa) {
   });
   if (!preConsulta) throw new Error('Pre-consulta nao encontrada: ' + tarefa.preConsultaId);
 
-  // [1] Transcricao via Whisper se vazia mas temos audio
+  // [1] Transcricao via Whisper com word-level timestamps (para karaoke sync)
+  //     Sempre atualiza os words se temos audio — mesmo que ja exista transcricao,
+  //     precisamos dos timestamps. Se ja tem words salvos, nao re-transcreve.
   let transcricao = preConsulta.transcricao;
-  const transcricaoInvalida = !transcricao || transcricao.trim().length <= 5 || transcricao === '(áudio sem transcrição)';
-  if (transcricaoInvalida && preConsulta.audioUrl) {
+  const precisaTranscrever = !preConsulta.transcricaoWords && preConsulta.audioUrl;
+  if (precisaTranscrever) {
     try {
-      const whisperText = await transcreverAudio(preConsulta.audioUrl);
-      if (whisperText && whisperText.length > 2) {
-        transcricao = whisperText;
+      const resultado = await transcreverAudioComTimestamps(preConsulta.audioUrl);
+      if (resultado && resultado.text) {
+        transcricao = resultado.text;
         await prisma.preConsulta.update({
           where: { id: preConsulta.id },
-          data: { transcricao: whisperText },
+          data: {
+            transcricao: resultado.text,
+            transcricaoWords: resultado.words,
+          },
         });
-        console.log('[WORKER] Whisper transcrito:', preConsulta.id, '-', whisperText.substring(0, 80));
+        console.log('[WORKER] Whisper com timestamps salvo:', preConsulta.id, '-', resultado.words.length, 'words');
       }
     } catch (e) {
-      console.error('[WORKER] Whisper falhou:', e.message);
-      // Nao falha a tarefa inteira — summary pode ser gerado com o que tem
+      console.error('[WORKER] Whisper com timestamps falhou, tentando sem:', e.message);
+      // Fallback: tenta transcricao simples sem timestamps
+      try {
+        const whisperText = await transcreverAudio(preConsulta.audioUrl);
+        if (whisperText && whisperText.length > 2) {
+          transcricao = whisperText;
+          await prisma.preConsulta.update({
+            where: { id: preConsulta.id },
+            data: { transcricao: whisperText },
+          });
+        }
+      } catch (e2) {
+        console.error('[WORKER] Whisper simples tambem falhou:', e2.message);
+      }
     }
   }
 
