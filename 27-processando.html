@@ -68,6 +68,59 @@
 <script>
     if (!vitaeAPI.requireAuth()) { /* redireciona se nao logado */ }
 
+    // Comprime imagem pra max 1600px largura + qualidade 0.75 (reduz ~70% do tamanho)
+    async function comprimirImagem(file, maxWidth = 1600, quality = 0.75) {
+        if (!file.type.startsWith('image/')) return file; // PDFs passam direto
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const reader = new FileReader();
+            reader.onload = (e) => { img.src = e.target.result; };
+            reader.onerror = () => resolve(file); // fallback
+            img.onload = () => {
+                let { width, height } = img;
+                if (width > maxWidth) {
+                    height = Math.round(height * (maxWidth / width));
+                    width = maxWidth;
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    if (!blob) return resolve(file);
+                    const compressed = new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' });
+                    // Se comprimido ficou maior (PNG pequeno ja otimizado), usa original
+                    resolve(compressed.size < file.size ? compressed : file);
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = () => resolve(file);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Mensagem amigavel baseada no erro
+    function mensagemErroAmigavel(err) {
+        const msg = (err && err.message) || '';
+        const lower = msg.toLowerCase();
+        if (lower.includes('failed to fetch') || lower.includes('network') || lower.includes('cors')) {
+            return { titulo: 'Sem conexao com o servidor', sub: 'Verifique sua internet e tente novamente.' };
+        }
+        if (lower.includes('413') || lower.includes('too large') || lower.includes('muito grande')) {
+            return { titulo: 'Foto muito grande', sub: 'Tente uma foto menor ou mais comprimida.' };
+        }
+        if (lower.includes('timeout') || lower.includes('504')) {
+            return { titulo: 'Processamento demorou demais', sub: 'Tente novamente com uma foto mais simples.' };
+        }
+        if (lower.includes('503') || lower.includes('indispon') || lower.includes('credit') || lower.includes('quota')) {
+            return { titulo: 'Servico temporariamente indisponivel', sub: 'Tente novamente em alguns minutos.' };
+        }
+        if (lower.includes('401') || lower.includes('unauthoriz')) {
+            return { titulo: 'Sessao expirada', sub: 'Faca login novamente.' };
+        }
+        return { titulo: 'Nao foi possivel processar', sub: 'Tente tirar a foto novamente com mais luz e sem reflexos.' };
+    }
+
     async function processar() {
         const blobUrl = sessionStorage.getItem('vitae_scan_blob');
         const fname = sessionStorage.getItem('vitae_scan_name') || 'receita.jpg';
@@ -84,7 +137,13 @@
         try {
             const resp = await fetch(blobUrl);
             const blob = await resp.blob();
-            const file = new File([blob], fname, { type: ftype });
+            let file = new File([blob], fname, { type: ftype });
+
+            // Comprime imagem (resolve bug de arquivos grandes do PC)
+            if (file.type.startsWith('image/')) {
+                document.getElementById('step').innerHTML = '<span class="done">&#10003;</span> Preparando imagem...';
+                file = await comprimirImagem(file);
+            }
 
             document.getElementById('step').innerHTML = '<span class="done">&#10003;</span> Imagem carregada';
 
@@ -104,9 +163,11 @@
                 window.location.href = '31-revisao-alergias.html';
             }, 600);
         } catch (e) {
+            console.error('[SCAN] Erro:', e);
+            const msg = mensagemErroAmigavel(e);
             document.getElementById('spinner').style.display = 'none';
-            document.getElementById('title').textContent = 'Não foi possível processar';
-            document.getElementById('sub').textContent = 'Tente tirar a foto novamente com mais luz e sem reflexos.';
+            document.getElementById('title').textContent = msg.titulo;
+            document.getElementById('sub').textContent = msg.sub;
             document.getElementById('err').style.display = 'block';
             document.getElementById('err').textContent = (e && e.message) || 'Erro desconhecido.';
             document.getElementById('retry').style.display = 'inline-block';

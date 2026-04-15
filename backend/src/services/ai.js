@@ -967,6 +967,14 @@ REGRAS:
 - Trate abreviacoes medicas comuns (comp = comprimido, cp = comprimido, gt = gotas, mg = miligramas)
 - Linguagem simples e acessivel`;
 
+// Helper: Promise.race com timeout. Rejeita com erro de timeout se passar de ms milissegundos.
+function comTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout apos ' + (ms/1000) + 's em ' + label)), ms)),
+  ]);
+}
+
 async function scanReceita(arquivoBuffer, mimeType) {
   const base64 = arquivoBuffer.toString('base64');
   const tipo = (mimeType || '').toLowerCase();
@@ -1016,10 +1024,14 @@ REGRAS:
 - Se for receita, extraia TODOS os medicamentos listados
 - Se for caixa/frasco, extraia o nome e dosagem visiveis`;
 
-      const result = await model.generateContent([
-        { inlineData: { mimeType: mediaType, data: base64 } },
-        prompt,
-      ]);
+      const result = await comTimeout(
+        model.generateContent([
+          { inlineData: { mimeType: mediaType, data: base64 } },
+          prompt,
+        ]),
+        30000,
+        'Gemini scan'
+      );
 
       const text = result.response.text().trim();
       console.log('[SCAN-AI] Gemini respondeu:', text.substring(0, 300));
@@ -1049,18 +1061,22 @@ REGRAS:
     contentItem = { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } };
   }
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2048,
-    system: SYSTEM_PROMPT_SCAN_RECEITA,
-    messages: [{
-      role: 'user',
-      content: [
-        contentItem,
-        { type: 'text', text: `Analise esta foto de medicamento ou receita medica. Retorne JSON com: tipo, medicamentos [{nome, dosagem, frequencia, horario, duracao, via, observacao, uncertain}]. Se nao for medicamento: {"tipo":"nao_receita","mensagem":"..."}` }
-      ],
-    }],
-  });
+  const response = await comTimeout(
+    anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2048,
+      system: SYSTEM_PROMPT_SCAN_RECEITA,
+      messages: [{
+        role: 'user',
+        content: [
+          contentItem,
+          { type: 'text', text: `Analise esta foto de medicamento ou receita medica. Retorne JSON com: tipo, medicamentos [{nome, dosagem, frequencia, horario, duracao, via, observacao, uncertain}]. Se nao for medicamento: {"tipo":"nao_receita","mensagem":"..."}` }
+        ],
+      }],
+    }),
+    30000,
+    'Claude scan receita'
+  );
 
   const conteudo = response.content[0].text.trim();
   try {
@@ -1121,10 +1137,14 @@ REGRAS:
 - Se nao conseguir ler, coloque null (NUNCA invente)
 - Se nao for exame/medicamento: tipo "nao_exame"`;
 
-      const result = await model.generateContent([
-        { inlineData: { mimeType: mediaType, data: base64 } },
-        prompt,
-      ]);
+      const result = await comTimeout(
+        model.generateContent([
+          { inlineData: { mimeType: mediaType, data: base64 } },
+          prompt,
+        ]),
+        30000,
+        'Gemini scan'
+      );
 
       const text = result.response.text().trim();
       let parsed;
@@ -1149,15 +1169,16 @@ REGRAS:
     contentItem = { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } };
   }
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2048,
-    system: SYSTEM_PROMPT_SCAN_ALERGIA,
-    messages: [{
-      role: 'user',
-      content: [
-        contentItem,
-        { type: 'text', text: `Analise este resultado de exame alergico e extraia todas as alergias identificadas.
+  const response = await comTimeout(
+    anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2048,
+      system: SYSTEM_PROMPT_SCAN_ALERGIA,
+      messages: [{
+        role: 'user',
+        content: [
+          contentItem,
+          { type: 'text', text: `Analise este resultado de exame alergico e extraia todas as alergias identificadas.
 
 Retorne EXCLUSIVAMENTE um JSON valido:
 {
@@ -1175,9 +1196,12 @@ Retorne EXCLUSIVAMENTE um JSON valido:
 
 Se algum item nao for claro, marque "uncertain": true.
 Se o documento nao for um resultado de exame alergico, retorne: { "tipo": "nao_exame", "mensagem": "Documento nao parece ser um resultado de exame alergico" }` }
-      ],
-    }],
-  });
+        ],
+      }],
+    }),
+    30000,
+    'Claude scan alergia'
+  );
 
   const conteudo = response.content[0].text.trim();
   try {
