@@ -1676,7 +1676,10 @@
     }
 
     function tplOnbClose() {
+        // Fix #1: X marca como visto + vai pro form (mesmo comportamento do "Pular")
+        try { localStorage.setItem(TPL_ONB_KEY, 'true'); } catch(e) {}
         document.getElementById('tplOnbOverlay').classList.remove('show');
+        tplGoCreate();
     }
 
     function tplOnbSkip() {
@@ -1752,24 +1755,22 @@
         try {
             var perguntas;
             if (pareceInstrucao(texto)) {
+                // Texto parece descricao/instrucao → gera perguntas via IA
                 var data = await vitaeAPI.gerarPerguntasIA(texto);
                 perguntas = data.perguntas || [];
             } else {
+                // Texto parece lista de perguntas → so classifica, NUNCA adiciona perguntas
+                // (Fix #4: respeita intencao do medico — se ele escreveu 1, gera 1)
                 var data = await vitaeAPI.classificarPerguntas(texto);
                 perguntas = data.perguntas || [];
-                var customCount = perguntas.filter(function(p){ return !p.obrigatoria; }).length;
-                if (customCount < 3) {
-                    var gerado = await vitaeAPI.gerarPerguntasIA('Complete um formulario de pre-consulta para ' + nome + ' com mais perguntas relevantes');
-                    var geradas = (gerado.perguntas || []).filter(function(p){ return !p.obrigatoria; });
-                    var existentes = new Set(perguntas.map(function(p){ return p.texto; }));
-                    perguntas = perguntas.concat(geradas.filter(function(p){ return !existentes.has(p.texto); }));
-                }
             }
 
             if (perguntas.filter(function(p){ return !p.obrigatoria; }).length === 0) {
                 btn.innerHTML = btnHtmlOriginal;
                 btn.disabled = false;
                 inputPerg.classList.add('error');
+                // Fix #2: feedback claro pro medico (era so borda vermelha silenciosa)
+                alert('Nao conseguimos identificar perguntas no texto. Tente escrever uma pergunta por linha, ou descrever o que voce quer (ex: "formulario para cardiologia geral").');
                 return;
             }
 
@@ -1827,7 +1828,9 @@
     function tplShowConfirm(nome) {
         document.getElementById('tplConfirmTitle').innerHTML = '<em>' + sanitize(nome) + '</em><br>criado com sucesso';
         document.getElementById('tplConfirmOverlay').classList.add('show');
-        tplConfirmTimer = setTimeout(tplConfirmClose, 1500);
+        // Fix #3: 1.5s muito curto pro medico registrar — aumentado pra 2.8s
+        // Mantendo "toque pra continuar" como atalho pra quem quer avancar antes
+        tplConfirmTimer = setTimeout(tplConfirmClose, 2800);
     }
     function tplConfirmClose() {
         if (tplConfirmTimer) { clearTimeout(tplConfirmTimer); tplConfirmTimer = null; }
