@@ -146,8 +146,38 @@ app.listen(PORT, '0.0.0.0', async () => {
       END $$;
     `);
     console.log('[MIGRATE] foreign key paciente_id OK');
+
+    // ETAPA 5 — Cria tabela tarefas_pendentes se nao existir (fila de processamento)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "tarefas_pendentes" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "tipo" TEXT NOT NULL,
+        "pre_consulta_id" TEXT,
+        "payload" JSONB,
+        "tentativas" INTEGER NOT NULL DEFAULT 0,
+        "proxima_tentativa" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "processado_em" TIMESTAMP(3),
+        "erro" TEXT,
+        "dead" BOOLEAN NOT NULL DEFAULT false,
+        "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "atualizado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('[MIGRATE] tabela tarefas_pendentes OK');
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "tarefas_pendentes_processado_proxima_idx" ON "tarefas_pendentes"("processado_em", "proxima_tentativa")`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "tarefas_pendentes_tipo_processado_idx" ON "tarefas_pendentes"("tipo", "processado_em")`);
+    console.log('[MIGRATE] indices tarefas_pendentes OK');
   } catch (e) {
     console.error('[MIGRATE] Erro ao aplicar migracao manual:', e.message);
+  }
+
+  // ETAPA 5 — Inicia o worker de processamento assincrono
+  try {
+    const { iniciarWorker } = require('./workers/processador');
+    iniciarWorker();
+    console.log('[WORKER] Processador de fila iniciado');
+  } catch (e) {
+    console.error('[WORKER] Falha ao iniciar processador:', e.message);
   }
 
   // Limpa exames travados em PROCESSANDO/ENVIADO de deploys anteriores

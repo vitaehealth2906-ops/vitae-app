@@ -1513,23 +1513,54 @@ function blobToBase64(blob) {
     });
 }
 
-async function uploadToSupabase(blob, folder, filename) {
+// Upload com timeout explicito e uma re-tentativa
+// Timeout 25s (cobre audio 5min em 3G; acima disso, desistir e ir pra base64)
+async function uploadToSupabase(blob, folder, filename, tentativa) {
+    tentativa = tentativa || 1;
     const path = `${folder}/${Date.now()}-${filename}`;
-    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/vitae/${path}`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'apikey': SUPABASE_ANON_KEY,
-            'Content-Type': blob.type || 'application/octet-stream',
-            'x-upsert': 'true',
-        },
-        body: blob,
-    });
-    if (!res.ok) {
-        console.warn('Supabase upload failed:', await res.text());
+    const url = `${SUPABASE_URL}/storage/v1/object/vitae/${path}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(function() { controller.abort(); }, 25000);
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'apikey': SUPABASE_ANON_KEY,
+                'Content-Type': blob.type || 'application/octet-stream',
+                'x-upsert': 'true',
+            },
+            body: blob,
+            signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (!res.ok) {
+            const errTxt = await res.text().catch(function(){ return ''; });
+            console.warn('[upload] Supabase nao-ok status', res.status, errTxt.substring(0, 200));
+            // 401/403 nao vale a pena retentar (CORS/policy)
+            if (res.status === 401 || res.status === 403) return null;
+            // 5xx ou outro — 1 retry
+            if (tentativa < 2) {
+                console.log('[upload] retentando em 2s...');
+                await new Promise(function(r){ setTimeout(r, 2000); });
+                return uploadToSupabase(blob, folder, filename, tentativa + 1);
+            }
+            return null;
+        }
+        return `${SUPABASE_URL}/storage/v1/object/public/vitae/${path}`;
+    } catch (err) {
+        clearTimeout(timeoutId);
+        console.warn('[upload] fetch erro:', err.name, err.message);
+        // AbortError (timeout) ou network error — 1 retry
+        if (tentativa < 2) {
+            console.log('[upload] retentando apos erro em 2s...');
+            await new Promise(function(r){ setTimeout(r, 2000); });
+            return uploadToSupabase(blob, folder, filename, tentativa + 1);
+        }
         return null;
     }
-    return `${SUPABASE_URL}/storage/v1/object/public/vitae/${path}`;
 }
 
 // ── Send audio ──
@@ -1553,52 +1584,63 @@ async function enviarAudio() {
         return;
     }
     document.getElementById('loadingScreen').classList.add('active');
+
+    // Marca estado "enviando" na IDB — se app fechar aqui, retomada detecta
     try {
-        // Upload audio — tenta Supabase direto primeiro; se falhar, usa base64 (via backend)
+        await vitaStorage.put('envio_' + token, {
+            status: 'enviando',
+            token: token,
+            iniciadoEm: Date.now(),
+            transcricao: transcricao,
+        });
+    } catch (e) {}
+
+    // Wake Lock durante o envio pra evitar tela bloquear
+    window._needsWakeLock = true;
+    requestWakeLock();
+
+    try {
+        // ═══ Upload audio ═══
         let audioUrl = null;
         let audioBase64 = null;
         if (audioBlob) {
             const ext = (audioBlob.type || '').includes('mp4') ? 'mp4' : (audioBlob.type || '').includes('ogg') ? 'ogg' : 'webm';
-            try {
-                audioUrl = await uploadToSupabase(audioBlob, 'audios', `gravacao.${ext}`);
-            } catch (upErr) {
-                console.warn('[PRE-CONSULTA] Supabase direct upload failed:', upErr);
-            }
+            audioUrl = await uploadToSupabase(audioBlob, 'audios', `gravacao.${ext}`);
             if (!audioUrl) {
-                // Fallback: converter pra base64 e deixar o backend subir
+                // Fallback base64 via backend
                 try {
                     audioBase64 = await blobToBase64(audioBlob);
-                    console.log('[PRE-CONSULTA] Fallback base64 audio size:', audioBase64 ? audioBase64.length : 0);
+                    console.log('[enviarAudio] fallback base64 tamanho:', audioBase64 ? audioBase64.length : 0);
                 } catch (b64Err) {
-                    console.error('[PRE-CONSULTA] Falha ao converter audio pra base64:', b64Err);
-                }
-            }
-        }
-        // Upload photo — mesmo esquema
-        let fotoUrl = null;
-        let fotoBase64 = null;
-        if (fotoBlob) {
-            try {
-                fotoUrl = await uploadToSupabase(fotoBlob, 'fotos', 'foto.jpg');
-            } catch (upErr) {
-                console.warn('[PRE-CONSULTA] Supabase direct photo upload failed:', upErr);
-            }
-            if (!fotoUrl) {
-                try {
-                    fotoBase64 = await blobToBase64(fotoBlob);
-                } catch (b64Err) {
-                    console.error('[PRE-CONSULTA] Falha ao converter foto pra base64:', b64Err);
+                    console.error('[enviarAudio] base64 falhou:', b64Err);
                 }
             }
         }
 
-        // Validacao final: se nao temos audio (nem url nem base64) e nem transcricao, falhar visivelmente
+        // ═══ Upload photo ═══
+        let fotoUrl = null;
+        let fotoBase64 = null;
+        if (fotoBlob) {
+            fotoUrl = await uploadToSupabase(fotoBlob, 'fotos', 'foto.jpg');
+            if (!fotoUrl) {
+                try {
+                    fotoBase64 = await blobToBase64(fotoBlob);
+                } catch (b64Err) {
+                    console.error('[enviarAudio] foto base64 falhou:', b64Err);
+                }
+            }
+        }
+
+        // Validacao final local: precisa de AO MENOS uma evidencia de audio
         if (!transcricao && !audioUrl && !audioBase64) {
+            releaseWakeLock();
+            window._needsWakeLock = false;
             document.getElementById('loadingScreen').classList.remove('active');
             alert('Não foi possível enviar seu áudio. Verifique sua conexão e tente gravar novamente.');
             return;
         }
 
+        // ═══ Monta body e envia pro backend ═══
         const body = {
             respostas: {
                 metodo: 'audio',
@@ -1608,22 +1650,62 @@ async function enviarAudio() {
             },
             transcricao: transcricao,
         };
-        // Inclui base64 se foi fallback
         if (audioBase64) body.audioBase64 = audioBase64;
         if (fotoBase64) body.fotoBase64 = fotoBase64;
 
-        // Include patient token if logged in
         const pacienteToken = vitaeAPI.getToken();
-        if (pacienteToken) {
-            body.pacienteToken = pacienteToken;
+        if (pacienteToken) body.pacienteToken = pacienteToken;
+
+        // Chama o backend — pode lançar erro ou retornar resposta estruturada
+        let resposta;
+        try {
+            resposta = await vitaeAPI.responderPreConsulta(token, body);
+        } catch (reqErr) {
+            // apiRequest faz throw em !response.ok, inclusive 422
+            // Diferenciar 422 (audio nao chegou) dos outros erros
+            const msg = String(reqErr.message || '');
+            releaseWakeLock();
+            window._needsWakeLock = false;
+            document.getElementById('loadingScreen').classList.remove('active');
+            // Mantem IDB intacto — paciente pode tentar de novo
+            if (msg.indexOf('Audio nao chegou') !== -1 || msg.indexOf('422') !== -1) {
+                alert('O áudio não chegou ao servidor. Sua gravação foi salva no app — tente enviar de novo em alguns segundos.');
+            } else {
+                alert('Erro ao enviar: ' + msg + '\n\nSua gravação foi salva no app. Tente novamente.');
+            }
+            return;
         }
 
-        await vitaeAPI.responderPreConsulta(token, body);
+        // ═══ Servidor confirmou — valida resposta explicita ═══
+        const audioOK = resposta && resposta.audioConfirmado;
+        const transcricaoOK = resposta && resposta.transcricaoValida;
+
+        if (!audioOK && !transcricaoOK) {
+            // Backend aceitou mas nao confirmou nem audio nem transcricao: suspeito
+            releaseWakeLock();
+            window._needsWakeLock = false;
+            document.getElementById('loadingScreen').classList.remove('active');
+            alert('O servidor recebeu, mas não confirmou o áudio. Sua gravação está salva — tente reenviar.');
+            return;
+        }
+
+        // Sucesso confirmado — limpa IDB e mostra sucesso
+        try {
+            await vitaStorage.remove('audio_' + token);
+            await vitaStorage.remove('foto_' + token);
+            await vitaStorage.remove('envio_' + token);
+            await vitaStorage.remove('rec_inprogress_' + token);
+        } catch (e) {}
+
+        releaseWakeLock();
+        window._needsWakeLock = false;
         document.getElementById('loadingScreen').classList.remove('active');
         document.getElementById('successScreen').classList.add('active');
     } catch (e) {
+        releaseWakeLock();
+        window._needsWakeLock = false;
         document.getElementById('loadingScreen').classList.remove('active');
-        alert('Erro ao enviar: ' + (e.message || 'Tente novamente.'));
+        alert('Erro inesperado ao enviar: ' + (e.message || 'Tente novamente.') + '\nSua gravação foi salva no app.');
     }
 }
 

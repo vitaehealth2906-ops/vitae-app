@@ -370,6 +370,25 @@ model Agendamento {
   @@map("agendamentos")
 }
 
+// ---- TAREFAS PENDENTES (fila de processamento assincrono) ----
+model TarefaPendente {
+  id             String   @id @default(uuid())
+  tipo           String   // GERAR_SUMMARY_E_TTS, TRANSCREVER_AUDIO, etc
+  preConsultaId  String?  @map("pre_consulta_id")
+  payload        Json?
+  tentativas     Int      @default(0)
+  proximaTentativa DateTime @default(now()) @map("proxima_tentativa")
+  processadoEm   DateTime? @map("processado_em")
+  erro           String?  @db.Text
+  dead           Boolean  @default(false)
+  criadoEm       DateTime @default(now()) @map("criado_em")
+  atualizadoEm   DateTime @updatedAt @map("atualizado_em")
+
+  @@index([processadoEm, proximaTentativa])
+  @@index([tipo, processadoEm])
+  @@map("tarefas_pendentes")
+}
+
 // ---- CONSENTIMENTOS (LGPD) ----
 model Consentimento {
   id              String   @id @default(uuid())

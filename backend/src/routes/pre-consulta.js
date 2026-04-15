@@ -329,6 +329,19 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
   }
 });
 
+// Verifica se URL existe no Supabase storage fazendo HEAD request
+// Retorna true se o arquivo existe (200/2xx), false caso contrario
+async function urlExiste(url) {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const resp = await fetch(url, { method: 'HEAD' });
+    return resp.ok;
+  } catch (e) {
+    console.warn('[urlExiste] falha HEAD:', url, e.message);
+    return false;
+  }
+}
+
 router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSchema), async (req, res, next) => {
   try {
     const preConsulta = await prisma.preConsulta.findUnique({
@@ -388,99 +401,46 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
       }
     }
 
-    // If browser transcription is empty but we have audio, use Whisper
-    let finalTranscricao = transcricao;
-    const finalAudioUrlForWhisper = audioUrl || (respostas && respostas.audioUrl) || null;
-    if ((!finalTranscricao || finalTranscricao === '(áudio sem transcrição)') && finalAudioUrlForWhisper) {
-      console.log('[PRE-CONSULTA] Browser transcription empty, trying Whisper...');
-      try {
-        const whisperText = await transcreverAudio(finalAudioUrlForWhisper);
-        if (whisperText) {
-          finalTranscricao = whisperText;
-          console.log('[PRE-CONSULTA] Whisper transcription success:', whisperText.substring(0, 100));
-        }
-      } catch (whisperErr) {
-        console.error('[PRE-CONSULTA] Whisper failed:', whisperErr.message);
-      }
+    // === ETAPA 4 — Validacao HEAD das URLs antes de considerar entrega ok ===
+    // URL final do audio e foto (upload direto Supabase ou base64 via backend)
+    const finalAudioUrl = audioUrl || (respostas && respostas.audioUrl) || null;
+    const finalFotoUrl = pacienteFotoUrl || (respostas && respostas.fotoUrl) || null;
+
+    // Faz HEAD request nas URLs — se nao responderem 2xx, arquivo nao existe de verdade
+    let audioConfirmado = false;
+    let fotoConfirmada = false;
+    if (finalAudioUrl) audioConfirmado = await urlExiste(finalAudioUrl);
+    if (finalFotoUrl) fotoConfirmada = await urlExiste(finalFotoUrl);
+
+    // Tem transcricao textual como fallback valido (se browser conseguiu gerar)?
+    const transcricaoValida = transcricao && transcricao.trim().length > 5 && transcricao !== '(áudio sem transcrição)';
+
+    // REGRA: pelo menos UM entre audio confirmado OU transcricao valida precisa existir
+    // Se nao tem nem um nem outro, rejeita com 422 — cliente tem que tentar de novo
+    if (!audioConfirmado && !transcricaoValida) {
+      return res.status(422).json({
+        erro: 'Audio nao chegou',
+        detalhe: 'A gravacao de audio nao foi confirmada no servidor. Tente enviar novamente.',
+        audioConfirmado: false,
+        fotoConfirmada: fotoConfirmada,
+        transcricaoValida: false,
+      });
     }
 
-    // Capturar pacienteId se o usuario estiver logado (auth opcional)
+    // === ETAPA 4 — Capturar pacienteId se o usuario estiver logado ===
     const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
 
-    // Enriquecer "respostas" com dados do perfil/alergias/meds/exames quando o paciente esta logado
-    // Sem isso, a IA recebe um JSON vazio e gera summary pobre. Com isso, ela consegue cruzar dados.
-    let respostasEnriquecidas = respostas;
-    if (pacienteIdLogado) {
-      try {
-        const usuarioCompleto = await prisma.usuario.findUnique({
-          where: { id: pacienteIdLogado },
-          include: {
-            perfilSaude: true,
-            medicamentos: { where: { ativo: true }, select: { nome: true, dosagem: true, frequencia: true, motivo: true } },
-            alergias: { select: { nome: true, gravidade: true } },
-            exames: { orderBy: { dataExame: 'desc' }, take: 5, select: { tipoExame: true, dataExame: true, statusGeral: true } },
-          },
-        });
-        if (usuarioCompleto) {
-          const ps = usuarioCompleto.perfilSaude || {};
-          respostasEnriquecidas = Object.assign({}, respostas, {
-            // Identificacao
-            dataNascimento: ps.dataNascimento || (respostas && respostas.dataNascimento),
-            sexo: ps.genero || (respostas && respostas.sexo),
-            // Medicamentos em uso (se paciente nao preencheu no form, usa do perfil)
-            medicamentosEmUso: (respostas && respostas.medicamentosEmUso)
-              || (usuarioCompleto.medicamentos || []).map(m => `${m.nome}${m.dosagem ? ' ' + m.dosagem : ''}${m.frequencia ? ' (' + m.frequencia + ')' : ''}${m.motivo ? ' - ' + m.motivo : ''}`).join('; '),
-            // Alergias (idem)
-            alergias: (respostas && respostas.alergias)
-              || (usuarioCompleto.alergias || []).map(a => `${a.nome}${a.gravidade ? ' (' + a.gravidade + ')' : ''}`).join('; '),
-            // Condicoes cronicas (se paciente nao preencheu, usa do perfil)
-            doencasAtuais: (respostas && respostas.doencasAtuais) || ps.condicoes,
-            // Cirurgias
-            cirurgias: (respostas && respostas.cirurgias)
-              || (Array.isArray(ps.cirurgias) ? ps.cirurgias.join(', ') : ps.cirurgias),
-            // Historico familiar
-            historicoFamiliar: (respostas && respostas.historicoFamiliar)
-              || (Array.isArray(ps.historicoFamiliar) ? ps.historicoFamiliar.join(', ') : ps.historicoFamiliar),
-            // Exames recentes
-            examesRecentes: (respostas && respostas.examesRecentes)
-              || (usuarioCompleto.exames || []).map(e => `${e.tipoExame || 'Exame'}${e.dataExame ? ' em ' + new Date(e.dataExame).toLocaleDateString('pt-BR') : ''}${e.statusGeral ? ' (' + e.statusGeral + ')' : ''}`).join('; '),
-          });
-        }
-      } catch (enrichErr) {
-        console.error('[PRE-CONSULTA] Erro ao enriquecer respostas com perfil:', enrichErr.message);
-      }
-    }
-
-    // Gerar summary com IA
-    let summaryIA = null;
-    let summaryJson = null;
-    try {
-      const resultado = await gerarSummaryPreConsulta(
-        preConsulta.pacienteNome,
-        respostasEnriquecidas,
-        finalTranscricao,
-        preConsulta.templatePerguntas
-      );
-      summaryIA = resultado.summaryTexto;
-      summaryJson = resultado;
-    } catch (aiErr) {
-      console.error('[PRE-CONSULTA] Erro ao gerar summary IA:', aiErr.message);
-    }
-
+    // === ETAPA 4 — Salvar pre-consulta imediatamente (SEM gerar summary sincrono) ===
+    // Summary/Whisper/TTS saem do caminho critico e viram tarefas pendentes (Etapa 5)
     const updateData = {
       respostas,
-      transcricao: finalTranscricao || transcricao,
-      summaryIA,
-      summaryJson,
+      transcricao: transcricao || null,
       status: 'RESPONDIDA',
       respondidaEm: new Date(),
       ...(pacienteIdLogado && { pacienteId: pacienteIdLogado }),
     };
-    // Check audioUrl from base64 upload OR from respostas (Supabase direct upload)
-    const finalAudioUrl = audioUrl || (respostas && respostas.audioUrl) || null;
-    const finalFotoUrl = pacienteFotoUrl || (respostas && respostas.fotoUrl) || null;
-    if (finalAudioUrl) updateData.audioUrl = finalAudioUrl;
-    if (finalFotoUrl) updateData.pacienteFotoUrl = finalFotoUrl;
+    if (finalAudioUrl && audioConfirmado) updateData.audioUrl = finalAudioUrl;
+    if (finalFotoUrl && fotoConfirmada) updateData.pacienteFotoUrl = finalFotoUrl;
 
     const atualizada = await prisma.preConsulta.update({
       where: { id: preConsulta.id },
@@ -505,47 +465,36 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
       }
     }
 
-    // TTS: Generate ElevenLabs audio in background (fire-and-forget)
-    if (summaryJson && (summaryJson.textoVoz || summaryIA)) {
-      const textoVoz = summaryJson.textoVoz || summaryIA;
-      gerarAudioElevenLabs(textoVoz, preConsulta.pacienteNome)
-        .then(async (audioBuffer) => {
-          const ttsUrl = await storage.upload({
-            buffer: audioBuffer,
-            nomeOriginal: `tts-summary-${preConsulta.id}.mp3`,
-            mimetype: 'audio/mpeg',
-            pasta: 'tts',
-          });
-          await prisma.preConsulta.update({
-            where: { id: preConsulta.id },
-            data: { audioSummaryUrl: ttsUrl },
-          });
-          console.log('[TTS] Audio gerado e salvo:', preConsulta.id);
-        })
-        .catch(e => console.error('[TTS] Erro (nao bloqueante):', e.message));
+    // === ETAPA 5 — Enfileirar processamento assincrono (fora do caminho critico) ===
+    // Summary, Whisper, TTS vao pra fila. Worker processa em background.
+    try {
+      // Tarefa de gerar summary (inclui whisper se transcricao vazia, depois TTS)
+      await prisma.tarefaPendente.create({
+        data: {
+          tipo: 'GERAR_SUMMARY_E_TTS',
+          preConsultaId: preConsulta.id,
+          payload: {
+            temAudio: !!(finalAudioUrl && audioConfirmado),
+            transcricaoInicial: transcricao || null,
+          },
+          tentativas: 0,
+        },
+      });
+    } catch (queueErr) {
+      console.error('[FILA] Erro ao enfileirar summary:', queueErr.message);
+      // Nao falha a resposta — medico vai ver "Incompleta" e pode pedir reenvio
     }
 
-    // Notificacoes (fire-and-forget — nao bloqueia a resposta)
-    const nomeMedico = preConsulta.medico.usuario.nome;
-    const emailMedico = preConsulta.medico.usuario.email;
-    const nomePaciente = preConsulta.pacienteNome;
-    const baseUrl = process.env.FRONTEND_URL || 'https://vitaehealth2906-ops.github.io/vitae-app';
-    const linkDashboard = `${baseUrl}/20-medico-dashboard.html`;
-
-    // Email para o medico
-    if (emailMedico) {
-      enviarEmailPreConsultaRespondida(emailMedico, nomeMedico, nomePaciente, summaryIA, linkDashboard)
-        .catch(e => console.error('[EMAIL] Erro ao notificar medico:', e.message));
-    }
-
-    // SMS para o paciente (usa o telefone do formulario ou o telefone cadastrado)
-    const celularPaciente = respostas?.celular || preConsulta.pacienteTel;
-    if (celularPaciente) {
-      enviarSMSConfirmacaoPreConsulta(celularPaciente, nomePaciente, nomeMedico)
-        .catch(e => console.error('[SMS] Erro ao confirmar para paciente:', e.message));
-    }
-
-    return res.status(200).json({ preConsulta: atualizada });
+    // === ETAPA 4 — Resposta explicita ao cliente ===
+    return res.status(200).json({
+      ok: true,
+      preConsultaId: atualizada.id,
+      audioConfirmado: audioConfirmado,
+      fotoConfirmada: fotoConfirmada,
+      transcricaoValida: transcricaoValida,
+      termosRegistrados: !!pacienteIdLogado,
+      statusPosterior: 'O resumo clinico sera gerado em ate 2 minutos. O medico sera notificado.',
+    });
   } catch (err) {
     next(err);
   }
