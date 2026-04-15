@@ -397,6 +397,10 @@ const vitaeAPI = {
     return apiRequest('/medico/limpeza-antigas', { method: 'POST' });
   },
 
+  async regenerarSummaryPreConsulta(preConsultaId) {
+    return apiRequest(`/pre-consulta/${preConsultaId}/regenerar`, { method: 'POST' });
+  },
+
   async getDashboardMedico() {
     return apiRequest('/medico/dashboard');
   },

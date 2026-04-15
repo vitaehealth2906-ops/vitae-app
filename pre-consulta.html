@@ -1299,6 +1299,20 @@ function startSpeechRecognition() {
 const SUPABASE_URL = 'https://zkpilzhyrhsptoujhflz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprcGlsemh5cmhzcHRvdWpoZmx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NDI0NzcsImV4cCI6MjA4ODMxODQ3N30.Yo990kgETdBLt1oXjot-BB9fkJC6IsGmjpcAzavu54c';
 
+// Converte Blob em base64 (sem o prefixo "data:...;base64,")
+function blobToBase64(blob) {
+    return new Promise(function(resolve, reject) {
+        var r = new FileReader();
+        r.onload = function() {
+            var s = String(r.result || '');
+            var comma = s.indexOf(',');
+            resolve(comma >= 0 ? s.substring(comma + 1) : s);
+        };
+        r.onerror = reject;
+        r.readAsDataURL(blob);
+    });
+}
+
 async function uploadToSupabase(blob, folder, filename) {
     const path = `${folder}/${Date.now()}-${filename}`;
     const res = await fetch(`${SUPABASE_URL}/storage/v1/object/vitae/${path}`, {
@@ -1340,16 +1354,49 @@ async function enviarAudio() {
     }
     document.getElementById('loadingScreen').classList.add('active');
     try {
-        // Upload audio directly to Supabase
+        // Upload audio — tenta Supabase direto primeiro; se falhar, usa base64 (via backend)
         let audioUrl = null;
+        let audioBase64 = null;
         if (audioBlob) {
             const ext = (audioBlob.type || '').includes('mp4') ? 'mp4' : (audioBlob.type || '').includes('ogg') ? 'ogg' : 'webm';
-            audioUrl = await uploadToSupabase(audioBlob, 'audios', `gravacao.${ext}`);
+            try {
+                audioUrl = await uploadToSupabase(audioBlob, 'audios', `gravacao.${ext}`);
+            } catch (upErr) {
+                console.warn('[PRE-CONSULTA] Supabase direct upload failed:', upErr);
+            }
+            if (!audioUrl) {
+                // Fallback: converter pra base64 e deixar o backend subir
+                try {
+                    audioBase64 = await blobToBase64(audioBlob);
+                    console.log('[PRE-CONSULTA] Fallback base64 audio size:', audioBase64 ? audioBase64.length : 0);
+                } catch (b64Err) {
+                    console.error('[PRE-CONSULTA] Falha ao converter audio pra base64:', b64Err);
+                }
+            }
         }
-        // Upload photo directly to Supabase
+        // Upload photo — mesmo esquema
         let fotoUrl = null;
+        let fotoBase64 = null;
         if (fotoBlob) {
-            fotoUrl = await uploadToSupabase(fotoBlob, 'fotos', 'foto.jpg');
+            try {
+                fotoUrl = await uploadToSupabase(fotoBlob, 'fotos', 'foto.jpg');
+            } catch (upErr) {
+                console.warn('[PRE-CONSULTA] Supabase direct photo upload failed:', upErr);
+            }
+            if (!fotoUrl) {
+                try {
+                    fotoBase64 = await blobToBase64(fotoBlob);
+                } catch (b64Err) {
+                    console.error('[PRE-CONSULTA] Falha ao converter foto pra base64:', b64Err);
+                }
+            }
+        }
+
+        // Validacao final: se nao temos audio (nem url nem base64) e nem transcricao, falhar visivelmente
+        if (!transcricao && !audioUrl && !audioBase64) {
+            document.getElementById('loadingScreen').classList.remove('active');
+            alert('Não foi possível enviar seu áudio. Verifique sua conexão e tente gravar novamente.');
+            return;
         }
 
         const body = {
@@ -1361,6 +1408,9 @@ async function enviarAudio() {
             },
             transcricao: transcricao,
         };
+        // Inclui base64 se foi fallback
+        if (audioBase64) body.audioBase64 = audioBase64;
+        if (fotoBase64) body.fotoBase64 = fotoBase64;
 
         // Include patient token if logged in
         const pacienteToken = vitaeAPI.getToken();

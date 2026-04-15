@@ -404,13 +404,60 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
       }
     }
 
+    // Capturar pacienteId se o usuario estiver logado (auth opcional)
+    const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
+
+    // Enriquecer "respostas" com dados do perfil/alergias/meds/exames quando o paciente esta logado
+    // Sem isso, a IA recebe um JSON vazio e gera summary pobre. Com isso, ela consegue cruzar dados.
+    let respostasEnriquecidas = respostas;
+    if (pacienteIdLogado) {
+      try {
+        const usuarioCompleto = await prisma.usuario.findUnique({
+          where: { id: pacienteIdLogado },
+          include: {
+            perfilSaude: true,
+            medicamentos: { where: { ativo: true }, select: { nome: true, dosagem: true, frequencia: true, motivo: true } },
+            alergias: { select: { nome: true, gravidade: true } },
+            exames: { orderBy: { dataExame: 'desc' }, take: 5, select: { tipoExame: true, dataExame: true, statusGeral: true } },
+          },
+        });
+        if (usuarioCompleto) {
+          const ps = usuarioCompleto.perfilSaude || {};
+          respostasEnriquecidas = Object.assign({}, respostas, {
+            // Identificacao
+            dataNascimento: ps.dataNascimento || (respostas && respostas.dataNascimento),
+            sexo: ps.genero || (respostas && respostas.sexo),
+            // Medicamentos em uso (se paciente nao preencheu no form, usa do perfil)
+            medicamentosEmUso: (respostas && respostas.medicamentosEmUso)
+              || (usuarioCompleto.medicamentos || []).map(m => `${m.nome}${m.dosagem ? ' ' + m.dosagem : ''}${m.frequencia ? ' (' + m.frequencia + ')' : ''}${m.motivo ? ' - ' + m.motivo : ''}`).join('; '),
+            // Alergias (idem)
+            alergias: (respostas && respostas.alergias)
+              || (usuarioCompleto.alergias || []).map(a => `${a.nome}${a.gravidade ? ' (' + a.gravidade + ')' : ''}`).join('; '),
+            // Condicoes cronicas (se paciente nao preencheu, usa do perfil)
+            doencasAtuais: (respostas && respostas.doencasAtuais) || ps.condicoes,
+            // Cirurgias
+            cirurgias: (respostas && respostas.cirurgias)
+              || (Array.isArray(ps.cirurgias) ? ps.cirurgias.join(', ') : ps.cirurgias),
+            // Historico familiar
+            historicoFamiliar: (respostas && respostas.historicoFamiliar)
+              || (Array.isArray(ps.historicoFamiliar) ? ps.historicoFamiliar.join(', ') : ps.historicoFamiliar),
+            // Exames recentes
+            examesRecentes: (respostas && respostas.examesRecentes)
+              || (usuarioCompleto.exames || []).map(e => `${e.tipoExame || 'Exame'}${e.dataExame ? ' em ' + new Date(e.dataExame).toLocaleDateString('pt-BR') : ''}${e.statusGeral ? ' (' + e.statusGeral + ')' : ''}`).join('; '),
+          });
+        }
+      } catch (enrichErr) {
+        console.error('[PRE-CONSULTA] Erro ao enriquecer respostas com perfil:', enrichErr.message);
+      }
+    }
+
     // Gerar summary com IA
     let summaryIA = null;
     let summaryJson = null;
     try {
       const resultado = await gerarSummaryPreConsulta(
         preConsulta.pacienteNome,
-        respostas,
+        respostasEnriquecidas,
         finalTranscricao,
         preConsulta.templatePerguntas
       );
@@ -419,9 +466,6 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
     } catch (aiErr) {
       console.error('[PRE-CONSULTA] Erro ao gerar summary IA:', aiErr.message);
     }
-
-    // Capturar pacienteId se o usuario estiver logado (auth opcional)
-    const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
 
     const updateData = {
       respostas,
@@ -568,8 +612,44 @@ router.post('/:id/regenerar', verificarAuth, async (req, res, next) => {
     });
     if (!pc) return res.status(404).json({ erro: 'Pre-consulta nao encontrada' });
 
+    // Enriquecer respostas com perfil do paciente (se houver vinculo)
+    let respostasEnriq = pc.respostas || {};
+    if (pc.pacienteId) {
+      try {
+        const u = await prisma.usuario.findUnique({
+          where: { id: pc.pacienteId },
+          include: {
+            perfilSaude: true,
+            medicamentos: { where: { ativo: true }, select: { nome: true, dosagem: true, frequencia: true, motivo: true } },
+            alergias: { select: { nome: true, gravidade: true } },
+            exames: { orderBy: { dataExame: 'desc' }, take: 5, select: { tipoExame: true, dataExame: true, statusGeral: true } },
+          },
+        });
+        if (u) {
+          const ps = u.perfilSaude || {};
+          respostasEnriq = Object.assign({}, pc.respostas || {}, {
+            dataNascimento: ps.dataNascimento || (pc.respostas && pc.respostas.dataNascimento),
+            sexo: ps.genero || (pc.respostas && pc.respostas.sexo),
+            medicamentosEmUso: (pc.respostas && pc.respostas.medicamentosEmUso)
+              || (u.medicamentos || []).map(m => `${m.nome}${m.dosagem ? ' ' + m.dosagem : ''}${m.frequencia ? ' (' + m.frequencia + ')' : ''}${m.motivo ? ' - ' + m.motivo : ''}`).join('; '),
+            alergias: (pc.respostas && pc.respostas.alergias)
+              || (u.alergias || []).map(a => `${a.nome}${a.gravidade ? ' (' + a.gravidade + ')' : ''}`).join('; '),
+            doencasAtuais: (pc.respostas && pc.respostas.doencasAtuais) || ps.condicoes,
+            cirurgias: (pc.respostas && pc.respostas.cirurgias)
+              || (Array.isArray(ps.cirurgias) ? ps.cirurgias.join(', ') : ps.cirurgias),
+            historicoFamiliar: (pc.respostas && pc.respostas.historicoFamiliar)
+              || (Array.isArray(ps.historicoFamiliar) ? ps.historicoFamiliar.join(', ') : ps.historicoFamiliar),
+            examesRecentes: (pc.respostas && pc.respostas.examesRecentes)
+              || (u.exames || []).map(e => `${e.tipoExame || 'Exame'}${e.dataExame ? ' em ' + new Date(e.dataExame).toLocaleDateString('pt-BR') : ''}${e.statusGeral ? ' (' + e.statusGeral + ')' : ''}`).join('; '),
+          });
+        }
+      } catch (e) {
+        console.error('[REGEN] Erro ao enriquecer:', e.message);
+      }
+    }
+
     const resultado = await gerarSummaryPreConsulta(
-      pc.pacienteNome, pc.respostas || {}, pc.transcricao || '', pc.templatePerguntas
+      pc.pacienteNome, respostasEnriq, pc.transcricao || '', pc.templatePerguntas
     );
 
     await prisma.preConsulta.update({
