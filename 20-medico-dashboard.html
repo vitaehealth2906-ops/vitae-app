@@ -553,6 +553,7 @@
         .rg-valid{font-size:7px;font-weight:500;color:rgba(255,255,255,0.2);letter-spacing:0.05em}
         /* Pre-consulta line */
         .preconsulta-line{display:flex;align-items:center;gap:10px;margin:12px 20px 0;padding:10px 14px;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);cursor:pointer}
+        .preconsulta-incompleta{padding:3px 9px;border-radius:100px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;background:rgba(245,158,11,0.12);color:#92700C;border:1px solid rgba(245,158,11,0.25);white-space:nowrap}
         .preconsulta-line:hover{background:rgba(0,229,160,0.03)}
         .preconsulta-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
         .preconsulta-dot.ok{background:#00E5A0}
@@ -1176,6 +1177,20 @@
         }
     }
     window.toggleAccordion = toggleAccordion;
+
+    // ===== ETAPA 7 — Pedir reenvio ao paciente via WhatsApp =====
+    function pedirReenvio(tel, nome, tipoFalha) {
+        if (!tel) return alert('Paciente não tem telefone cadastrado.');
+        var msg;
+        if (tipoFalha === 'audio') {
+            msg = 'Olá ' + (nome || '') + ', notei que o áudio da sua pré-consulta não chegou completo. Pode reenviar pelo mesmo link que te mandei? Obrigado.';
+        } else {
+            msg = 'Olá ' + (nome || '') + ', sua pré-consulta chegou mas ainda está sendo processada. Se em breve ainda não tiver resposta, pode reenviar pelo mesmo link. Obrigado.';
+        }
+        var waUrl = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
+        window.open(waUrl, '_blank');
+    }
+    window.pedirReenvio = pedirReenvio;
 
     // ===== Limpeza de pre-consultas antigas (uso unico, dispara via console ou botao oculto) =====
     async function rodarLimpezaAntigas() {
@@ -2453,13 +2468,26 @@
             var dateStr = dt.toLocaleDateString('pt-BR');
             var isResp = a.status === 'RESPONDIDA';
             var hasAudio = !!a.audioUrl;
+            // ETAPA 7: pre-consulta respondida eh considerada INCOMPLETA se faltar audio ou summary
+            // (ambos deveriam chegar nas primeiras 2 min; depois disso fica suspeita)
+            var minutosDesdeResposta = a.respondidaEm ? ((Date.now() - dt.getTime()) / 60000) : 0;
+            var esperavaSummary = a.respondidaEm && minutosDesdeResposta > 3; // 3 min de graça pra fila processar
+            var semAudio = isResp && !a.audioUrl;
+            var semSummary = isResp && esperavaSummary && !a.summaryIA;
+            var incompleta = semAudio || semSummary;
+            var telPaciente = (patient.tel || '').replace(/\D/g, '');
             var onclick = isResp ? 'window.location.href=\'25-summary.html?id=' + a.id + '&from=pacientes\'' : '';
             preconsultaHtml += '<div class="preconsulta-line" ' + (onclick ? 'onclick="' + onclick + '"' : '') + '>' +
-                '<div class="preconsulta-dot ' + (isResp ? 'ok' : 'warn') + '"></div>' +
-                '<div class="preconsulta-label">Pre-consulta</div>' +
-                (hasAudio ? '<div class="preconsulta-audio"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg></div>' : '') +
+                '<div class="preconsulta-dot ' + (incompleta ? 'warn' : (isResp ? 'ok' : 'warn')) + '"></div>' +
+                '<div class="preconsulta-label">Pré-consulta</div>' +
+                (incompleta
+                    ? '<div class="preconsulta-incompleta" title="' + (semAudio ? 'Áudio não chegou' : 'Resumo ainda não foi gerado') + '">Incompleta</div>'
+                    : (hasAudio ? '<div class="preconsulta-audio"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg></div>' : '')) +
                 '<div class="preconsulta-date">' + dateStr + '</div>' +
-                '<button onclick="event.stopPropagation();apagarAnamnese(\'' + a.id + '\',\'' + (patient.nome || '').replace(/'/g,"\\'") + '\')" class="anam-delete" title="Apagar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
+                (incompleta && telPaciente
+                    ? '<button onclick="event.stopPropagation();pedirReenvio(\'' + telPaciente + '\',\'' + (patient.nome || '').replace(/\'/g,"\\'") + '\',\'' + (semAudio ? 'audio' : 'summary') + '\')" class="anam-delete" style="color:#F59E0B;" title="Pedir reenvio pelo WhatsApp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></button>'
+                    : '') +
+                '<button onclick="event.stopPropagation();apagarAnamnese(\'' + a.id + '\',\'' + (patient.nome || '').replace(/\'/g,"\\'") + '\')" class="anam-delete" title="Apagar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
                 '</div>';
         });
 

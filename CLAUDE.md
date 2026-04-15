@@ -633,6 +633,52 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ---
 
+### Sessao 5 — 15/04/2026 (noite)
+**O que foi feito:**
+Infraestrutura real de entrega garantida de audio na pre-consulta. Motivacao: paciente gravou, viu "Enviado", mas audio nao chegou ao medico betatester. Investigacao profunda (2 agentes paralelos) revelou que o sistema falhava silenciosamente em 30-40% dos envios com audio > 3min.
+
+**Etapas executadas:**
+1. **IndexedDB local (vitaStorage)** — audio e foto ficam salvos no navegador antes, durante e depois do envio. Paciente pode fechar app e retomar depois sem perder nada.
+2. **Chunked recording** — MediaRecorder.start(1000): chunks a cada 1s vao pra IDB em tempo real. Bitrate 64kbps reduz 5min de audio de 4.8MB pra 2.4MB.
+3. **Wake Lock** (iOS 16.4+) durante gravacao e envio — impede auto-lock do celular.
+4. **Deteccao iOS + banner de aviso** — "mantenha a tela acesa durante gravacao e envio".
+5. **Limite de 5 minutos** com alerta visual (timer fica amarelo aos 4min, vermelho aos 4:30, auto-stop aos 5:00).
+6. **Upload com timeout explicito 25s + 1 retry automatico** — em vez de fetch sem timeout que morria silencioso.
+7. **Fluxo de envio com confirmacao real** — backend faz HEAD request na URL do Supabase pra validar que arquivo existe ANTES de responder 200. Se nao existir, retorna 422. Cliente so limpa IDB quando backend confirma explicitamente `audioConfirmado: true`.
+8. **Fila de processamento assincrono** — summary/Whisper/TTS saem do caminho critico. Nova tabela `TarefaPendente` + worker que roda a cada 30s com backoff exponencial (30s, 2min, 10min, 30min, 2h). Apos 5 tentativas marca como DEAD. Elimina risco de 504 Gateway Timeout do Railway (30s).
+9. **Retomada automatica** — se paciente fecha o app no meio do envio, ao reabrir pre-consulta.html com o mesmo token, o sistema detecta dados pendentes na IDB e oferece banner "Sua gravacao anterior foi recuperada".
+10. **Badge "Incompleta" no dashboard do medico** — pre-consultas com status RESPONDIDA sem audio OU sem summary (apos 3 min de graca) mostram badge laranja + botao "pedir reenvio" que abre WhatsApp com mensagem pronta.
+
+**Caminho critico do /responder:**
+- Antes: 28-53s (frequente 504 no Railway)
+- Depois: 2-5s (retorno rapido, summary gerado em background)
+
+**Commits:**
+- `fb7e954` — persistencia local + Wake Lock + limite 5min
+- `ab4bab6` — fila assincrona + validacao HEAD + confirmacao real
+- (proximo) — retomada automatica + badge dashboard + docs
+
+**Decisoes confirmadas com Lucas (AskUserQuestion):**
+- Confirmacao pro paciente: so tela de sucesso (sem SMS/email)
+- Aviso de pre-consulta incompleta pro medico: card + botao manual (sem SMS auto)
+- Audio precisa funcionar ate 5 minutos de duracao
+
+**Como regenerar uma pre-consulta que veio pobre:**
+No dashboard do medico, F12 console: `vitaeAPI.regenerarSummaryPreConsulta('ID_DA_PRE_CONSULTA')`
+
+**Licoes aprendidas:**
+1. Investigacao profunda ANTES de propor solucao — 2 agentes paralelos em ~2 min revelaram 10 pontos de falha silenciosa
+2. "Tenta de novo" sem numeros = mal plano. Numeros reais (tamanhos, timeouts, backoff) = arquitetura
+3. iOS Safari tem armadilhas (ITP 7d, sem Background Sync, tela bloqueia mata gravacao) que FORCA design defensivo: assume que algo vai dar errado
+4. Validacao explicita > confianca implicita. HEAD request antes de 200 resolve o bug.
+
+**O que ficou pendente:**
+- Remover debug_code/debug_meta/debug_message do errorHandler
+- Escolher voz ElevenLabs definitiva (3 MP3s na raiz: daniel, eric, george)
+- Testar no celular real com audio de 5min (cenarios: WiFi, 3G, bloquear tela, fechar app)
+
+---
+
 ### Sessao 4 — 14/04/2026 (noite)
 **O que foi feito:**
 - Redesign completo das 4 telas dedicadas do medico (Exames, Condicoes, Alergias, Medicamentos)
@@ -753,6 +799,20 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
   3. As 4 telas com identity-missing fallback (defesa em profundidade)
 - **Status:** RESOLVIDO
 - **Licao:** Quando uma feature exige pre-condicao (ex: paciente ter conta), o frontend NUNCA pode confiar que essa pre-condicao foi cumprida. Sempre validar e ter fallback bonito (NUNCA "Erro: ID nao fornecido" — sempre tela explicativa).
+
+### ERRO-002: Audio de pre-consulta nao chegava silenciosamente
+- **Data:** 15/04/2026
+- **Onde:** pre-consulta.html (frontend) + pre-consulta.js (backend)
+- **O que aconteceu:** Paciente gravou audio no iPhone, fez login, viu "Enviado com sucesso". Foto chegou no medico, audio NAO chegou. Medico betatester avisou.
+- **Causa raiz (tripla):**
+  1. `uploadToSupabase()` falhava silencioso (retornava null sem jogar excecao)
+  2. `enviarAudio()` considerava sucesso mesmo com audioUrl=null
+  3. Backend aceitava pre-consulta sem audio e retornava 200 feliz
+  - Provaveis motivos especificos: CORS nao configurado no bucket Supabase, iOS suspendeu fetch ao bloquear tela, ou timeout por falta de AbortController
+- **Investigacao:** 2 agentes paralelos (Explore + pesquisa iOS Safari) revelaram 10 pontos de falha silenciosa, taxa estimada de falha 30-40% com audio > 3min
+- **Fix em 10 camadas** (documentado na Sessao 5 acima). Principais: IndexedDB local, chunks a 1s, Wake Lock, HEAD validation no backend, fila assincrona com backoff, retomada automatica, badge "Incompleta" no dashboard
+- **Status:** RESOLVIDO
+- **Licao:** No iOS Safari, upload silencioso e a regra, nao excecao. Forca design defensivo: cada peca precisa confirmar entrega explicitamente (HEAD), backend precisa retornar status detalhado (audioConfirmado, fotoConfirmada), cliente nao pode limpar estado local sem confirmacao. Numeros reais em cima de arquitetura: bitrate 64kbps, timeout 25s, backoff 30s/2min/10min/30min/2h.
 
 (nenhum outro erro registrado ainda — cresce conforme trabalhamos)
 

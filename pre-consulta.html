@@ -2132,7 +2132,116 @@ function showMainContent() {
         if (iosWarn) iosWarn.style.display = 'block';
     }
     setTimeout(atualizarEstadoBotao, 50);
+    // Etapa 6: checa se tem envio pendente na IDB e oferece retomada
+    setTimeout(checarPendenciasERetomar, 200);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//   ETAPA 6 — Retomada automatica de envios pendentes
+//
+//   Quando o paciente abre pre-consulta.html novamente (mesmo token),
+//   checa se tem dados salvos na IDB do envio anterior.
+//   Se tiver, mostra banner oferecendo retomar.
+// ═══════════════════════════════════════════════════════════════════
+async function checarPendenciasERetomar() {
+    if (!token) return;
+    try {
+        const [envio, audioSalvo, fotoSalva] = await Promise.all([
+            vitaStorage.get('envio_' + token),
+            vitaStorage.get('audio_' + token),
+            vitaStorage.get('foto_' + token),
+        ]);
+
+        // So retoma se tem audio salvo E tinha um envio em andamento
+        if (!audioSalvo || !audioSalvo.blob) return;
+
+        // Restaura o Blob global pra permitir reenvio
+        audioBlob = audioSalvo.blob;
+        audioUrl = URL.createObjectURL(audioBlob);
+        audioElement = new Audio(audioUrl);
+        audioElement.onended = function() { isPlaying = false; updatePlayBtn(); };
+        recordedDuration = audioSalvo.duracao || '';
+
+        if (fotoSalva && fotoSalva.blob) {
+            fotoBlob = fotoSalva.blob;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const circle = document.getElementById('photoCircle');
+                if (circle) {
+                    circle.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+                    circle.style.border = '2px solid #00E5A0';
+                }
+                const lbl = document.getElementById('photoLabel');
+                if (lbl) lbl.textContent = 'Foto recuperada!';
+                const sub = document.getElementById('photoSub');
+                if (sub) sub.textContent = 'Toque para trocar';
+            };
+            reader.readAsDataURL(fotoBlob);
+        }
+
+        // Mostra banner de retomada no topo da tela
+        mostrarBannerRetomada(!!envio);
+
+        // Mostra o review state (como se tivesse acabado de gravar)
+        showReviewState();
+        atualizarEstadoBotao();
+    } catch (e) {
+        console.warn('[retomada] erro:', e && e.message);
+    }
+}
+
+function mostrarBannerRetomada(envioEmAndamento) {
+    // Cria banner dinamicamente no topo da tela de audio
+    const painel = document.getElementById('audioPanel');
+    if (!painel) return;
+    let banner = document.getElementById('retomadaBanner');
+    if (banner) banner.remove();
+    banner = document.createElement('div');
+    banner.id = 'retomadaBanner';
+    banner.style.cssText = 'margin: 0 0 14px; padding: 12px 14px; background: rgba(0,229,160,0.08); border: 1px solid rgba(0,229,160,0.22); border-radius: 12px; font-size: 13px; color: #0D0F14; line-height: 1.45;';
+    banner.innerHTML =
+        '<div style="font-weight:700;margin-bottom:4px;">Sua gravação anterior foi recuperada</div>' +
+        '<div style="font-size:12px;color:rgba(13,15,20,0.65);">' +
+        (envioEmAndamento
+            ? 'Seu envio anterior não foi concluído. Você pode enviar de novo agora.'
+            : 'Você fechou o app antes de enviar. O áudio e a foto foram recuperados.') +
+        '</div>' +
+        '<div style="display:flex; gap:8px; margin-top:10px;">' +
+        '<button onclick="descartarRetomada()" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(0,0,0,0.07);background:#fff;font-family:inherit;font-size:12px;font-weight:600;color:#6B7280;cursor:pointer;">Descartar e gravar novo</button>' +
+        '</div>';
+    painel.insertBefore(banner, painel.firstChild);
+}
+
+async function descartarRetomada() {
+    if (!confirm('Descartar a gravação recuperada?')) return;
+    try {
+        await vitaStorage.remove('audio_' + token);
+        await vitaStorage.remove('foto_' + token);
+        await vitaStorage.remove('envio_' + token);
+        await vitaStorage.remove('rec_inprogress_' + token);
+    } catch (e) {}
+    // Reset UI
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    audioBlob = null; audioUrl = null; audioElement = null;
+    fotoBlob = null;
+    const banner = document.getElementById('retomadaBanner');
+    if (banner) banner.remove();
+    const circle = document.getElementById('photoCircle');
+    if (circle) {
+        circle.innerHTML = '<svg id="photoIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+        circle.style.border = '';
+    }
+    document.getElementById('photoLabel').textContent = 'Tire uma foto do seu rosto';
+    document.getElementById('photoSub').textContent = 'O médico precisa ver quem vai atender';
+    document.getElementById('recIdle').style.display = '';
+    document.getElementById('recReview').classList.remove('active');
+    document.getElementById('topicList').style.display = '';
+    document.getElementById('iaBox').className = 'ia-box';
+    document.getElementById('sendBtn').style.display = 'none';
+    document.getElementById('recTimer').textContent = '00:00';
+    atualizarEstadoBotao();
+}
+window.descartarRetomada = descartarRetomada;
 
 // ── Update LGPD doctor name in consent checkboxes ──
 function updateLgpdDocName(nome) {
