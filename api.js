@@ -374,6 +374,10 @@ const vitaeAPI = {
     return apiRequest(`/medico/pacientes/${pacienteId}`);
   },
 
+  async limpezaPreConsultasAntigas() {
+    return apiRequest('/medico/limpeza-antigas', { method: 'POST' });
+  },
+
   async getDashboardMedico() {
     return apiRequest('/medico/dashboard');
   },

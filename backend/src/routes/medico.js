@@ -3,6 +3,7 @@ const { z } = require('zod');
 const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
+const storage = require('../services/storage');
 
 const router = express.Router();
 
@@ -253,6 +254,70 @@ router.get('/pacientes/:pacienteId', async (req, res, next) => {
     });
 
     return res.status(200).json({ paciente, preConsultas });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /limpeza-antigas — Remove pre-consultas antigas sem vinculo (medico logado)
+// Apaga registros PreConsulta do MEDICO atual onde pacienteId IS NULL
+// e criadoEm < data de corte. Limpa arquivos do storage tambem.
+// Idempotente — pode ser chamado quantas vezes quiser.
+// ---------------------------------------------------------------------------
+
+router.post('/limpeza-antigas', async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) {
+      return res.status(403).json({ erro: 'Apenas medicos podem executar limpeza' });
+    }
+
+    // Data de corte: inicio do fluxo novo (14/04/2026 00:00 UTC)
+    const dataCorte = new Date('2026-04-14T00:00:00.000Z');
+
+    // Busca pre-consultas do medico sem pacienteId (sem vinculo real)
+    const candidatas = await prisma.preConsulta.findMany({
+      where: {
+        medicoId: medico.id,
+        pacienteId: null,
+        criadoEm: { lt: dataCorte },
+      },
+      select: {
+        id: true,
+        pacienteNome: true,
+        audioUrl: true,
+        pacienteFotoUrl: true,
+        audioSummaryUrl: true,
+      },
+    });
+
+    if (candidatas.length === 0) {
+      return res.status(200).json({ ok: true, apagadas: 0, mensagem: 'Nada a limpar.' });
+    }
+
+    // Apaga arquivos do storage (fire-and-forget, nao bloqueia)
+    const promessasStorage = candidatas.flatMap((pc) => {
+      const lista = [];
+      if (pc.audioUrl) lista.push(storage.deletar(pc.audioUrl).catch(() => {}));
+      if (pc.pacienteFotoUrl) lista.push(storage.deletar(pc.pacienteFotoUrl).catch(() => {}));
+      if (pc.audioSummaryUrl) lista.push(storage.deletar(pc.audioSummaryUrl).catch(() => {}));
+      return lista;
+    });
+    await Promise.allSettled(promessasStorage);
+
+    // Apaga os registros do banco
+    const resultado = await prisma.preConsulta.deleteMany({
+      where: {
+        id: { in: candidatas.map((c) => c.id) },
+      },
+    });
+
+    return res.status(200).json({
+      ok: true,
+      apagadas: resultado.count,
+      nomes: candidatas.map((c) => c.pacienteNome),
+    });
   } catch (err) {
     next(err);
   }
