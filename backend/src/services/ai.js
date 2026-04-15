@@ -577,6 +577,75 @@ Regras:
  * @param {string} transcricao - Transcricao do audio (se houver).
  * @returns {object} { summaryTexto, blocos, alertas }
  */
+// Tenta recuperar um JSON quebrado (cortado no meio) — comum quando maxOutputTokens
+// estoura. Faz varias tentativas em cascata: fecha strings abertas, fecha arrays/objetos,
+// e por ultimo extrai apenas os campos criticos via regex.
+function tentarRecuperarJSON(text) {
+  if (!text || typeof text !== 'string') return null;
+  let t = text.trim();
+
+  // Remove code fences se vierem
+  const fenceMatch = t.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) t = fenceMatch[1].trim();
+
+  // Tentativa 1: parse direto
+  try { return JSON.parse(t); } catch (_) {}
+
+  // Tentativa 2: fechar string aberta + fechar arrays/objetos
+  // Conta aspas nao-escapadas e fecha
+  let fixed = t;
+  // Se acaba no meio de uma string, fecha com "
+  const aspas = (fixed.match(/(?<!\\)"/g) || []).length;
+  if (aspas % 2 !== 0) fixed += '"';
+  // Fecha arrays e objetos abertos
+  const openBraces = (fixed.match(/\{/g) || []).length;
+  const closeBraces = (fixed.match(/\}/g) || []).length;
+  const openBrackets = (fixed.match(/\[/g) || []).length;
+  const closeBrackets = (fixed.match(/\]/g) || []).length;
+  for (let i = 0; i < openBrackets - closeBrackets; i++) fixed += ']';
+  for (let i = 0; i < openBraces - closeBraces; i++) fixed += '}';
+  try { return JSON.parse(fixed); } catch (_) {}
+
+  // Tentativa 3: remove ultima chave-valor incompleta (virgula final + chave sem valor)
+  //   "foo": "bar",\n  "baz": "abc  <- cortado aqui
+  // vira:
+  //   "foo": "bar"
+  try {
+    // Pega ate a ultima virgula antes do corte
+    const lastCompleteComma = fixed.lastIndexOf(',');
+    if (lastCompleteComma > 0) {
+      let truncated = fixed.substring(0, lastCompleteComma);
+      // Fecha objetos/arrays de novo
+      const ob = (truncated.match(/\{/g) || []).length;
+      const cb = (truncated.match(/\}/g) || []).length;
+      const obk = (truncated.match(/\[/g) || []).length;
+      const cbk = (truncated.match(/\]/g) || []).length;
+      for (let i = 0; i < obk - cbk; i++) truncated += ']';
+      for (let i = 0; i < ob - cb; i++) truncated += '}';
+      const result = JSON.parse(truncated);
+      if (result && typeof result === 'object') return result;
+    }
+  } catch (_) {}
+
+  // Tentativa 4: extrai campos criticos via regex
+  try {
+    const out = {};
+    const descMatch = t.match(/"descricaoBreve"\s*:\s*"((?:[^"\\]|\\.)*)/);
+    const sumMatch = t.match(/"summaryTexto"\s*:\s*"((?:[^"\\]|\\.)*)/);
+    const vozMatch = t.match(/"textoVoz"\s*:\s*"((?:[^"\\]|\\.)*)/);
+    if (descMatch) out.descricaoBreve = descMatch[1];
+    if (sumMatch) out.summaryTexto = sumMatch[1];
+    if (vozMatch) out.textoVoz = vozMatch[1];
+    if (out.summaryTexto) {
+      out.blocos = out.blocos || [];
+      out.alertas = out.alertas || [];
+      return out;
+    }
+  } catch (_) {}
+
+  return null;
+}
+
 async function gerarSummaryPreConsulta(pacienteNome, respostas, transcricao, templatePerguntas) {
   // Monta contexto estruturado com os novos campos do formulario de 11 secoes
   const r = respostas || {};
@@ -747,19 +816,40 @@ alertas:
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash',
         systemInstruction: systemPrompt,
-        generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 1500 },
+        // 4096 tokens de output — cobre JSON com textoVoz 150-180 palavras + blocos + alertas
+        // Antes era 1500 e cortava no meio, gerando JSON invalido
+        generationConfig: {
+          responseMimeType: 'application/json',
+          maxOutputTokens: 4096,
+          temperature: 0.7,
+        },
       });
 
       const result = await model.generateContent(userPrompt);
       const text = result.response.text();
-      const parsed = JSON.parse(text);
+
+      // Parse com recuperacao: se JSON veio cortado, tenta consertar
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (parseErr) {
+        console.warn('[SUMMARY-AI] JSON do Gemini veio quebrado, tentando recuperar...');
+        parsed = tentarRecuperarJSON(text);
+        if (!parsed) throw parseErr; // se nao conseguiu recuperar, joga pro fallback
+        console.log('[SUMMARY-AI] JSON recuperado com sucesso');
+      }
+
+      // Validacao minima: precisa ter summaryTexto pelo menos
+      if (!parsed.summaryTexto || parsed.summaryTexto.length < 10) {
+        throw new Error('Gemini retornou summary vazio ou muito curto');
+      }
 
       // Log if textoVoz is missing (degraded fallback alert)
       if (!parsed.textoVoz) {
         console.warn('[SUMMARY-AI] textoVoz ausente no output Gemini — TTS usara summaryTexto');
       }
 
-      console.log('[SUMMARY-AI] Gemini sucesso! Blocos:', (parsed.blocos || []).length);
+      console.log('[SUMMARY-AI] Gemini sucesso! Blocos:', (parsed.blocos || []).length, '| summary chars:', parsed.summaryTexto.length);
       return parsed;
     } catch (geminiErr) {
       console.error('[SUMMARY-AI] Gemini falhou:', geminiErr.message, '— tentando Claude...');
