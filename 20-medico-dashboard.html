@@ -572,6 +572,28 @@
         .summary-info-title{font-size:13.5px;font-weight:700;color:#0D0F14;margin-bottom:1px}
         .summary-info-sub{font-size:11.5px;color:#9CA3AF}
         .summary-info-count{font-size:12px;font-weight:700;color:#9CA3AF;min-width:20px;text-align:center}
+        /* Accordion chevron + body */
+        .summary-chevron{width:18px;height:18px;stroke:#9CA3AF;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);flex-shrink:0}
+        .summary-row.open .summary-chevron{transform:rotate(180deg);stroke:#00E5A0}
+        .accordion-body{max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1);background:rgba(0,229,160,0.015);border-bottom:1px solid rgba(0,0,0,0.07);margin:0 -16px;padding:0 16px}
+        .accordion-body.open{max-height:2000px}
+        .accordion-body:last-child{border-bottom:none}
+        .accordion-inner{padding:12px 0}
+        .accordion-item{padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.04)}
+        .accordion-item:last-child{border-bottom:none}
+        .accordion-item-title{font-size:13px;font-weight:700;color:#0D0F14;margin-bottom:2px;display:flex;align-items:center;gap:8px}
+        .accordion-item-sub{font-size:11.5px;color:#6B7280;line-height:1.5}
+        .accordion-item-meta{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9CA3AF;margin-top:4px}
+        .accordion-group-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#9CA3AF;padding:8px 0 4px}
+        .accordion-empty{font-size:12px;color:#9CA3AF;font-style:italic;padding:8px 0}
+        .severity-badge{display:inline-block;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
+        .severity-grave{background:rgba(239,68,68,0.10);color:#EF4444}
+        .severity-moderada{background:rgba(245,158,11,0.10);color:#F59E0B}
+        .severity-leve{background:rgba(0,196,122,0.10);color:#00C47A}
+        .conflict-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;background:rgba(239,68,68,0.08);color:#EF4444;font-size:10.5px;font-weight:600;margin-top:4px}
+        .conflict-badge svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2}
+        .treatment-chip{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(0,229,160,0.08);color:#00C47A;font-size:10.5px;font-weight:600;margin-left:6px}
+        .med-schedule-chip{display:inline-block;padding:2px 7px;border-radius:6px;background:rgba(0,229,160,0.08);color:#00C47A;font-size:10px;font-weight:600;margin-right:4px}
         /* Exam cards in patient view */
         .pac-exam-card{border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);border:none;padding:10px;margin:0 20px 10px;cursor:pointer;transition:transform .2s}
         .pac-exam-card:active{transform:scale(.978)}
@@ -978,6 +1000,33 @@
     }
     window.showIdentityMissingSheet = showIdentityMissingSheet;
     window.hideIdentityMissingSheet = hideIdentityMissingSheet;
+
+    // ===== Accordion inline (alergias, condicoes, medicamentos) =====
+    function toggleAccordion(targetId) {
+        var target = document.getElementById(targetId);
+        if (!target) return;
+        var row = document.getElementById('row-' + targetId.replace('acc-', ''));
+        var isOpen = target.classList.contains('open');
+
+        // Fecha todos os outros accordions
+        document.querySelectorAll('.accordion-body.open').forEach(function(el) {
+            if (el !== target) {
+                el.classList.remove('open');
+                var otherRow = document.getElementById('row-' + el.id.replace('acc-', ''));
+                if (otherRow) otherRow.classList.remove('open');
+            }
+        });
+
+        // Toggle o clicado
+        if (isOpen) {
+            target.classList.remove('open');
+            if (row) row.classList.remove('open');
+        } else {
+            target.classList.add('open');
+            if (row) row.classList.add('open');
+        }
+    }
+    window.toggleAccordion = toggleAccordion;
 
     // ===== Limpeza de pre-consultas antigas (uso unico, dispara via console ou botao oculto) =====
     async function rodarLimpezaAntigas() {
@@ -1828,24 +1877,144 @@
         var disabledStyle = temVinculo ? '' : 'opacity:0.5;cursor:not-allowed;';
         var disabledClass = temVinculo ? '' : ' clinical-row-disabled';
 
+        // Helper: gera onclick pra accordion (se nao tem vinculo, sheet; senao, toggle)
+        function accordionOnclick(targetId) {
+            if (!temVinculo) {
+                return 'event.stopPropagation();showIdentityMissingSheet(\'' + (patient.nome || '').replace(/'/g,"\\'") + '\')';
+            }
+            return 'event.stopPropagation();toggleAccordion(\'' + targetId + '\')';
+        }
+        var chevronSvg = '<svg class="summary-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
+
+        // Build accordion bodies
+        // CONDICOES: cronicas + cirurgias + historico familiar
+        var condicoesBody = '<div class="accordion-inner">';
+        var condicoesCronicas = (perfil && perfil.condicoes) ? perfil.condicoes.split(',').map(function(c){return c.trim()}).filter(Boolean) : [];
+        if (condicoesCronicas.length > 0) {
+            condicoesBody += '<div class="accordion-group-label">Condicoes cronicas</div>';
+            condicoesCronicas.forEach(function(c) {
+                // Cross-link: medicamento em uso tem motivo com esse nome?
+                var emTratamento = medicamentos.some(function(m) {
+                    return m.motivo && m.motivo.toLowerCase().indexOf(c.toLowerCase()) !== -1;
+                });
+                condicoesBody += '<div class="accordion-item"><div class="accordion-item-title">' + c +
+                    (emTratamento ? '<span class="treatment-chip">Em tratamento</span>' : '') + '</div></div>';
+            });
+        }
+        var cirurgias = (perfil && perfil.cirurgias) ? perfil.cirurgias.split(/[,;]/).map(function(c){return c.trim()}).filter(Boolean) : [];
+        if (cirurgias.length > 0) {
+            condicoesBody += '<div class="accordion-group-label" style="margin-top:8px">Cirurgias anteriores</div>';
+            cirurgias.forEach(function(c) {
+                condicoesBody += '<div class="accordion-item"><div class="accordion-item-title">' + c + '</div></div>';
+            });
+        }
+        var histFam = (perfil && perfil.historicoFamiliar) ? perfil.historicoFamiliar.split(/[,;]/).map(function(c){return c.trim()}).filter(Boolean) : [];
+        if (histFam.length > 0) {
+            condicoesBody += '<div class="accordion-group-label" style="margin-top:8px">Historico familiar</div>';
+            histFam.forEach(function(c) {
+                condicoesBody += '<div class="accordion-item"><div class="accordion-item-sub">' + c + '</div></div>';
+            });
+        }
+        if (condicoesCronicas.length === 0 && cirurgias.length === 0 && histFam.length === 0) {
+            condicoesBody += '<div class="accordion-empty">Nenhuma condicao registrada pelo paciente.</div>';
+        }
+        condicoesBody += '</div>';
+
+        // ALERGIAS: agrupadas por gravidade + conflito com medicamentos
+        var alergiasBody = '<div class="accordion-inner">';
+        if (alergiasList.length > 0) {
+            var gravidadeOrder = ['GRAVE', 'MODERADA', 'LEVE'];
+            gravidadeOrder.forEach(function(grav) {
+                var grupo = alergiasList.filter(function(a){return (a.gravidade || 'MODERADA').toUpperCase() === grav});
+                if (grupo.length === 0) return;
+                var gravLower = grav.toLowerCase();
+                alergiasBody += '<div class="accordion-group-label" style="margin-top:' + (grav === 'GRAVE' ? '0' : '8px') + '">' + grav.charAt(0) + grav.slice(1).toLowerCase() + ' (' + grupo.length + ')</div>';
+                grupo.forEach(function(a) {
+                    // Cross-match: medicamento em uso com nome igual a alergia?
+                    var conflitos = medicamentos.filter(function(m) {
+                        return m.nome && a.nome && m.nome.toLowerCase().indexOf(a.nome.toLowerCase()) !== -1;
+                    });
+                    alergiasBody += '<div class="accordion-item">' +
+                        '<div class="accordion-item-title">' + a.nome +
+                        ' <span class="severity-badge severity-' + gravLower + '">' + grav + '</span></div>';
+                    if (a.tipo) alergiasBody += '<div class="accordion-item-sub">Tipo: ' + a.tipo + '</div>';
+                    conflitos.forEach(function(c) {
+                        alergiasBody += '<div class="conflict-badge"><svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>Presente em ' + c.nome + '</div>';
+                    });
+                    alergiasBody += '</div>';
+                });
+            });
+        } else {
+            alergiasBody += '<div class="accordion-empty">Nenhuma alergia registrada. Ausencia de registro nao significa ausencia de alergia.</div>';
+        }
+        alergiasBody += '</div>';
+
+        // MEDICAMENTOS: em uso + descontinuados
+        var medsBody = '<div class="accordion-inner">';
+        var medsAtivos = medicamentos.filter(function(m){return m.ativo !== false});
+        var medsInativos = medicamentos.filter(function(m){return m.ativo === false});
+        if (medsAtivos.length > 0) {
+            medsAtivos.forEach(function(m) {
+                var conflitosAlerg = alergiasList.filter(function(a) {
+                    return m.nome && a.nome && m.nome.toLowerCase().indexOf(a.nome.toLowerCase()) !== -1;
+                });
+                medsBody += '<div class="accordion-item">' +
+                    '<div class="accordion-item-title">' + m.nome +
+                    (m.dosagem ? ' <span style="font-weight:500;color:#6B7280">' + m.dosagem + '</span>' : '') + '</div>';
+                var metaParts = [];
+                if (m.frequencia) metaParts.push(m.frequencia);
+                if (m.horario) {
+                    var horarios = m.horario.split(/[,;]/).map(function(h){return h.trim()}).filter(Boolean);
+                    if (horarios.length > 0) metaParts.push(horarios.map(function(h){return '<span class="med-schedule-chip">' + h + '</span>'}).join(''));
+                }
+                if (metaParts.length > 0) medsBody += '<div class="accordion-item-sub" style="margin-top:4px">' + metaParts.join(' | ') + '</div>';
+                if (m.motivo) medsBody += '<div class="accordion-item-sub" style="margin-top:2px">Para: ' + m.motivo + '</div>';
+                if (m.medicoPrescritor) medsBody += '<div class="accordion-item-sub" style="margin-top:2px">Prescrito por: ' + m.medicoPrescritor + '</div>';
+                conflitosAlerg.forEach(function(a) {
+                    medsBody += '<div class="conflict-badge"><svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>Paciente tem alergia a ' + a.nome + '</div>';
+                });
+                medsBody += '</div>';
+            });
+        }
+        if (medsInativos.length > 0) {
+            medsBody += '<div class="accordion-group-label" style="margin-top:8px">Descontinuados</div>';
+            medsInativos.forEach(function(m) {
+                medsBody += '<div class="accordion-item" style="opacity:0.6">' +
+                    '<div class="accordion-item-title">' + m.nome + '</div>' +
+                    (m.dosagem ? '<div class="accordion-item-sub">' + m.dosagem + '</div>' : '') +
+                    '</div>';
+            });
+        }
+        if (medicamentos.length === 0) {
+            medsBody += '<div class="accordion-empty">Nenhum medicamento registrado pelo paciente.</div>';
+        }
+        medsBody += '</div>';
+
         var summaryHtml = '<div class="summary-featured"><div class="grad-bar"></div><div class="summary-featured-content">' +
             (temVinculo ? '' : '<div class="sem-vinculo-banner"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Sem v\u00ednculo</span></div>') +
+            // EXAMES — mantem navegacao (vai pra tela cheia)
             '<div class="summary-row' + disabledClass + '" style="cursor:pointer;' + disabledStyle + '" onclick="' + buildClinicalLink('11-exames-lista') + '">' +
             '<div class="summary-icon"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg></div>' +
             '<div class="summary-info"><div class="summary-info-title">Exames</div><div class="summary-info-sub">' + (examesList.length > 0 ? 'Ultimo: ' + (examesList[0].tipoExame || examesList[0].nomeArquivo || 'Exame') : 'Nenhum') + '</div></div>' +
             '<div class="summary-info-count">' + examesList.length + '</div></div>' +
-            '<div class="summary-row' + disabledClass + '" style="cursor:pointer;' + disabledStyle + '" onclick="' + buildClinicalLink('medico-condicoes') + '">' +
+            // CONDICOES — accordion inline
+            '<div class="summary-row' + disabledClass + '" id="row-condicoes" style="cursor:pointer;' + disabledStyle + '" onclick="' + accordionOnclick('acc-condicoes') + '">' +
             '<div class="summary-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>' +
             '<div class="summary-info"><div class="summary-info-title">Condicoes</div><div class="summary-info-sub">' + condicoesText + '</div></div>' +
-            '</div>' +
-            '<div class="summary-row' + disabledClass + '" style="cursor:pointer;' + disabledStyle + '" onclick="' + buildClinicalLink('medico-alergias') + '">' +
+            chevronSvg + '</div>' +
+            '<div class="accordion-body" id="acc-condicoes">' + condicoesBody + '</div>' +
+            // ALERGIAS — accordion inline
+            '<div class="summary-row' + disabledClass + '" id="row-alergias" style="cursor:pointer;' + disabledStyle + '" onclick="' + accordionOnclick('acc-alergias') + '">' +
             '<div class="summary-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>' +
             '<div class="summary-info"><div class="summary-info-title">Alergias</div><div class="summary-info-sub">' + alergNames + '</div></div>' +
-            '<div class="summary-info-count">' + alergiasList.length + '</div></div>' +
-            '<div class="summary-row' + disabledClass + '" style="cursor:pointer;' + disabledStyle + '" onclick="' + buildClinicalLink('medico-medicamentos') + '">' +
+            '<div class="summary-info-count">' + alergiasList.length + '</div>' + chevronSvg + '</div>' +
+            '<div class="accordion-body" id="acc-alergias">' + alergiasBody + '</div>' +
+            // MEDICAMENTOS — accordion inline
+            '<div class="summary-row' + disabledClass + '" id="row-medicamentos" style="cursor:pointer;' + disabledStyle + '" onclick="' + accordionOnclick('acc-medicamentos') + '">' +
             '<div class="summary-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></div>' +
             '<div class="summary-info"><div class="summary-info-title">Medicamentos em uso</div><div class="summary-info-sub">' + medNames + '</div></div>' +
-            '<div class="summary-info-count">' + medicamentos.length + '</div></div>' +
+            '<div class="summary-info-count">' + medicamentos.length + '</div>' + chevronSvg + '</div>' +
+            '<div class="accordion-body" id="acc-medicamentos">' + medsBody + '</div>' +
             '</div></div>';
 
         // 3. Pre-consulta lines
