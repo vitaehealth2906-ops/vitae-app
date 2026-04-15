@@ -401,6 +401,10 @@ const vitaeAPI = {
     return apiRequest(`/pre-consulta/${preConsultaId}/regenerar`, { method: 'POST' });
   },
 
+  async diagnosticoPreConsulta() {
+    return apiRequest('/medico/diagnostico-pre-consulta');
+  },
+
   async getDashboardMedico() {
     return apiRequest('/medico/dashboard');
   },

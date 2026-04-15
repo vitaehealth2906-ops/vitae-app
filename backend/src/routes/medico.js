@@ -335,4 +335,66 @@ router.post('/limpeza-antigas', async (req, res, next) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /diagnostico-pre-consulta — Lista as ultimas pre-consultas do medico
+// com info detalhada (audioUrl, fotoUrl, transcricao, tamanho do summary,
+// respostas) para diagnosticar problemas de entrega.
+// Temporario — remover quando tudo estiver estavel.
+// ---------------------------------------------------------------------------
+
+router.get('/diagnostico-pre-consulta', async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) return res.status(403).json({ erro: 'Apenas medicos' });
+
+    const preConsultas = await prisma.preConsulta.findMany({
+      where: { medicoId: medico.id },
+      orderBy: { criadoEm: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        pacienteNome: true,
+        pacienteId: true,
+        status: true,
+        respondidaEm: true,
+        criadoEm: true,
+        audioUrl: true,
+        pacienteFotoUrl: true,
+        audioSummaryUrl: true,
+        transcricao: true,
+        summaryIA: true,
+        respostas: true,
+      },
+    });
+
+    const diagnostico = preConsultas.map((pc) => {
+      const respostasKeys = pc.respostas && typeof pc.respostas === 'object' ? Object.keys(pc.respostas) : [];
+      return {
+        id: pc.id,
+        paciente: pc.pacienteNome,
+        temVinculo: !!pc.pacienteId,
+        status: pc.status,
+        respondidaEm: pc.respondidaEm,
+        criadoEm: pc.criadoEm,
+        audioChegou: !!pc.audioUrl,
+        audioUrl: pc.audioUrl,
+        fotoChegou: !!pc.pacienteFotoUrl,
+        fotoUrl: pc.pacienteFotoUrl,
+        ttsGerado: !!pc.audioSummaryUrl,
+        transcricaoChegou: !!(pc.transcricao && pc.transcricao.length > 5 && pc.transcricao !== '(áudio sem transcrição)'),
+        transcricaoTamanho: pc.transcricao ? pc.transcricao.length : 0,
+        transcricaoPreview: pc.transcricao ? String(pc.transcricao).substring(0, 100) : null,
+        summaryGerado: !!(pc.summaryIA && pc.summaryIA.length > 20),
+        summaryTamanho: pc.summaryIA ? pc.summaryIA.length : 0,
+        respostasCampos: respostasKeys,
+        metodoResposta: pc.respostas && pc.respostas.metodo,
+      };
+    });
+
+    return res.status(200).json({ total: diagnostico.length, preConsultas: diagnostico });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
