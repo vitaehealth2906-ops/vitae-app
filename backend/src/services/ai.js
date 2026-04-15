@@ -646,63 +646,99 @@ async function gerarSummaryPreConsulta(pacienteNome, respostas, transcricao, tem
   if (r.sexo) identificacao.push(`Sexo: ${r.sexo}`);
   if (r.estadoCivil) identificacao.push(`Estado civil: ${r.estadoCivil}`);
 
-  const userPrompt = `Analise e INTERPRETE clinicamente os dados da pre-consulta do paciente ${pacienteNome}. Seu papel NAO e reorganizar dados — e CONECTAR PONTOS que o medico levaria minutos lendo um prontuario para perceber.
+  const userPrompt = `Voce recebeu dados de pre-consulta do paciente ${pacienteNome}. Interprete clinicamente — conecte pontos que o medico levaria minutos lendo um prontuario para perceber.
 
-${identificacao.length > 0 ? `Identificação: ${identificacao.join(' | ')}` : ''}
+${identificacao.length > 0 ? `Identificacao: ${identificacao.join(' | ')}` : ''}
 
-Dados clínicos:
+Dados clinicos:
 ${dadosPaciente}
 ${templateContext}
-${transcricao ? `Transcrição do paciente:\n"${transcricao}"` : ''}
+${transcricao ? `Transcricao do paciente:\n"${transcricao}"` : ''}
 
-ANTES de gerar o JSON, faca esta analise mental (nao inclua no output):
-1. Cruzar medicamentos × alergias documentadas (ex: paciente toma Dipirona mas tem alergia = URGENTE)
-2. Cruzar sintomas × medicamentos em uso (ex: prurido + novo medicamento = possivel reacao?)
-3. Cruzar historico de doencas × queixa atual (ex: diabetes + lesoes cutaneas = investigar controle glicemico)
+ANALISE MENTAL OBRIGATORIA (nao inclua no output):
+1. Cruzar medicamentos × alergias documentadas — USE APENAS NOMES EXATOS que o paciente forneceu. Se um medicamento usa nome comercial (ex: Novalgina) e a alergia usa principio ativo (ex: Dipirona), NAO cruze — melhor deixar pro medico verificar. Alertar errado destroi confianca mais que nao alertar.
+2. Cruzar sintomas × medicamentos em uso (ex: prurido + medicamento recente = possivel reacao?)
+3. Cruzar historico de doencas × queixa atual (ex: diabetes + lesoes cutaneas = avaliar controle glicemico)
 4. Identificar padroes temporais (ex: sintomas ha X dias + evento recente = possivel correlacao)
-5. Identificar omissoes relevantes (ex: paciente nao mencionou se parou/iniciou medicamento recentemente)
-6. Cruzar habitos × queixa (ex: tabagismo + tosse, alcool + dor abdominal, sono ruim + fadiga)
-7. Cruzar historico familiar × queixa (ex: historico de cancer + nodulo)
+5. Cruzar habitos × queixa (ex: tabagismo + tosse, alcool + dor abdominal, sono ruim + fadiga)
+6. Cruzar historico familiar × queixa (ex: historico familiar de cancer + nodulo)
 
-Retorne EXCLUSIVAMENTE um JSON válido:
+Retorne EXCLUSIVAMENTE um JSON valido:
 {
-  "descricaoBreve": "string (1-2 frases SIMPLES, linguagem leiga. Foco no motivo da consulta. Ex: 'Paciente de 19 anos com coceira e manchas vermelhas pelo corpo ha 3 dias')",
-  "summaryTexto": "string (3-5 frases clinicas INTERPRETATIVAS — nao liste dados, CONECTE-OS. Ex: 'Chama atencao a associacao entre o quadro dermatologico agudo e o historico de Diabetes Mellitus, que pode indicar...')",
-  "textoVoz": "string (BRIEFING MEDICO de ~150-180 palavras para narração de ~1 minuto. Tom: colega medico adiantando o caso antes de entrar na sala. Estrutura obrigatoria: 1) Abertura direta 'Doutor(a), antes de entrar — resumo rapido.' 2) Quem e o paciente e o que sente (20s) 3) Pontos de atencao — cruzamentos e correlacoes que voce identificou (25s) 4) Alertas de seguranca — alergias, conflitos medicamentosos (10s) 5) Fechamento 'Sugiro atencao em X e Y. Boa consulta.' NUNCA transcreva perguntas e respostas do formulario. INTERPRETE. NUNCA diga 'O paciente respondeu que...' ou 'No formulario consta...'. Fale como medico.)",
-  "blocos": [
-    {
-      "titulo": "string (ex: 'Queixa Principal', 'Medicamentos em Uso', 'Alergias e Reacoes', 'Historico Relevante', 'Habitos de Vida', 'Historico Familiar', 'Acessibilidade')",
-      "conteudo": "string (resumo OBJETIVO deste bloco — aqui pode ser factual, servira como referencia durante a consulta)",
-      "prioridade": "string ('alta', 'media', 'baixa')"
-    }
-  ],
-  "alertas": [
-    {
-      "tipo": "string ('URGENTE' = risco real como conflito medicamento×alergia | 'ATENCAO' = correlacao clinica que merece investigacao | 'INFO' = contexto util)",
-      "titulo": "string (acao curta: 'Evitar prescricao de Dipirona', 'Investigar controle glicemico', 'Paciente cadeirante')",
-      "mensagem": "string (explicacao clinica objetiva em 1-2 frases)"
-    }
-  ]
+  "descricaoBreve": "1-2 frases SIMPLES, linguagem leiga",
+  "summaryTexto": "3-5 frases clinicas INTERPRETATIVAS que CONECTAM dados entre si",
+  "textoVoz": "BRIEFING MEDICO de 150-180 palavras (~1 minuto de narracao)",
+  "blocos": [{ "titulo": "string", "conteudo": "string", "prioridade": "alta|media|baixa" }],
+  "alertas": [{ "tipo": "URGENTE|ATENCAO|INFO", "titulo": "string", "mensagem": "string" }]
 }
 
-Regras ABSOLUTAS:
-- NUNCA diagnosticar. Nunca dizer "o paciente tem X" ou "isso indica Y doenca".
-- NUNCA recomendar tratamento. Nunca dizer "receite X" ou "considere prescrever Y".
-- SEMPRE interpretar. Dizer "chama atencao a combinacao de X com Y" ou "vale investigar a relacao entre X e Y".
-- descricaoBreve: linguagem SIMPLES, leiga, como explicaria para o proprio paciente.
-- summaryTexto: CLINICO e INTERPRETATIVO. Conecte dados, nao os liste.
-- textoVoz: TOM DE COLEGA MEDICO. Natural, fluido, como briefing antes de entrar na sala. NUNCA soe robotico ou como leitura de formulario.
-- blocos: 3-6 blocos. Estes servem como FICHA DE REFERENCIA durante a consulta — podem ser factuais.
-- alertas: SOMENTE quando houver cruzamento real (medicamento×alergia, doenca×sintoma, habito×queixa). Cada alerta DEVE ter titulo curto de acao + mensagem explicativa. NAO gere alertas genericos.
-- NAO inclua campo perguntasSugeridas.
-- Use linguagem tecnica no summaryTexto e blocos. textoVoz deve ser conversacional.`;
+═══ REGRAS DO textoVoz (MAIS IMPORTANTE — vira audio de 1 minuto) ═══
 
-  const systemPrompt = 'Voce e um interpretador clinico da plataforma VITAE. Seu papel e INTERPRETAR — nao reorganizar — dados de pre-consulta. ' +
-    'Voce pensa como um medico experiente analisando um caso: cruza medicamentos com alergias, sintomas com historico, habitos com queixa. ' +
+ESTRUTURA OBRIGATORIA (4 blocos, nesta ordem):
+1. ABERTURA (~15 palavras): Contextualize de forma natural, variando o formato. Ex: "Doutor, antes de entrar — proximo paciente: Joao, 52 anos." ou "Antes de entrar, Doutora: Joao, 52 anos, veio por..." VARIE — nao repita frase identica toda vez.
+2. IDENTIFICACAO + QUEIXA (~45 palavras): Quem e, o que sente, ha quanto tempo. Usar "relata", "refere", "informa". NUNCA "tem", "possui", "sofre de".
+3. INTERPRETACAO (MAXIMO 80 palavras): Cruzamentos e correlacoes entre dados. Este e o bloco mais valioso. Usar "chama atencao", "destaca-se", "merece avaliacao", "vale considerar". NUNCA "recomendo", "sugiro prescrever". Se nao ha cruzamento real, este bloco pode ter apenas 1-2 frases ou ser omitido — melhor briefing curto e preciso que longo e inventado.
+4. SEGURANCA + FECHAMENTO (~30 palavras): Alergias documentadas + conflitos. Depois: uma frase objetiva com o ponto principal de atencao. Ex: "Sugiro atencao no controle glicemico." Pode encerrar sem pleonasmos tipo "Boa consulta" — melhor fechar com a observacao clinica.
+
+LIMITE TOTAL: 150-180 palavras. Com dados escassos, pode ter 100-130 palavras — e preferivel que encher com generalidades.
+
+LINGUAGEM SEGURA (obrigatorio):
+- USAR: "relata", "refere", "informa", "ha registro de", "chama atencao", "destaca-se", "merece avaliacao", "vale considerar a relacao entre"
+- PROIBIDO: "tem", "possui", "sofre de" (parece diagnostico)
+- PROIBIDO: "recomendo", "sugiro prescrever", "considere receitar" (parece prescricao)
+- PROIBIDO: "O paciente respondeu que", "No formulario consta", "De acordo com as respostas" (leitura de formulario)
+- PROIBIDO: "inteligencia artificial", "algoritmo", "sistema identificou" (mencao a IA)
+- PROIBIDO: "possivel", "provavel", "suspeita de" para condicoes NAO mencionadas pelo paciente
+
+ANTI-ALUCINACAO (critico — erro aqui destroi confianca):
+- Use EXCLUSIVAMENTE dados presentes nas respostas do paciente
+- Se um campo esta vazio, NAO mencione. NUNCA diga "nao informou" ou "sem registro de"
+- NAO invente dosagem, frequencia ou qualquer detalhe ausente nos dados
+- Se nao ha cruzamento real entre dados, NAO force. Melhor briefing curto e preciso que longo e inventado
+- NUNCA atribua sintomas, condicoes ou habitos que o paciente nao relatou
+- Se o dado existe mas e vago (ex: paciente escreveu "tomo um remedinho pra pressao" sem nome), cite-o EXATAMENTE como o paciente descreveu — NUNCA complete com nome, dosagem, ou classe farmacologica que o paciente nao mencionou
+- NUNCA use "possivel", "provavel", "suspeita de" em qualquer contexto clinico — use "ha registro de", "relata", "refere" mesmo para condicoes mencionadas pelo paciente
+
+═══ REGRAS DOS OUTROS CAMPOS ═══
+
+descricaoBreve:
+- Linguagem SIMPLES, leiga, como explicaria para o proprio paciente
+- Foco no motivo da consulta e sintoma principal
+- Ex: "Paciente de 19 anos com coceira generalizada pelo corpo ha 7 dias"
+
+summaryTexto:
+- CLINICO e INTERPRETATIVO — conecte dados, nao os liste
+- Use linguagem tecnica
+- 3-5 frases que mostram correlacoes entre os dados
+
+blocos (3-6):
+- Servem como FICHA DE REFERENCIA durante a consulta — podem ser factuais
+- Titulos possiveis: "Queixa Principal", "Medicamentos em Uso", "Alergias e Reacoes", "Historico Relevante", "Habitos de Vida", "Historico Familiar", "Acessibilidade"
+- conteudo: resumo objetivo do bloco
+- So inclua blocos para dados que EXISTEM — nao crie bloco vazio
+
+alertas:
+- URGENTE: SOMENTE para conflito medicamento × alergia documentada (risco real de seguranca)
+- ATENCAO: correlacao clinica real entre dados que o paciente forneceu
+- INFO: contexto factual util (ex: "Paciente cadeirante")
+- Cada alerta tem "titulo" (acao curta: "Evitar Dipirona") + "mensagem" (explicacao em 1-2 frases)
+- NAO gere alertas genericos como "Acompanhar evolucao" ou "Manter monitoramento"
+- Se nao ha cruzamento real, NAO gere alertas — e melhor zero alertas que um alerta falso`;
+
+  const systemPrompt = 'Voce e um interpretador clinico da plataforma VITAE, construido para adiantar contexto para medicos antes da consulta. ' +
+    'Seu papel e INTERPRETAR — nunca reorganizar, nunca diagnosticar, nunca prescrever. ' +
+    'Voce pensa como medico experiente: cruza medicamentos com alergias, sintomas com historico, habitos com queixa, padroes temporais, historico familiar. ' +
     'Identifica correlacoes que o medico levaria minutos para perceber sozinho lendo um prontuario. ' +
-    'Use linguagem tecnica nos blocos e resumo. O textoVoz deve soar como um colega medico adiantando o caso antes da consulta — natural e fluido, NUNCA como leitura de formulario. ' +
-    'REGRAS ABSOLUTAS: NAO diagnostique. NAO recomende tratamento. APENAS interprete, conecte pontos e sinalize o que merece atencao. ' +
-    'Respeite LGPD: nao exponha dados pessoais alem do necessario clinicamente.';
+    '\n\nREGRAS ABSOLUTAS DE SEGURANCA JURIDICA E CLINICA:\n' +
+    '1. PROIBIDO diagnosticar: nunca "o paciente tem X", "isso indica Y", "suspeita de Z" para condicoes nao relatadas.\n' +
+    '2. PROIBIDO prescrever: nunca "recomendo", "sugiro prescrever", "considere receitar", "deve tomar".\n' +
+    '3. PROIBIDO ler formulario: nunca "o paciente respondeu que", "no formulario consta", "de acordo com as respostas".\n' +
+    '4. PROIBIDO mencionar IA: nunca "inteligencia artificial", "algoritmo", "o sistema identificou".\n' +
+    '5. PROIBIDO inventar dados: use EXCLUSIVAMENTE o que o paciente relatou. Se um campo esta vazio, nao mencione — nunca diga "nao informou".\n' +
+    '6. USE linguagem interpretativa segura: "relata", "refere", "informa", "ha registro de", "chama atencao", "destaca-se", "merece avaliacao", "vale considerar".\n' +
+    '7. LGPD: nao exponha dados pessoais alem do estritamente necessario clinicamente.\n' +
+    '\nO textoVoz vira audio de 1 minuto narrado por voz masculina profissional. Deve soar como colega medico adiantando o caso antes da consulta — natural, fluido, objetivo. Nunca robotico, nunca burocratico, nunca amador. ' +
+    'Melhor um briefing curto e preciso do que longo e inventado. Confianca do medico e tudo — um erro destroi a relacao.';
 
   // TRY GEMINI FIRST (free), fallback to Claude
   if (genAI) {
@@ -710,13 +746,19 @@ Regras ABSOLUTAS:
       console.log('[SUMMARY-AI] Tentando Gemini 2.5 Flash (gratuito)...');
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash',
-        generationConfig: { responseMimeType: 'application/json' },
+        systemInstruction: systemPrompt,
+        generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 1500 },
       });
 
-      const geminiPrompt = systemPrompt + '\n\n' + userPrompt;
-      const result = await model.generateContent(geminiPrompt);
+      const result = await model.generateContent(userPrompt);
       const text = result.response.text();
       const parsed = JSON.parse(text);
+
+      // Log if textoVoz is missing (degraded fallback alert)
+      if (!parsed.textoVoz) {
+        console.warn('[SUMMARY-AI] textoVoz ausente no output Gemini — TTS usara summaryTexto');
+      }
+
       console.log('[SUMMARY-AI] Gemini sucesso! Blocos:', (parsed.blocos || []).length);
       return parsed;
     } catch (geminiErr) {
