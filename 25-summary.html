@@ -139,6 +139,92 @@
         .audio-player.idle { animation: glowPulse 3s ease-in-out infinite; }
         .audio-player.playing { animation: none; }
 
+        /* Chip identificador acima do player — aparece antes de tocar */
+        .patient-chip {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 12px;
+            margin: 0 20px 10px;
+            background: rgba(0,229,160,0.08);
+            border: 1px solid rgba(0,229,160,0.18);
+            border-radius: 100px;
+            font-size: 12px; font-weight: 600;
+            color: var(--v-green2);
+            width: fit-content;
+            max-width: calc(100% - 40px);
+            letter-spacing: 0.1px;
+        }
+        .patient-chip svg { width: 12px; height: 12px; stroke: var(--v-green2); fill: none; stroke-width: 2.5; flex-shrink: 0; }
+        .patient-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* Skip buttons +/-5s */
+        .audio-skip-btn {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.12);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0;
+            transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+            position: relative;
+        }
+        .audio-skip-btn:hover { border-color: rgba(0,229,160,0.4); background: rgba(0,229,160,0.06); }
+        .audio-skip-btn:active { transform: scale(0.9); }
+        .audio-skip-btn svg { width: 16px; height: 16px; fill: none; stroke: rgba(255,255,255,0.7); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .audio-skip-btn.flash svg { stroke: var(--v-green); }
+        .audio-skip-btn.flash { border-color: rgba(0,229,160,0.6); }
+
+        /* Transcricao toggle (link discreto) */
+        .transcricao-toggle {
+            display: flex; align-items: center; justify-content: center;
+            gap: 6px;
+            margin: -8px 20px 12px;
+            padding: 8px 14px;
+            font-size: 12px; font-weight: 600;
+            color: var(--v-ink3);
+            cursor: pointer;
+            transition: color 0.15s;
+            user-select: none;
+        }
+        .transcricao-toggle:hover { color: var(--v-green2); }
+        .transcricao-toggle svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; transition: transform 0.2s; }
+        .transcricao-toggle.open svg { transform: rotate(180deg); }
+
+        /* Caixa da transcricao karaoke */
+        .transcricao-box {
+            max-height: 0;
+            overflow: hidden;
+            margin: 0 20px 20px;
+            background: #0D0F14;
+            border-radius: 14px;
+            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .transcricao-box.open {
+            max-height: 360px;
+            overflow-y: auto;
+        }
+        .transcricao-inner {
+            padding: 16px 18px;
+            font-size: 14px; line-height: 1.7;
+            color: rgba(255,255,255,0.3);
+            font-weight: 500;
+        }
+        .transcricao-word {
+            transition: color 0.2s ease;
+            color: rgba(255,255,255,0.3);
+        }
+        .transcricao-word.spoken {
+            color: rgba(255,255,255,0.55);
+        }
+        .transcricao-word.current {
+            color: #fff;
+            font-weight: 600;
+        }
+        .transcricao-word.clickable { cursor: pointer; }
+        .transcricao-word.clickable:hover { color: var(--v-green); }
+        /* Scroll bonito no dark mode */
+        .transcricao-box::-webkit-scrollbar { width: 3px; }
+        .transcricao-box::-webkit-scrollbar-track { background: transparent; }
+        .transcricao-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
         /* ── Pontos de Atencao (redesigned alerts) ── */
         .insight-card {
             display: flex; gap: 12px;
@@ -494,6 +580,8 @@ function playAudioUrl(url) {
         if (timer && ttsAudio.duration) {
             timer.textContent = formatTime(ttsAudio.currentTime) + ' / ' + formatTime(ttsAudio.duration);
         }
+        // Karaoke sync — atualiza palavra destacada
+        atualizarKaraoke(ttsAudio.currentTime);
     };
 
     ttsAudio.onended = function() {
@@ -505,6 +593,10 @@ function playAudioUrl(url) {
         drawIdleWaveform();
         var fill = document.getElementById('progressFill');
         if (fill) fill.style.width = '0%';
+        // Reset karaoke: marca tudo como spoken
+        window._lastKaraokeIdx = null;
+        var spans = document.querySelectorAll('.transcricao-word');
+        spans.forEach(function(s) { s.classList.remove('current'); s.classList.add('spoken'); });
     };
 }
 
@@ -514,6 +606,97 @@ function seekAudio(e) {
     var rect = wrap.getBoundingClientRect();
     var pct = (e.clientX - rect.left) / rect.width;
     ttsAudio.currentTime = pct * ttsAudio.duration;
+}
+
+// +5s / -5s com flash visual
+function skipAudio(delta) {
+    if (!ttsAudio) return;
+    var novo = Math.max(0, Math.min((ttsAudio.duration || 0), (ttsAudio.currentTime || 0) + delta));
+    ttsAudio.currentTime = novo;
+    // Flash visual no botao clicado
+    var btn = delta > 0 ? document.getElementById('skipFwd5') : document.getElementById('skipBack5');
+    if (btn) {
+        btn.classList.add('flash');
+        setTimeout(function() { btn.classList.remove('flash'); }, 200);
+    }
+}
+
+// Toggle da caixa de transcricao
+function toggleTranscricao() {
+    var t = document.getElementById('transcricaoToggle');
+    var box = document.getElementById('transcricaoBox');
+    var lbl = document.getElementById('transcricaoToggleLabel');
+    if (!t || !box) return;
+    var aberto = box.classList.toggle('open');
+    t.classList.toggle('open', aberto);
+    if (lbl) lbl.textContent = aberto ? 'Ocultar transcri\u00e7\u00e3o' : 'Ver transcri\u00e7\u00e3o';
+}
+
+// Clicar em palavra da transcricao pelo indice — usa estimativa duracao/palavras
+function seekToWordByIndex(idx) {
+    var palavras = window._transcricaoPalavras;
+    if (!palavras || !palavras.length) return;
+
+    var player = document.getElementById('audioPlayer');
+    var cachedUrl = player && player.dataset.audioUrl;
+
+    // Se audio ainda nao iniciou, inicia primeiro
+    if (!ttsAudio && cachedUrl) {
+        playAudioUrl(cachedUrl);
+        var tryNavigate = function() {
+            if (ttsAudio && ttsAudio.duration) {
+                var tempoPorPalavra = ttsAudio.duration / palavras.length;
+                ttsAudio.currentTime = idx * tempoPorPalavra;
+            } else {
+                setTimeout(tryNavigate, 100);
+            }
+        };
+        tryNavigate();
+        return;
+    }
+    if (ttsAudio && ttsAudio.duration) {
+        var tempoPorPalavra = ttsAudio.duration / palavras.length;
+        ttsAudio.currentTime = idx * tempoPorPalavra;
+    }
+}
+
+// Atualiza palavra destacada conforme audio avanca (estimativa linear)
+// Nao perfeito, mas suficiente — e a unica opcao sem endpoint pago de alinhamento.
+function atualizarKaraoke(currentTime) {
+    var palavras = window._transcricaoPalavras;
+    if (!palavras || !palavras.length || !ttsAudio || !ttsAudio.duration) return;
+    var inner = document.getElementById('transcricaoInner');
+    if (!inner) return;
+
+    // Estimativa linear: cada palavra ocupa duracao/N segundos
+    // Offset de 0.3s pra compensar latencia de percepcao humana (som chega antes da leitura)
+    var tempoPorPalavra = ttsAudio.duration / palavras.length;
+    var idxAtual = Math.floor((currentTime + 0.2) / tempoPorPalavra);
+    if (idxAtual >= palavras.length) idxAtual = palavras.length - 1;
+    if (idxAtual < 0) idxAtual = -1;
+
+    // So atualiza DOM se mudou (evita reflow)
+    if (window._lastKaraokeIdx === idxAtual) return;
+    window._lastKaraokeIdx = idxAtual;
+
+    var spans = inner.querySelectorAll('.transcricao-word');
+    spans.forEach(function(s, i) {
+        s.classList.remove('current', 'spoken');
+        if (i < idxAtual) s.classList.add('spoken');
+        else if (i === idxAtual) s.classList.add('current');
+    });
+
+    // Auto-scroll pra manter palavra atual no terco superior do box
+    var box = document.getElementById('transcricaoBox');
+    if (box && box.classList.contains('open') && idxAtual >= 0 && spans[idxAtual]) {
+        var cur = spans[idxAtual];
+        var boxRect = box.getBoundingClientRect();
+        var curRect = cur.getBoundingClientRect();
+        var targetY = boxRect.top + boxRect.height * 0.33;
+        if (curRect.top < boxRect.top + 10 || curRect.top > targetY + 30) {
+            box.scrollTop += (curRect.top - targetY);
+        }
+    }
 }
 
 function fallbackBrowserTTS() {
@@ -605,21 +788,72 @@ async function init() {
             html += '<div class="stale-warning anim anim-d1"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Pre-consulta com mais de 7 dias. Dados podem estar desatualizados.</div>';
         }
 
+        // ── Chip identificador (nome · idade · motivo) ──
+        // Extrai motivo curto do descricaoBreve ou summaryTexto
+        var motivoShort = '';
+        if (descBreve) {
+            // Pega depois de "com", "por", ou usa primeira frase curta
+            var matchCom = descBreve.match(/(?:com|por)\s+([^.,;]{3,60})/i);
+            if (matchCom) motivoShort = matchCom[1].trim();
+            else motivoShort = descBreve.replace(/^[Pp]aciente[^,]*,?\s*/,'').split(/[.,;]/)[0].trim().substring(0, 50);
+        }
+        var chipParts = [];
+        if (pc.pacienteNome) chipParts.push(pc.pacienteNome.split(' ')[0]);
+        if (age) chipParts.push(age + 'a');
+        if (motivoShort) chipParts.push(motivoShort);
+        if (chipParts.length >= 2) {
+            html += '<div class="patient-chip anim anim-d2">';
+            html += '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+            html += '<span>' + chipParts.join(' \u00b7 ') + '</span>';
+            html += '</div>';
+        }
+
         // ── Premium Audio Player ──
-        console.log('[SUMMARY DEBUG] summaryText length:', summaryText.length, '| audioUrl:', audioUrl, '| textoVoz:', !!summary.textoVoz, '| summaryTexto:', !!summary.summaryTexto, '| summaryIA:', !!pc.summaryIA);
+        console.log('[SUMMARY DEBUG] summaryText length:', summaryText.length, '| audioUrl:', audioUrl, '| textoVoz:', !!summary.textoVoz, '| summaryTexto:', !!summary.summaryTexto, '| summaryIA:', !!pc.summaryIA, '| words:', (pc.transcricaoWords || []).length);
         if (summaryText) {
             html += '<div class="audio-player idle" id="audioPlayer" data-summary-text="' + summaryText.replace(/"/g, '&quot;') + '"' + (audioUrl ? ' data-audio-url="' + audioUrl + '"' : '') + '>';
             html += '<div class="audio-player-top">';
+            html += '<button class="audio-skip-btn" id="skipBack5" onclick="skipAudio(-5)" title="Voltar 5s">';
+            html += '<svg viewBox="0 0 24 24"><path d="M9 14l-4-4 4-4"/><path d="M5 10h9a6 6 0 010 12H11"/></svg>';
+            html += '</button>';
             html += '<div class="audio-play-btn" onclick="toggleAudio()">';
             html += '<svg class="icon-play" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>';
             html += '<svg class="icon-pause" viewBox="0 0 24 24"><rect x="5" y="3" width="4" height="18" rx="1"/><rect x="15" y="3" width="4" height="18" rx="1"/></svg>';
             html += '</div>';
+            html += '<button class="audio-skip-btn" id="skipFwd5" onclick="skipAudio(5)" title="Avancar 5s">';
+            html += '<svg viewBox="0 0 24 24"><path d="M15 14l4-4-4-4"/><path d="M19 10h-9a6 6 0 000 12h3"/></svg>';
+            html += '</button>';
             html += '<div class="audio-info"><div class="audio-label">Ouvir briefing</div><div class="audio-sub">~1 minuto</div></div>';
             html += '<div class="audio-timer" id="audioTimer">0:00</div>';
             html += '</div>';
             html += '<canvas class="audio-waveform" id="waveformCanvas"></canvas>';
             html += '<div class="audio-progress-wrap" onclick="seekAudio(event)"><div class="audio-progress-fill" id="progressFill"></div></div>';
             html += '</div>';
+
+            // ── Toggle + Caixa da transcricao karaoke ──
+            // Mostra o TEXTO que o TTS fala (textoVoz do Gemini) com estimativa de timing.
+            // Por que nao usa o audio do paciente? Porque o medico ouve o briefing clinico,
+            // nao o audio bruto do paciente. O texto precisa bater com o audio ouvido.
+            // Como nao temos timestamps exatos do TTS ElevenLabs, estimamos: duracao total ÷ palavras.
+            // Precisao nao e 100%, mas suficiente pra leitura confortavel.
+            if (summaryText) {
+                var palavrasArr = summaryText.trim().split(/\s+/).filter(Boolean);
+                html += '<div class="transcricao-toggle" id="transcricaoToggle" onclick="toggleTranscricao()">';
+                html += '<span id="transcricaoToggleLabel">Ver transcri\u00e7\u00e3o</span>';
+                html += '<svg viewBox="0 0 24 24"><polyline points="6,9 12,15 18,9"/></svg>';
+                html += '</div>';
+
+                html += '<div class="transcricao-box" id="transcricaoBox">';
+                html += '<div class="transcricao-inner" id="transcricaoInner">';
+                palavrasArr.forEach(function(w, idx) {
+                    var safeWord = String(w).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    html += '<span class="transcricao-word clickable" data-idx="' + idx + '" onclick="seekToWordByIndex(' + idx + ')">' + safeWord + '</span> ';
+                });
+                html += '</div></div>';
+
+                // Guarda array de palavras globalmente — timing calculado depois que audio carrega
+                html += '<script>window._transcricaoPalavras = ' + JSON.stringify(palavrasArr) + ';<\/script>';
+            }
         }
 
         // ── Pontos de Atencao (insights clinicos) ──
