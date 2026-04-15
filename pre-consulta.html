@@ -548,6 +548,11 @@
         <!-- ═══ PAINEL DE ÁUDIO ═══ -->
         <div class="audio-panel active" id="audioPanel">
 
+            <!-- Aviso iOS (so aparece em iPhone) -->
+            <div id="iosRecWarning" style="display:none; margin: 0 0 14px; padding: 10px 12px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.20); border-radius: 12px; font-size: 12px; color: #92700C; line-height: 1.4;">
+                <strong>Importante:</strong> mantenha a tela acesa durante a gravação e o envio. Se bloquear o celular, a gravação pode ser interrompida.
+            </div>
+
             <!-- Topic list -->
             <div class="topic-list" id="topicList">
                 <div class="topic-list-title">Você precisa falar sobre:</div>
@@ -937,6 +942,120 @@
 <script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.js"></script>
 <script src="api.js?v=3"></script>
 <script>
+// ═══════════════════════════════════════════════════════════════════
+//   vitaStorage — IndexedDB wrapper para persistir audio/foto localmente
+//   Objetivo: nunca perder a gravação/foto enquanto não confirmar entrega.
+// ═══════════════════════════════════════════════════════════════════
+const vitaStorage = (function() {
+    const DB_NAME = 'vitae_offline_v1';
+    const STORE = 'pre_consultas';
+    let dbPromise = null;
+
+    function openDB() {
+        if (dbPromise) return dbPromise;
+        dbPromise = new Promise(function(resolve, reject) {
+            if (!window.indexedDB) { reject(new Error('IndexedDB não disponível')); return; }
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = function(e) {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE)) {
+                    db.createObjectStore(STORE, { keyPath: 'id' });
+                }
+            };
+            req.onsuccess = function(e) { resolve(e.target.result); };
+            req.onerror = function(e) { reject(e.target.error); };
+        });
+        return dbPromise;
+    }
+
+    async function put(id, data) {
+        const db = await openDB();
+        return new Promise(function(resolve, reject) {
+            const tx = db.transaction([STORE], 'readwrite');
+            const store = tx.objectStore(STORE);
+            const record = Object.assign({}, data, { id: id, atualizadoEm: Date.now() });
+            const req = store.put(record);
+            req.onsuccess = function() { resolve(record); };
+            req.onerror = function() { reject(req.error); };
+        });
+    }
+
+    async function get(id) {
+        const db = await openDB();
+        return new Promise(function(resolve, reject) {
+            const tx = db.transaction([STORE], 'readonly');
+            const req = tx.objectStore(STORE).get(id);
+            req.onsuccess = function() { resolve(req.result || null); };
+            req.onerror = function() { reject(req.error); };
+        });
+    }
+
+    async function remove(id) {
+        const db = await openDB();
+        return new Promise(function(resolve, reject) {
+            const tx = db.transaction([STORE], 'readwrite');
+            const req = tx.objectStore(STORE).delete(id);
+            req.onsuccess = function() { resolve(); };
+            req.onerror = function() { reject(req.error); };
+        });
+    }
+
+    async function listAll() {
+        const db = await openDB();
+        return new Promise(function(resolve, reject) {
+            const tx = db.transaction([STORE], 'readonly');
+            const req = tx.objectStore(STORE).getAll();
+            req.onsuccess = function() { resolve(req.result || []); };
+            req.onerror = function() { reject(req.error); };
+        });
+    }
+
+    return { put: put, get: get, remove: remove, listAll: listAll };
+})();
+
+// Persistent storage: pede ao browser pra não limpar o IDB
+// (parcialmente suportado — se aceitar, reduz risco de ITP apagar)
+if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().then(function(granted) {
+        console.log('[vitaStorage] persist granted:', granted);
+    }).catch(function() {});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//   Wake Lock — evita celular auto-lockar durante gravacao/envio
+//   iOS 16.4+ suportado. Se nao suportar, ignora silenciosamente.
+// ═══════════════════════════════════════════════════════════════════
+let _wakeLock = null;
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator && !_wakeLock) {
+            _wakeLock = await navigator.wakeLock.request('screen');
+            _wakeLock.addEventListener('release', function() { _wakeLock = null; });
+            console.log('[WakeLock] ativo');
+        }
+    } catch (e) {
+        console.log('[WakeLock] nao disponivel:', e.message);
+    }
+}
+function releaseWakeLock() {
+    if (_wakeLock) {
+        try { _wakeLock.release(); } catch (e) {}
+        _wakeLock = null;
+    }
+}
+// Re-adquire wake lock se usuario voltar pra aba
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible' && (window._needsWakeLock === true)) {
+        requestWakeLock();
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//   Deteccao de iOS — pra exibir aviso especifico ao paciente
+// ═══════════════════════════════════════════════════════════════════
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const IS_IOS_SAFARI = IS_IOS && /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|OPiOS/.test(navigator.userAgent);
+
 // Air Datepicker for date of birth
 try {
     const dnEl = document.getElementById('dataNascimento');
@@ -1001,6 +1120,10 @@ function handlePhoto(input) {
             document.getElementById('photoSub').textContent = 'Toque para trocar';
         };
         reader.readAsDataURL(input.files[0]);
+        // Persiste foto na IDB (nao se perde se tela recarregar)
+        vitaStorage.put('foto_' + token, { blob: fotoBlob, token: token }).catch(function(e){
+            console.warn('[vitaStorage] falha persistir foto:', e && e.message);
+        });
         atualizarEstadoBotao();
     }
 }
@@ -1087,9 +1210,16 @@ function switchTab(tab) {
 }
 
 // ── Recording ──
+// Limite maximo de gravacao: 5 minutos
+const MAX_RECORDING_MS = 5 * 60 * 1000;
+let maxDurationTimeout = null;
+
 async function startRecording() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Pede permissao pra microfone com contexto audio bom pra voz
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        });
 
         // Setup analyser for waveform
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1099,29 +1229,84 @@ async function startRecording() {
         source.connect(analyser);
 
         // Detect best supported audio format for this device
-        const mimeTypes = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav'];
+        // iOS Safari so suporta audio/mp4 (ignora webm). Android/Chrome suporta webm.
+        const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav'];
         let selectedMime = '';
         for (const mime of mimeTypes) {
             if (MediaRecorder.isTypeSupported(mime)) { selectedMime = mime; break; }
         }
-        mediaRecorder = selectedMime ? new MediaRecorder(stream, { mimeType: selectedMime }) : new MediaRecorder(stream);
+        // Bitrate baixo (64kbps) suficiente pra voz clinica — reduz 5min de ~4.8MB pra ~2.4MB
+        const options = selectedMime ? { mimeType: selectedMime, audioBitsPerSecond: 64000 } : { audioBitsPerSecond: 64000 };
+        try {
+            mediaRecorder = new MediaRecorder(stream, options);
+        } catch (_) {
+            // Fallback sem options se o browser rejeitar
+            mediaRecorder = selectedMime ? new MediaRecorder(stream, { mimeType: selectedMime }) : new MediaRecorder(stream);
+        }
         const actualMime = mediaRecorder.mimeType || selectedMime || 'audio/webm';
         audioChunks = [];
-        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-        mediaRecorder.onstop = () => {
+
+        // Chunked recording: a cada 1s um chunk chega via ondataavailable
+        // Se tela bloquear ou app fechar, temos pelo menos ate o ultimo chunk
+        mediaRecorder.ondataavailable = async function(e) {
+            if (e.data && e.data.size > 0) {
+                audioChunks.push(e.data);
+                // Persiste chunks na IDB em tempo real (fallback caso app morra)
+                try {
+                    await vitaStorage.put('rec_inprogress_' + token, {
+                        chunks: audioChunks.slice(),
+                        mimeType: actualMime,
+                        startedAt: recordingStartTime,
+                        token: token,
+                    });
+                } catch (idbErr) {
+                    console.warn('[vitaStorage] falha persistir chunk:', idbErr && idbErr.message);
+                }
+            }
+        };
+
+        mediaRecorder.onstop = async function() {
             audioBlob = new Blob(audioChunks, { type: actualMime });
             audioUrl = URL.createObjectURL(audioBlob);
             audioElement = new Audio(audioUrl);
-            audioElement.onended = () => { isPlaying = false; updatePlayBtn(); };
-            stream.getTracks().forEach(t => t.stop());
+            audioElement.onended = function() { isPlaying = false; updatePlayBtn(); };
+            stream.getTracks().forEach(function(t) { t.stop(); });
+
+            // Persiste Blob final consolidado (substitui chunks em andamento)
+            try {
+                await vitaStorage.put('audio_' + token, {
+                    blob: audioBlob,
+                    mimeType: actualMime,
+                    duracao: recordedDuration,
+                    token: token,
+                });
+                await vitaStorage.remove('rec_inprogress_' + token);
+            } catch (idbErr) {
+                console.warn('[vitaStorage] falha persistir blob final:', idbErr && idbErr.message);
+            }
+
+            if (maxDurationTimeout) { clearTimeout(maxDurationTimeout); maxDurationTimeout = null; }
             showReviewState();
             atualizarEstadoBotao();
         };
 
-        mediaRecorder.start();
+        // start(1000) = ondataavailable dispara a cada 1s com um chunk
+        mediaRecorder.start(1000);
         isRecording = true;
         fullTranscript = '';
         recordingStartTime = Date.now();
+
+        // Wake Lock: evita o celular auto-lockar durante gravacao
+        window._needsWakeLock = true;
+        requestWakeLock();
+
+        // Auto-stop aos 5 minutos
+        maxDurationTimeout = setTimeout(function() {
+            if (isRecording) {
+                alert('Limite de 5 minutos atingido. Gravação finalizada.');
+                stopRecording();
+            }
+        }, MAX_RECORDING_MS);
 
         // UI: hide idle, show recording
         document.getElementById('recIdle').style.display = 'none';
@@ -1143,6 +1328,9 @@ function stopRecording() {
     clearInterval(timerInterval);
     cancelAnimationFrame(animFrameId);
     recordedDuration = document.getElementById('recTimer').textContent;
+    if (maxDurationTimeout) { clearTimeout(maxDurationTimeout); maxDurationTimeout = null; }
+    window._needsWakeLock = false;
+    releaseWakeLock();
 }
 
 async function showReviewState() {
@@ -1186,6 +1374,9 @@ function deleteRecording() {
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     audioBlob = null; audioUrl = null; audioElement = null;
     fullTranscript = '';
+    // Limpa IDB quando paciente decide deletar
+    vitaStorage.remove('audio_' + token).catch(function(){});
+    vitaStorage.remove('rec_inprogress_' + token).catch(function(){});
 
     document.getElementById('recIdle').style.display = '';
     document.getElementById('recRecording').classList.remove('active');
@@ -1217,10 +1408,19 @@ function updatePlayBtn() {
 }
 
 // ── Timer ──
+let _avisoDuracaoMostrado = { '4min': false, '4min30': false };
 function updateTimer() {
     const s = Math.floor((Date.now() - recordingStartTime) / 1000);
-    document.getElementById('recTimer').textContent =
-        String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    const el = document.getElementById('recTimer');
+    el.textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    // Alertas visuais conforme se aproxima do limite
+    if (s >= 270 && !_avisoDuracaoMostrado['4min30']) {  // 4:30
+        _avisoDuracaoMostrado['4min30'] = true;
+        el.style.color = '#EF4444';
+    } else if (s >= 240 && !_avisoDuracaoMostrado['4min']) {  // 4:00
+        _avisoDuracaoMostrado['4min'] = true;
+        el.style.color = '#F59E0B';
+    }
 }
 
 // ── Waveform drawing ──
@@ -1844,6 +2044,11 @@ function showMainContent() {
     document.getElementById('loginGate').classList.remove('active');
     document.getElementById('loginFormWrap').classList.remove('active');
     document.getElementById('profileIncomplete').classList.remove('active');
+    // Mostra aviso de iOS se for iPhone
+    if (IS_IOS) {
+        var iosWarn = document.getElementById('iosRecWarning');
+        if (iosWarn) iosWarn.style.display = 'block';
+    }
     setTimeout(atualizarEstadoBotao, 50);
 }
 
