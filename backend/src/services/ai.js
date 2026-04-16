@@ -762,6 +762,32 @@ ESTRUTURA OBRIGATORIA (4 blocos, nesta ordem):
 3. INTERPRETACAO (MAXIMO 80 palavras): Cruzamentos e correlacoes entre dados. Este e o bloco mais valioso. Usar "chama atencao", "destaca-se", "merece avaliacao", "vale considerar". NUNCA "recomendo", "sugiro prescrever". Se nao ha cruzamento real, este bloco pode ter apenas 1-2 frases ou ser omitido — melhor briefing curto e preciso que longo e inventado.
 4. SEGURANCA + FECHAMENTO (~30 palavras): Alergias documentadas + conflitos. Depois: uma frase objetiva com o ponto principal de atencao. Ex: "Sugiro atencao no controle glicemico." Pode encerrar sem pleonasmos tipo "Boa consulta" — melhor fechar com a observacao clinica.
 
+═══ ELEMENTOS INDISPENSAVEIS (NAO negociaveis) ═══
+
+Os seguintes elementos NUNCA podem ser omitidos do textoVoz, mesmo que o briefing
+passe do limite de palavras. Preferir briefing INCOMPLETO com todos os indispensaveis
+a briefing "bonito" sem alguma alergia.
+
+1. NOME COMPLETO do paciente (conforme fornecido nos dados, sem abreviar)
+2. IDADE em anos (se disponivel)
+3. QUEIXA PRINCIPAL (motivo da consulta)
+4. DURACAO da queixa (ex: "ha 3 dias", "ha 2 semanas")
+5. TODAS as ALERGIAS documentadas — se paciente tem 3 alergias, liste as 3 por nome.
+   NAO agrupar em "alergias documentadas" generico. NAO omitir nenhuma.
+6. TODOS os MEDICAMENTOS em uso atual — se paciente usa 5 meds, liste os 5 por nome.
+   NAO agrupar em "varios medicamentos antialergicos" sem citar nomes.
+
+Se o conteudo estiver longo, corte PRIMEIRO (nessa ordem):
+- Correlacoes com estresse, epocas do ano, padroes temporais
+- Historico familiar distante (so mencionar se diretamente relacionado a queixa)
+- Habitos de vida nao relacionados (cafe, horas de sono, exercicio) a menos que
+  diretamente relevantes
+- Cirurgias antigas (so mencionar se relacionadas a queixa atual)
+- Contexto clinico extra ("apesar da terapia multipla", "sugerindo que")
+
+PRIORIDADE FINAL: briefing INCOMPLETO que tem os 6 indispensaveis e zero extra,
+e MELHOR que briefing "completo e fluido" sem uma alergia.
+
 LIMITE TOTAL: 150-180 palavras. Com dados escassos, pode ter 100-130 palavras — e preferivel que encher com generalidades.
 
 LINGUAGEM SEGURA (obrigatorio):

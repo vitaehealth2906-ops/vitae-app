@@ -156,6 +156,35 @@
         .patient-chip svg { width: 12px; height: 12px; stroke: var(--v-green2); fill: none; stroke-width: 2.5; flex-shrink: 0; }
         .patient-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+        /* Controles de velocidade 1x/1.5x/2x */
+        .speed-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 4px;
+            margin-top: 10px;
+        }
+        .speed-chip {
+            padding: 4px 10px;
+            border-radius: 100px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.10);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.45);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .speed-chip:hover {
+            border-color: rgba(0,229,160,0.4);
+            color: rgba(255,255,255,0.75);
+        }
+        .speed-chip.active {
+            background: rgba(0,229,160,0.15);
+            border-color: rgba(0,229,160,0.45);
+            color: #5AFFBA;
+        }
+
         /* Skip buttons +/-5s */
         .audio-skip-btn {
             width: 34px; height: 34px; border-radius: 50%;
@@ -572,6 +601,8 @@ function playAudioUrl(url) {
         ttsAudio.crossOrigin = 'anonymous';
         try { connectAudioToAnalyser(ttsAudio); } catch(e) {}
     }
+    // Aplica velocidade se foi selecionada antes do audio existir
+    if (window._audioPlaybackRate) ttsAudio.playbackRate = window._audioPlaybackRate;
 
     ttsAudio.play().then(function() {
         ttsPlaying = true;
@@ -615,6 +646,18 @@ function seekAudio(e) {
     var rect = wrap.getBoundingClientRect();
     var pct = (e.clientX - rect.left) / rect.width;
     ttsAudio.currentTime = pct * ttsAudio.duration;
+}
+
+// Controle de velocidade de reproducao (1x/1.5x/2x)
+function mudarVelocidade(taxa) {
+    if (ttsAudio) ttsAudio.playbackRate = taxa;
+    // Guarda pra aplicar quando o audio for criado (caso seja clicado antes de tocar)
+    window._audioPlaybackRate = taxa;
+    // Atualiza visual dos chips
+    var chips = document.querySelectorAll('.speed-chip');
+    chips.forEach(function(c) {
+        c.classList.toggle('active', parseFloat(c.dataset.rate) === taxa);
+    });
 }
 
 // +5s / -5s com flash visual
@@ -776,10 +819,9 @@ async function init() {
 
         var html = '';
 
-        // Header
+        // Header (so botao voltar, sem titulo — chip + patient hero ja carregam identidade)
         html += '<div class="summary-header anim">';
         html += '<div class="btn-back" onclick="window.location.href=\'' + backUrl + '\'"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>';
-        html += '<div class="summary-header-title">One Minute Summary</div>';
         html += '</div>';
 
         // Patient hero
@@ -844,6 +886,12 @@ async function init() {
             html += '</div>';
             html += '<canvas class="audio-waveform" id="waveformCanvas"></canvas>';
             html += '<div class="audio-progress-wrap" onclick="seekAudio(event)"><div class="audio-progress-fill" id="progressFill"></div></div>';
+            // Controles de velocidade
+            html += '<div class="speed-row">';
+            html += '<button class="speed-chip active" data-rate="1" onclick="mudarVelocidade(1)">1x</button>';
+            html += '<button class="speed-chip" data-rate="1.5" onclick="mudarVelocidade(1.5)">1.5x</button>';
+            html += '<button class="speed-chip" data-rate="2" onclick="mudarVelocidade(2)">2x</button>';
+            html += '</div>';
             html += '</div>';
 
             // ── Toggle + Caixa da transcricao karaoke ──

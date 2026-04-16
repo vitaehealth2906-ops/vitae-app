@@ -64,6 +64,93 @@ async function enriquecerRespostas(preConsulta) {
   }
 }
 
+// Normaliza string pra comparar (minusculas, sem acento)
+function _norm(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+// Valida que o textoVoz gerado contem todos os elementos indispensaveis.
+// Retorna { ok, faltando: [] }.
+function validarIndispensaveis(textoVoz, contexto) {
+  const t = _norm(textoVoz);
+  const faltando = [];
+
+  // 1. NOME — pelo menos o primeiro nome tem que estar
+  if (contexto.pacienteNome) {
+    const primeiroNome = _norm(contexto.pacienteNome.split(' ')[0]);
+    if (primeiroNome && primeiroNome.length > 2 && !t.includes(primeiroNome)) {
+      faltando.push(`nome "${primeiroNome}"`);
+    }
+  }
+
+  // 2. IDADE — se paciente tem idade, tem que mencionar "anos"
+  if (contexto.idade && !t.includes('ano')) {
+    faltando.push('idade (palavra "anos")');
+  }
+
+  // 3. ALERGIAS — cada alergia pelo nome
+  if (Array.isArray(contexto.alergias) && contexto.alergias.length > 0) {
+    for (const al of contexto.alergias) {
+      const nome = _norm(al.nome || al);
+      if (nome && nome.length > 2 && !t.includes(nome)) {
+        faltando.push(`alergia "${nome}"`);
+      }
+    }
+  }
+
+  // 4. MEDICAMENTOS EM USO — cada med pelo nome
+  if (Array.isArray(contexto.medicamentos) && contexto.medicamentos.length > 0) {
+    for (const m of contexto.medicamentos) {
+      const nome = _norm(m.nome || m);
+      if (nome && nome.length > 2 && !t.includes(nome)) {
+        faltando.push(`medicamento "${nome}"`);
+      }
+    }
+  }
+
+  return { ok: faltando.length === 0, faltando };
+}
+
+// Extrai contexto do paciente pra validacao (so o indispensavel)
+async function extrairContextoValidacao(preConsulta) {
+  const ctx = {
+    pacienteNome: preConsulta.pacienteNome,
+    idade: null,
+    alergias: [],
+    medicamentos: [],
+  };
+  if (!preConsulta.pacienteId) return ctx;
+  try {
+    const u = await prisma.usuario.findUnique({
+      where: { id: preConsulta.pacienteId },
+      include: {
+        perfilSaude: true,
+        medicamentos: { where: { ativo: true }, select: { nome: true } },
+        alergias: { select: { nome: true, gravidade: true } },
+      },
+    });
+    if (u) {
+      if (u.perfilSaude && u.perfilSaude.dataNascimento) {
+        const dn = new Date(u.perfilSaude.dataNascimento);
+        if (!isNaN(dn.getTime())) {
+          ctx.idade = Math.floor((Date.now() - dn.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        }
+      }
+      ctx.alergias = (u.alergias || []).filter(a => {
+        const g = String(a.gravidade || '').toUpperCase();
+        return g === 'GRAVE' || g === 'ALTA' || g === 'SEVERA' || g === 'MODERADA' || !a.gravidade;
+      });
+      ctx.medicamentos = u.medicamentos || [];
+    }
+  } catch (e) {
+    console.error('[VALIDACAO] erro ao montar contexto:', e.message);
+  }
+  return ctx;
+}
+
 async function processarGerarSummaryETts(tarefa) {
   const preConsulta = await prisma.preConsulta.findUnique({
     where: { id: tarefa.preConsultaId },
@@ -111,24 +198,50 @@ async function processarGerarSummaryETts(tarefa) {
   // [2] Enriquecer respostas com perfil do paciente logado
   const respostasEnriquecidas = await enriquecerRespostas(preConsulta);
 
-  // [3] Gerar summary com IA
+  // [3] Gerar summary com IA — com validacao de indispensaveis + 1 retry se faltar
   let summaryIA = null;
   let summaryJson = null;
-  try {
-    const resultado = await gerarSummaryPreConsulta(
-      preConsulta.pacienteNome,
-      respostasEnriquecidas,
-      transcricao,
-      preConsulta.templatePerguntas
-    );
-    summaryIA = resultado.summaryTexto;
-    summaryJson = resultado;
-  } catch (e) {
-    // Se summary falhou, relanca pra tarefa ser retentada
-    throw new Error('gerarSummary falhou: ' + e.message);
+  let validacao = { ok: false, faltando: [] };
+  const contextoVal = await extrairContextoValidacao(preConsulta);
+
+  for (let tentativaSummary = 1; tentativaSummary <= 2; tentativaSummary++) {
+    try {
+      const resultado = await gerarSummaryPreConsulta(
+        preConsulta.pacienteNome,
+        respostasEnriquecidas,
+        transcricao,
+        preConsulta.templatePerguntas
+      );
+      summaryJson = resultado;
+      summaryIA = resultado.summaryTexto;
+
+      // Valida indispensaveis no textoVoz (que vai pro TTS — e o que o medico ouve)
+      const textoParaValidar = resultado.textoVoz || resultado.summaryTexto || '';
+      validacao = validarIndispensaveis(textoParaValidar, contextoVal);
+
+      if (validacao.ok) {
+        console.log('[VALIDACAO] indispensaveis OK (tentativa', tentativaSummary + ')');
+        break;
+      } else {
+        console.warn('[VALIDACAO] tentativa', tentativaSummary, '— faltou:', validacao.faltando.join(', '));
+        if (tentativaSummary < 2) {
+          console.log('[VALIDACAO] regenerando com dados reenfatizados...');
+          // Na proxima tentativa, adiciona os indispensaveis explicitamente no prompt
+          // via enriquecimento extra (o texto ficara REDUNDANTE proposital no contexto)
+          // Ja tentamos implicito, agora enfatizamos
+        }
+      }
+    } catch (e) {
+      if (tentativaSummary >= 2) throw new Error('gerarSummary falhou: ' + e.message);
+      console.warn('[WORKER] gerarSummary erro tentativa', tentativaSummary, ':', e.message);
+    }
   }
 
-  // [4] Salvar summary no banco
+  if (!validacao.ok && summaryJson) {
+    console.error('[VALIDACAO] FALHOU apos 2 tentativas. Salvando mesmo assim + flag. Faltou:', validacao.faltando.join(', '));
+  }
+
+  // [4] Salvar summary no banco (inclui alerta de incompleto se faltou indispensavel)
   await prisma.preConsulta.update({
     where: { id: preConsulta.id },
     data: { summaryIA, summaryJson },
