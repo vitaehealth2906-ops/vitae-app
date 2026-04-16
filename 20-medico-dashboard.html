@@ -483,9 +483,13 @@
         .pac-search input:focus{border-color:#00E5A0;box-shadow:0 0 0 2px rgba(0,229,160,0.15)}
         .pac-search input::placeholder{color:#9CA3AF}
         .pac-search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:#0D0F14;fill:none;stroke-width:2}
-        .pac-pill{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;color:#9CA3AF;cursor:pointer;white-space:nowrap;transition:.2s;border:none;background:transparent;font-family:'Inter',sans-serif}
+        .pac-pill{padding:8px 16px;border-radius:22px;font-size:13px;font-weight:500;color:#9CA3AF;cursor:pointer;white-space:nowrap;transition:.2s;border:none;background:transparent;font-family:'Inter',sans-serif}
         .pac-pill:hover{color:#4B5563}
         .pac-pill.active{background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;font-weight:600}
+        #pacFilters::-webkit-scrollbar{height:4px}
+        #pacFilters::-webkit-scrollbar-track{background:transparent}
+        #pacFilters::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15);border-radius:2px}
+        #pacFilters::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.25)}
         .pac-sec-header{padding:6px 0;margin-top:4px}
         .pac-sec-title{font-size:12px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.08em}
         .pac-stats{display:none}
@@ -772,7 +776,7 @@
                 </div>
             </div>
             <div class="panel-stats">
-                <div class="stat-col" onclick="filterByStatus('all')">
+                <div class="stat-col" onclick="filterByStatus('pacientes')">
                     <div class="stat-num" id="statPacientes">0</div>
                     <div class="stat-lbl">Pacientes</div>
                 </div>
@@ -800,7 +804,7 @@
                 <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input placeholder="Buscar paciente..." oninput="filterPacientes(this.value)">
             </div>
-            <div id="pacFilters" style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none;">
+            <div id="pacFilters" style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:6px;scroll-behavior:smooth;">
                 <button class="pac-pill active" onclick="filterPacTime(this,'all')">Todos</button>
                 <button class="pac-pill" onclick="filterPacTime(this,'today')">Hoje</button>
                 <button class="pac-pill" onclick="filterPacTime(this,'week')">Esta semana</button>
@@ -2065,7 +2069,11 @@
 
         // Filtro por status (Pacientes/Pendentes/Respondidas)
         var statusFiltered = list;
-        if (_currentStatusFilter === 'pendentes') {
+        if (_currentStatusFilter === 'pacientes') {
+            statusFiltered = list.filter(function(entry) {
+                return !!entry[1].pacienteId;
+            });
+        } else if (_currentStatusFilter === 'pendentes') {
             statusFiltered = list.filter(function(entry) {
                 return entry[1].anamneses.some(function(a){ return a.status === 'PENDENTE' || a.status === 'ABERTO'; });
             });
@@ -2123,27 +2131,32 @@
         var pills = document.querySelectorAll('.pac-pill');
         pills.forEach(function(p){ p.classList.remove('active'); });
 
-        if (tipo === 'all' || tipo === 'respondidas') {
+        if (tipo === 'all') {
             _currentStatusFilter = 'all';
             _currentPeriodFilter = 'all';
             pills[0].classList.add('active');
-        } else if (tipo === 'pendentes') {
-            _currentStatusFilter = 'pendentes';
-            _currentPeriodFilter = 'all';
-            var pillId = 'pill-pendentes';
-            var existing = document.getElementById(pillId);
-            if (!existing) {
-                var container = document.getElementById('pacFilters');
-                var btn = document.createElement('button');
-                btn.className = 'pac-pill';
-                btn.id = pillId;
-                btn.textContent = 'Pendentes';
-                btn.onclick = function() { filterByStatus('pendentes'); };
-                container.appendChild(btn);
-                existing = btn;
-            }
-            existing.classList.add('active');
+            renderPacientesList(allPacientesData, _currentPeriodFilter);
+            return;
         }
+
+        var labels = { pacientes: 'Pacientes', pendentes: 'Pendentes', respondidas: 'Respondidas' };
+        _currentStatusFilter = tipo;
+        _currentPeriodFilter = 'all';
+
+        var pillId = 'pill-' + tipo;
+        var existing = document.getElementById(pillId);
+        if (!existing) {
+            var container = document.getElementById('pacFilters');
+            var btn = document.createElement('button');
+            btn.className = 'pac-pill';
+            btn.id = pillId;
+            btn.textContent = labels[tipo];
+            btn.onclick = function() { filterByStatus(tipo); };
+            container.appendChild(btn);
+            existing = btn;
+        }
+        existing.classList.add('active');
+        existing.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         renderPacientesList(allPacientesData, _currentPeriodFilter);
     }
 
