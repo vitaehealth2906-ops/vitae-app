@@ -2120,31 +2120,29 @@
     var _currentPeriodFilter = 'all';
 
     function filterByStatus(tipo) {
-        _currentStatusFilter = tipo;
-        // Seleciona a pill correspondente (ou "Todos" se tipo=all)
         var pills = document.querySelectorAll('.pac-pill');
         pills.forEach(function(p){ p.classList.remove('active'); });
-        if (tipo === 'all') {
-            // Seleciona "Todos"
-            pills[0].classList.add('active');
+
+        if (tipo === 'all' || tipo === 'respondidas') {
+            _currentStatusFilter = 'all';
             _currentPeriodFilter = 'all';
-        } else {
-            // Procura pill dinâmica existente ou cria
-            var pillId = 'pill-' + tipo;
+            pills[0].classList.add('active');
+        } else if (tipo === 'pendentes') {
+            _currentStatusFilter = 'pendentes';
+            _currentPeriodFilter = 'all';
+            var pillId = 'pill-pendentes';
             var existing = document.getElementById(pillId);
             if (!existing) {
-                var label = tipo === 'pendentes' ? 'Pendentes' : 'Respondidas';
                 var container = document.getElementById('pacFilters');
                 var btn = document.createElement('button');
                 btn.className = 'pac-pill';
                 btn.id = pillId;
-                btn.textContent = label;
-                btn.onclick = function() { filterByStatus(tipo); };
+                btn.textContent = 'Pendentes';
+                btn.onclick = function() { filterByStatus('pendentes'); };
                 container.appendChild(btn);
                 existing = btn;
             }
             existing.classList.add('active');
-            _currentPeriodFilter = 'all';
         }
         renderPacientesList(allPacientesData, _currentPeriodFilter);
     }
