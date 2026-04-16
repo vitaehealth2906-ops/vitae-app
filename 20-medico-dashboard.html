@@ -146,11 +146,9 @@
         .panel-signature { height:3px; background:linear-gradient(90deg,#00E5A0,#00B4D8); }
         .panel-greeting { display:flex; align-items:center; gap:14px; padding:18px 18px 14px; }
         .panel-stats { display:flex; padding:14px 0 18px; border-top:1px solid rgba(0,0,0,0.06); }
-        .stat-col { flex:1; text-align:center; position:relative; min-width:0; cursor:pointer; transition:all 0.2s ease; border-radius:10px; padding:6px 0; margin:0 4px; }
-        .stat-col:hover { background:rgba(0,229,160,0.04); }
-        .stat-col.active { background:rgba(0,229,160,0.08); }
-        .stat-col.active .stat-num { color:#00C47A; }
-        .stat-col.active .stat-lbl { color:#00C47A; }
+        .stat-col { flex:1; text-align:center; position:relative; min-width:0; cursor:pointer; transition:all 0.15s ease; border-radius:10px; padding:6px 0; margin:0 4px; }
+        .stat-col:hover { background:rgba(0,0,0,0.02); }
+        .stat-col:active { transform:scale(0.97); }
         .stat-col + .stat-col::before {
             content:''; position:absolute; left:0; top:8px; bottom:8px;
             width:1px; background:rgba(0,0,0,0.06);
@@ -774,7 +772,7 @@
                 </div>
             </div>
             <div class="panel-stats">
-                <div class="stat-col active" onclick="filterByStatus('all')">
+                <div class="stat-col" onclick="filterByStatus('all')">
                     <div class="stat-num" id="statPacientes">0</div>
                     <div class="stat-lbl">Pacientes</div>
                 </div>
@@ -2123,15 +2121,37 @@
 
     function filterByStatus(tipo) {
         _currentStatusFilter = tipo;
-        document.querySelectorAll('.stat-col').forEach(function(c){c.classList.remove('active')});
-        var map = { all: 0, pendentes: 1, respondidas: 2 };
-        var cols = document.querySelectorAll('.stat-col');
-        if (cols[map[tipo]]) cols[map[tipo]].classList.add('active');
+        // Seleciona a pill correspondente (ou "Todos" se tipo=all)
+        var pills = document.querySelectorAll('.pac-pill');
+        pills.forEach(function(p){ p.classList.remove('active'); });
+        if (tipo === 'all') {
+            // Seleciona "Todos"
+            pills[0].classList.add('active');
+            _currentPeriodFilter = 'all';
+        } else {
+            // Procura pill dinâmica existente ou cria
+            var pillId = 'pill-' + tipo;
+            var existing = document.getElementById(pillId);
+            if (!existing) {
+                var label = tipo === 'pendentes' ? 'Pendentes' : 'Respondidas';
+                var container = document.getElementById('pacFilters');
+                var btn = document.createElement('button');
+                btn.className = 'pac-pill';
+                btn.id = pillId;
+                btn.textContent = label;
+                btn.onclick = function() { filterByStatus(tipo); };
+                container.appendChild(btn);
+                existing = btn;
+            }
+            existing.classList.add('active');
+            _currentPeriodFilter = 'all';
+        }
         renderPacientesList(allPacientesData, _currentPeriodFilter);
     }
 
     function filterPacTime(btn, period) {
         _currentPeriodFilter = period;
+        _currentStatusFilter = 'all';
         document.querySelectorAll('.pac-pill').forEach(function(p){p.classList.remove('active')});
         btn.classList.add('active');
         renderPacientesList(allPacientesData, period);
