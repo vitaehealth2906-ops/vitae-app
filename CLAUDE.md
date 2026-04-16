@@ -562,6 +562,74 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 8 — 16/04/2026 (notebook, handoff pro PC de casa)
+**O que foi feito:**
+10 commits em 3 frentes: dashboard pills + 2 mockups visuais + redesign completo da aba Templates.
+
+**Frente A — Dashboard pills + stats funcionais (2 commits):**
+- Pills aumentados (padding 6/14 → 8/16, font 12 → 13, radius 20 → 22)
+- Scrollbar 4px visivel embaixo dos pills (com hover)
+- 3 pills novas estaticas no HTML: Pacientes, Pendentes, Respondidas (antes apareciam so apos clicar)
+- Stat "Pacientes" filtra so quem tem `pacienteId` (conta VitaID real)
+- Bug critico corrigido: stat "Respondidas" caia no branch do "Todos" e nao filtrava nada
+- Commits: `d6ea2b1`, `30f5798`
+
+**Frente B — Mockup perfil do paciente (1 commit, AGUARDA DECISAO):**
+- Diagnostico: componente de colunas (Exames/Condicoes/Alergias/Meds) achatado, sem hierarquia clinica, "Condicoes" sem cedilha
+- Mockup standalone com 2 direcoes lado a lado:
+  - Direcao A — Cockpit Clinico: alergia em destaque vermelho no topo, bento 2x1 meds+condicoes
+  - Direcao B — Bento Compacto: grid 2x2 colorido por categoria
+- URL: https://vitae-app.vercel.app/mockup-perfil-paciente.html
+- **PENDENTE:** Lucas escolher A ou B pra implementar
+- Commit: `6a0130e`
+
+**Frente C — Aba Templates redesign completo (8 commits, PLAN MODE ATIVADO):**
+
+*Plano formal escrito (3 agentes Explore em paralelo):*
+- Code Mapper: mapeou linha-por-linha o estado atual
+- Documentation Agent: leu CLAUDE.md + 19 arquivos do Obsidian
+- UX Research Agent: pesquisou Driver.js, Shepherd.js, Coach Marks, Stripe/Linear/Notion
+
+*Conflito etico detectado e resolvido:*
+Lucas pediu onboarding forcado TODA visita. Pesquisa nos seus proprios docs (PERSUASAO-ETICA.md, MENTALIDADE-CEO.md, NEUROCIENCIA-COMPORTAMENTO.md) revelou: forcar tutorial repetido = anti-padrao #1. Pesquisa externa (200+ flows) confirmou. Solucao aprovada: tutorial completo so PRIMEIRA VEZ + botao "Como funciona?" pra reabrir sob demanda + glow sutil no FAB quando zero templates.
+
+*4 mudancas implementadas:*
+1. Titulo: font-weight 700 → 900, angulo 120° → 90°, size 26 → 28px (gradient agora visivel)
+2. Pills: mesmas dimensoes da aba pre-consulta + scrollbar visivel
+3. 4 filtros novos (zero schema change): Curtos (perg < 5), Longos (≥ 10), Nao usados (vezesUsado=0), Com audio (permitirAudio=true)
+4. Onboarding etico: trigger movido pra `showView('templates')`, overlay agora modal centralizado com fosco glass, 4 slides (3 conceituais + 1 spotlight final)
+
+*Bugs e fixes na propria sessao:*
+- Background overlay 78% branco escondia tudo → trocado pra rgba(13,15,20, 0.22) tinta escura sutil padrao Apple/Stripe sheet
+- Clique no + durante spotlight nao fechava popup → safety net no `tplGoCreate()` que SEMPRE limpa overlay
+- Bottom sheet (3 pontinhos do template): Lucas pediu remover "Duplicar" e "Cancelar", adicionar X de fechar
+
+**Commits desta frente:**
+- `a95ac82` — mockup templates (4 frames)
+- `4d8f9db` — redesign completo
+- `4f72e92` — fix fundo onboarding
+- `f0b68a3` — 2 fixes onboarding (fundo + spotlight click)
+- `033d353` — safety net tplGoCreate
+- `c137002` — remove Duplicar + adiciona X
+- `cf3c8e5` — remove Cancelar
+
+**Pendente pra proxima sessao:**
+- Lucas validar visualmente as mudancas (hard refresh + apagar localStorage `vitae_tpl_onboarding_visto`)
+- Lucas escolher Direcao A ou B do mockup do perfil do paciente
+- Mandar fluxo completo pro medico betatester (alerta CTO ainda valido)
+
+**Decisoes documentadas:**
+- Onboarding etico vence onboarding forcado (basea-se nos proprios docs do Lucas)
+- Filtros sem mudanca de schema preferidos (Favoritos/Categoria sao fase 2)
+- Spotlight via FAB z-index alto + glow CSS (mais simples que CSS mask "buraco")
+- Background overlay tinta escura (nao clara) — padrao Apple/Stripe
+
+**Skills usadas:**
+- Plan mode com 3 Explore agents em paralelo
+- Plano salvo em `C:\Users\valve\.claude\plans\temporal-gathering-toucan.md`
+
+---
+
 ### Sessao 7 — 15-16/04/2026 (PC de casa, handoff pro notebook)
 **O que foi feito:**
 Duas grandes frentes: redesign S1/S2 da tela 25-summary (que o medico ve apos pre-consulta) + 3 melhorias UX no dashboard do medico.
