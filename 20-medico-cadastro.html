@@ -96,14 +96,16 @@
 
         <div class="field">
             <div class="field-label">Especialidade</div>
-            <select class="field-input" id="espInput">
-                <option value="">Selecione...</option>
-                <option>Clínica Geral</option><option>Cardiologia</option><option>Dermatologia</option>
-                <option>Endocrinologia</option><option>Gastroenterologia</option><option>Ginecologia</option>
-                <option>Neurologia</option><option>Oftalmologia</option><option>Ortopedia</option>
-                <option>Otorrinolaringologia</option><option>Pediatria</option><option>Psiquiatria</option>
-                <option>Urologia</option><option>Outra</option>
-            </select>
+            <input class="field-input" type="text" id="espInput" placeholder="Ex: Dermatologia" autocomplete="off" list="espSugestoes">
+            <datalist id="espSugestoes">
+                <option value="Clínica Geral"></option><option value="Cardiologia"></option>
+                <option value="Dermatologia"></option><option value="Endocrinologia"></option>
+                <option value="Gastroenterologia"></option><option value="Ginecologia"></option>
+                <option value="Neurologia"></option><option value="Oftalmologia"></option>
+                <option value="Ortopedia"></option><option value="Otorrinolaringologia"></option>
+                <option value="Pediatria"></option><option value="Psiquiatria"></option>
+                <option value="Urologia"></option>
+            </datalist>
         </div>
 
         <div class="field">
@@ -118,12 +120,12 @@
 
         <div class="field">
             <div class="field-label">Telefone da Clínica (opcional)</div>
-            <input class="field-input" type="tel" id="telInput" placeholder="(11) 3333-4444">
+            <input class="field-input" type="tel" id="telInput" placeholder="(11) 3333-4444" oninput="mascaraTelefone(this)" maxlength="15">
         </div>
 
         <div class="field">
             <div class="field-label">Valor médio da sua consulta (opcional)</div>
-            <input class="field-input" type="number" id="valorInput" placeholder="Ex: 400" min="0" step="10">
+            <input class="field-input" type="text" inputmode="numeric" id="valorInput" placeholder="R$ 400" oninput="mascaraValor(this)">
             <div style="font-size:11px;color:#9CA3AF;margin-top:6px;line-height:1.5;">
                 Usamos para mostrar quanto tempo você economiza com pré-consultas digitais. Fica só no seu perfil.
             </div>
@@ -137,6 +139,24 @@
 
 <script src="api.js"></script>
 <script>
+    // Mascara (11) 3333-4444 ou (11) 98888-7777
+    function mascaraTelefone(el) {
+        var v = el.value.replace(/\D/g, '').substring(0, 11);
+        var r = '';
+        if (v.length > 0) r = '(' + v.substring(0, 2);
+        if (v.length >= 3) r += ') ' + v.substring(2, v.length <= 10 ? 6 : 7);
+        if (v.length >= 7) r += '-' + (v.length <= 10 ? v.substring(6, 10) : v.substring(7, 11));
+        el.value = r;
+    }
+
+    // Mascara R$ 1.234 — apenas inteiros com separador de milhar
+    function mascaraValor(el) {
+        var v = el.value.replace(/\D/g, '');
+        if (!v) { el.value = ''; return; }
+        v = String(Number(v));
+        el.value = 'R$ ' + v.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
     async function cadastrar() {
         const crm = document.getElementById('crmInput').value.trim();
         const ufCrm = document.getElementById('ufInput').value;
@@ -144,7 +164,7 @@
         const clinica = document.getElementById('clinicaInput').value.trim();
         const enderecoClinica = document.getElementById('enderecoInput').value.trim();
         const telefoneClinica = document.getElementById('telInput').value.trim();
-        const valorRaw = document.getElementById('valorInput').value.trim();
+        const valorRaw = document.getElementById('valorInput').value.replace(/\D/g, '');
         const valorConsulta = valorRaw ? Number(valorRaw) : null;
 
         if (!crm || !ufCrm || !especialidade) {
