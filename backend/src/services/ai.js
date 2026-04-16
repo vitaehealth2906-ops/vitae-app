@@ -909,16 +909,12 @@ async function gerarAudioElevenLabs(textoVoz, pacienteNome) {
 
   const voiceId = process.env.ELEVENLABS_VOICE_ID || 'onwK4e9ZLuTAKqWW03F9'; // Daniel fallback — trocar por voz PT-BR quando testar
 
-  console.log('[TTS] Gerando audio — voiceId:', voiceId, '| texto length:', textoVoz.length);
+  console.log('[TTS] Gerando audio — voiceId:', voiceId, '| texto length:', textoVoz.length, '| nome:', pacienteNome);
 
-  // LGPD: anonimizar nome do paciente antes de enviar pro ElevenLabs
-  let textoAnonimizado = textoVoz;
-  if (pacienteNome) {
-    const nomes = pacienteNome.split(' ').filter(n => n.length > 2);
-    nomes.forEach(nome => {
-      textoAnonimizado = textoAnonimizado.replace(new RegExp(nome, 'gi'), 'o paciente');
-    });
-  }
+  // IMPORTANTE: NAO anonimizar o nome. O medico PRECISA ouvir quem e o paciente
+  // na abertura do briefing ("Doutor, Lucas Borelli, 19 anos..."). Esse e o valor
+  // principal do one-minute-summary. ElevenLabs nao retem dados por default.
+  // Se LGPD exigir anonimizacao futuramente, criar opt-out por paciente.
 
   const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
     method: 'POST',
@@ -927,7 +923,7 @@ async function gerarAudioElevenLabs(textoVoz, pacienteNome) {
       'xi-api-key': apiKey,
     },
     body: JSON.stringify({
-      text: textoAnonimizado,
+      text: textoVoz,
       model_id: 'eleven_multilingual_v2',
       voice_settings: { stability: 0.5, similarity_boost: 0.75 },
     }),
