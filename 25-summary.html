@@ -672,7 +672,14 @@ function seekToWordByIndex(idx) {
 // Nao perfeito, mas suficiente — e a unica opcao sem endpoint pago de alinhamento.
 function atualizarKaraoke(currentTime) {
     var palavras = window._transcricaoPalavras;
-    if (!palavras || !palavras.length || !ttsAudio || !ttsAudio.duration) return;
+    if (!palavras || !palavras.length) {
+        if (!window._karaokeWarnedNoWords) {
+            console.warn('[KARAOKE] _transcricaoPalavras vazio/indefinido. Palavras:', palavras);
+            window._karaokeWarnedNoWords = true;
+        }
+        return;
+    }
+    if (!ttsAudio || !ttsAudio.duration) return;
     var inner = document.getElementById('transcricaoInner');
     if (!inner) return;
 
@@ -846,6 +853,11 @@ async function init() {
             // Precisao nao e 100%, mas suficiente pra leitura confortavel.
             if (summaryText) {
                 var palavrasArr = summaryText.trim().split(/\s+/).filter(Boolean);
+                // Guarda array GLOBAL imediatamente (nao dentro de <script> no innerHTML —
+                // browsers ignoram scripts injetados via innerHTML por seguranca)
+                window._transcricaoPalavras = palavrasArr;
+                console.log('[KARAOKE] palavras armazenadas:', palavrasArr.length);
+
                 html += '<div class="transcricao-toggle" id="transcricaoToggle" onclick="toggleTranscricao()">';
                 html += '<span id="transcricaoToggleLabel">Ver transcri\u00e7\u00e3o</span>';
                 html += '<svg viewBox="0 0 24 24"><polyline points="6,9 12,15 18,9"/></svg>';
@@ -858,9 +870,6 @@ async function init() {
                     html += '<span class="transcricao-word clickable" data-idx="' + idx + '" onclick="seekToWordByIndex(' + idx + ')">' + safeWord + '</span> ';
                 });
                 html += '</div></div>';
-
-                // Guarda array de palavras globalmente — timing calculado depois que audio carrega
-                html += '<script>window._transcricaoPalavras = ' + JSON.stringify(palavrasArr) + ';<\/script>';
             }
         }
 
