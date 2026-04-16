@@ -82,36 +82,30 @@
             box-shadow: 0 4px 24px rgba(0,0,0,0.15), 0 0 40px rgba(0,229,160,0.1);
         }
         .audio-player-top {
-            display: flex; align-items: center; gap: 14px;
-            margin-bottom: 14px;
+            display: flex; align-items: center; justify-content: center; gap: 28px;
+            margin-bottom: 16px;
         }
         .audio-play-btn {
-            width: 44px; height: 44px; border-radius: 50%;
+            width: 56px; height: 56px; border-radius: 50%;
             background: var(--v-grad);
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0; cursor: pointer;
-            box-shadow: 0 2px 12px rgba(0,229,160,0.3);
+            box-shadow: 0 2px 16px rgba(0,229,160,0.35);
             transition: transform 0.2s var(--v-ease), box-shadow 0.2s;
             border: none; outline: none;
         }
         .audio-play-btn:active { transform: scale(0.92); }
-        .audio-play-btn svg { width: 18px; height: 18px; fill: #fff; stroke: none; }
+        .audio-play-btn svg { width: 22px; height: 22px; fill: #fff; stroke: none; }
         .audio-play-btn .icon-pause { display: none; }
         .audio-player.playing .audio-play-btn .icon-play { display: none; }
         .audio-player.playing .audio-play-btn .icon-pause { display: block; }
-        .audio-info { flex: 1; }
-        .audio-label {
-            font-size: 14px; font-weight: 700; color: #fff;
-            letter-spacing: -0.2px;
-        }
-        .audio-sub {
-            font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.4);
-            margin-top: 2px;
-        }
-        .audio-timer {
+        /* Timer split: atual à esquerda, duração à direita, abaixo da barra */
+        .audio-timer-row {
+            display: flex; justify-content: space-between;
             font-family: 'Plus Jakarta Sans', monospace;
-            font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35);
-            letter-spacing: 0.5px; flex-shrink: 0;
+            font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.45);
+            letter-spacing: 0.5px;
+            margin-top: 6px;
         }
 
         /* Waveform canvas */
@@ -156,32 +150,31 @@
         .patient-chip svg { width: 12px; height: 12px; stroke: var(--v-green2); fill: none; stroke-width: 2.5; flex-shrink: 0; }
         .patient-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        /* Controles de velocidade 1x/1.5x/2x */
+        /* Chip único que cicla velocidade (1x → 1.5x → 2x → 1x) */
         .speed-row {
             display: flex;
             justify-content: flex-end;
-            gap: 4px;
-            margin-top: 10px;
+            margin-top: 8px;
         }
-        .speed-chip {
-            padding: 4px 10px;
+        .speed-cycle {
+            padding: 3px 9px;
             border-radius: 100px;
             background: transparent;
             border: 1px solid rgba(255,255,255,0.10);
             font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 11px;
             font-weight: 700;
-            color: rgba(255,255,255,0.45);
+            color: rgba(255,255,255,0.5);
             cursor: pointer;
             transition: all 0.15s ease;
         }
-        .speed-chip:hover {
-            border-color: rgba(0,229,160,0.4);
-            color: rgba(255,255,255,0.75);
+        .speed-cycle:hover {
+            border-color: rgba(0,229,160,0.35);
+            color: rgba(255,255,255,0.8);
         }
-        .speed-chip.active {
-            background: rgba(0,229,160,0.15);
-            border-color: rgba(0,229,160,0.45);
+        .speed-cycle.boosted {
+            background: rgba(0,229,160,0.12);
+            border-color: rgba(0,229,160,0.4);
             color: #5AFFBA;
         }
 
@@ -222,18 +215,37 @@
         .transcricao-toggle svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; transition: transform 0.2s; }
         .transcricao-toggle.open svg { transform: rotate(180deg); }
 
-        /* Caixa da transcricao karaoke */
+        /* Caixa da transcricao karaoke — simétrica ao player (220px) */
         .transcricao-box {
             max-height: 0;
             overflow: hidden;
             margin: 0 20px 20px;
             background: #0D0F14;
             border-radius: 14px;
+            border-top: 1px solid rgba(0,229,160,0.08);
             transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
         .transcricao-box.open {
-            max-height: 360px;
+            max-height: 220px;
             overflow-y: auto;
+        }
+        /* Fades topo/base — sugerem "há mais texto" */
+        .transcricao-box.open::before,
+        .transcricao-box.open::after {
+            content: ''; position: sticky; left: 0; right: 0;
+            display: block; height: 24px; pointer-events: none;
+            z-index: 2;
+        }
+        .transcricao-box.open::before {
+            top: 0;
+            background: linear-gradient(to bottom, #0D0F14 0%, rgba(13,15,20,0) 100%);
+            margin-bottom: -24px;
+        }
+        .transcricao-box.open::after {
+            bottom: 0;
+            background: linear-gradient(to top, #0D0F14 0%, rgba(13,15,20,0) 100%);
+            margin-top: -24px;
         }
         .transcricao-inner {
             padding: 16px 18px;
@@ -241,6 +253,26 @@
             color: rgba(255,255,255,0.3);
             font-weight: 500;
         }
+        /* Chip "Voltar ao áudio" quando user fez scroll manual */
+        .back-to-audio-chip {
+            position: absolute; bottom: 10px; right: 10px;
+            padding: 5px 11px; border-radius: 100px;
+            background: rgba(0,229,160,0.15);
+            border: 1px solid rgba(0,229,160,0.35);
+            color: #5AFFBA;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.3px;
+            cursor: pointer; z-index: 3;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .back-to-audio-chip.show { opacity: 1; pointer-events: auto; }
+        /* Pulso verde ao clicar numa palavra */
+        @keyframes wordPulse {
+            0% { background: rgba(0,229,160,0.3); }
+            100% { background: transparent; }
+        }
+        .transcricao-word.pulse { animation: wordPulse 0.2s ease; border-radius: 3px; padding: 0 2px; margin: 0 -2px; }
         /* Palavras futuras (ainda nao faladas): cinza escuro, quase invisiveis */
         .transcricao-word {
             transition: color 0.15s ease;
@@ -259,9 +291,9 @@
         .transcricao-word.clickable { cursor: pointer; }
         .transcricao-word.clickable:hover { color: rgba(0,229,160,0.7); }
         /* Scroll bonito no dark mode */
-        .transcricao-box::-webkit-scrollbar { width: 3px; }
+        .transcricao-box::-webkit-scrollbar { width: 2px; }
         .transcricao-box::-webkit-scrollbar-track { background: transparent; }
-        .transcricao-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+        .transcricao-box::-webkit-scrollbar-thumb { background: rgba(0,229,160,0.25); border-radius: 3px; }
 
         /* ── Pontos de Atencao (redesigned alerts) ── */
         .insight-card {
@@ -302,63 +334,109 @@
         }
         .insight-msg { font-size: 12px; color: var(--v-ink3); line-height: 1.5; }
 
-        /* ── Ficha do Paciente (collapsible accordion) ── */
-        .ficha-toggle {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 14px 20px;
-            margin: 0 var(--v-s5) var(--v-s2);
-            background: var(--v-surface);
-            border: var(--v-border); border-radius: var(--v-r-md);
-            cursor: pointer; transition: all 0.2s var(--v-ease);
+        /* ── Referência: mini-cards hierarquizados (S2, consulta) ── */
+        .ref-card {
+            position: relative;
+            background: #FAFAF8;
+            border-radius: 12px;
+            padding: 12px 14px 12px 18px;
+            margin: 0 var(--v-s5) 12px;
+            overflow: hidden;
         }
-        .ficha-toggle:active { transform: scale(0.98); }
-        .ficha-toggle-left {
-            display: flex; align-items: center; gap: 10px;
+        .ref-card::before {
+            content: ''; position: absolute; left: 0; top: 10px; bottom: 10px;
+            width: 3px; border-radius: 0 3px 3px 0;
         }
-        .ficha-toggle-icon {
-            width: 32px; height: 32px; border-radius: 10px;
-            background: rgba(0,229,160,0.08);
-            display: flex; align-items: center; justify-content: center;
-        }
-        .ficha-toggle-icon svg { width: 16px; height: 16px; stroke: var(--v-green); fill: none; stroke-width: 2; stroke-linecap: round; }
-        .ficha-toggle-text { font-size: 14px; font-weight: 600; color: var(--v-ink); }
-        .ficha-chevron {
-            width: 20px; height: 20px; stroke: var(--v-ink4); fill: none; stroke-width: 2;
-            transition: transform 0.3s var(--v-ease);
-        }
-        .ficha-toggle.open .ficha-chevron { transform: rotate(180deg); }
+        .ref-card--alergia::before { background: rgba(139, 26, 26, 0.6); }
+        .ref-card--med::before { background: rgba(0, 196, 122, 0.55); }
+        .ref-card--queixa::before { background: rgba(91, 104, 120, 0.55); }
+        .ref-card--historico::before { background: rgba(91, 104, 120, 0.55); }
+        .ref-card--familiar::before { background: rgba(156, 163, 175, 0.45); }
+        .ref-card--exames::before { background: rgba(156, 163, 175, 0.45); }
 
-        .ficha-body {
+        .ref-card-header {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 6px;
+        }
+        .ref-card-icon {
+            width: 22px; height: 22px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .ref-card-icon svg { width: 13px; height: 13px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .ref-card--alergia .ref-card-icon { background: rgba(139, 26, 26, 0.12); }
+        .ref-card--alergia .ref-card-icon svg { stroke: rgba(139, 26, 26, 0.8); }
+        .ref-card--med .ref-card-icon { background: rgba(0, 196, 122, 0.12); }
+        .ref-card--med .ref-card-icon svg { stroke: rgba(0, 150, 90, 0.9); }
+        .ref-card--queixa .ref-card-icon,
+        .ref-card--historico .ref-card-icon { background: rgba(91, 104, 120, 0.12); }
+        .ref-card--queixa .ref-card-icon svg,
+        .ref-card--historico .ref-card-icon svg { stroke: rgba(91, 104, 120, 0.9); }
+        .ref-card--familiar .ref-card-icon,
+        .ref-card--exames .ref-card-icon { background: rgba(156, 163, 175, 0.15); }
+        .ref-card--familiar .ref-card-icon svg,
+        .ref-card--exames .ref-card-icon svg { stroke: rgba(107, 114, 128, 0.9); }
+
+        .ref-card-label {
+            flex: 1;
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+        .ref-card--alergia .ref-card-label { color: rgba(139, 26, 26, 0.85); }
+        .ref-card--med .ref-card-label { color: rgba(0, 150, 90, 0.95); }
+        .ref-card--queixa .ref-card-label,
+        .ref-card--historico .ref-card-label { color: rgba(91, 104, 120, 0.95); }
+        .ref-card--familiar .ref-card-label,
+        .ref-card--exames .ref-card-label { color: rgba(107, 114, 128, 0.9); }
+
+        .ref-card-count {
+            font-size: 10px; font-weight: 600; color: var(--v-ink4);
+            letter-spacing: 0.04em;
+        }
+
+        .ref-card-body { padding-left: 2px; }
+        .ref-card-item {
+            font-size: 13px; line-height: 1.5;
+            color: var(--v-ink);
+            padding: 3px 0;
+            font-weight: 500;
+        }
+        .ref-card-item .item-modifier {
+            font-weight: 400; color: var(--v-ink3);
+            margin-left: 4px;
+        }
+        .ref-card-text {
+            font-size: 13px; line-height: 1.5;
+            color: var(--v-ink2);
+            font-weight: 400;
+        }
+        .ref-card-more {
+            font-size: 11px; font-weight: 600;
+            color: var(--v-green2);
+            cursor: pointer; user-select: none;
+            padding: 4px 0 2px;
+            letter-spacing: 0.02em;
+        }
+        .ref-card-more:hover { text-decoration: underline; }
+
+        /* Toggle camada 3 (contexto adicional) */
+        .ref-camada3-toggle {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            margin: 4px var(--v-s5) 10px;
+            padding: 8px 14px;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--v-ink4);
+            cursor: pointer; user-select: none;
+            background: transparent;
+        }
+        .ref-camada3-toggle svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2.5; transition: transform 0.2s; }
+        .ref-camada3-toggle.open svg { transform: rotate(180deg); }
+        .ref-camada3 {
             max-height: 0; overflow: hidden;
             transition: max-height 0.35s var(--v-ease);
-            margin: 0 var(--v-s5);
         }
-        .ficha-body.open { max-height: 2000px; }
-        .ficha-body-inner {
-            background: var(--v-surface); border: var(--v-border);
-            border-radius: 0 0 var(--v-r-md) var(--v-r-md);
-            border-top: none;
-            padding: 4px 16px 12px;
-        }
-        .ficha-row {
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(0,0,0,0.04);
-        }
-        .ficha-row:last-child { border-bottom: none; }
-        .ficha-label {
-            font-size: 10px; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.12em; color: var(--v-ink4); margin-bottom: 3px;
-        }
-        .ficha-value { font-size: 13px; font-weight: 500; color: var(--v-ink); line-height: 1.5; }
-
-        /* Raw fallback */
-        .raw-card {
-            background: var(--v-surface); border: var(--v-border);
-            border-radius: var(--v-r-md); padding: var(--v-s4);
-            margin: 0 var(--v-s5) var(--v-s2); box-shadow: var(--v-sh);
-        }
-        .raw-label { font-size: 12px; font-weight: 700; color: var(--v-ink4); margin-bottom: 4px; }
-        .raw-value { font-size: 14px; color: var(--v-ink2); line-height: 1.5; }
+        .ref-camada3.open { max-height: 2000px; }
 
         /* Animations */
         .anim { opacity: 0; transform: translateY(20px); animation: fadeUp 0.4s var(--v-ease) forwards; }
@@ -553,7 +631,6 @@ function toggleAudio() {
         ttsPlaying = false;
         player.classList.remove('playing');
         player.classList.add('idle');
-        document.querySelector('.audio-label').textContent = 'Ouvir briefing';
         if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
         drawIdleWaveform();
         return;
@@ -568,7 +645,6 @@ function toggleAudio() {
     // Generate via backend
     const id = urlParams.get('id');
     if (id && getToken()) {
-        document.querySelector('.audio-sub').textContent = 'Gerando audio...';
         fetch(API_URL + '/pre-consulta/' + id + '/tts', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + getToken() }
@@ -578,11 +654,9 @@ function toggleAudio() {
         }).then(function(blob) {
             const url = URL.createObjectURL(blob);
             player.dataset.audioUrl = url;
-            document.querySelector('.audio-sub').textContent = '~1 minuto';
             playAudioUrl(url);
         }).catch(function(err) {
             console.error('[TTS] Erro ao gerar:', err);
-            document.querySelector('.audio-sub').textContent = 'Erro — usando voz local';
             fallbackBrowserTTS();
         });
         return;
@@ -608,18 +682,22 @@ function playAudioUrl(url) {
         ttsPlaying = true;
         player.classList.add('playing');
         player.classList.remove('idle');
-        document.querySelector('.audio-label').textContent = 'Pausar';
         drawWaveform();
     }).catch(function() { fallbackBrowserTTS(); });
+
+    ttsAudio.onloadedmetadata = function() {
+        var tot = document.getElementById('audioTimerTotal');
+        if (tot && ttsAudio.duration) tot.textContent = formatTime(ttsAudio.duration);
+    };
 
     ttsAudio.ontimeupdate = function() {
         const pct = ttsAudio.duration ? (ttsAudio.currentTime / ttsAudio.duration * 100) : 0;
         const fill = document.getElementById('progressFill');
         if (fill) fill.style.width = pct + '%';
-        const timer = document.getElementById('audioTimer');
-        if (timer && ttsAudio.duration) {
-            timer.textContent = formatTime(ttsAudio.currentTime) + ' / ' + formatTime(ttsAudio.duration);
-        }
+        const cur = document.getElementById('audioTimerCurrent');
+        const tot = document.getElementById('audioTimerTotal');
+        if (cur) cur.textContent = formatTime(ttsAudio.currentTime);
+        if (tot && ttsAudio.duration) tot.textContent = formatTime(ttsAudio.duration);
         // Karaoke sync — atualiza palavra destacada
         atualizarKaraoke(ttsAudio.currentTime);
     };
@@ -628,7 +706,6 @@ function playAudioUrl(url) {
         ttsPlaying = false;
         player.classList.remove('playing');
         player.classList.add('idle');
-        document.querySelector('.audio-label').textContent = 'Ouvir novamente';
         if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
         drawIdleWaveform();
         var fill = document.getElementById('progressFill');
@@ -648,16 +725,19 @@ function seekAudio(e) {
     ttsAudio.currentTime = pct * ttsAudio.duration;
 }
 
-// Controle de velocidade de reproducao (1x/1.5x/2x)
-function mudarVelocidade(taxa) {
-    if (ttsAudio) ttsAudio.playbackRate = taxa;
-    // Guarda pra aplicar quando o audio for criado (caso seja clicado antes de tocar)
-    window._audioPlaybackRate = taxa;
-    // Atualiza visual dos chips
-    var chips = document.querySelectorAll('.speed-chip');
-    chips.forEach(function(c) {
-        c.classList.toggle('active', parseFloat(c.dataset.rate) === taxa);
-    });
+// Ciclo de velocidade: 1x → 1.5x → 2x → 1x
+var SPEED_CYCLE = [1, 1.5, 2];
+function cicloVelocidade() {
+    var atual = window._audioPlaybackRate || 1;
+    var idx = SPEED_CYCLE.indexOf(atual);
+    var prox = SPEED_CYCLE[(idx + 1) % SPEED_CYCLE.length];
+    if (ttsAudio) ttsAudio.playbackRate = prox;
+    window._audioPlaybackRate = prox;
+    var btn = document.getElementById('speedCycle');
+    if (btn) {
+        btn.textContent = (prox === Math.floor(prox) ? prox : prox) + 'x';
+        btn.classList.toggle('boosted', prox !== 1);
+    }
 }
 
 // +5s / -5s com flash visual
@@ -682,12 +762,24 @@ function toggleTranscricao() {
     var aberto = box.classList.toggle('open');
     t.classList.toggle('open', aberto);
     if (lbl) lbl.textContent = aberto ? 'Ocultar transcri\u00e7\u00e3o' : 'Ver transcri\u00e7\u00e3o';
+    if (aberto) setupTranscricaoScrollListener();
 }
 
-// Clicar em palavra da transcricao pelo indice — usa estimativa duracao/palavras
+// Clicar em palavra da transcricao pelo indice — pulso verde + seek
 function seekToWordByIndex(idx) {
     var palavras = window._transcricaoPalavras;
     if (!palavras || !palavras.length) return;
+
+    // Pulso visual instantâneo
+    var inner = document.getElementById('transcricaoInner');
+    if (inner) {
+        var spans = inner.querySelectorAll('.transcricao-word');
+        if (spans[idx]) {
+            spans[idx].classList.remove('pulse');
+            void spans[idx].offsetWidth;
+            spans[idx].classList.add('pulse');
+        }
+    }
 
     var player = document.getElementById('audioPlayer');
     var cachedUrl = player && player.dataset.audioUrl;
@@ -710,6 +802,33 @@ function seekToWordByIndex(idx) {
         var tempoPorPalavra = ttsAudio.duration / palavras.length;
         ttsAudio.currentTime = idx * tempoPorPalavra;
     }
+}
+
+// Scroll manual pausa auto-follow por 4s
+window._autoFollowPausedUntil = 0;
+function setupTranscricaoScrollListener() {
+    var box = document.getElementById('transcricaoBox');
+    if (!box || box._scrollBound) return;
+    box._scrollBound = true;
+    var chip = document.getElementById('backToAudioChip');
+    box.addEventListener('scroll', function() {
+        if (window._programmaticScroll) return;
+        window._autoFollowPausedUntil = Date.now() + 4000;
+        if (chip) chip.classList.add('show');
+    });
+    if (chip) {
+        chip.onclick = function() {
+            window._autoFollowPausedUntil = 0;
+            chip.classList.remove('show');
+            if (ttsAudio) atualizarKaraoke(ttsAudio.currentTime);
+        };
+    }
+    // Timer que esconde o chip quando o pause expira
+    setInterval(function() {
+        if (Date.now() > window._autoFollowPausedUntil && chip && chip.classList.contains('show')) {
+            chip.classList.remove('show');
+        }
+    }, 500);
 }
 
 // Atualiza palavra destacada conforme audio avanca (estimativa linear)
@@ -745,15 +864,20 @@ function atualizarKaraoke(currentTime) {
         else if (i === idxAtual) s.classList.add('current');
     });
 
-    // Auto-scroll pra manter palavra atual no terco superior do box
+    // Auto-scroll — mantém palavra atual na 3ª linha (~terço superior)
+    // Pausa por 4s se usuário fez scroll manual
+    if (Date.now() < window._autoFollowPausedUntil) return;
     var box = document.getElementById('transcricaoBox');
     if (box && box.classList.contains('open') && idxAtual >= 0 && spans[idxAtual]) {
         var cur = spans[idxAtual];
         var boxRect = box.getBoundingClientRect();
         var curRect = cur.getBoundingClientRect();
-        var targetY = boxRect.top + boxRect.height * 0.33;
+        // 3ª linha visível: line-height ~24px × 3 = 72px abaixo do topo
+        var targetY = boxRect.top + 72;
         if (curRect.top < boxRect.top + 10 || curRect.top > targetY + 30) {
+            window._programmaticScroll = true;
             box.scrollTop += (curRect.top - targetY);
+            setTimeout(function() { window._programmaticScroll = false; }, 50);
         }
     }
 }
@@ -771,7 +895,6 @@ function fallbackBrowserTTS() {
         if (player) {
             player.classList.add('playing');
             player.classList.remove('idle');
-            document.querySelector('.audio-label').textContent = 'Pausar';
         }
     };
     utterance.onend = function() {
@@ -779,15 +902,14 @@ function fallbackBrowserTTS() {
         if (player) {
             player.classList.remove('playing');
             player.classList.add('idle');
-            document.querySelector('.audio-label').textContent = 'Ouvir briefing';
         }
     };
     speechSynthesis.speak(utterance);
 }
 
-function toggleFicha() {
-    var toggle = document.getElementById('fichaToggle');
-    var body = document.getElementById('fichaBody');
+function toggleRef3() {
+    var toggle = document.getElementById('ref3Toggle');
+    var body = document.getElementById('ref3Body');
     if (!toggle || !body) return;
     toggle.classList.toggle('open');
     body.classList.toggle('open');
@@ -881,16 +1003,13 @@ async function init() {
             html += '<button class="audio-skip-btn" id="skipFwd5" onclick="skipAudio(5)" title="Avancar 5s">';
             html += '<svg viewBox="0 0 24 24"><path d="M15 14l4-4-4-4"/><path d="M19 10h-9a6 6 0 000 12h3"/></svg>';
             html += '</button>';
-            html += '<div class="audio-info"><div class="audio-label">Ouvir briefing</div><div class="audio-sub">~1 minuto</div></div>';
-            html += '<div class="audio-timer" id="audioTimer">0:00</div>';
             html += '</div>';
             html += '<canvas class="audio-waveform" id="waveformCanvas"></canvas>';
             html += '<div class="audio-progress-wrap" onclick="seekAudio(event)"><div class="audio-progress-fill" id="progressFill"></div></div>';
-            // Controles de velocidade
+            html += '<div class="audio-timer-row"><span id="audioTimerCurrent">0:00</span><span id="audioTimerTotal">0:00</span></div>';
+            // Chip único que cicla velocidade
             html += '<div class="speed-row">';
-            html += '<button class="speed-chip active" data-rate="1" onclick="mudarVelocidade(1)">1x</button>';
-            html += '<button class="speed-chip" data-rate="1.5" onclick="mudarVelocidade(1.5)">1.5x</button>';
-            html += '<button class="speed-chip" data-rate="2" onclick="mudarVelocidade(2)">2x</button>';
+            html += '<button class="speed-cycle" id="speedCycle" onclick="cicloVelocidade()">1x</button>';
             html += '</div>';
             html += '</div>';
 
@@ -918,7 +1037,9 @@ async function init() {
                     var safeWord = String(w).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     html += '<span class="transcricao-word clickable" data-idx="' + idx + '" onclick="seekToWordByIndex(' + idx + ')">' + safeWord + '</span> ';
                 });
-                html += '</div></div>';
+                html += '</div>';
+                html += '<div class="back-to-audio-chip" id="backToAudioChip">Voltar ao \u00e1udio</div>';
+                html += '</div>';
             }
         }
 
@@ -945,55 +1066,114 @@ async function init() {
             });
         }
 
-        // ── Ficha do Paciente (collapsible) ──
+        // ── Referência: mini-cards hierarquizados (S2) ──
         var blocos = summary.blocos || [];
-        var fichaRows = [];
-
-        // Build from blocos first
+        var blocoMap = {};
         blocos.forEach(function(b) {
             if (b.conteudo && b.conteudo.trim()) {
-                fichaRows.push({ label: b.titulo, value: b.conteudo });
+                var t = (b.titulo || '').toLowerCase();
+                blocoMap[t] = b.conteudo.trim();
             }
         });
-
-        // Fallback from raw responses if no blocos
-        if (fichaRows.length === 0) {
-            if (r.queixaPrincipal || r.queixa) fichaRows.push({ label: 'Queixa Principal', value: r.queixaPrincipal || r.queixa });
-            if (r.duracaoSintomas) fichaRows.push({ label: 'Duracao', value: r.duracaoSintomas });
-            if (r.medicamentosEmUso) fichaRows.push({ label: 'Medicamentos', value: r.medicamentosEmUso });
-            if (r.alergias) fichaRows.push({ label: 'Alergias', value: r.alergias });
-            if (r.reacoesAdversas) fichaRows.push({ label: 'Reacoes Adversas', value: r.reacoesAdversas });
-            if (r.doencasAtuais) fichaRows.push({ label: 'Doencas Atuais', value: r.doencasAtuais });
-            if (r.cirurgias) fichaRows.push({ label: 'Cirurgias', value: r.cirurgias });
-            if (r.historicoFamiliar) fichaRows.push({ label: 'Historico Familiar', value: r.historicoFamiliar });
-            var habStr = buildHabitos(r);
-            if (habStr) fichaRows.push({ label: 'Habitos', value: habStr });
-            if (r.examesRecentes) fichaRows.push({ label: 'Exames Recentes', value: r.examesRecentes });
-            if (r.observacoes) fichaRows.push({ label: 'Observacoes', value: r.observacoes });
+        function findBloco(keywords) {
+            for (var k in blocoMap) {
+                for (var i = 0; i < keywords.length; i++) {
+                    if (k.indexOf(keywords[i]) !== -1) return blocoMap[k];
+                }
+            }
+            return null;
         }
 
-        if (fichaRows.length > 0) {
-            html += '<div class="section-label anim anim-d4">Referencia</div>';
-            html += '<div class="ficha-toggle anim anim-d4" id="fichaToggle" onclick="toggleFicha()">';
-            html += '<div class="ficha-toggle-left">';
-            html += '<div class="ficha-toggle-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>';
-            html += '<div class="ficha-toggle-text">Dados do paciente</div>';
-            html += '</div>';
-            html += '<svg class="ficha-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
-            html += '</div>';
+        // Extrai dados por categoria (prioridade: blocos do summary → respostas raw)
+        var alergiasRaw = findBloco(['alergia','reac']) || r.alergias || r.reacoesAdversas || '';
+        var medsRaw = findBloco(['medicament']) || r.medicamentosEmUso || '';
+        var queixaRaw = findBloco(['queixa','motivo']) || r.queixaPrincipal || r.queixa || '';
+        if (r.duracaoSintomas && queixaRaw && queixaRaw.indexOf(r.duracaoSintomas) === -1) {
+            queixaRaw += ' (' + r.duracaoSintomas + ')';
+        }
+        var historicoRaw = findBloco(['hist\u00f3rico relevante','doenca','cirurgi','internac']) ||
+            [r.doencasAtuais, r.cirurgias, r.historicoInternacoes].filter(Boolean).join('. ');
+        var familiarRaw = findBloco(['familiar']) || r.historicoFamiliar || '';
+        var examesRaw = findBloco(['exames']) || r.examesRecentes || '';
 
-            html += '<div class="ficha-body" id="fichaBody"><div class="ficha-body-inner">';
-            fichaRows.forEach(function(row) {
-                html += '<div class="ficha-row">';
-                html += '<div class="ficha-label">' + row.label + '</div>';
-                html += '<div class="ficha-value">' + row.value + '</div>';
-                html += '</div>';
+        // Parser genérico de listas (split por vírgula/;/quebra de linha)
+        function parseItens(txt) {
+            if (!txt) return [];
+            return txt.split(/[,;\n•]+/).map(function(s){return s.trim();}).filter(function(s){return s.length > 1;});
+        }
+
+        var alergias = parseItens(alergiasRaw);
+        var meds = parseItens(medsRaw);
+
+        function renderList(items, variant, icon, label) {
+            if (!items.length) return '';
+            var count = items.length;
+            var visibleItems = items.slice(0, 3);
+            var rest = items.length - 3;
+            var h = '<div class="ref-card ref-card--' + variant + ' anim anim-d4">';
+            h += '<div class="ref-card-header">';
+            h += '<div class="ref-card-icon">' + icon + '</div>';
+            h += '<div class="ref-card-label">' + label + '</div>';
+            if (count > 1) h += '<div class="ref-card-count">' + count + ' ' + (count === 1 ? 'item' : 'itens') + '</div>';
+            h += '</div>';
+            h += '<div class="ref-card-body">';
+            visibleItems.forEach(function(it) {
+                h += '<div class="ref-card-item">' + it + '</div>';
             });
-            html += '</div></div>';
+            if (rest > 0) {
+                h += '<div class="ref-card-more" onclick="this.parentElement.querySelectorAll(\'.ref-card-item-hidden\').forEach(function(x){x.style.display=\'block\';});this.remove();">+ ver mais ' + rest + '</div>';
+                items.slice(3).forEach(function(it) {
+                    h += '<div class="ref-card-item ref-card-item-hidden" style="display:none">' + it + '</div>';
+                });
+            }
+            h += '</div></div>';
+            return h;
         }
 
-        // Raw fallback (if absolutely no summary AND no ficha data)
-        if (!fichaRows.length && !blocos.length && !alertas.length && pc.respostas) {
+        function renderText(txt, variant, icon, label) {
+            if (!txt || !txt.trim()) return '';
+            var h = '<div class="ref-card ref-card--' + variant + ' anim anim-d4">';
+            h += '<div class="ref-card-header">';
+            h += '<div class="ref-card-icon">' + icon + '</div>';
+            h += '<div class="ref-card-label">' + label + '</div>';
+            h += '</div>';
+            h += '<div class="ref-card-body"><div class="ref-card-text">' + txt + '</div></div>';
+            h += '</div>';
+            return h;
+        }
+
+        var iconAlergia = '<svg viewBox="0 0 24 24"><path d="M12 2c3 4 6 7 6 11a6 6 0 01-12 0c0-4 3-7 6-11z"/></svg>';
+        var iconMed = '<svg viewBox="0 0 24 24"><path d="M4.5 12.5l8-8a4 4 0 015.66 5.66l-8 8a4 4 0 01-5.66-5.66z"/><line x1="8" y1="8" x2="16" y2="16"/></svg>';
+        var iconQueixa = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+        var iconHistorico = '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>';
+        var iconFamiliar = '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
+        var iconExames = '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+
+        var refCamada1 = '';
+        refCamada1 += renderList(alergias, 'alergia', iconAlergia, 'Alergias e rea\u00e7\u00f5es');
+        refCamada1 += renderList(meds, 'med', iconMed, 'Medicamentos em uso');
+        var refCamada2 = '';
+        refCamada2 += renderText(queixaRaw, 'queixa', iconQueixa, 'Queixa principal');
+        refCamada2 += renderText(historicoRaw, 'historico', iconHistorico, 'Hist\u00f3rico relevante');
+        var refCamada3 = '';
+        refCamada3 += renderText(familiarRaw, 'familiar', iconFamiliar, 'Hist\u00f3rico familiar');
+        refCamada3 += renderText(examesRaw, 'exames', iconExames, 'Exames recentes');
+
+        if (refCamada1 || refCamada2 || refCamada3) {
+            html += '<div class="section-label anim anim-d4">Refer\u00eancia</div>';
+            html += refCamada1;
+            html += refCamada2;
+            if (refCamada3) {
+                html += '<div class="ref-camada3-toggle" id="ref3Toggle" onclick="toggleRef3()">';
+                html += '<span>Contexto adicional</span>';
+                html += '<svg viewBox="0 0 24 24"><polyline points="6,9 12,15 18,9"/></svg>';
+                html += '</div>';
+                html += '<div class="ref-camada3" id="ref3Body">' + refCamada3 + '</div>';
+            }
+        }
+
+        // Raw fallback (se absolutamente nenhum dado clínico)
+        if (!refCamada1 && !refCamada2 && !refCamada3 && !blocos.length && !alertas.length && pc.respostas) {
             html += '<div class="section-label anim anim-d3">Respostas do paciente</div>';
             var entries = Object.entries(pc.respostas);
             entries.forEach(function(pair) {
@@ -1003,7 +1183,7 @@ async function init() {
                 if (HIDE_FIELDS.indexOf(key) !== -1) return;
                 if (typeof val === 'string' && val.startsWith('http')) return;
                 var label = LABELS[key] || key;
-                html += '<div class="raw-card anim anim-d4"><div class="raw-label">' + label + '</div><div class="raw-value">' + val + '</div></div>';
+                html += '<div class="ref-card ref-card--queixa anim anim-d4"><div class="ref-card-header"><div class="ref-card-label">' + label + '</div></div><div class="ref-card-body"><div class="ref-card-text">' + val + '</div></div></div>';
             });
         }
 
