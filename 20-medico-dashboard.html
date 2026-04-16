@@ -146,7 +146,11 @@
         .panel-signature { height:3px; background:linear-gradient(90deg,#00E5A0,#00B4D8); }
         .panel-greeting { display:flex; align-items:center; gap:14px; padding:18px 18px 14px; }
         .panel-stats { display:flex; padding:14px 0 18px; border-top:1px solid rgba(0,0,0,0.06); }
-        .stat-col { flex:1; text-align:center; position:relative; min-width:0; }
+        .stat-col { flex:1; text-align:center; position:relative; min-width:0; cursor:pointer; transition:all 0.2s ease; border-radius:10px; padding:6px 0; margin:0 4px; }
+        .stat-col:hover { background:rgba(0,229,160,0.04); }
+        .stat-col.active { background:rgba(0,229,160,0.08); }
+        .stat-col.active .stat-num { color:#00C47A; }
+        .stat-col.active .stat-lbl { color:#00C47A; }
         .stat-col + .stat-col::before {
             content:''; position:absolute; left:0; top:8px; bottom:8px;
             width:1px; background:rgba(0,0,0,0.06);
@@ -770,15 +774,15 @@
                 </div>
             </div>
             <div class="panel-stats">
-                <div class="stat-col">
+                <div class="stat-col active" onclick="filterByStatus('all')">
                     <div class="stat-num" id="statPacientes">0</div>
                     <div class="stat-lbl">Pacientes</div>
                 </div>
-                <div class="stat-col">
+                <div class="stat-col" onclick="filterByStatus('pendentes')">
                     <div class="stat-num" id="statPendentes">0</div>
                     <div class="stat-lbl">Pendentes</div>
                 </div>
-                <div class="stat-col">
+                <div class="stat-col" onclick="filterByStatus('respondidas')">
                     <div class="stat-num" id="statRespondidas">0</div>
                     <div class="stat-lbl">Respondidas</div>
                 </div>
@@ -1051,7 +1055,12 @@
     <!-- Create pre-consulta modal -->
     <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
         <div class="modal" onclick="event.stopPropagation()">
-            <div class="modal-title">Nova Pré-Consulta</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <div class="modal-title" style="margin-bottom:0;">Nova Pré-Consulta</div>
+                <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='rgba(0,0,0,0.05)'" onmouseout="this.style.background='none'">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
             <div class="field">
                 <div class="field-label">Nome do paciente</div>
                 <input class="field-input" id="pcNome" placeholder="Nome completo">
@@ -1213,6 +1222,8 @@
     function closeModal() {
         document.getElementById('modalOverlay').classList.remove('active');
         document.getElementById('linkBox').style.display = 'none';
+        var btn = document.getElementById('createBtn');
+        if (btn) { btn.textContent = 'Gerar link'; btn.onclick = criarPreConsulta; }
     }
 
     function doLogout() {
@@ -1350,7 +1361,9 @@
 
             document.getElementById('linkUrl').textContent = data.link;
             document.getElementById('linkBox').style.display = 'block';
-            document.getElementById('createBtn').textContent = 'Gerar link';
+            var btn = document.getElementById('createBtn');
+            btn.textContent = 'Fechar';
+            btn.onclick = function() { closeModal(); btn.textContent = 'Gerar link'; btn.onclick = criarPreConsulta; };
 
             loadDashboard();
         } catch (e) {
@@ -2052,15 +2065,27 @@
         var weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
         var weekStr = weekAgo.toISOString().split('T')[0];
 
-        // For 'all', render flat list without section headers
+        // Filtro por status (Pacientes/Pendentes/Respondidas)
+        var statusFiltered = list;
+        if (_currentStatusFilter === 'pendentes') {
+            statusFiltered = list.filter(function(entry) {
+                return entry[1].anamneses.some(function(a){ return a.status === 'PENDENTE' || a.status === 'ABERTO'; });
+            });
+        } else if (_currentStatusFilter === 'respondidas') {
+            statusFiltered = list.filter(function(entry) {
+                return entry[1].anamneses.some(function(a){ return a.status === 'RESPONDIDA'; });
+            });
+        }
+
+        // For 'all' period, render flat list
         if (period === 'all') {
-            var html = list.map(buildPacCardHtml).join('');
-            document.getElementById('pacList').innerHTML = html || '<div class="empty-state">Nenhum paciente.</div>';
+            var html = statusFiltered.map(buildPacCardHtml).join('');
+            document.getElementById('pacList').innerHTML = html || '<div class="empty-state" style="padding:30px 20px;text-align:center;color:#9CA3AF;font-size:13px;">Nenhum paciente encontrado.</div>';
             return;
         }
 
-        // Filtered views: show only matching cards
-        var filtered = list.filter(function(entry) {
+        // Filtro por período em cima do filtro de status
+        var filtered = statusFiltered.filter(function(entry) {
             var p = entry[1];
             var d = p.ultimaData ? p.ultimaData.toISOString().split('T')[0] : '2000-01-01';
             if (period === 'today') return d === todayStr;
@@ -2093,7 +2118,20 @@
         return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'short'}).replace('.','');
     }
 
+    var _currentStatusFilter = 'all';
+    var _currentPeriodFilter = 'all';
+
+    function filterByStatus(tipo) {
+        _currentStatusFilter = tipo;
+        document.querySelectorAll('.stat-col').forEach(function(c){c.classList.remove('active')});
+        var map = { all: 0, pendentes: 1, respondidas: 2 };
+        var cols = document.querySelectorAll('.stat-col');
+        if (cols[map[tipo]]) cols[map[tipo]].classList.add('active');
+        renderPacientesList(allPacientesData, _currentPeriodFilter);
+    }
+
     function filterPacTime(btn, period) {
+        _currentPeriodFilter = period;
         document.querySelectorAll('.pac-pill').forEach(function(p){p.classList.remove('active')});
         btn.classList.add('active');
         renderPacientesList(allPacientesData, period);
@@ -2120,6 +2158,7 @@
 
         document.getElementById('pacListView').style.display = 'none';
         var topBlock = document.getElementById('dashTopBlock'); if (topBlock) topBlock.style.display = 'none';
+        var fab = document.getElementById('dashFab'); if (fab) fab.style.display = 'none';
         var profileView = document.getElementById('pacProfileView');
         profileView.style.display = '';
         profileView.innerHTML = '<div style="text-align:center;padding:60px 20px;"><div class="spinner" style="width:32px;height:32px;border:3px solid rgba(0,229,160,0.2);border-top-color:#00E5A0;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;"></div><div style="font-size:13px;color:#9CA3AF;">Carregando perfil...</div></div>';
@@ -2565,6 +2604,7 @@
         document.getElementById('pacProfileView').innerHTML = '';
         document.getElementById('pacListView').style.display = '';
         var topBlock = document.getElementById('dashTopBlock'); if (topBlock) topBlock.style.display = '';
+        var fab = document.getElementById('dashFab'); if (fab) fab.style.display = '';
     }
 
     async function apagarAnamnese(id, nome) {
