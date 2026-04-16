@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Perfil do Paciente (Redesign)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased}
+  body{background:#0D0F14;min-height:100vh;padding:40px 20px;color:#fff}
+
+  .page-title{text-align:center;margin-bottom:40px}
+  .page-title h1{font-size:32px;font-weight:900;letter-spacing:-1px;background:linear-gradient(120deg,#00E5A0,#00B4D8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
+  .page-title p{font-size:14px;color:#9CA3AF}
+
+  .compare{display:flex;gap:32px;justify-content:center;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .col-label{font-size:11px;font-weight:700;letter-spacing:1.5px;color:#9CA3AF;text-transform:uppercase;margin-bottom:14px}
+  .col-name{font-size:20px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-0.4px}
+  .col-name em{font-style:italic;background:linear-gradient(120deg,#00E5A0,#00B4D8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .col-desc{font-size:12.5px;color:#6B7280;margin-bottom:20px;text-align:center;max-width:393px;line-height:1.5}
+
+  .frame{width:393px;height:852px;background:#FFFFFF;border-radius:42px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);position:relative;border:8px solid #1a1d24}
+  .frame-inner{width:100%;height:100%;overflow-y:auto;background:#F4F6FA}
+  .frame-inner::-webkit-scrollbar{width:0}
+
+  /* Patient header (igual nos dois) */
+  .header{background:#0D0F14;color:#fff;padding:60px 22px 24px;border-radius:0 0 26px 26px;position:relative}
+  .header-row{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  .avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(120deg,#00E5A0,#00B4D8);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#0D0F14;flex-shrink:0;border:2px solid rgba(0,229,160,0.3)}
+  .pat-info{flex:1;min-width:0}
+  .pat-name{font-size:18px;font-weight:800;letter-spacing:-0.4px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pat-meta{font-size:12px;color:#9CA3AF;font-weight:500}
+  .meta-row{display:flex;gap:24px;padding:12px 0 0}
+  .meta-item{display:flex;flex-direction:column;gap:2px}
+  .meta-label{font-size:9.5px;font-weight:700;color:#6B7280;letter-spacing:1.2px;text-transform:uppercase}
+  .meta-value{font-size:13px;font-weight:700;color:#fff}
+
+  /* ──────────────────────────────────────────
+     DESIGN A — COCKPIT CLINICO (HIERARQUICO POR RISCO)
+     ────────────────────────────────────────── */
+  .a-content{padding:18px 16px 100px}
+
+  /* Bloco crítico: alergias */
+  .a-alergia{background:#FFF5F5;border:1.5px solid rgba(239,68,68,0.22);border-radius:16px;padding:16px;margin-bottom:14px;position:relative;overflow:hidden}
+  .a-alergia::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#EF4444,#F87171)}
+  .a-alergia-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .a-alergia-icon{width:32px;height:32px;border-radius:10px;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .a-alergia-icon svg{width:18px;height:18px;stroke:#EF4444;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .a-alergia-title{font-size:11px;font-weight:800;color:#9B1C1C;letter-spacing:1.3px;text-transform:uppercase}
+  .a-alergia-count{margin-left:auto;font-size:13px;font-weight:800;color:#9B1C1C;background:rgba(239,68,68,0.1);padding:3px 9px;border-radius:10px}
+  .a-alergia-list{display:flex;flex-wrap:wrap;gap:6px}
+  .a-allergy-chip{font-size:12px;font-weight:600;color:#9B1C1C;background:#fff;border:1px solid rgba(239,68,68,0.18);padding:5px 11px;border-radius:100px}
+
+  /* Estado vazio: alergias OK */
+  .a-alergia-ok{background:#F0FDF4;border-color:rgba(0,196,122,0.18)}
+  .a-alergia-ok::before{background:linear-gradient(180deg,#00C47A,#00E5A0)}
+  .a-alergia-ok .a-alergia-icon{background:rgba(0,196,122,0.1)}
+  .a-alergia-ok .a-alergia-icon svg{stroke:#00C47A}
+  .a-alergia-ok .a-alergia-title{color:#065F46}
+  .a-alergia-ok .a-alergia-empty{font-size:13px;color:#065F46;font-weight:500;line-height:1.45}
+
+  /* Bento 2x1: meds + condicoes */
+  .a-bento{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .a-card{background:#FFFFFF;border-radius:16px;padding:14px;border:1px solid rgba(0,0,0,0.05);cursor:pointer;transition:.2s;display:flex;flex-direction:column;gap:10px;min-height:148px}
+  .a-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.08)}
+  .a-card-head{display:flex;align-items:center;gap:8px}
+  .a-card-icon{width:30px;height:30px;border-radius:9px;background:rgba(0,229,160,0.08);display:flex;align-items:center;justify-content:center}
+  .a-card-icon svg{width:16px;height:16px;stroke:#00C47A;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .a-card-label{font-size:10px;font-weight:800;color:#6B7280;letter-spacing:1.2px;text-transform:uppercase;flex:1}
+  .a-card-num{font-size:13px;font-weight:800;color:#0D0F14}
+  .a-card-items{display:flex;flex-direction:column;gap:5px}
+  .a-card-item{font-size:12.5px;font-weight:600;color:#0D0F14;display:flex;align-items:center;gap:6px;line-height:1.3}
+  .a-card-item-dot{width:5px;height:5px;border-radius:50%;background:#00C47A;flex-shrink:0}
+  .a-card-item-sub{font-size:11px;color:#9CA3AF;font-weight:500}
+  .a-card-more{font-size:11px;font-weight:700;color:#00C47A;margin-top:2px;letter-spacing:0.3px}
+
+  .a-card-empty{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11.5px;color:#9CA3AF;font-weight:500;line-height:1.4;padding:8px 0}
+
+  /* Linha de exames: histórico */
+  .a-exames{background:#FFFFFF;border-radius:16px;padding:14px 16px;border:1px solid rgba(0,0,0,0.05);display:flex;align-items:center;gap:12px;cursor:pointer;transition:.2s;margin-bottom:14px}
+  .a-exames:hover{background:#FAFBFC}
+  .a-exames-icon{width:36px;height:36px;border-radius:11px;background:rgba(59,130,246,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .a-exames-icon svg{width:18px;height:18px;stroke:#3B82F6;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .a-exames-info{flex:1;min-width:0}
+  .a-exames-title{font-size:13px;font-weight:700;color:#0D0F14;margin-bottom:2px}
+  .a-exames-sub{font-size:11.5px;color:#6B7280;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .a-exames-num{font-size:18px;font-weight:800;color:#0D0F14;margin-right:8px}
+  .a-exames-arrow{stroke:#9CA3AF;width:14px;height:14px;fill:none;stroke-width:2.2;stroke-linecap:round}
+
+  /* Pré-consulta linha */
+  .a-pc{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#FFFFFF;border:1px solid rgba(0,0,0,0.05);border-radius:14px;margin-bottom:18px}
+  .a-pc-dot{width:8px;height:8px;border-radius:50%;background:#00C47A;box-shadow:0 0 0 3px rgba(0,196,122,0.18)}
+  .a-pc-text{font-size:13px;font-weight:600;color:#0D0F14;flex:1}
+  .a-pc-date{font-size:12px;color:#9CA3AF;font-weight:500}
+
+  .a-remove{width:100%;padding:14px;background:transparent;border:1px solid rgba(239,68,68,0.18);color:#EF4444;font-size:13px;font-weight:700;border-radius:14px;cursor:pointer;font-family:inherit;transition:.2s}
+  .a-remove:hover{background:rgba(239,68,68,0.06)}
+
+  /* ──────────────────────────────────────────
+     DESIGN B — BENTO COMPACTO (CARDS POR IMPORTANCIA)
+     ────────────────────────────────────────── */
+  .b-content{padding:18px 16px 100px}
+  .b-bento{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(110px,auto);gap:10px;margin-bottom:14px}
+  .b-card{background:#FFFFFF;border-radius:18px;padding:16px;border:1px solid rgba(0,0,0,0.05);cursor:pointer;transition:.2s;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:8px}
+  .b-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.08)}
+  .b-card-wide{grid-column:span 2}
+  .b-card-tall{grid-row:span 2}
+
+  .b-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .b-icon{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .b-icon svg{width:15px;height:15px;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .b-label{font-size:10px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;flex:1}
+  .b-count{font-size:12px;font-weight:800;padding:2px 8px;border-radius:8px}
+
+  .b-alergias{background:linear-gradient(135deg,#FFF5F5 0%,#FFEEEE 100%);border-color:rgba(239,68,68,0.2)}
+  .b-alergias .b-icon{background:rgba(239,68,68,0.12)}
+  .b-alergias .b-icon svg{stroke:#EF4444}
+  .b-alergias .b-label{color:#9B1C1C}
+  .b-alergias .b-count{color:#9B1C1C;background:rgba(239,68,68,0.12)}
+  .b-alergias-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .b-chip-red{font-size:12px;font-weight:600;color:#9B1C1C;background:#fff;border:1px solid rgba(239,68,68,0.16);padding:4px 10px;border-radius:100px}
+
+  .b-meds .b-icon{background:rgba(0,196,122,0.1)}
+  .b-meds .b-icon svg{stroke:#00C47A}
+  .b-meds .b-label{color:#065F46}
+  .b-meds .b-count{color:#065F46;background:rgba(0,196,122,0.1)}
+
+  .b-cond .b-icon{background:rgba(245,158,11,0.1)}
+  .b-cond .b-icon svg{stroke:#F59E0B}
+  .b-cond .b-label{color:#92400E}
+  .b-cond .b-count{color:#92400E;background:rgba(245,158,11,0.1)}
+
+  .b-exames .b-icon{background:rgba(59,130,246,0.1)}
+  .b-exames .b-icon svg{stroke:#3B82F6}
+  .b-exames .b-label{color:#1E3A8A}
+  .b-exames .b-count{color:#1E3A8A;background:rgba(59,130,246,0.1)}
+
+  .b-content-list{display:flex;flex-direction:column;gap:4px;margin-top:2px}
+  .b-content-item{font-size:12.5px;font-weight:600;color:#0D0F14;line-height:1.35;display:flex;align-items:baseline;gap:6px}
+  .b-content-sub{font-size:10.5px;color:#9CA3AF;font-weight:500}
+  .b-content-empty{font-size:11.5px;color:#9CA3AF;font-style:italic;font-weight:500}
+  .b-more{font-size:11px;font-weight:700;color:#6B7280;margin-top:auto;padding-top:4px}
+
+  .b-pc{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#FFFFFF;border:1px solid rgba(0,0,0,0.05);border-radius:14px;margin-bottom:18px}
+  .b-pc-dot{width:8px;height:8px;border-radius:50%;background:#00C47A;box-shadow:0 0 0 3px rgba(0,196,122,0.18)}
+  .b-pc-text{font-size:13px;font-weight:600;color:#0D0F14;flex:1}
+  .b-pc-date{font-size:12px;color:#9CA3AF;font-weight:500}
+
+  .b-remove{width:100%;padding:14px;background:transparent;border:1px solid rgba(239,68,68,0.18);color:#EF4444;font-size:13px;font-weight:700;border-radius:14px;cursor:pointer;font-family:inherit;transition:.2s}
+  .b-remove:hover{background:rgba(239,68,68,0.06)}
+
+  .legend{margin-top:30px;max-width:880px;margin-left:auto;margin-right:auto;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;font-size:13px;color:#C4C9D4;line-height:1.7}
+  .legend strong{color:#fff}
+  .legend ul{margin-left:18px;margin-top:8px}
+  .legend li{margin-bottom:4px}
+</style>
+</head>
+<body>
+
+<div class="page-title">
+  <h1>Perfil do Paciente — Redesign</h1>
+  <p>Compare lado a lado. Mesmo paciente, mesma informação, dois enfoques visuais diferentes.</p>
+</div>
+
+<div class="compare">
+
+  <!-- ════════ DESIGN A — COCKPIT CLINICO ════════ -->
+  <div class="col">
+    <div class="col-label">Direção A</div>
+    <div class="col-name">Cockpit <em>Clínico</em></div>
+    <div class="col-desc">Hierarquia pelo risco. Alergia em destaque no topo. Medicamentos e condições em bento. Exames como histórico discreto embaixo.</div>
+
+    <div class="frame">
+      <div class="frame-inner">
+        <div class="header">
+          <div class="header-row">
+            <div class="avatar">LT</div>
+            <div class="pat-info">
+              <div class="pat-name">Lucas Tyski</div>
+              <div class="pat-meta">Paciente · CPF 425.103.808-39</div>
+            </div>
+          </div>
+          <div class="meta-row">
+            <div class="meta-item"><span class="meta-label">Nascimento</span><span class="meta-value">14/03/2007</span></div>
+            <div class="meta-item"><span class="meta-label">Sangue</span><span class="meta-value">A+</span></div>
+            <div class="meta-item"><span class="meta-label">Plano</span><span class="meta-value">Particular</span></div>
+          </div>
+        </div>
+
+        <div class="a-content">
+
+          <!-- Bloco crítico: alergias presentes -->
+          <div class="a-alergia">
+            <div class="a-alergia-head">
+              <div class="a-alergia-icon">
+                <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div class="a-alergia-title">Alergias ativas</div>
+              <div class="a-alergia-count">3</div>
+            </div>
+            <div class="a-alergia-list">
+              <span class="a-allergy-chip">Dipirona</span>
+              <span class="a-allergy-chip">Penicilina</span>
+              <span class="a-allergy-chip">Amendoim</span>
+            </div>
+          </div>
+
+          <!-- Bento: meds + condicoes -->
+          <div class="a-bento">
+            <div class="a-card">
+              <div class="a-card-head">
+                <div class="a-card-icon">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+                </div>
+                <div class="a-card-label">Medicamentos</div>
+                <div class="a-card-num">4</div>
+              </div>
+              <div class="a-card-items">
+                <div class="a-card-item"><span class="a-card-item-dot"></span>Cetirizina <span class="a-card-item-sub">10mg</span></div>
+                <div class="a-card-item"><span class="a-card-item-dot"></span>Prednisolona <span class="a-card-item-sub">20mg</span></div>
+                <div class="a-card-more">+ 2 outros</div>
+              </div>
+            </div>
+
+            <div class="a-card">
+              <div class="a-card-head">
+                <div class="a-card-icon">
+                  <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </div>
+                <div class="a-card-label">Condições</div>
+                <div class="a-card-num">4</div>
+              </div>
+              <div class="a-card-items">
+                <div class="a-card-item"><span class="a-card-item-dot"></span>Asma</div>
+                <div class="a-card-item"><span class="a-card-item-dot"></span>Rinite alérgica</div>
+                <div class="a-card-more">+ 2 outras</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Linha exames -->
+          <div class="a-exames">
+            <div class="a-exames-icon">
+              <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            </div>
+            <div class="a-exames-info">
+              <div class="a-exames-title">Exames</div>
+              <div class="a-exames-sub">Último: Laudo hematológico — 10/04</div>
+            </div>
+            <div class="a-exames-num">18</div>
+            <svg class="a-exames-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+
+          <div class="a-pc">
+            <div class="a-pc-dot"></div>
+            <div class="a-pc-text">Pré-consulta respondida</div>
+            <div class="a-pc-date">15/04/2026</div>
+          </div>
+
+          <button class="a-remove">Remover paciente</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ DESIGN B — BENTO COMPACTO ════════ -->
+  <div class="col">
+    <div class="col-label">Direção B</div>
+    <div class="col-name">Bento <em>Compacto</em></div>
+    <div class="col-desc">Grid 2x2 com tamanhos por importância. Alergias ocupa largura dupla. Cada card tem cor própria por categoria. Click abre tela cheia.</div>
+
+    <div class="frame">
+      <div class="frame-inner">
+        <div class="header">
+          <div class="header-row">
+            <div class="avatar">LT</div>
+            <div class="pat-info">
+              <div class="pat-name">Lucas Tyski</div>
+              <div class="pat-meta">Paciente · CPF 425.103.808-39</div>
+            </div>
+          </div>
+          <div class="meta-row">
+            <div class="meta-item"><span class="meta-label">Nascimento</span><span class="meta-value">14/03/2007</span></div>
+            <div class="meta-item"><span class="meta-label">Sangue</span><span class="meta-value">A+</span></div>
+            <div class="meta-item"><span class="meta-label">Plano</span><span class="meta-value">Particular</span></div>
+          </div>
+        </div>
+
+        <div class="b-content">
+          <div class="b-bento">
+            <!-- Alergias largura dupla (mais importante) -->
+            <div class="b-card b-alergias b-card-wide">
+              <div class="b-head">
+                <div class="b-icon">
+                  <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div class="b-label">Alergias ativas</div>
+                <div class="b-count">3</div>
+              </div>
+              <div class="b-alergias-chips">
+                <span class="b-chip-red">Dipirona</span>
+                <span class="b-chip-red">Penicilina</span>
+                <span class="b-chip-red">Amendoim</span>
+              </div>
+            </div>
+
+            <!-- Medicamentos -->
+            <div class="b-card b-meds">
+              <div class="b-head">
+                <div class="b-icon">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+                </div>
+                <div class="b-label">Em uso</div>
+                <div class="b-count">4</div>
+              </div>
+              <div class="b-content-list">
+                <div class="b-content-item">Cetirizina <span class="b-content-sub">10mg</span></div>
+                <div class="b-content-item">Prednisolona <span class="b-content-sub">20mg</span></div>
+              </div>
+              <div class="b-more">+ 2 medicamentos</div>
+            </div>
+
+            <!-- Condições -->
+            <div class="b-card b-cond">
+              <div class="b-head">
+                <div class="b-icon">
+                  <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </div>
+                <div class="b-label">Condições</div>
+                <div class="b-count">4</div>
+              </div>
+              <div class="b-content-list">
+                <div class="b-content-item">Asma</div>
+                <div class="b-content-item">Rinite alérgica</div>
+              </div>
+              <div class="b-more">+ 2 condições</div>
+            </div>
+
+            <!-- Exames largura dupla -->
+            <div class="b-card b-exames b-card-wide">
+              <div class="b-head">
+                <div class="b-icon">
+                  <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+                </div>
+                <div class="b-label">Exames</div>
+                <div class="b-count">18</div>
+              </div>
+              <div class="b-content-list">
+                <div class="b-content-item">Laudo hematológico <span class="b-content-sub">— 10/04</span></div>
+                <div class="b-content-item">Hemograma completo <span class="b-content-sub">— 28/03</span></div>
+              </div>
+              <div class="b-more">+ 16 exames</div>
+            </div>
+          </div>
+
+          <div class="b-pc">
+            <div class="b-pc-dot"></div>
+            <div class="b-pc-text">Pré-consulta respondida</div>
+            <div class="b-pc-date">15/04/2026</div>
+          </div>
+
+          <button class="b-remove">Remover paciente</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <strong>Como ler este mockup:</strong>
+  <ul>
+    <li><strong>Direção A — Cockpit Clínico:</strong> alergia recebe tratamento de "alarme contido" (vermelho suave, barra lateral, chip de cada substância). Médico vê risco em &lt;1 segundo. Quando paciente NÃO tem alergia, o mesmo bloco vira verde com mensagem tranquilizadora — vira informação, não vazio.</li>
+    <li><strong>Direção B — Bento Compacto:</strong> cada categoria tem identidade própria de cor (vermelho/verde/âmbar/azul). Tamanhos do bento refletem importância. Mais visual, mais "moderno". Inspirado em Apple Health e Arc Browser.</li>
+    <li><strong>Comum aos dois:</strong> typos corrigidos (Condições, Último), preview dos primeiros itens já visível sem clicar, contador honesto (3/3 ou +2 outros), botão "Remover paciente" virou outline (era CTA gigante vermelho — agressivo demais pra uma ação destrutiva).</li>
+  </ul>
+</div>
+
+</body>
+</html>
