@@ -20,6 +20,7 @@ const cadastroMedicoSchema = z.object({
   clinica: z.string().optional(),
   enderecoClinica: z.string().optional(),
   telefoneClinica: z.string().optional(),
+  valorConsulta: z.number().positive().optional().nullable(),
 });
 
 // ---------------------------------------------------------------------------
@@ -29,7 +30,7 @@ const cadastroMedicoSchema = z.object({
 router.post('/', validate(cadastroMedicoSchema), async (req, res, next) => {
   try {
     const usuarioId = req.usuario.id;
-    const { crm, ufCrm, especialidade, clinica, enderecoClinica, telefoneClinica } = req.body;
+    const { crm, ufCrm, especialidade, clinica, enderecoClinica, telefoneClinica, valorConsulta } = req.body;
 
     // Verificar se ja tem perfil medico
     const existente = await prisma.medico.findUnique({ where: { usuarioId } });
@@ -52,6 +53,7 @@ router.post('/', validate(cadastroMedicoSchema), async (req, res, next) => {
         clinica,
         enderecoClinica,
         telefoneClinica,
+        valorConsulta: valorConsulta ?? null,
       },
     });
 
@@ -92,7 +94,7 @@ router.get('/', async (req, res, next) => {
 
 router.put('/', async (req, res, next) => {
   try {
-    const { especialidade, clinica, enderecoClinica, telefoneClinica } = req.body;
+    const { especialidade, clinica, enderecoClinica, telefoneClinica, valorConsulta } = req.body;
 
     const medico = await prisma.medico.update({
       where: { usuarioId: req.usuario.id },
@@ -101,6 +103,7 @@ router.put('/', async (req, res, next) => {
         ...(clinica !== undefined && { clinica }),
         ...(enderecoClinica !== undefined && { enderecoClinica }),
         ...(telefoneClinica !== undefined && { telefoneClinica }),
+        ...(valorConsulta !== undefined && { valorConsulta: valorConsulta === null ? null : Number(valorConsulta) }),
       },
     });
 

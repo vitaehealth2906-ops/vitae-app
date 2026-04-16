@@ -149,6 +149,39 @@
         .stat-col { flex:1; text-align:center; position:relative; min-width:0; cursor:pointer; transition:all 0.15s ease; border-radius:10px; padding:6px 0; margin:0 4px; }
         .stat-col:hover { background:rgba(0,0,0,0.02); }
         .stat-col:active { transform:scale(0.97); }
+
+        /* Impact stats — 3 blocos de valor percebido */
+        .impact-stats{display:flex;padding:14px 12px 18px;border-top:1px solid rgba(0,0,0,0.06);gap:4px}
+        .impact-col{flex:1;text-align:center;position:relative;min-width:0;padding:10px 4px 8px;border-radius:10px;cursor:pointer;transition:background 0.15s ease}
+        .impact-col:hover{background:rgba(0,229,160,0.04)}
+        .impact-col:active{transform:scale(0.97)}
+        .impact-col + .impact-col::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:1px;background:rgba(0,0,0,0.06)}
+        .impact-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#0D0F14;letter-spacing:-0.6px;line-height:1;font-feature-settings:'tnum'}
+        .impact-num.green{color:#00C47A}
+        .impact-num.cta{color:#9CA3AF;font-size:12px;font-weight:700;letter-spacing:0;line-height:1.3;text-decoration:underline;text-underline-offset:3px}
+        .impact-lbl{font-size:9.5px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.08em;margin-top:7px;line-height:1.3}
+        .impact-info-icon{position:absolute;top:4px;right:6px;width:11px;height:11px;stroke:#C4C9D4;fill:none;stroke-width:2;opacity:0.7}
+        /* Modal Como Calculamos */
+        .calc-modal-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);z-index:60;opacity:0;pointer-events:none;transition:opacity 0.25s}
+        .calc-modal-overlay.active{opacity:1;pointer-events:all}
+        .calc-modal{position:absolute;bottom:0;left:0;right:0;background:#FFFFFF;border-radius:24px 24px 0 0;padding:20px 22px 28px;transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);max-height:80vh;overflow-y:auto}
+        .calc-modal-overlay.active .calc-modal{transform:translateY(0)}
+        .calc-modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+        .calc-modal-title{font-size:16px;font-weight:800;color:#0D0F14;letter-spacing:-0.3px}
+        .calc-modal-close{background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.15s}
+        .calc-modal-close:hover{background:rgba(0,0,0,0.05)}
+        .calc-modal-close svg{width:20px;height:20px;stroke:#9CA3AF;fill:none;stroke-width:2;stroke-linecap:round}
+        .calc-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px dashed rgba(0,0,0,0.06);font-size:13px}
+        .calc-row:last-child{border-bottom:none}
+        .calc-row-label{color:#6B7280}
+        .calc-row-value{color:#0D0F14;font-weight:700;font-feature-settings:'tnum'}
+        .calc-formula{background:#F9FAFB;border-radius:10px;padding:12px 14px;margin-top:14px;font-size:12.5px;color:#4B5563;line-height:1.6}
+        .calc-formula strong{color:#0D0F14;font-weight:700}
+        .calc-disclaimer{font-size:11.5px;color:#9CA3AF;line-height:1.5;margin-top:14px;font-style:italic}
+        .calc-cta{display:block;text-align:center;margin-top:16px;padding:12px 18px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#FFFFFF;border-radius:12px;text-decoration:none;font-size:13px;font-weight:700;border:none;width:100%;cursor:pointer;font-family:inherit}
+        .impact-banner{margin:10px 20px 0;padding:10px 14px;background:rgba(0,180,216,0.06);border:1px solid rgba(0,180,216,0.2);border-radius:10px;font-size:11.5px;color:#0077A8;line-height:1.4;cursor:pointer;display:flex;align-items:center;gap:8px}
+        .impact-banner:hover{background:rgba(0,180,216,0.09)}
+        .impact-banner svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
         .stat-col + .stat-col::before {
             content:''; position:absolute; left:0; top:8px; bottom:8px;
             width:1px; background:rgba(0,0,0,0.06);
@@ -821,19 +854,36 @@
                     <div class="greeting-spec" id="docSpec" style="display:none;"></div>
                 </div>
             </div>
-            <div class="panel-stats">
-                <div class="stat-col" onclick="filterByStatus('pacientes')">
-                    <div class="stat-num" id="statPacientes">0</div>
-                    <div class="stat-lbl">Pacientes</div>
+            <div class="impact-stats">
+                <div class="impact-col" onclick="abrirComoCalculamos()">
+                    <svg class="impact-info-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    <div class="impact-num" id="impactTempo">—</div>
+                    <div class="impact-lbl">Tempo<br>economizado</div>
                 </div>
-                <div class="stat-col" onclick="filterByStatus('pendentes')">
-                    <div class="stat-num" id="statPendentes">0</div>
-                    <div class="stat-lbl">Pendentes</div>
+                <div class="impact-col" onclick="abrirComoCalculamos()">
+                    <svg class="impact-info-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    <div class="impact-num green" id="impactValor">—</div>
+                    <div class="impact-lbl">Valor<br>potencial</div>
                 </div>
-                <div class="stat-col" onclick="filterByStatus('respondidas')">
-                    <div class="stat-num" id="statRespondidas">0</div>
-                    <div class="stat-lbl">Respondidas</div>
+                <div class="impact-col" onclick="abrirComoCalculamos()">
+                    <svg class="impact-info-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    <div class="impact-num" id="impactPacientes">—</div>
+                    <div class="impact-lbl">Pacientes<br>extras</div>
                 </div>
+            </div>
+        </div>
+        <div id="impactBanner" class="impact-banner" style="display:none;" onclick="window.location.href='20-medico-cadastro.html?editar=1'">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            <span>Configure o valor da sua consulta para ver quanto ganha em R$ com pré-consultas.</span>
+        </div>
+        <!-- Modal Como Calculamos -->
+        <div class="calc-modal-overlay" id="calcModalOverlay" onclick="fecharComoCalculamos()">
+            <div class="calc-modal" onclick="event.stopPropagation()">
+                <div class="calc-modal-header">
+                    <div class="calc-modal-title">Como calculamos seu ganho</div>
+                    <button class="calc-modal-close" onclick="fecharComoCalculamos()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+                <div id="calcModalBody"></div>
             </div>
         </div>
 
@@ -1365,9 +1415,8 @@
             } else {
                 avEl.textContent = (medUsuario.nome || '').split(' ').map(function(w){return w[0]}).filter(Boolean).slice(0,2).join('').toUpperCase() || '—';
             }
-            document.getElementById('statPacientes').textContent = dashData.totalPacientes ?? 0;
-            document.getElementById('statPendentes').textContent = dashData.preConsultasPendentes ?? 0;
-            document.getElementById('statRespondidas').textContent = dashData.preConsultasRespondidas ?? 0;
+            // Calcular valor percebido (tempo economizado + R$ + pacientes extras)
+            atualizarImpactStats(dashData, med);
         } catch (e) {
             console.log('Erro dashboard:', e.message);
         }
@@ -1381,6 +1430,120 @@
             console.log('Erro pacientes dashboard:', e.message);
         }
     }
+
+    // ─── Valor Percebido (3 blocos: tempo / R$ / pacientes extras) ───
+    // Minutos economizados por consulta por especialidade — numeros conservadores
+    // (Pesquisa: derma 3-6min, clinica 5-10, pediatria 6-12, cardio 7-12)
+    var MINUTOS_ECONOMIZADOS = {
+        'dermatologia': 4,
+        'clínica geral': 7, 'clinica geral': 7,
+        'cardiologia': 9,
+        'pediatria': 8,
+        'ginecologia': 8,
+        'psiquiatria': 10,
+        'endocrinologia': 8,
+        'gastroenterologia': 7,
+        'neurologia': 9,
+        'oftalmologia': 5,
+        'ortopedia': 6,
+        'otorrinolaringologia': 6,
+        'urologia': 7,
+    };
+    function minutosPorEspecialidade(esp) {
+        var k = (esp || '').toLowerCase().trim();
+        return MINUTOS_ECONOMIZADOS[k] || 6;
+    }
+    function formatHorasMinutos(minutos) {
+        if (!minutos || minutos <= 0) return '0min';
+        var h = Math.floor(minutos / 60);
+        var m = Math.round(minutos % 60);
+        if (h === 0) return m + 'min';
+        if (m === 0) return h + 'h';
+        return h + 'h' + (m < 10 ? '0' : '') + m;
+    }
+    function formatReais(valor) {
+        return 'R$ ' + Math.round(valor).toLocaleString('pt-BR');
+    }
+    var _impactContext = null;
+    function atualizarImpactStats(dashData, medico) {
+        var respondidas = dashData.preConsultasRespondidas ?? 0;
+        var especialidade = medico.especialidade || '';
+        var valorConsulta = medico.valorConsulta;
+        var minPorConsulta = minutosPorEspecialidade(especialidade);
+        var totalMin = respondidas * minPorConsulta;
+        var pacientesExtras = Math.floor(totalMin / 20);
+
+        // Bloco 1 — Tempo
+        document.getElementById('impactTempo').textContent = formatHorasMinutos(totalMin);
+
+        // Bloco 2 — Valor (só se valorConsulta existir)
+        var valorEl = document.getElementById('impactValor');
+        var banner = document.getElementById('impactBanner');
+        if (valorConsulta && valorConsulta > 0 && totalMin > 0) {
+            var valorTotal = (totalMin / 60) * valorConsulta;
+            valorEl.textContent = formatReais(valorTotal);
+            valorEl.classList.add('green');
+            valorEl.classList.remove('cta');
+            if (banner) banner.style.display = 'none';
+        } else if (valorConsulta && valorConsulta > 0) {
+            valorEl.textContent = 'R$ 0';
+            valorEl.classList.add('green');
+            valorEl.classList.remove('cta');
+            if (banner) banner.style.display = 'none';
+        } else {
+            valorEl.textContent = 'Configurar';
+            valorEl.classList.remove('green');
+            valorEl.classList.add('cta');
+            if (banner && respondidas > 0) banner.style.display = 'flex';
+            else if (banner) banner.style.display = 'none';
+        }
+
+        // Bloco 3 — Pacientes extras
+        document.getElementById('impactPacientes').textContent = pacientesExtras > 0 ? '+' + pacientesExtras : '—';
+
+        // Guarda contexto pro modal
+        _impactContext = {
+            respondidas: respondidas,
+            especialidade: especialidade || 'geral',
+            minPorConsulta: minPorConsulta,
+            totalMin: totalMin,
+            valorConsulta: valorConsulta,
+            valorTotal: (valorConsulta && valorConsulta > 0) ? (totalMin / 60) * valorConsulta : null,
+            pacientesExtras: pacientesExtras,
+        };
+    }
+
+    function abrirComoCalculamos() {
+        if (!_impactContext) return;
+        var c = _impactContext;
+        var body = document.getElementById('calcModalBody');
+        var html = '';
+        html += '<div class="calc-row"><span class="calc-row-label">Pré-consultas respondidas</span><span class="calc-row-value">' + c.respondidas + '</span></div>';
+        html += '<div class="calc-row"><span class="calc-row-label">Especialidade</span><span class="calc-row-value">' + (c.especialidade.charAt(0).toUpperCase() + c.especialidade.slice(1)) + '</span></div>';
+        html += '<div class="calc-row"><span class="calc-row-label">Min economizados / consulta</span><span class="calc-row-value">' + c.minPorConsulta + ' min</span></div>';
+        html += '<div class="calc-row"><span class="calc-row-label">Tempo total economizado</span><span class="calc-row-value">' + formatHorasMinutos(c.totalMin) + '</span></div>';
+        if (c.valorConsulta && c.valorConsulta > 0) {
+            html += '<div class="calc-row"><span class="calc-row-label">Seu valor/consulta declarado</span><span class="calc-row-value">' + formatReais(c.valorConsulta) + '</span></div>';
+            html += '<div class="calc-row"><span class="calc-row-label">Valor equivalente em tempo</span><span class="calc-row-value">' + formatReais(c.valorTotal || 0) + '</span></div>';
+        }
+        html += '<div class="calc-row"><span class="calc-row-label">Pacientes extras na agenda</span><span class="calc-row-value">+' + c.pacientesExtras + ' (20 min cada)</span></div>';
+        html += '<div class="calc-formula"><strong>Fórmula:</strong> ' + c.respondidas + ' pré-consultas × ' + c.minPorConsulta + ' min = ' + formatHorasMinutos(c.totalMin);
+        if (c.valorConsulta && c.valorConsulta > 0) {
+            html += '<br><strong>Valor:</strong> ' + formatHorasMinutos(c.totalMin) + ' × ' + formatReais(c.valorConsulta) + '/consulta ≈ ' + formatReais(c.valorTotal);
+        }
+        html += '</div>';
+        html += '<div class="calc-disclaimer">Estimativa conservadora baseada em tempo médio de anamnese presencial em ' + c.especialidade + '. Os números mudam conforme suas pré-consultas são respondidas.</div>';
+        if (!c.valorConsulta || c.valorConsulta <= 0) {
+            html += '<button class="calc-cta" onclick="window.location.href=\'20-medico-cadastro.html?editar=1\'">Configurar valor/consulta</button>';
+        }
+        body.innerHTML = html;
+        document.getElementById('calcModalOverlay').classList.add('active');
+    }
+    function fecharComoCalculamos() {
+        document.getElementById('calcModalOverlay').classList.remove('active');
+    }
+    window.abrirComoCalculamos = abrirComoCalculamos;
+    window.fecharComoCalculamos = fecharComoCalculamos;
 
     async function loadAllPreConsultas() {
         const list = document.getElementById('pcListAll');

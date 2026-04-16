@@ -121,6 +121,14 @@
             <input class="field-input" type="tel" id="telInput" placeholder="(11) 3333-4444">
         </div>
 
+        <div class="field">
+            <div class="field-label">Valor médio da sua consulta (opcional)</div>
+            <input class="field-input" type="number" id="valorInput" placeholder="Ex: 400" min="0" step="10">
+            <div style="font-size:11px;color:#9CA3AF;margin-top:6px;line-height:1.5;">
+                Usamos para mostrar quanto tempo você economiza com pré-consultas digitais. Fica só no seu perfil.
+            </div>
+        </div>
+
         <div class="error-msg" id="errorMsg"></div>
 
         <button class="btn-primary" onclick="cadastrar()">Criar perfil médico</button>
@@ -136,6 +144,8 @@
         const clinica = document.getElementById('clinicaInput').value.trim();
         const enderecoClinica = document.getElementById('enderecoInput').value.trim();
         const telefoneClinica = document.getElementById('telInput').value.trim();
+        const valorRaw = document.getElementById('valorInput').value.trim();
+        const valorConsulta = valorRaw ? Number(valorRaw) : null;
 
         if (!crm || !ufCrm || !especialidade) {
             const err = document.getElementById('errorMsg');
@@ -148,6 +158,7 @@
         try {
             await vitaeAPI.cadastroMedico({
                 crm, ufCrm, especialidade, clinica, enderecoClinica, telefoneClinica,
+                ...(valorConsulta ? { valorConsulta } : {}),
             });
             // Update local user data
             const u = vitaeAPI.getUsuario();

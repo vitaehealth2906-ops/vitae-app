@@ -171,6 +171,10 @@ app.listen(PORT, '0.0.0.0', async () => {
     // Coluna transcricao_words (JSONB) — timestamps para karaoke sync
     await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "transcricao_words" JSONB`);
     console.log('[MIGRATE] coluna pre_consultas.transcricao_words OK');
+
+    // Coluna valor_consulta no medico (pra mostrar impacto em R$ no dashboard)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "medicos" ADD COLUMN IF NOT EXISTS "valor_consulta" DOUBLE PRECISION`);
+    console.log('[MIGRATE] coluna medicos.valor_consulta OK');
   } catch (e) {
     console.error('[MIGRATE] Erro ao aplicar migracao manual:', e.message);
   }
