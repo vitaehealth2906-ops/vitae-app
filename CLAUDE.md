@@ -562,6 +562,83 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 7 — 15-16/04/2026 (PC de casa, handoff pro notebook)
+**O que foi feito:**
+Duas grandes frentes: redesign S1/S2 da tela 25-summary (que o medico ve apos pre-consulta) + 3 melhorias UX no dashboard do medico.
+
+**Frente A — 25-summary.html (tela do briefing do paciente):**
+
+1. **Player minimalista (Apple Podcasts style):**
+   - Removido "Ouvir briefing / ~1 minuto" do lado dos botoes
+   - 3 botoes centralizados: skip -5s, play grande (56px), skip +5s
+   - Timer split: atual esquerda, duracao direita, abaixo da barra de progresso
+   - 3 chips de velocidade consolidados em 1 botao unico que cicla 1x → 1.5x → 2x → 1x
+
+2. **Transcricao simetrica 220px:**
+   - Altura igual ao player
+   - Fades gradiente topo/base (sinaliza "ha mais texto")
+   - Scrollbar 2px verde
+   - Pulso verde ao clicar numa palavra antes do seek
+   - Palavra atual trava na 3a linha (terco superior)
+   - Scroll manual pausa auto-follow por 4 segundos (sem chip "Voltar ao audio" — Lucas rejeitou)
+
+3. **Referencia (iteracao de 4 versoes ate chegar):**
+   - V1: accordion "Dados do paciente" com linhas separadas por border-bottom (feia, parecia Word)
+   - V2: mini-cards off-white com barra lateral muted 3px em 3 camadas + "Contexto adicional" colapsavel (Lucas rejeitou: "apagada")
+   - V3: mesmo componente .insight-card dos Pontos de atencao, com variantes de cor fortes (alergia vermelha, med verde, queixa azul, historico roxo, familiar/exames cinza)
+   - **V4 (FINAL): mostra APENAS Queixa principal (azul) + Historico relevante (roxo).** Alergias/meds/familiar/exames removidos — ja existem nas telas dedicadas do medico (medico-alergias/meds/condicoes/exames)
+
+4. **Principio S1/S2 documentado** em `C:\Users\win11\OneDrive\Documentos\Obsidian Vault\DESING\DESING.md` como regua permanente de hierarquia visual. S1 = reconhecimento rapido (chip paciente, player, alertas); S2 = consulta analitica (transcricao, referencia) com saturacao recuada.
+
+**Frente B — 20-medico-dashboard.html (3 melhorias):**
+
+1. **FAB "+" esconde no perfil do paciente:**
+   - `showPatientProfile()` → `document.getElementById('dashFab').style.display = 'none'`
+   - `backToPacList()` → reverte pra `''`
+
+2. **Stats clicaveis viram tags de filtro:**
+   - Clicar "Pendentes" (9) cria uma pill verde "Pendentes" na faixa de filtros embaixo (junto com Todos/Hoje/Semana/Mes) e filtra a lista mostrando so pacientes com pelo menos 1 pre-consulta status PENDENTE/ABERTO
+   - Clicar "Pacientes" ou "Respondidas" seleciona a pill "Todos" (mostra todos)
+   - Stats em si NAO ficam destacadas visualmente — sao apenas numeros clicaveis que ativam o filtro embaixo
+   - Funcao nova: `filterByStatus(tipo)` em `20-medico-dashboard.html` apos `filterPacTime()`
+   - Variaveis de estado: `_currentStatusFilter`, `_currentPeriodFilter`
+   - `renderPacientesList()` ajustada pra compor os 2 filtros (status × periodo)
+
+3. **Botao X nos popups:**
+   - Modal de criar pre-consulta: X no canto superior direito, chama `closeModal()`
+   - Apos gerar link, botao "Gerar link" vira "Fechar" (alem do X ja existir)
+   - `closeModal()` reseta botao pra "Gerar link" + reata `criarPreConsulta` como onclick
+
+**Commits relevantes (nessa ordem):**
+- `2c973e9` — 25-summary redesign S1/S2 (3 frentes)
+- `bb01948` — remove chip "Voltar ao audio"
+- `a5e553f` — referencia usa mesmo insight-card dos pontos de atencao
+- `832e409` — remove alergias/meds/familiar/exames da referencia
+- `edf2e60` — dashboard 3 melhorias UX
+- `f4f23a0` — stats clicam pra selecionar tag pill embaixo
+- `8fe4950` — corrige mapeamento stats → filtros (Pacientes/Respondidas = Todos, Pendentes = pill propria)
+
+**Bugs que Lucas apontou e foram corrigidos na sessao:**
+- Cards "apagados" na referencia → trocados por insight-cards coloridos
+- Cards duplicados de alergias/meds/familiar/exames (ja existem em telas dedicadas) → removidos
+- Chip "Voltar ao audio" dentro da transcricao → removido (Lucas nao quis)
+- Stats ficando verde quando clicadas → trocado por criar pill de filtro embaixo
+- Pacientes e Respondidas deviam mostrar tudo (nao so quem tem anamnese respondida) → corrigido
+
+**Pendente pra proxima sessao:**
+- Testar no celular real (iPhone Safari) com cache limpo
+- **Mandar fluxo completo pro medico betatester** (ver alerta CTO abaixo)
+- Validar no celular: cards de Referencia ficaram visualmente iguais aos Pontos de atencao
+- Validar stats-filter no celular (tap em "Pendentes" cria pill embaixo)
+- Validar X do popup em mobile (facil de acertar com dedo)
+
+**Alerta CTO pro Lucas (IMPORTANTE):**
+Depois dessa sessao, **parar de polir telas** e mandar o fluxo completo pro medico betatester. Cada rodada de polimento sem validacao de uso real eh escultura em marmore no deserto. A critica do medico pode invalidar 2-3 decisoes tomadas ontem — e tudo bem, isso eh o processo.
+
+**Handoff completo em Obsidian:** Recomendado criar `TRANSICAO-FACULDADE-15-ABR-2026-TARDE/` com este resumo + proximos passos.
+
+---
+
 ### Sessao 1 — 09/04/2026
 **O que foi feito:**
 - Mapeamento completo de todas as 38 telas (leitura de todos os HTMLs)
