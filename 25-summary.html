@@ -253,20 +253,6 @@
             color: rgba(255,255,255,0.3);
             font-weight: 500;
         }
-        /* Chip "Voltar ao áudio" quando user fez scroll manual */
-        .back-to-audio-chip {
-            position: absolute; bottom: 10px; right: 10px;
-            padding: 5px 11px; border-radius: 100px;
-            background: rgba(0,229,160,0.15);
-            border: 1px solid rgba(0,229,160,0.35);
-            color: #5AFFBA;
-            font-size: 10px; font-weight: 700;
-            letter-spacing: 0.3px;
-            cursor: pointer; z-index: 3;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-        .back-to-audio-chip.show { opacity: 1; pointer-events: auto; }
         /* Pulso verde ao clicar numa palavra */
         @keyframes wordPulse {
             0% { background: rgba(0,229,160,0.3); }
@@ -810,25 +796,10 @@ function setupTranscricaoScrollListener() {
     var box = document.getElementById('transcricaoBox');
     if (!box || box._scrollBound) return;
     box._scrollBound = true;
-    var chip = document.getElementById('backToAudioChip');
     box.addEventListener('scroll', function() {
         if (window._programmaticScroll) return;
         window._autoFollowPausedUntil = Date.now() + 4000;
-        if (chip) chip.classList.add('show');
     });
-    if (chip) {
-        chip.onclick = function() {
-            window._autoFollowPausedUntil = 0;
-            chip.classList.remove('show');
-            if (ttsAudio) atualizarKaraoke(ttsAudio.currentTime);
-        };
-    }
-    // Timer que esconde o chip quando o pause expira
-    setInterval(function() {
-        if (Date.now() > window._autoFollowPausedUntil && chip && chip.classList.contains('show')) {
-            chip.classList.remove('show');
-        }
-    }, 500);
 }
 
 // Atualiza palavra destacada conforme audio avanca (estimativa linear)
@@ -1038,7 +1009,6 @@ async function init() {
                     html += '<span class="transcricao-word clickable" data-idx="' + idx + '" onclick="seekToWordByIndex(' + idx + ')">' + safeWord + '</span> ';
                 });
                 html += '</div>';
-                html += '<div class="back-to-audio-chip" id="backToAudioChip">Voltar ao \u00e1udio</div>';
                 html += '</div>';
             }
         }
