@@ -567,12 +567,27 @@
         .preconsulta-label{font-size:12px;font-weight:600;color:#0D0F14;flex:1}
         .preconsulta-date{font-size:11px;color:#9CA3AF}
         .preconsulta-audio svg{width:14px;height:14px;stroke:#00E5A0;fill:none;stroke-width:2}
-        /* Summary card (featured) */
+        /* Summary card (featured) — legacy 4-in-1 */
         .summary-featured{background:#FFFFFF;border:1px solid rgba(0,0,0,0.07);border-radius:16px;overflow:hidden;box-shadow:0 1px 12px rgba(0,0,0,0.07);margin:12px 20px 0}
         .summary-featured .grad-bar{height:3px;background:linear-gradient(90deg,#00E5A0,#00B4D8)}
         .summary-featured-content{padding:14px 16px}
         .summary-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(0,0,0,0.07)}
         .summary-row:last-child{border-bottom:none}
+
+        /* Patient cards — 1 card por categoria (Exames/Condicoes/Alergias/Meds) */
+        .patient-card{background:#FFFFFF;border:1px solid rgba(0,0,0,0.07);border-radius:16px;overflow:hidden;box-shadow:0 1px 12px rgba(0,0,0,0.07);margin:12px 20px 0;transition:box-shadow 0.2s ease, transform 0.1s ease}
+        .patient-card:hover{box-shadow:0 2px 18px rgba(0,229,160,0.12)}
+        .patient-card:active{transform:scale(0.995)}
+        .patient-card .grad-bar{height:3px;background:linear-gradient(90deg,#00E5A0,#00B4D8)}
+        .patient-card-row{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;transition:background 0.15s ease}
+        .patient-card-row:hover{background:rgba(0,229,160,0.03)}
+        .patient-card.disabled{opacity:0.5}
+        .patient-card.disabled:hover{box-shadow:0 1px 12px rgba(0,0,0,0.07)}
+        .patient-card.disabled .patient-card-row{cursor:not-allowed}
+        .patient-card.disabled .patient-card-row:hover{background:transparent}
+        /* Icone de navegacao externa (Exames) — seta diagonal */
+        .nav-arrow{width:18px;height:18px;stroke:#9CA3AF;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;transition:stroke 0.15s ease, transform 0.15s ease}
+        .patient-card-row:hover .nav-arrow{stroke:#00E5A0;transform:translate(2px,-2px)}
         .summary-icon{width:38px;height:38px;border-radius:10px;background:rgba(0,229,160,0.10);border:1px solid rgba(0,229,160,0.22);display:flex;align-items:center;justify-content:center;flex-shrink:0}
         .summary-icon svg{width:18px;height:18px;stroke:#00E5A0;fill:none;stroke-width:1.8}
         .summary-info{flex:1}
@@ -581,8 +596,11 @@
         .summary-info-count{font-size:12px;font-weight:700;color:#9CA3AF;min-width:20px;text-align:center}
         /* Accordion chevron + body */
         .summary-chevron{width:18px;height:18px;stroke:#9CA3AF;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);flex-shrink:0}
-        .summary-row.open .summary-chevron{transform:rotate(180deg);stroke:#00E5A0}
-        .accordion-body{max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1);background:rgba(0,229,160,0.015);margin:0 -16px;padding:0 16px}
+        .summary-row.open .summary-chevron,
+        .patient-card-row.open .summary-chevron{transform:rotate(180deg);stroke:#00E5A0}
+        .accordion-body{max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1);background:rgba(0,229,160,0.015);padding:0 16px}
+        .patient-card .accordion-body{margin:0;border-top:1px solid rgba(0,0,0,0.04)}
+        .patient-card .accordion-body.open{border-top:1px solid rgba(0,229,160,0.12)}
         .accordion-body:last-child{border-bottom:none}
         .accordion-inner{padding:12px 0}
         .accordion-item{padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.04)}
@@ -1188,15 +1206,7 @@
         var row = document.getElementById('row-' + targetId.replace('acc-', ''));
         var isOpen = target.classList.contains('open');
 
-        // Fecha todos os outros accordions
-        document.querySelectorAll('.accordion-body.open').forEach(function(el) {
-            if (el !== target) {
-                el.classList.remove('open');
-                el.style.maxHeight = '0px';
-                var otherRow = document.getElementById('row-' + el.id.replace('acc-', ''));
-                if (otherRow) otherRow.classList.remove('open');
-            }
-        });
+        // Accordions independentes: pode abrir multiplos ao mesmo tempo (nao fecha outros)
 
         // Toggle o clicado — usa scrollHeight pra suportar listas grandes sem truncar
         if (isOpen) {
@@ -2578,33 +2588,42 @@
         }
         medsBody += '</div>';
 
-        var summaryHtml = '<div class="summary-featured"><div class="grad-bar"></div><div class="summary-featured-content">' +
-            (temVinculo ? '' : '<div class="sem-vinculo-banner"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Sem v\u00ednculo</span></div>') +
-            // EXAMES — mantem navegacao (vai pra tela cheia)
-            '<div class="summary-row' + disabledClass + '" style="cursor:pointer;' + disabledStyle + '" onclick="' + buildClinicalLink('11-exames-lista') + '">' +
+        // Seta diagonal externa pro card de Exames (navegacao)
+        var navArrowSvg = '<svg class="nav-arrow" viewBox="0 0 24 24"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>';
+
+        var semVinculoBanner = temVinculo ? '' : '<div class="sem-vinculo-banner" style="margin:12px 20px 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Sem v\u00ednculo</span></div>';
+        var cardDisabled = disabledClass ? ' disabled' : '';
+
+        var summaryHtml = semVinculoBanner +
+            // EXAMES — card de navegacao (vai pra tela cheia)
+            '<div class="patient-card' + cardDisabled + '"><div class="grad-bar"></div>' +
+            '<div class="patient-card-row" style="' + disabledStyle + '" onclick="' + buildClinicalLink('11-exames-lista') + '">' +
             '<div class="summary-icon"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg></div>' +
             '<div class="summary-info"><div class="summary-info-title">Exames</div><div class="summary-info-sub">' + (examesList.length > 0 ? 'Ultimo: ' + (examesList[0].tipoExame || examesList[0].nomeArquivo || 'Exame') : 'Nenhum') + '</div></div>' +
-            '<div class="summary-info-count">' + examesList.length + '</div></div>' +
-            // CONDICOES — accordion inline
-            '<div class="summary-row' + disabledClass + '" id="row-condicoes" style="cursor:pointer;' + disabledStyle + '" onclick="' + accordionOnclick('acc-condicoes') + '">' +
+            '<div class="summary-info-count">' + examesList.length + '</div>' +
+            navArrowSvg + '</div></div>' +
+            // CONDICOES — card expansivel
+            '<div class="patient-card' + cardDisabled + '"><div class="grad-bar"></div>' +
+            '<div class="patient-card-row" id="row-condicoes" style="' + disabledStyle + '" onclick="' + accordionOnclick('acc-condicoes') + '">' +
             '<div class="summary-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>' +
             '<div class="summary-info"><div class="summary-info-title">Condicoes</div><div class="summary-info-sub">' + sanitize(condicoesText) + '</div></div>' +
             '<div class="summary-info-count">' + (condicoesCronicas.length + cirurgias.length + histFam.length) + '</div>' +
             chevronSvg + '</div>' +
-            '<div class="accordion-body" id="acc-condicoes">' + condicoesBody + '</div>' +
-            // ALERGIAS — accordion inline
-            '<div class="summary-row' + disabledClass + '" id="row-alergias" style="cursor:pointer;' + disabledStyle + '" onclick="' + accordionOnclick('acc-alergias') + '">' +
+            '<div class="accordion-body" id="acc-condicoes">' + condicoesBody + '</div></div>' +
+            // ALERGIAS — card expansivel
+            '<div class="patient-card' + cardDisabled + '"><div class="grad-bar"></div>' +
+            '<div class="patient-card-row" id="row-alergias" style="' + disabledStyle + '" onclick="' + accordionOnclick('acc-alergias') + '">' +
             '<div class="summary-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>' +
             '<div class="summary-info"><div class="summary-info-title">Alergias</div><div class="summary-info-sub">' + sanitize(alergNames) + '</div></div>' +
             '<div class="summary-info-count">' + alergiasList.length + '</div>' + chevronSvg + '</div>' +
-            '<div class="accordion-body" id="acc-alergias">' + alergiasBody + '</div>' +
-            // MEDICAMENTOS — accordion inline
-            '<div class="summary-row' + disabledClass + '" id="row-medicamentos" style="cursor:pointer;border-bottom:none;' + disabledStyle + '" onclick="' + accordionOnclick('acc-medicamentos') + '">' +
+            '<div class="accordion-body" id="acc-alergias">' + alergiasBody + '</div></div>' +
+            // MEDICAMENTOS — card expansivel
+            '<div class="patient-card' + cardDisabled + '"><div class="grad-bar"></div>' +
+            '<div class="patient-card-row" id="row-medicamentos" style="' + disabledStyle + '" onclick="' + accordionOnclick('acc-medicamentos') + '">' +
             '<div class="summary-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></div>' +
             '<div class="summary-info"><div class="summary-info-title">Medicamentos em uso</div><div class="summary-info-sub">' + sanitize(medNames) + '</div></div>' +
             '<div class="summary-info-count">' + medicamentos.length + '</div>' + chevronSvg + '</div>' +
-            '<div class="accordion-body" id="acc-medicamentos">' + medsBody + '</div>' +
-            '</div></div>';
+            '<div class="accordion-body" id="acc-medicamentos">' + medsBody + '</div></div>';
 
         // 3. Pre-consulta lines
         var preconsultaHtml = '';
