@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Variantes — Perfil do Paciente | vita id</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============ RESET + BASE ============ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: #0A0B0F;
+    color: #0D0F14;
+    padding: 40px 20px 80px;
+    -webkit-font-smoothing: antialiased;
+}
+.page-header {
+    max-width: 1600px;
+    margin: 0 auto 40px;
+    text-align: center;
+    color: #FFFFFF;
+}
+.page-header h1 {
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+}
+.page-header h1 em {
+    color: #00E5A0;
+    font-style: italic;
+}
+.page-header p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    max-width: 700px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+.grid {
+    max-width: 1600px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(393px, 1fr));
+    gap: 32px;
+}
+.variant-frame {
+    background: #F4F6FA;
+    border-radius: 28px;
+    padding: 16px;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    overflow: hidden;
+}
+.variant-label {
+    position: absolute;
+    top: 12px; left: 12px;
+    z-index: 10;
+    background: #0D0F14;
+    color: #FFFFFF;
+    padding: 6px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+.variant-label em {
+    color: #00E5A0;
+    font-style: normal;
+    margin-right: 4px;
+}
+.variant-philosophy {
+    background: rgba(13,15,20,0.9);
+    color: rgba(255,255,255,0.75);
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 11px;
+    line-height: 1.5;
+    margin-bottom: 14px;
+    backdrop-filter: blur(10px);
+}
+.variant-philosophy strong { color: #00E5A0; font-weight: 700; }
+
+.phone {
+    background: #F4F6FA;
+    border-radius: 20px;
+    padding: 20px 16px 24px;
+    min-height: 680px;
+    position: relative;
+}
+
+/* ============ COMPONENTE RG CARD (usado em todas) — mas com variações ============ */
+.rg-card {
+    background: linear-gradient(140deg, #0D0F14 0%, #1a1d26 100%);
+    border-radius: 16px;
+    padding: 18px 18px 14px;
+    color: #FFFFFF;
+    position: relative;
+    overflow: hidden;
+}
+.rg-card::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -20%;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(0,229,160,0.15) 0%, transparent 60%);
+    pointer-events: none;
+}
+.rg-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 18px;
+}
+.rg-logo {
+    background: #00E5A0;
+    color: #0D0F14;
+    font-size: 14px;
+    font-weight: 900;
+    padding: 3px 7px;
+    border-radius: 5px;
+    letter-spacing: -0.5px;
+}
+.rg-logo::before { content: 'vita'; }
+.rg-logo::after { content: 'id'; background: #0D0F14; color: #00E5A0; padding: 2px 5px; border-radius: 4px; margin-left: 2px; font-size: 12px; }
+.rg-subtitle {
+    font-size: 8px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 2px;
+    margin-top: 4px;
+}
+.rg-qr {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+}
+.rg-qr svg { width: 14px; height: 14px; stroke: rgba(255,255,255,0.6); fill: none; stroke-width: 2; }
+.rg-middle {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px;
+}
+.rg-avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+    color: #00E5A0;
+    flex-shrink: 0;
+}
+.rg-name { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+.rg-meta { font-size: 10px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+.rg-divider { height: 1px; background: rgba(255,255,255,0.08); margin-bottom: 10px; }
+.rg-bottom {
+    display: flex; gap: 18px;
+    font-size: 9px;
+}
+.rg-bottom-item { flex: 1; }
+.rg-bottom-label { color: rgba(255,255,255,0.4); font-weight: 700; letter-spacing: 1.2px; margin-bottom: 2px; }
+.rg-bottom-value { color: #FFFFFF; font-weight: 700; font-size: 11px; }
+.rg-bottom-value.green { color: #00E5A0; }
+
+/* ============ VARIANTE 1 — STRIPE EXECUTIVO ============ */
+.v1-section {
+    margin-top: 16px;
+}
+.v1-section-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: #9CA3AF;
+    margin-bottom: 10px; padding: 0 4px;
+}
+.v1-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex; align-items: center; gap: 14px;
+}
+.v1-card:hover {
+    border-color: rgba(0,229,160,0.25);
+    box-shadow: 0 4px 16px rgba(0,229,160,0.08);
+}
+.v1-num {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    color: #0D0F14;
+    line-height: 1;
+    min-width: 44px;
+    font-feature-settings: 'tnum';
+}
+.v1-info { flex: 1; }
+.v1-title {
+    font-size: 13px; font-weight: 700; color: #0D0F14;
+    margin-bottom: 2px;
+}
+.v1-sub { font-size: 11px; color: #6B7280; line-height: 1.4; }
+.v1-arrow { width: 16px; height: 16px; stroke: #9CA3AF; fill: none; stroke-width: 2; stroke-linecap: round; flex-shrink: 0; }
+
+/* ============ VARIANTE 2 — LINEAR MINIMALISTA ============ */
+.v2-row {
+    display: flex; align-items: center;
+    padding: 14px 6px;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.v2-row:hover { background: rgba(0,0,0,0.02); }
+.v2-row:last-child { border-bottom: none; }
+.v2-icon {
+    width: 22px; height: 22px;
+    stroke: #6B7280; fill: none; stroke-width: 1.6;
+    margin-right: 14px;
+    flex-shrink: 0;
+}
+.v2-title { font-size: 13px; font-weight: 600; color: #0D0F14; flex: 1; }
+.v2-count {
+    font-size: 11px; font-weight: 600; color: #9CA3AF;
+    font-family: 'JetBrains Mono', monospace;
+    margin-right: 12px;
+}
+.v2-count.alert { color: #EF4444; }
+.v2-chevron { width: 14px; height: 14px; stroke: #C4C9D4; fill: none; stroke-width: 2; }
+
+/* ============ VARIANTE 3 — APPLE HEALTH EMOCIONAL ============ */
+.v3-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+}
+.v3-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+}
+.v3-card-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 12px;
+}
+.v3-category {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.v3-category.exames { color: #00B4D8; }
+.v3-category.consulta { color: #8B5CF6; }
+.v3-category.condicoes { color: #F59E0B; }
+.v3-category.meds { color: #00C47A; }
+.v3-category.alergias { color: #EF4444; }
+.v3-big-num {
+    font-size: 36px; font-weight: 800; letter-spacing: -1.5px; color: #0D0F14;
+    line-height: 1;
+}
+.v3-label { font-size: 12px; color: #6B7280; margin-top: 4px; }
+.v3-trend {
+    display: flex; gap: 3px; margin-top: 10px; height: 24px;
+    align-items: flex-end;
+}
+.v3-trend-bar {
+    flex: 1; background: rgba(0,229,160,0.25); border-radius: 2px;
+    min-height: 30%;
+}
+.v3-trend-bar.active { background: #00E5A0; }
+
+/* ============ VARIANTE 4 — NOTION MODULAR ============ */
+.v4-block {
+    display: flex; align-items: center;
+    padding: 10px 4px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+.v4-block:hover { background: #F4F6FA; }
+.v4-icon {
+    width: 18px; height: 18px;
+    stroke: #9CA3AF; fill: none; stroke-width: 1.6;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+.v4-label {
+    font-size: 12px; font-weight: 500; color: #6B7280;
+    min-width: 140px;
+}
+.v4-value {
+    font-size: 13px; font-weight: 600; color: #0D0F14;
+    flex: 1;
+}
+.v4-value.empty { color: #C4C9D4; font-style: italic; font-weight: 400; }
+.v4-chip {
+    background: #F4F6FA;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #6B7280;
+    margin-right: 4px;
+}
+.v4-chip.alert { background: rgba(239,68,68,0.08); color: #EF4444; }
+
+/* ============ VARIANTE 5 — SUPERHUMAN DENSO ============ */
+.v5-row {
+    display: flex; align-items: center;
+    height: 40px;
+    padding: 0 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.15s;
+    font-size: 12px;
+}
+.v5-row:hover { background: rgba(0,229,160,0.04); }
+.v5-dot { width: 6px; height: 6px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; }
+.v5-dot.alert { background: #EF4444; }
+.v5-dot.warn { background: #F59E0B; }
+.v5-dot.ok { background: #00E5A0; }
+.v5-dot.neutral { background: #C4C9D4; }
+.v5-name { font-weight: 600; color: #0D0F14; flex: 1; }
+.v5-preview { color: #9CA3AF; font-size: 11px; margin-right: 10px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v5-badge {
+    background: #F4F6FA;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #6B7280;
+    font-family: 'JetBrains Mono', monospace;
+}
+.v5-badge.crit { background: rgba(239,68,68,0.1); color: #EF4444; }
+
+/* ============ VARIANTE 6 — UNTITLED UI PREMIUM ============ */
+.v6-card {
+    background: #FFFFFF;
+    border: 1px solid #EAECF0;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+}
+.v6-card:hover {
+    box-shadow: 0 4px 8px rgba(16,24,40,0.06);
+    border-color: rgba(0,229,160,0.3);
+}
+.v6-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+}
+.v6-iconbox {
+    width: 40px; height: 40px;
+    background: #ECFDF5;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+}
+.v6-iconbox svg { width: 20px; height: 20px; stroke: #00C47A; fill: none; stroke-width: 1.8; }
+.v6-status-chip {
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #ECFDF5;
+    color: #027A48;
+    display: flex; align-items: center; gap: 5px;
+}
+.v6-status-chip.warn { background: #FFFAEB; color: #B54708; }
+.v6-status-chip.crit { background: #FEF3F2; color: #B42318; }
+.v6-status-chip::before {
+    content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor;
+}
+.v6-title { font-size: 15px; font-weight: 700; color: #0D0F14; margin-bottom: 4px; }
+.v6-desc { font-size: 12px; color: #6B7280; line-height: 1.5; }
+
+/* ============ VARIANTE 7 — VERCEL MONOCROMO ============ */
+.v7-card {
+    background: #FFFFFF;
+    border: 1px solid #EAEAEA;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+.v7-card:hover { border-color: #0D0F14; }
+.v7-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+}
+.v7-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #00E5A0;
+    box-shadow: 0 0 8px rgba(0,229,160,0.5);
+}
+.v7-dot.empty { background: #C4C9D4; box-shadow: none; }
+.v7-title {
+    font-size: 13px; font-weight: 700; color: #0D0F14;
+    flex: 1;
+}
+.v7-mini {
+    font-size: 11px; color: #9CA3AF;
+    font-family: 'JetBrains Mono', monospace;
+}
+.v7-content { font-size: 12px; color: #6B7280; line-height: 1.5; }
+
+/* ============ VARIANTE 8 — RADIX COMPOSE (accordion inline) ============ */
+.v8-card {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+.v8-card:hover { border-color: rgba(0,229,160,0.3); }
+.v8-card.expanded { border-color: rgba(0,229,160,0.4); }
+.v8-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+}
+.v8-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(0,229,160,0.08);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.v8-icon svg { width: 16px; height: 16px; stroke: #00C47A; fill: none; stroke-width: 2; }
+.v8-body {
+    flex: 1;
+}
+.v8-name { font-size: 13px; font-weight: 700; color: #0D0F14; }
+.v8-count {
+    background: #F4F6FA;
+    padding: 2px 9px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6B7280;
+    margin-right: 8px;
+}
+.v8-chev {
+    width: 16px; height: 16px; stroke: #9CA3AF; fill: none; stroke-width: 2;
+    transition: transform 0.25s;
+}
+.v8-card.expanded .v8-chev { transform: rotate(180deg); }
+.v8-expand {
+    display: none;
+    padding: 0 16px 16px;
+    border-top: 1px solid #F4F6FA;
+    padding-top: 12px;
+    margin-top: 0;
+}
+.v8-card.expanded .v8-expand { display: block; }
+.v8-item {
+    padding: 8px 0;
+    font-size: 12px;
+    color: #4B5563;
+    border-bottom: 1px dashed #F4F6FA;
+}
+.v8-item:last-child { border-bottom: none; }
+
+/* ============ VARIANTE 9 — ARC CONTEXTUAL (hover reveal) ============ */
+.v9-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.04);
+}
+.v9-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, rgba(0,229,160,0.08) 0%, rgba(0,180,216,0.05) 100%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+.v9-card:hover::before { opacity: 1; }
+.v9-card-title {
+    font-size: 14px; font-weight: 700; color: #0D0F14;
+    margin-bottom: 6px;
+    position: relative; z-index: 1;
+}
+.v9-card-desc {
+    font-size: 12px; color: #6B7280; line-height: 1.5;
+    position: relative; z-index: 1;
+}
+.v9-card-action {
+    margin-top: 12px;
+    font-size: 11px; font-weight: 700; color: #00C47A;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 5px;
+    position: relative; z-index: 1;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+}
+.v9-card:hover .v9-card-action { opacity: 1; }
+.v9-card-action svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+/* ============ VARIANTE 10 — HIBRIDO SENIOR (Stripe + Radix + Untitled) ============ */
+.v10-safety {
+    background: #FFF1F2;
+    border: 1px solid #FECDD3;
+    border-left: 3px solid #EF4444;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 12px 0;
+    display: flex; align-items: flex-start; gap: 10px;
+}
+.v10-safety svg { width: 18px; height: 18px; stroke: #EF4444; fill: none; stroke-width: 2; flex-shrink: 0; margin-top: 1px; }
+.v10-safety-title { font-size: 12px; font-weight: 800; color: #B42318; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+.v10-safety-body { font-size: 13px; color: #881337; font-weight: 600; line-height: 1.4; }
+
+.v10-card {
+    background: #FFFFFF;
+    border: 1px solid #EAECF0;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+}
+.v10-card:hover {
+    border-color: rgba(0,229,160,0.35);
+    box-shadow: 0 4px 12px rgba(0,229,160,0.08);
+}
+.v10-card-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+}
+.v10-card-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: #6B7280;
+}
+.v10-card-label svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+.v10-card-count {
+    font-size: 20px; font-weight: 800; letter-spacing: -0.8px;
+    color: #0D0F14;
+    font-feature-settings: 'tnum';
+}
+.v10-card-preview { font-size: 12.5px; color: #4B5563; line-height: 1.5; margin-top: 4px; }
+.v10-card-preview strong { color: #0D0F14; font-weight: 700; }
+.v10-card-action {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #F4F6FA;
+    font-size: 11px; color: #00C47A;
+    font-weight: 700; letter-spacing: 0.3px;
+}
+.v10-card-action svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+/* ============ REMOVER (em todas variantes) ============ */
+.remove-section {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px dashed rgba(0,0,0,0.08);
+    text-align: center;
+}
+.remove-btn {
+    background: transparent;
+    border: none;
+    color: #9CA3AF;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 8px;
+    font-family: inherit;
+}
+.remove-btn:hover { color: #EF4444; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+    <h1>10 variantes <em>— perfil do paciente</em></h1>
+    <p>Cada variante aplica uma filosofia de design diferente, mantendo a identidade vita id (cores, fonte, tom institucional). Ordem fixa: RG → Pré-consultas → Exames → Condições → Medicamentos → Alergias → Remover. Abra cada card mentalmente: qual você passa mais tempo olhando sem cansar? Qual você entende em 2s?</p>
+</div>
+
+<div class="grid">
+
+<!-- ==================== VARIANTE 1 — STRIPE EXECUTIVO ==================== -->
+<div class="variant-frame">
+    <div class="variant-label"><em>01</em>Stripe Executivo</div>
+    <div class="phone" style="margin-top:32px;">
+        <div class="variant-philosophy"><strong>Stripe-like.</strong> Números gigantes dominam. Cada card abre com a quantidade como protagonista visual. Emoção: "estou num sistema competente".</div>
+        <div class="rg-card">
+            <div class="rg-top"><div><div class="rg-logo"></div><div class="rg-subtitle">IDENTIDADE EM SAÚDE</div></div><div class="rg-qr"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div></div>
+            <div class="rg-middle"><div class="rg-avatar">vita<br>id</div><div><div class="rg-name">lucas tyeeste</div><div class="rg-meta">Paciente · CPF 394.463.668-60</div></div></div>
+            <div class="rg-divider"></div>
+            <div class="rg-bottom"><div class="rg-bottom-item"><div class="rg-bottom-label">NASCIMENTO</div><div class="rg-bottom-value">14/03/2007</div></div><div class="rg-bottom-item"><div class="rg-bottom-label">SANGUE</div><div class="rg-bottom-value green">A+</div></div><div class="rg-bottom-item"><div class="rg-bottom-label">PLANO</div><div class="rg-bottom-value">piwi</div></div></div>
+        </div>
+        <div class="v1-section">
+            <div class="v1-section-label">Histórico clínico</div>
+            <div class="v1-card"><div class="v1-num">3</div><div class="v1-info"><div class="v1-title">Pré-consultas</div><div class="v1-sub">Última há 1 dia · prurido intenso</div></div><svg class="v1-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            <div class="v1-card"><div class="v1-num">18</div><div class="v1-info"><div class="v1-title">Exames</div><div class="v1-sub">Último: laudo.pdf · há 12 dias</div></div><svg class="v1-arrow" viewBox="0 0 24 24"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></div>
+            <div class="v1-card"><div class="v1-num">4</div><div class="v1-info"><div class="v1-title">Condições</div><div class="v1-sub">Rinite, dermatite atópica +2</div></div><svg class="v1-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            <div class="v1-card"><div class="v1-num">4</div><div class="v1-info"><div class="v1-title">Medicamentos em uso</div><div class="v1-sub">Cetirizina, Prednisolona +2</div></div><svg class="v1-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            <div class="v1-card" style="border-color:rgba(239,68,68,0.2);"><div class="v1-num" style="color:#EF4444;">2</div><div class="v1-info"><div class="v1-title" style="color:#B42318;">Alergias</div><div class="v1-sub">Dipirona, Penicilina · ambas graves</div></div><svg class="v1-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="remove-section"><button class="remove-btn">Remover paciente</button></div>
+    </div>
+</div>
+
+<!-- ==================== VARIANTE 2 — LINEAR MINIMALISTA ==================== -->
+<div class="variant-frame">
+    <div class="variant-label"><em>02</em>Linear Minimalista</div>
+    <div class="phone" style="margin-top:32px;">
+        <div class="variant-philosophy"><strong>Linear-like.</strong> Zero decoração. Linhas densas 40-44px. Profissional silencioso. Emoção: "estou num app de gente séria".</div>
+        <div class="rg-card">
+            <div class="rg-top"><div><div class="rg-logo"></div><div class="rg-subtitle">IDENTIDADE EM SAÚDE</div></div><div class="rg-qr"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/></svg></div></div>
+            <div class="rg-middle"><div class="rg-avatar">vita<br>id</div><div><div class="rg-name">lucas tyeeste</div><div class="rg-meta">14/03/2007 · A+ · piwi</div></div></div>
+        </div>
+        <div style="background:#FFFFFF;border-radius:12px;margin-top:14px;padding:4px 12px;">
+            <div class="v2-row"><svg class="v2-icon" viewBox="0 0 24 24"><polyline points="12 6 12 12 16 14"/><circle cx="12" cy="12" r="10"/></svg><div class="v2-title">Pré-consultas</div><div class="v2-count">3</div><svg class="v2-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            <div class="v2-row"><svg class="v2-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="v2-title">Exames</div><div class="v2-count">18</div><svg class="v2-chevron" viewBox="0 0 24 24"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></div>
+            <div class="v2-row"><svg class="v2-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><div class="v2-title">Condições</div><div class="v2-count">4</div><svg class="v2-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            <div class="v2-row"><svg class="v2-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg><div class="v2-title">Medicamentos</div><div class="v2-count">4</div><svg class="v2-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            <div class="v2-row"><svg class="v2-icon" viewBox="0 0 24 24" style="stroke:#EF4444;"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg><div class="v2-title" style="color:#B42318;">Alergias</div><div class="v2-count alert">2 graves</div><svg class="v2-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="remove-section"><button class="remove-btn">Remover paciente</button></div>
+    </div>
+</div>
+
+<!-- ==================== VARIANTE 3 — APPLE HEALTH EMOCIONAL ==================== -->
+<div class="variant-frame">
+    <div class="variant-label"><em>03</em>Apple Health</div>
+    <div class="phone" style="margin-top:32px;">
+        <div class="variant-philosophy"><strong>Apple Health-like.</strong> Cada categoria com cor de acento. Números grandes + tendência. Emoção: "cuidar, não assustar".</div>
+        <div class="rg-card">
+            <div class="rg-top"><div><div class="rg-logo"></div><div class="rg-subtitle">IDENTIDADE EM SAÚDE</div></div><div class="rg-qr"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/></svg></div></div>
+            <div class="rg-middle"><div class="rg-avatar">vita<br>id</div><div><div class="rg-name">lucas tyeeste</div><div class="rg-meta">Paciente · 19 anos · A+</div></div></div>
+        </div>
+        <div style="margin-top:16px;">
+            <div class="v3-card"><div class="v3-card-header"><div class="v3-category consulta">PRÉ-CONSULTAS</div></div><div class="v3-big-num">3</div><div class="v3-label">registradas · última há 1 dia</div><div class="v3-trend"><div class="v3-trend-bar" style="height:30%;"></div><div class="v3-trend-bar" style="height:45%;"></div><div class="v3-trend-bar active" style="height:90%;"></div></div></div>
+            <div class="v3-card"><div class="v3-card-header"><div class="v3-category exames">EXAMES</div></div><div class="v3-big-num">18</div><div class="v3-label">no acervo · último há 12 dias</div></div>
+            <div class="v3-card"><div class="v3-card-header"><div class="v3-category condicoes">CONDIÇÕES</div></div><div class="v3-big-num">4</div><div class="v3-label">ativas · rinite + dermatite</div></div>
+            <div class="v3-card"><div class="v3-card-header"><div class="v3-category meds">MEDICAMENTOS</div></div><div class="v3-big-num">4</div><div class="v3-label">em uso · anti-histamínicos</div></div>
+            <div class="v3-card" style="background:#FFF5F5;"><div class="v3-card-header"><div class="v3-category alergias">ALERGIAS · GRAVES</div></div><div class="v3-big-num" style="color:#B42318;">2</div><div class="v3-label" style="color:#881337;">Dipirona + Penicilina</div></div>
+        </div>
+        <div class="remove-section"><button class="remove-btn">Remover paciente</button></div>
+    </div>
+</div>
+
+<!-- ==================== VARIANTE 4 — NOTION MODULAR ==================== -->
+<div class="variant-frame">
+    <div class="variant-label"><em>04</em>Notion Modular</div>
+    <div class="phone" style="margin-top:32px;">
+        <div class="variant-philosophy"><strong>Notion-like.</strong> Property blocks — label cinza à esquerda, valor à direita. Banco de dados pessoal. Emoção: "controle total".</div>
+        <div class="rg-card">
+            <div class="rg-top"><div><div class="rg-logo"></div><div class="rg-subtitle">IDENTIDADE EM SAÚDE</div></div><div class="rg-qr"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/></svg></div></div>
+            <div class="rg-middle"><div class="rg-avatar">vita<br>id</div><div><div class="rg-name">lucas tyeeste</div><div class="rg-meta">Paciente · CPF 394.463.668-60</div></div></div>
+        </div>
+        <div style="background:#FFFFFF;border-radius:10px;margin-top:14px;padding:8px;">
+            <div class="v4-block"><svg class="v4-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><div class="v4-label">Pré-consultas</div><div class="v4-value">3 registros <span class="v4-chip">1 pendente</span></div></div>
+            <div class="v4-block"><svg class="v4-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div class="v4-label">Exames</div><div class="v4-value">18 arquivos</div></div>
+            <div class="v4-block"><svg class="v4-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><div class="v4-label">Condições</div><div class="v4-value"><span class="v4-chip">Rinite</span><span class="v4-chip">Dermatite</span>+2</div></div>
+            <div class="v4-block"><svg class="v4-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg><div class="v4-label">Medicamentos</div><div class="v4-value"><span class="v4-chip">Cetirizina 10mg</span><span class="v4-chip">+3</span></div></div>
+            <div class="v4-block"><svg class="v4-icon" viewBox="0 0 24 24" style="stroke:#EF4444;"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg><div class="v4-label" style="color:#B42318;font-weight:700;">Alergias</div><div class="v4-value"><span class="v4-chip alert">Dipirona</span><span class="v4-chip alert">Penicilina</span></div></div>
+        </div>
+        <div class="remove-section"><button class="remove-btn">Remover paciente</button></div>
+    </div>
+</div>
+
+<!-- ==================== VARIANTE 5 — SUPERHUMAN DENSO ==================== -->
+<div class="variant-frame">
+    <div class="variant-label"><em>05</em>Superhuman Denso</div>
+    <div class="phone" style="margin-top:32px;">
+        <div class="variant-philosophy"><strong>Superhuman-like.</strong> Máxima densidade. Linhas de 40px. Dot colorido = status. Emoção: "especialista experiente".</div>
+        <div class="rg-card">
+            <div class="rg-top"><div><div class="rg-logo"></div><div class="rg-subtitle">IDENTIDADE EM SAÚDE</div></div><div class="rg-qr"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/></svg></div></div>
+            <div class="rg-middle"><div class="rg-avatar">vita<br>id</div><div><div class="rg-name">lucas tyeeste</div><div class="rg-meta">19a · A+ · 394.463.668-60</div></div></div>
+        </div>
+        <div style="background:#FFFFFF;border-radius:10px;margin-top:14px;padding:6px;">
+            <div class="v5-row"><div class="v5-dot ok"></div><div class="v5-name">Pré-consultas</div><div class="v5-preview">1 dia · prurido</div><div class="v5-badge">3</div></div>
+            <div class="v5-row"><div class="v5-dot neutral"></div><div class="v5-name">Exames</div><div class="v5-preview">laudo.pdf · 12 dias</div><div class="v5-badge">18</div></div>
+            <div class="v5-row"><div class="v5-dot warn"></div><div class="v5-name">Condições</div><div class="v5-preview">Rinite, dermatite +2</div><div class="v5-badge">4</div></div>
+            <div class="v5-row"><div class="v5-dot ok"></div><div class="v5-name">Medicamentos</div><div class="v5-preview">Cetirizina +3</div><div class="v5-badge">4</div></div>
+            <div class="v5-row"><div class="v5-dot alert"></div><div class="v5-name" style="color:#B42318;">Alergias</div><div class="v5-preview" style="color:#EF4444;">Dipirona, Penicilina</div><div class="v5-badge crit">2</div></div>
+        </div>
+        <div class="remove-section"><button class="remove-btn">Remover paciente</button></div>
+    </div>
+</div>
+
+<!-- ==================== VARIANTE 6 — UNTITLED UI PREMIUM ==================== -->
+<div class="variant-frame">
+    <div class="variant-label"><em>06</em>Untitled UI Premium</div>
+    <div class="phone" style="margin-top:32px;">
+        <div class="variant-philosophy"><strong>Untitled UI-like.</strong> Status chips coloridos (Em dia / Atenção / Crítico). Acabamento SaaS premium. Emoção: "produto de US$100/mês".</div>
+        <div class="rg-card">
+            <div class="rg-top"><div><div class="rg-logo"></div><div class="rg-subtitle">IDENTIDADE EM SAÚDE</div></div><div class="rg-qr"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/></svg></div></div>
+            <div class="rg-middle"><div class="rg-avatar">vita<br>id</div><div><div class="rg-name">lucas tyeeste</div><div class="rg-meta">Paciente · CPF 394.463.668-60</div></div></div>
+        </div>
+        <div style="margin-top:16px;">
+            <div class="v6-card"><div class="v6-top"><div class="v6-iconbox"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="v6-status-chip">Em dia</div></div><div class="v6-title">Pré-consultas · 3</div><div class="v6-desc">Última registrada há 1 dia — "prurido intenso há três dias"</div></div>
+            <div class="v6-card"><div class="v6-top"><div class="v6-iconbox"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="v6-status-chip">18 arquivos</div></div><div class="v6-title">Exames</div><div class="v6-desc">Último laudo há 12 dias · toque para abrir o histórico</div></div>
+            <div class="v6-card"><div class="v6-top"><div class="v6-iconbox"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="v6-status-chip warn">Atenção</div></div><div class="v6-title">Condições · 4</div><div class="v6-desc">Rinite alérgica, dermatite atópica, e outras 2 controladas</div></div>
+            <div class="v6-card"><div class="v6-top"><div class="v6-iconbox"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></div><div class="v6-status-chip">4 ativos</div></div><div class="v6-title">Medicamentos em uso</div><div class="v6-desc">Cetirizina 10mg · Prednisolona 20mg +2 outros</div></div>
+            <div class="v6-card" style="border-color:#FECDCA;"><div class="v6-top"><div class="v6-iconbox" style="background:#FEF3F2;"><svg viewBox="0 0 24 24" style="stroke:#EF4444;"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg></div><div class="v6-status-chip crit">2 graves</div></div><div class="v6-title">Alergias</div><div class="v6-desc"><strong>Dipirona</strong> e <strong>Penicilina</strong> — ambas reações graves registradas</div></div>
+        </div>
+        <div class="remove-section"><button class="remove-btn">Remover paciente</button></div>
+    </div>
+</div>
+
+<!-- ==================== VARIANTE 7 — VERCEL MONOCROMO ==================== -->
+<div class="variant-frame">
+    <div class="variant-label"><em>07</em>Vercel Monocromo</div>
+    <div class="phone" style="margin-top:32px;">
+        <div class="variant-philosophy"><strong>Vercel-like.</strong> Monocromo, zero sombra, borda 1px. Verde só como status dot. Emoção: "ferramenta de dev sério".</div>
+        <div class="rg-card">
+            <div class="rg-top"><div><div class="rg-logo"></div><div class="rg-subtitle">IDENTIDADE EM SAÚDE</div></div><div class="rg-qr"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/></svg></div></div>
+            <div class="rg-middle"><div class="rg-avatar">vita<br>id</div><div><div class="rg-name">lucas tyeeste</div><div class="rg-meta">19 anos · A+ · piwi</div></div></div>
+        </div>
+        <div style="margin-top:14px;">
+            <div class="v7-card"><div class="v7-head"><div class="v7-dot"></div><div class="v7-title">Pré-consultas</div><div class="v7-mini">3 · 1d</div></div><div class="v7-content">Última registrada ontem — prurido intenso há três dias.</div></div>
+            <div class="v7-card"><div class="v7-head"><div class="v7-dot"></div><div class="v7-title">Exames</div><div class="v7-mini">18 · 12d</div></div><div class="v7-content">laudo.pdf · toque para ver todos</div></div>
+            <div class="v7-card"><div class="v7-head"><div class="v7-dot empty"></div><div class="v7-title">Condições</div><div class="v7-mini">4</div></div><div class="v7-content">Rinite alérgica · Dermatite atópica · +2</div></div>
+            <div class="v7-card"><div class="v7-head"><div class="v7-dot"></div><div class="v7-title">Medicamentos</div><div class="v7-mini">4 ativos</div></div><div class="v7-content">Cetirizina 10mg · Prednisolona 20mg · Loratadina 10mg · Soro</div></div>
+            <div class="v7-card" style="border-color:#EF4444;"><div class="v7-head"><div class="v7-dot" style="background:#EF4444;box-shadow:0 0 8px rgba(239,68,68,0.5);"></div><div class="v7-title" style="color:#B42318;">Alergias</div><div class="v7-mini" style="color:#EF4444;">2 GRAVES</div></div><div class="v7-content" style="color:#881337;font-weight:600;">Dipirona · Penicilina</div></div>
+        </div>
+        <div class="remove-section"><button class="remove-btn">Remover paciente</button></div>
+    </div>
+</div>
+
+<!-- ==================== VARIANTE 8 — RADIX COMPOSE ==================== -->
+<div class="variant-frame">
+    <div class="variant-label"><em>08</em>Radix Compose</div>
+    <div class="phone" style="margin-top:32px;">
+        <div class="variant-philosophy"><strong>Radix/Shadcn-like.</strong> Accordion cards que expandem inline (veja o de Alergias aberto). Emoção: "tudo no seu lugar, acessível quando precisa".</div>
+        <div class="rg-card">
+            <div class="rg-top"><div><div class="rg-logo"></div><div class="rg-subtitle">IDENTIDADE EM SAÚDE</div></div><div class="rg-qr"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/></svg></div></div>
+            <div class="rg-middle"><div class="rg-avatar">vita<br>id</div><div><div class="rg-name">lucas tyeeste</div><div class="rg-meta">Paciente · 19 anos</div></div></div>
+        </div>
+        <div style="margin-top:14px;">
+            <div class="v8-card"><div class="v8-head"><div class="v8-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="v8-body"><div class="v8-name">Pré-consultas</div></div><div class="v8-count">3</div><svg class="v8-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div>
+            <div class="v8-card"><div class="v8-head"><div class="v8-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="v8-body"><div class="v8-name">Exames</div></div><div class="v8-count">18</div><svg class="v8-chev" viewBox="0 0 24 24" style="transform:rotate(-90deg);"><polyline points="6 9 12 15 18 9"/></svg></div></div>
+            <div class="v8-card"><div class="v8-head"><div class="v8-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="v8-body"><div class="v8-name">Condições</div></div><div class="v8-count">4</div><svg class="v8-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div>
+            <div class="v8-card"><div class="v8-head"><div class="v8-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></div><div class="v8-body"><div class="v8-name">Medicamentos</div></div><div class="v8-count">4</div><svg class="v8-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div>
+            <div class="v8-card expanded" style="border-color:#FECDCA;"><div class="v8-head"><div class="v8-icon" style="background:rgba(239,68,68,0.1);"><svg viewBox="0 0 24 24" style="stroke:#EF4444;"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg></div><div class="v8-body"><div class="v8-name" style="color:#B42318;">Alergias</div></div><div class="v8-count" style="background:#FEF3F2;color:#EF4444;">2 graves</div><svg class="v8-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="v8-expand"><div class="v8-item"><strong>Dipirona</strong> · Grave · prurido generalizado + edema</div><div class="v8-item"><strong>Penicilina</strong> · Grave · anafilaxia documentada em 2023</div></div></div>
+        </div>
+        <div class="remove-section"><button class="remove-btn">Remover paciente</button></div>
+    </div>
+</div>
+
+<!-- ==================== VARIANTE 9 — ARC CONTEXTUAL ==================== -->
+<div class="variant-frame">
+    <div class="variant-label"><em>09</em>Arc Contextual</div>
+    <div class="phone" style="margin-top:32px;">
+        <div class="variant-philosophy"><strong>Arc-like.</strong> Gradiente da marca só revela no hover (passe o mouse). Ações escondidas até precisar. Emoção: "descoberta suave".</div>
+        <div class="rg-card">
+            <div class="rg-top"><div><div class="rg-logo"></div><div class="rg-subtitle">IDENTIDADE EM SAÚDE</div></div><div class="rg-qr"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/></svg></div></div>
+            <div class="rg-middle"><div class="rg-avatar">vita<br>id</div><div><div class="rg-name">lucas tyeeste</div><div class="rg-meta">Paciente · 19 anos · A+</div></div></div>
+        </div>
+        <div style="margin-top:16px;">
+            <div class="v9-card"><div class="v9-card-title">Pré-consultas · 3</div><div class="v9-card-desc">Última registrada há 1 dia descrevendo prurido intenso há três dias.</div><div class="v9-card-action">Abrir histórico <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+            <div class="v9-card"><div class="v9-card-title">Exames · 18</div><div class="v9-card-desc">Último laudo.pdf há 12 dias · Acervo completo em outra tela.</div><div class="v9-card-action">Ver acervo <svg viewBox="0 0 24 24"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></div></div>
+            <div class="v9-card"><div class="v9-card-title">Condições · 4</div><div class="v9-card-desc">Rinite alérgica, dermatite atópica e outras duas em acompanhamento.</div><div class="v9-card-action">Detalhar <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+            <div class="v9-card"><div class="v9-card-title">Medicamentos em uso · 4</div><div class="v9-card-desc">Cetirizina 10mg, Prednisolona 20mg, Loratadina 10mg, Soro Fisiológico.</div><div class="v9-card-action">Posologia <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+            <div class="v9-card" style="border-left:3px solid #EF4444;"><div class="v9-card-title" style="color:#B42318;">Alergias · 2 graves</div><div class="v9-card-desc" style="color:#881337;"><strong>Dipirona</strong> e <strong>Penicilina</strong> — verificar antes de prescrever.</div><div class="v9-card-action" style="color:#EF4444;">Revisar reações <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+        </div>
+        <div class="remove-section"><button class="remove-btn">Remover paciente</button></div>
+    </div>
+</div>
+
+<!-- ==================== VARIANTE 10 — HIBRIDO SENIOR ==================== -->
+<div class="variant-frame">
+    <div class="variant-label"><em>10</em>Híbrido Sênior</div>
+    <div class="phone" style="margin-top:32px;">
+        <div class="variant-philosophy"><strong>Stripe + Untitled + Radix.</strong> Faixa de segurança no topo (padrão Epic/Cerner). Preview inline. Emoção: "prontuário sério que respeita meu tempo".</div>
+        <div class="rg-card">
+            <div class="rg-top"><div><div class="rg-logo"></div><div class="rg-subtitle">IDENTIDADE EM SAÚDE</div></div><div class="rg-qr"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/></svg></div></div>
+            <div class="rg-middle"><div class="rg-avatar">vita<br>id</div><div><div class="rg-name">lucas tyeeste</div><div class="rg-meta">Paciente · CPF 394.463.668-60</div></div></div>
+            <div class="rg-divider"></div>
+            <div class="rg-bottom"><div class="rg-bottom-item"><div class="rg-bottom-label">NASCIMENTO</div><div class="rg-bottom-value">14/03/2007</div></div><div class="rg-bottom-item"><div class="rg-bottom-label">SANGUE</div><div class="rg-bottom-value green">A+</div></div><div class="rg-bottom-item"><div class="rg-bottom-label">PLANO</div><div class="rg-bottom-value">piwi</div></div></div>
+        </div>
+        <div class="v10-safety"><svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg><div><div class="v10-safety-title">Atenção · 2 alergias graves</div><div class="v10-safety-body">Dipirona · Penicilina — verificar antes de prescrever</div></div></div>
+        <div>
+            <div class="v10-card"><div class="v10-card-top"><div class="v10-card-label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Pré-consultas</div><div class="v10-card-count">3</div></div><div class="v10-card-preview">Última há 1 dia — <strong>"prurido intenso há três dias, tosse associada"</strong></div><div class="v10-card-action"><span>Ver histórico completo</span><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+            <div class="v10-card"><div class="v10-card-top"><div class="v10-card-label"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Exames</div><div class="v10-card-count">18</div></div><div class="v10-card-preview">Último há 12 dias — <strong>laudo.pdf</strong> · hemograma + IgE específica</div><div class="v10-card-action"><span>Abrir acervo completo</span><svg viewBox="0 0 24 24"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></div></div>
+            <div class="v10-card"><div class="v10-card-top"><div class="v10-card-label"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Condições</div><div class="v10-card-count">4</div></div><div class="v10-card-preview"><strong>Rinite alérgica</strong>, <strong>dermatite atópica</strong> e outras 2 em acompanhamento</div><div class="v10-card-action"><span>Ver detalhamento</span><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+            <div class="v10-card"><div class="v10-card-top"><div class="v10-card-label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>Medicamentos em uso</div><div class="v10-card-count">4</div></div><div class="v10-card-preview"><strong>Cetirizina 10mg</strong> · 1×/dia · <strong>Prednisolona 20mg</strong> · 1×/dia · +2</div><div class="v10-card-action"><span>Posologia completa</span><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+            <div class="v10-card" style="border-color:#FECDCA;"><div class="v10-card-top"><div class="v10-card-label" style="color:#B42318;"><svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>Alergias</div><div class="v10-card-count" style="color:#B42318;">2</div></div><div class="v10-card-preview"><strong>Dipirona</strong> (grave) · <strong>Penicilina</strong> (grave · anafilaxia 2023)</div><div class="v10-card-action" style="color:#EF4444;"><span>Ver reações documentadas</span><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+        </div>
+        <div class="remove-section"><button class="remove-btn">Remover paciente</button></div>
+    </div>
+</div>
+
+</div><!-- /grid -->
+
+<div style="max-width:800px;margin:60px auto 0;text-align:center;color:rgba(255,255,255,0.6);font-size:13px;line-height:1.7;">
+    <p><strong style="color:#00E5A0;">Como escolher.</strong> Abra cada variante e pergunte: (1) em 2 segundos consigo identificar alergias? (2) consigo escanear sem ler cada card? (3) parece que este app vale R$ 99/mês? A variante certa é aquela que você passa 5 minutos olhando sem cansar.</p>
+</div>
+
+</body>
+</html>
