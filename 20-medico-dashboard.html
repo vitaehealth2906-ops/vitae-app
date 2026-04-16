@@ -809,6 +809,9 @@
                 <button class="pac-pill" onclick="filterPacTime(this,'today')">Hoje</button>
                 <button class="pac-pill" onclick="filterPacTime(this,'week')">Esta semana</button>
                 <button class="pac-pill" onclick="filterPacTime(this,'month')">Este mês</button>
+                <button class="pac-pill" id="pill-pacientes" onclick="filterByStatus('pacientes')">Pacientes</button>
+                <button class="pac-pill" id="pill-pendentes" onclick="filterByStatus('pendentes')">Pendentes</button>
+                <button class="pac-pill" id="pill-respondidas" onclick="filterByStatus('respondidas')">Respondidas</button>
             </div>
             <div id="pacList"></div>
         </div>
@@ -2128,35 +2131,24 @@
     var _currentPeriodFilter = 'all';
 
     function filterByStatus(tipo) {
-        var pills = document.querySelectorAll('.pac-pill');
-        pills.forEach(function(p){ p.classList.remove('active'); });
+        document.querySelectorAll('.pac-pill').forEach(function(p){ p.classList.remove('active'); });
 
         if (tipo === 'all') {
             _currentStatusFilter = 'all';
             _currentPeriodFilter = 'all';
-            pills[0].classList.add('active');
+            document.querySelectorAll('.pac-pill')[0].classList.add('active');
             renderPacientesList(allPacientesData, _currentPeriodFilter);
             return;
         }
 
-        var labels = { pacientes: 'Pacientes', pendentes: 'Pendentes', respondidas: 'Respondidas' };
         _currentStatusFilter = tipo;
         _currentPeriodFilter = 'all';
 
-        var pillId = 'pill-' + tipo;
-        var existing = document.getElementById(pillId);
-        if (!existing) {
-            var container = document.getElementById('pacFilters');
-            var btn = document.createElement('button');
-            btn.className = 'pac-pill';
-            btn.id = pillId;
-            btn.textContent = labels[tipo];
-            btn.onclick = function() { filterByStatus(tipo); };
-            container.appendChild(btn);
-            existing = btn;
+        var pill = document.getElementById('pill-' + tipo);
+        if (pill) {
+            pill.classList.add('active');
+            pill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
-        existing.classList.add('active');
-        existing.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         renderPacientesList(allPacientesData, _currentPeriodFilter);
     }
 
