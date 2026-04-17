@@ -562,6 +562,69 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 10 — 17/04/2026 (tarde) — Unificar foto do paciente
+
+**Contexto:** Lucas notou que fotos do paciente vinham de DIFERENTES campos em DIFERENTES telas. Pediu mapeamento exaustivo. Agente Explore achou 2 campos no banco + 5 logicas diferentes de render em 14 telas. Conflito real: paciente fazia upload no perfil mas medico via icone vazio na lista (porque puxava PreConsulta.pacienteFotoUrl que podia estar vazio).
+
+**Decisao:** foto tirada no quiz vira fonte unica. Salva em Usuario.fotoUrl. Todo lugar puxa dela. PreConsulta.pacienteFotoUrl mantida como historico forense, mas nunca usada pra display.
+
+**O que foi feito:**
+
+1. **Tela de foto obrigatoria no 05-quiz.html (onboarding):**
+   - Novo step 3 no final (de 3 steps pra 4 — conserta o bug cosmetico "de 4")
+   - UI: circulo 180px com dashed border, botoes Tirar Foto / Galeria, preview com fade-in
+   - Compressao via canvas (1200px, JPEG 0.8)
+   - Upload via vitaeAPI.uploadFoto() → POST /perfil/foto → salva Usuario.fotoUrl
+   - btn-next disabled ate foto ser adicionada
+
+2. **Mesma tela no quiz-preconsulta.html:**
+   - Novo step 6 no final (de 6 pra 7)
+   - Mesmo componente visual, mesmo fluxo
+   - Conclude roda antes atualizarPerfil → depois uploadFoto
+
+3. **Backend: endpoint retorna paciente.fotoUrl:**
+   - `GET /pre-consulta/` (listar) e `GET /pre-consulta/:id` (detalhe)
+   - Agora inclui `paciente: { id, nome, fotoUrl }` via Prisma include
+
+4. **20-medico-dashboard.html unificado (3 pontos internos):**
+   - Mini-lista PC: prioridade `pc.paciente.fotoUrl` > `pc.pacienteFotoUrl`
+   - Grouped patient (perfil sheet + RG card): mesma prioridade
+   - Greeting do medico: ja usava `Usuario.fotoUrl`, sem mudanca
+
+5. **25-summary.html:** foto prioriza `pc.paciente.fotoUrl` em vez de `r.fotoUrl` (campo fantasma que nao existia)
+
+6. **Desktop (3 arquivos) pickFoto simplificada:**
+   - De 7 buscas pra 4 ordem: fotoUrl direto, paciente.fotoUrl, usuario.fotoUrl, pacienteFotoUrl (fallback)
+
+**Arquivos modificados:**
+- `05-quiz.html` (CSS foto + step3 + JS handler + conclude upload)
+- `quiz-preconsulta.html` (CSS foto + step6 + JS handler + conclude upload)
+- `backend/src/routes/pre-consulta.js` (2 endpoints com include paciente)
+- `20-medico-dashboard.html` (3 pontos de prioridade invertidos)
+- `25-summary.html` (linha 828 — prioridade correta)
+- `desktop/dashboard.html` (pickFoto simplificada)
+- `desktop/pre-consultas.html` (pickFoto simplificada)
+- `desktop/pacientes.html` (pickFoto simplificada)
+
+**Skills usadas:**
+- Agent Explore exaustivo pra mapear os 2 campos + 14 telas + 5 logicas
+- TodoWrite pra tracking de 8 tarefas
+
+**Decisoes tomadas:**
+- Foto obrigatoria no quiz (Lucas foi enfatico — CEO decide)
+- No final dos 2 quizzes (depois de contato emergencia / exames)
+- Manter PreConsulta.pacienteFotoUrl como historico forense
+- Nao adicionar foto em telas que hoje nao mostram (21-qrcode, rg-publico, etc) — escopo fechado
+
+**Pendente pra proxima sessao:**
+- Testar quiz no celular real (camera funciona via capture="user"?)
+- Confirmar que bucket Supabase aceita base64 via POST /perfil/foto (ou se precisa ajustar)
+- Validar visualmente: medico ve mesma foto que paciente ve no perfil
+- Considerar limpeza futura: remover campos `fotoBlob` do pre-consulta.html (agora foto ja esta no perfil antes da PC)
+- Considerar adicionar foto nas 5 telas que hoje nao mostram (Lucas disse "so unificar no que ja existe" — fica pra depois)
+
+---
+
 ### Sessao 9 — 17/04/2026 (PC de casa) — 4 ajustes no desktop medico
 
 **Contexto:** Lucas abriu desktop e pontou 4 problemas visuais de uma vez. Pediu pesquisa profunda antes de implementar (plan mode com 3 Explore agents em paralelo). Plano aprovado com 3 decisoes tomadas via AskUserQuestion. Depois: "tudo" (executou as 4).

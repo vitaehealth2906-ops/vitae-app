@@ -202,7 +202,7 @@ async function loadDashboard(){
   }catch(err){document.getElementById('listCount').textContent='Erro ao carregar';toast('Erro ao carregar dashboard.','err');}
 }
 
-function updateImpact(s,m){var r=s.preConsultasRespondidas||0,e=(m.especialidade||'').toLowerCase().trim(),mp=MIN_ECON[e]||6,tm=r*mp,v=m.valorConsulta,ex=Math.floor(tm/20);
+function updateImpact(s,m){var r=s.preConsultasRespondidas||0,e=(m.especialidade||'').toLowerCase().trim(),mp=MIN_ECON[e]||6,tm=r*mp,v=m.valorConsulta,ex=Math.floor(tm/35);
   document.getElementById('impactTempo').textContent=fmtHM(tm);document.getElementById('impactPacientes').textContent=ex>0?'+'+ex:'--';
   var ve=document.getElementById('impactValor'),b=document.getElementById('impactBanner');
   if(v&&v>0&&tm>0){var vt=(tm/60)*v;ve.textContent='R$ '+Math.round(vt).toLocaleString('pt-BR');ve.className='impact-num green';b.style.display='none';}
@@ -259,12 +259,12 @@ async function loadTemplatesForModal(){try{var r=await vitaeAPI.listarTemplates(
 
 function openCalc(){if(!_impactCtx)return;var c=_impactCtx,h='<div class="calc-row"><span class="calc-label">Pre-consultas respondidas</span><span class="calc-val">'+c.resp+'</span></div><div class="calc-row"><span class="calc-label">Especialidade</span><span class="calc-val">'+c.esp+'</span></div><div class="calc-row"><span class="calc-label">Min. economizados/consulta</span><span class="calc-val">'+c.minPC+' min</span></div><div class="calc-row"><span class="calc-label">Tempo total economizado</span><span class="calc-val">'+fmtHM(c.totalMin)+'</span></div>';
   if(c.valor&&c.valor>0)h+='<div class="calc-row"><span class="calc-label">Seu valor/consulta</span><span class="calc-val">R$ '+c.valor+'</span></div><div class="calc-row"><span class="calc-label">Valor equivalente</span><span class="calc-val" style="color:var(--green)">R$ '+Math.round(c.vTotal).toLocaleString('pt-BR')+'</span></div>';
-  h+='<div class="calc-row"><span class="calc-label">Pacientes extras (20 min cada)</span><span class="calc-val">'+(c.extras>0?'+'+c.extras:'--')+'</span></div>';
+  h+='<div class="calc-row"><span class="calc-label">Pacientes extras (30-40 min cada)</span><span class="calc-val">'+(c.extras>0?'+'+c.extras:'--')+'</span></div>';
   document.getElementById('calcBody').innerHTML=h;document.getElementById('calcOverlay').classList.add('show');}
 function closeCalc(){document.getElementById('calcOverlay').classList.remove('show');}
 
 function getInitials(n){if(!n)return'--';var p=n.replace(/^(Dr\.?\s*|Dra\.?\s*)/i,'').trim().split(/\s+/);return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():p[0]?p[0].substring(0,2).toUpperCase():'--';}
-function pickFoto(o){if(!o)return'';return o.fotoUrl||o.foto||o.pacienteFotoUrl||(o.usuario&&(o.usuario.fotoUrl||o.usuario.foto))||(o.paciente&&(o.paciente.fotoUrl||o.paciente.foto))||'';}
+function pickFoto(o){if(!o)return'';return o.fotoUrl||(o.paciente&&o.paciente.fotoUrl)||(o.usuario&&o.usuario.fotoUrl)||o.pacienteFotoUrl||'';}
 function renderAvatar(o,ini,size){var s=size||32,fs=Math.max(10,Math.round(s*0.32)),foto=pickFoto(o),st='width:'+s+'px;height:'+s+'px;font-size:'+fs+'px;overflow:hidden';
   if(foto)return'<div class="av" style="'+st+'"><img src="'+foto+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.parentNode.textContent=\''+sa(ini)+'\'"></div>';
   return'<div class="av" style="'+st+'">'+ini+'</div>';}

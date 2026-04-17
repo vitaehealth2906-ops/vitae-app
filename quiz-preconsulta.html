@@ -361,6 +361,37 @@
             background:rgba(0,229,160,0.06);
         }
         .condition-card.none-card.selected .condition-label { color:#00E5A0; }
+
+        /* Foto step */
+        .foto-wrap { display:flex; flex-direction:column; align-items:center; gap:18px; padding:8px 0 4px; }
+        .foto-circle {
+            width:180px; height:180px; border-radius:50%;
+            background:linear-gradient(135deg, rgba(0,229,160,0.08), rgba(0,180,216,0.08));
+            border:2px dashed rgba(0,229,160,0.35);
+            display:flex; align-items:center; justify-content:center;
+            overflow:hidden; position:relative; flex-shrink:0;
+            transition:all 0.25s ease;
+        }
+        .foto-circle.has-photo { border-style:solid; border-color:#00E5A0; box-shadow:0 8px 28px rgba(0,229,160,0.2); }
+        .foto-circle img { width:100%; height:100%; object-fit:cover; display:block; }
+        .foto-icon-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; }
+        .foto-icon-wrap svg { width:44px; height:44px; stroke:#00E5A0; stroke-width:1.6; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+        .foto-icon-wrap .foto-plus { font-size:11px; font-weight:700; color:#00E5A0; letter-spacing:0.5px; text-transform:uppercase; }
+        .foto-hint { font-size:13px; color:#6B7280; text-align:center; line-height:1.5; padding:0 20px; }
+        .foto-hint.ok { color:#00C47A; font-weight:600; }
+        .foto-btns { display:flex; gap:10px; width:100%; margin-top:4px; }
+        .foto-btn {
+            flex:1; padding:14px 10px;
+            background:#FFFFFF; border:1.5px solid rgba(0,0,0,0.07);
+            border-radius:14px; font-family:inherit; font-size:13px; font-weight:600;
+            color:#0D0F14; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; gap:7px;
+            transition:all 0.15s;
+        }
+        .foto-btn:hover { background:rgba(0,229,160,0.04); border-color:rgba(0,229,160,0.25); }
+        .foto-btn:active { transform:scale(0.98); }
+        .foto-btn svg { width:16px; height:16px; stroke:#0D0F14; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+        .btn-next:disabled { opacity:0.4; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
     @media(max-width:480px){body{padding:0!important;background:inherit!important}.phone{width:100vw!important;height:100vh!important;height:100svh!important;max-width:100vw!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}.notch,.status{display:none!important}}</style>
     <link rel="stylesheet" href="vitae-core.css">
     <link rel="stylesheet" href="vitae-glass.css">
@@ -412,7 +443,7 @@
         <div class="back-btn" onclick="goBack()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18L9 12L15 6"/></svg>
         </div>
-        <div class="step-indicator">Passo <span id="stepNum">1</span> de 6</div>
+        <div class="step-indicator">Passo <span id="stepNum">1</span> de 7</div>
     </div>
 
     <div class="progress-bar">
@@ -563,7 +594,41 @@
             <!-- Exam cards list (populated by JS) -->
             <div id="examCardsList" style="margin-top:12px;"></div>
 
-            <button class="btn-next" onclick="conclude()" id="step5ContinueBtn">Continuar para a pre-consulta</button>
+            <button class="btn-next" onclick="goToStep(6)" id="step5ContinueBtn">Proximo</button>
+        </div>
+
+        <!-- STEP 6: Foto do rosto -->
+        <div class="step" id="step6">
+            <div class="step-title">Sua <span>foto</span></div>
+            <div class="step-subtitle">Uma foto do rosto ajuda medicos a te identificarem em emergencias</div>
+
+            <div class="foto-wrap">
+                <div class="foto-circle" id="fotoCircle" onclick="document.getElementById('fotoGaleria').click()">
+                    <div class="foto-icon-wrap" id="fotoPlaceholder">
+                        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <div class="foto-plus">Toque para adicionar</div>
+                    </div>
+                    <img id="fotoPreview" src="" alt="" style="display:none">
+                </div>
+
+                <div class="foto-hint" id="fotoHint">Uma foto recente, com boa luz e sem oculos escuros</div>
+
+                <div class="foto-btns">
+                    <button class="foto-btn" type="button" onclick="document.getElementById('fotoCamera').click()">
+                        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Tirar foto
+                    </button>
+                    <button class="foto-btn" type="button" onclick="document.getElementById('fotoGaleria').click()">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                        Galeria
+                    </button>
+                </div>
+
+                <input type="file" id="fotoCamera" accept="image/*" capture="user" style="display:none" onchange="handleFotoSelect(this)">
+                <input type="file" id="fotoGaleria" accept="image/*" style="display:none" onchange="handleFotoSelect(this)">
+            </div>
+
+            <button class="btn-next" id="btnConcluir" onclick="conclude()" disabled>Continuar para a pre-consulta</button>
         </div>
 
     </div>
@@ -586,8 +651,8 @@
 <script>
     // ===== State =====
     let currentStep = 0;
-    const totalSteps = 6;
-    const steps = [0,1,2,3,4,5].map(i => document.getElementById('step'+i));
+    const totalSteps = 7;
+    const steps = [0,1,2,3,4,5,6].map(i => document.getElementById('step'+i));
 
     // Guardar o token da pre-consulta (se vier na URL) — para voltar depois
     const urlParams = new URLSearchParams(window.location.search);
@@ -657,7 +722,45 @@
         historicoFamiliar: [],
         contatoEmergenciaNome: '',
         contatoEmergenciaTel: '',
+        fotoUrl: '',
     };
+
+    // ===== Foto handler =====
+    function handleFotoSelect(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (!/^image\//.test(file.type)) { alert('Selecione uma imagem.'); return; }
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                const MAX = 1200;
+                if (w > MAX || h > MAX) {
+                    if (w > h) { h = Math.round(h * (MAX / w)); w = MAX; }
+                    else { w = Math.round(w * (MAX / h)); h = MAX; }
+                }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                const base64 = canvas.toDataURL('image/jpeg', 0.8);
+                formData.fotoUrl = base64;
+                const preview = document.getElementById('fotoPreview');
+                preview.src = base64;
+                preview.style.display = 'block';
+                document.getElementById('fotoPlaceholder').style.display = 'none';
+                document.getElementById('fotoCircle').classList.add('has-photo');
+                const hint = document.getElementById('fotoHint');
+                hint.textContent = 'Foto adicionada. Toque no circulo pra trocar.';
+                hint.classList.add('ok');
+                const btn = document.getElementById('btnConcluir');
+                if (btn) btn.disabled = false;
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+    }
 
     // ===== Navigation =====
     function goToStep(newStep) {
@@ -1135,17 +1238,21 @@
 
         try {
             await vitaeAPI.atualizarPerfil(profileData);
+            if (formData.fotoUrl) {
+                try { await vitaeAPI.uploadFoto(formData.fotoUrl); }
+                catch (fe) { console.warn('[QUIZ] Foto nao salva:', fe); }
+            }
             saveSuccess = true;
         } catch (e) {
             console.error('[QUIZ] Erro ao salvar:', e);
             const errMsg = e.message || 'Erro de conexão';
             // Show error in UI
-            const btn = document.querySelector('#step2 .btn-next');
+            const btn = document.getElementById('btnConcluir');
             if (btn) {
                 btn.textContent = 'Erro ao salvar — tente novamente';
                 btn.style.background = '#EF4444';
                 setTimeout(() => {
-                    btn.textContent = 'Criar meu RG da Saúde';
+                    btn.textContent = 'Continuar para a pre-consulta';
                     btn.style.background = '';
                 }, 4000);
             }

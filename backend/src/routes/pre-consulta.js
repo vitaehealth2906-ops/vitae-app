@@ -514,6 +514,11 @@ router.get('/', verificarAuth, async (req, res, next) => {
     const preConsultas = await prisma.preConsulta.findMany({
       where: { medicoId: medico.id },
       orderBy: { criadoEm: 'desc' },
+      include: {
+        paciente: {
+          select: { id: true, nome: true, fotoUrl: true },
+        },
+      },
     });
 
     return res.status(200).json({ preConsultas });
@@ -535,6 +540,11 @@ router.get('/:id', verificarAuth, async (req, res, next) => {
 
     const preConsulta = await prisma.preConsulta.findFirst({
       where: { id: req.params.id, medicoId: medico.id },
+      include: {
+        paciente: {
+          select: { id: true, nome: true, fotoUrl: true },
+        },
+      },
     });
 
     if (!preConsulta) {

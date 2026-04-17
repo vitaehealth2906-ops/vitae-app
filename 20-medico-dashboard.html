@@ -1365,7 +1365,7 @@
         const subtext = isAberto && pc.linkAbertoEm
             ? `Aberto ${new Date(pc.linkAbertoEm).toLocaleDateString('pt-BR')}`
             : dt;
-        const fotoUrl = pc.pacienteFotoUrl || (pc.respostas && pc.respostas.fotoUrl) || null;
+        const fotoUrl = (pc.paciente && pc.paciente.fotoUrl) || pc.pacienteFotoUrl || (pc.respostas && pc.respostas.fotoUrl) || null;
         let avatarContent;
         if (fotoUrl) {
             avatarContent = `<img src="${fotoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
@@ -1471,7 +1471,7 @@
         var valorConsulta = medico.valorConsulta;
         var minPorConsulta = minutosPorEspecialidade(especialidade);
         var totalMin = respondidas * minPorConsulta;
-        var pacientesExtras = Math.floor(totalMin / 20);
+        var pacientesExtras = Math.floor(totalMin / 35);
 
         // Bloco 1 — Tempo
         document.getElementById('impactTempo').textContent = formatHorasMinutos(totalMin);
@@ -1526,7 +1526,7 @@
             html += '<div class="calc-row"><span class="calc-row-label">Seu valor/consulta declarado</span><span class="calc-row-value">' + formatReais(c.valorConsulta) + '</span></div>';
             html += '<div class="calc-row"><span class="calc-row-label">Valor equivalente em tempo</span><span class="calc-row-value">' + formatReais(c.valorTotal || 0) + '</span></div>';
         }
-        html += '<div class="calc-row"><span class="calc-row-label">Pacientes extras na agenda</span><span class="calc-row-value">+' + c.pacientesExtras + ' (20 min cada)</span></div>';
+        html += '<div class="calc-row"><span class="calc-row-label">Pacientes extras na agenda</span><span class="calc-row-value">+' + c.pacientesExtras + ' (30-40 min cada)</span></div>';
         html += '<div class="calc-formula"><strong>Fórmula:</strong> ' + c.respondidas + ' pré-consultas × ' + c.minPorConsulta + ' min = ' + formatHorasMinutos(c.totalMin);
         if (c.valorConsulta && c.valorConsulta > 0) {
             html += '<br><strong>Valor:</strong> ' + formatHorasMinutos(c.totalMin) + ' × ' + formatReais(c.valorConsulta) + '/consulta ≈ ' + formatReais(c.valorTotal);
@@ -2261,15 +2261,17 @@
                         nome: pc.pacienteNome || 'Sem nome',
                         tel: pc.pacienteTel || '',
                         email: pc.pacienteEmail || '',
-                        foto: pc.pacienteFotoUrl || null,
+                        foto: (pc.paciente && pc.paciente.fotoUrl) || pc.pacienteFotoUrl || null,
                         pacienteId: pc.pacienteId || (pc.paciente && pc.paciente.id) || null,
                         anamneses: [],
                         ultimaData: null
                     };
                 }
-                // Atualizar foto e pacienteId se encontrar uma versão melhor
-                if (!grouped[key].foto && pc.paciente && pc.paciente.fotoUrl) {
+                // Prioridade: Usuario.fotoUrl (perfil) > PreConsulta.pacienteFotoUrl (histórico)
+                if (pc.paciente && pc.paciente.fotoUrl) {
                     grouped[key].foto = pc.paciente.fotoUrl;
+                } else if (!grouped[key].foto && pc.pacienteFotoUrl) {
+                    grouped[key].foto = pc.pacienteFotoUrl;
                 }
                 if (!grouped[key].pacienteId && pc.pacienteId) {
                     grouped[key].pacienteId = pc.pacienteId;
