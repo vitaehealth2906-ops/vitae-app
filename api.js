@@ -389,8 +389,17 @@ const vitaeAPI = {
     return apiRequest('/medico/pacientes');
   },
 
+  async buscarPacientesMedico(query) {
+    const q = encodeURIComponent(String(query || '').trim());
+    return apiRequest(`/medico/pacientes/buscar?q=${q}`);
+  },
+
   async getPerfilPacienteMedico(pacienteId) {
     return apiRequest(`/medico/pacientes/${pacienteId}`);
+  },
+
+  async migrarAutorizacoes() {
+    return apiRequest('/medico/migrar-autorizacoes', { method: 'POST' });
   },
 
   async limpezaPreConsultasAntigas() {

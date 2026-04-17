@@ -114,6 +114,15 @@ router.get('/exame-publico/:userId/:examId', async (req, res, next) => {
       return res.status(404).json({ erro: 'Exame nao encontrado' });
     }
 
+    // Auditoria — registra acesso publico ao exame (sem auth)
+    auditar(req, {
+      acao: 'VIEW_EXAME_PUBLICO',
+      atorTipo: 'PUBLICO',
+      recursoTipo: 'EXAME',
+      recursoId: exame.id,
+      alvoId: exame.usuarioId,
+    });
+
     return res.status(200).json({ exame });
   } catch (err) {
     next(err);

@@ -391,7 +391,11 @@
         <div style="cursor:pointer;padding:4px" onclick="dashCloseModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
       </div>
       <div class="modal-sub">Preencha os dados para gerar o link</div>
-      <div class="field"><label>Nome do paciente *</label><input type="text" id="dash-mNome" placeholder="Ex: Maria Silva"></div>
+      <div class="field" style="position:relative">
+        <label>Nome do paciente *</label>
+        <input type="text" id="dash-mNome" placeholder="Ex: Maria Silva" oninput="dashAutocompletePaciente(this.value)" autocomplete="off">
+        <div id="dash-mAutoBox" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;background:#fff;border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.08)"></div>
+      </div>
       <div class="g2">
         <div class="field"><label>WhatsApp</label><input type="tel" id="dash-mPhone" placeholder="(11) 99999-9999" oninput="fmtPhone(this)"></div>
         <div class="field"><label>Email</label><input type="email" id="dash-mEmail" placeholder="paciente@email.com"></div>
@@ -705,11 +709,13 @@
         <div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="pt-ptSearch" placeholder="Buscar paciente..." oninput="ptFilterPatients()" style="width:100%;padding:11px 14px 11px 40px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;transition:border-color .15s,box-shadow .15s" onfocus="this.style.borderColor='rgba(0,229,160,.45)';this.style.boxShadow='0 0 0 3px rgba(0,229,160,.07)'" onblur="this.style.borderColor='';this.style.boxShadow=''"></div>
         <div class="filters" id="pt-ptFilters">
           <div class="filter on" data-status="all" onclick="ptSetFilter(this)">Todos</div>
-          <div class="filter" data-status="with-pc" onclick="ptSetFilter(this)">Com pre-consulta</div>
+          <div class="filter" data-status="with-pending" onclick="ptSetFilter(this)">Com PC pendente</div>
+          <div class="filter" data-status="attention" onclick="ptSetFilter(this)">Atencao</div>
+          <div class="filter" data-status="with-pc" onclick="ptSetFilter(this)">Ja respondeu</div>
           <div class="filter" data-status="no-vinculo" onclick="ptSetFilter(this)">Sem vinculo</div>
         </div>
         <div class="tw">
-          <div class="th2" style="grid-template-columns:2fr 1fr 1fr 80px"><span>Paciente</span><span>Pre-consultas</span><span>Ultima atividade</span><span></span></div>
+          <div class="th2" style="grid-template-columns:2fr 1.4fr 1fr 80px"><span>Paciente</span><span>Status</span><span>Ultima atividade</span><span></span></div>
           <div id="pt-ptTableBody"></div>
           <div class="no-result" id="pt-ptEmpty" style="display:none">Nenhum paciente encontrado.</div>
         </div>
@@ -1427,11 +1433,70 @@ function dashOpenModal(){
   document.getElementById('dash-mNome').value = '';
   document.getElementById('dash-mPhone').value = '';
   document.getElementById('dash-mEmail').value = '';
+  var ab = document.getElementById('dash-mAutoBox');
+  if(ab){ ab.style.display = 'none'; ab.innerHTML = ''; }
   document.getElementById('dash-modalQuick').classList.add('show');
   document.getElementById('dash-mNome').focus();
 }
 function dashCloseModal(){
   document.getElementById('dash-modalQuick').classList.remove('show');
+  var ab = document.getElementById('dash-mAutoBox');
+  if(ab){ ab.style.display = 'none'; ab.innerHTML = ''; }
+}
+
+// Autocomplete: busca pacientes ja vinculados ao medico em tempo real
+var _dashAutoTimer = null;
+var _dashAutoLastQ = '';
+function dashAutocompletePaciente(query){
+  var q = (query || '').trim();
+  var box = document.getElementById('dash-mAutoBox');
+  if(!box) return;
+  if(q.length < 2){
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  if(q === _dashAutoLastQ) return;
+  _dashAutoLastQ = q;
+  if(_dashAutoTimer) clearTimeout(_dashAutoTimer);
+  _dashAutoTimer = setTimeout(function(){
+    vitaeAPI.buscarPacientesMedico(q).then(function(r){
+      var pacientes = (r && r.pacientes) || [];
+      if(!pacientes.length){
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+      }
+      box.innerHTML = pacientes.map(function(p){
+        var ini = getInitials(p.pacienteNome || '');
+        var av = renderAvatar(p, ini, 28);
+        var meta = [p.pacienteTel, p.pacienteEmail].filter(Boolean).join(' . ');
+        var encoded = encodeURIComponent(JSON.stringify({
+          nome: p.pacienteNome || '', tel: p.pacienteTel || '', email: p.pacienteEmail || '',
+        }));
+        return '<div onclick="dashSelecionarPaciente(\'' + encoded + '\')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .12s" onmouseover="this.style.background=\'var(--bg)\'" onmouseout="this.style.background=\'\'">' +
+          av + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--t1)">' + s(p.pacienteNome || '') + '</div><div style="font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s(meta) + (p.temVinculo ? '' : ' . sem vinculo') + '</div></div>' +
+        '</div>';
+      }).join('');
+      box.style.display = 'block';
+    }).catch(function(){ box.style.display = 'none'; });
+  }, 250);
+}
+function dashSelecionarPaciente(encoded){
+  try{
+    var data = JSON.parse(decodeURIComponent(encoded));
+    document.getElementById('dash-mNome').value = data.nome || '';
+    if(data.tel){
+      var phoneInput = document.getElementById('dash-mPhone');
+      phoneInput.value = data.tel;
+      fmtPhone(phoneInput);
+    }
+    document.getElementById('dash-mEmail').value = data.email || '';
+    var box = document.getElementById('dash-mAutoBox');
+    box.style.display = 'none';
+    box.innerHTML = '';
+    toast('Paciente preenchido. Revise e gere o link.', 'ok');
+  }catch(e){ console.error('Selecionar paciente:', e); }
 }
 
 async function dashGerarPreConsulta(){
@@ -2301,8 +2366,12 @@ function ptRenderPatients(){
     var matchSearch = !search || name.includes(search);
     var hasPC = (p.preConsultasCount || 0) > 0;
     var hasVinculo = !!p.pacienteId;
+    var hasPending = (p.preConsultasPendentes || 0) > 0;
+    var hasAlergiasGraves = (p.alergiasGraves || 0) > 0;
     if(ptState.filter === 'with-pc' && !hasPC) return false;
     if(ptState.filter === 'no-vinculo' && hasVinculo) return false;
+    if(ptState.filter === 'with-pending' && !hasPending) return false;
+    if(ptState.filter === 'attention' && !hasAlergiasGraves) return false;
     return matchSearch;
   });
 
@@ -2320,19 +2389,40 @@ function ptRenderPatients(){
     var name = p.pacienteNome || p.nome || 'Paciente';
     var tel = p.pacienteTel || '';
     var pcCount = p.preConsultasCount || 0;
+    var pcRespondidas = p.preConsultasRespondidas || 0;
+    var pcPendentes = p.preConsultasPendentes || 0;
     var lastDate = p.ultimaAtividade || p.respondidaEm || '';
     var initials = getInitials(name);
+    var temVinculo = !!p.pacienteId;
+    var alergiasGraves = p.alergiasGraves || 0;
+    var medsAtivos = p.medicamentosAtivos || 0;
 
-    return '<div class="tr" style="grid-template-columns:2fr 1fr 1fr 80px" onclick="ptOpenPatient(\'' + (p.pacienteId || '') + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')">' +
-      '<div style="display:flex;align-items:center;gap:10px">' +
-        renderAvatar(p, initials, 30) +
-        '<div><div class="tc">' + s(name) + '</div><div class="ts">' + s(tel) + '</div></div>' +
+    var badges = [];
+    if(!temVinculo) badges.push('<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(156,163,175,.12);color:#6B7280">Sem vinculo</span>');
+    if(alergiasGraves > 0) badges.push('<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(239,68,68,.10);color:#EF4444">' + alergiasGraves + ' alergia' + (alergiasGraves > 1 ? 's' : '') + ' grave' + (alergiasGraves > 1 ? 's' : '') + '</span>');
+    if(pcPendentes > 0) badges.push('<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(245,158,11,.10);color:#F59E0B">' + pcPendentes + ' pendente' + (pcPendentes > 1 ? 's' : '') + '</span>');
+    if(medsAtivos > 0 && temVinculo) badges.push('<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(0,196,122,.10);color:#00C47A">' + medsAtivos + ' med' + (medsAtivos > 1 ? 's' : '') + '</span>');
+
+    var clickHandler = temVinculo
+      ? 'onclick="ptOpenPatient(\'' + p.pacienteId + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')"'
+      : 'onclick="ptShowAnonimoMsg(\'' + sa(name) + '\')"';
+
+    return '<div class="tr" style="grid-template-columns:2fr 1.4fr 1fr 80px;cursor:pointer" ' + clickHandler + '>' +
+      '<div style="display:flex;align-items:center;gap:10px;min-width:0">' +
+        renderAvatar(p, initials, 32) +
+        '<div style="min-width:0;flex:1"><div class="tc" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s(name) + '</div><div class="ts">' + s(tel) + '</div></div>' +
       '</div>' +
-      '<span class="tc">' + pcCount + ' pre-consulta' + (pcCount !== 1 ? 's' : '') + '</span>' +
-      '<span class="tc" style="color:var(--t3)">' + (lastDate ? ptFmtDateLong(lastDate) : '--') + '</span>' +
-      '<button class="sbtn sbtn-g" onclick="event.stopPropagation();ptOpenPatient(\'' + (p.pacienteId || '') + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')">Ver</button>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">' + (badges.join('') || '<span class="ts" style="color:var(--t4)">--</span>') + '</div>' +
+      '<span class="tc" style="color:var(--t3)">' + (lastDate ? ptFmtDateLong(lastDate) : '--') + '<div class="ts">' + pcCount + ' PC' + (pcCount !== 1 ? 's' : '') + '</div></span>' +
+      (temVinculo
+        ? '<button class="sbtn sbtn-g" onclick="event.stopPropagation();ptOpenPatient(\'' + p.pacienteId + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')">Ver</button>'
+        : '<button class="sbtn sbtn-d" onclick="event.stopPropagation();ptShowAnonimoMsg(\'' + sa(name) + '\')" title="Sem vinculo formal">Info</button>') +
     '</div>';
   }).join('');
+}
+
+function ptShowAnonimoMsg(nome){
+  toast(nome + ' respondeu sem fazer login. Sem vinculo, nao ha exames/alergias/meds salvos.', 'warn');
 }
 
 async function ptOpenPatient(pacienteId, name, tel){
