@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparação de Mapas — vita id</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Mapbox -->
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<style>
+:root {
+  --green:#00E5A0; --cyan:#00B4D8;
+  --grad:linear-gradient(120deg,#00E5A0,#00B4D8);
+  --dark:#0D0F14; --bg:#F7F8FA; --surface:#fff;
+  --border:rgba(0,0,0,.06); --t1:#111318; --t2:#5A6070; --t3:#9CA3AF;
+  --font:'Plus Jakarta Sans',sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--t1);
+  padding: 40px 32px;
+  min-height: 100vh;
+}
+.page-head {
+  max-width: 1280px;
+  margin: 0 auto 28px;
+}
+.page-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -.6px;
+  margin-bottom: 6px;
+}
+.page-title em {
+  font-style: italic;
+  background: var(--grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.page-sub {
+  font-size: 13.5px;
+  color: var(--t2);
+  line-height: 1.55;
+  max-width: 720px;
+}
+.page-meta {
+  font-size: 12px;
+  color: var(--t3);
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+.meta-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+}
+
+.grid {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+@media (max-width: 1000px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+/* Card replicando exatamente o .profile-card do app */
+.option {
+  background: var(--dark);
+  border-radius: 16px;
+  padding: 20px 20px 22px;
+  position: relative;
+  overflow: hidden;
+}
+.option::after {
+  content:''; position:absolute; bottom:0; left:0; right:0;
+  height:1.5px;
+  background: linear-gradient(90deg, var(--green), var(--cyan), transparent);
+}
+.opt-head {
+  display:flex; align-items:center; gap:10px;
+  margin-bottom: 14px;
+}
+.opt-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--grad);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: var(--dark);
+}
+.opt-name {
+  font-size: 14px; font-weight: 700; color: #fff;
+  letter-spacing: -.2px;
+}
+.opt-tag {
+  margin-left: auto;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.5);
+}
+.opt-tag.free {
+  background: rgba(0,229,160,.10);
+  color: var(--green);
+}
+
+.map-wrap {
+  width: 100%;
+  height: 180px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1a1d22;
+  position: relative;
+}
+.map-wrap iframe,
+.map-wrap > div {
+  width: 100% !important;
+  height: 100% !important;
+  border: 0;
+}
+
+.opt-footer {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.opt-row {
+  display:flex; align-items:flex-start; gap:8px;
+  font-size: 11.5px;
+  color: rgba(255,255,255,.72);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+.opt-row:last-child { margin-bottom: 0; }
+.opt-row-icon {
+  flex-shrink: 0;
+  width: 14px; height: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  margin-top: 1px;
+}
+.opt-row.pos .opt-row-icon { color: var(--green); }
+.opt-row.neg .opt-row-icon { color: #F59E0B; }
+
+.choose-bar {
+  max-width: 1280px;
+  margin: 32px auto 0;
+  padding: 22px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.choose-text {
+  font-size: 13px;
+  color: var(--t2);
+  line-height: 1.55;
+}
+.choose-text strong { color: var(--t1); font-weight: 700; }
+
+.addr-box {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(0,229,160,.08);
+  border: 1px solid rgba(0,229,160,.18);
+  color: #0D7C5A;
+  padding: 5px 11px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* Override Leaflet attribution pra ficar compacto */
+.leaflet-container {
+  background: #1a1d22;
+  font-family: var(--font);
+}
+.leaflet-control-attribution {
+  font-size: 9px !important;
+  background: rgba(255,255,255,.85) !important;
+}
+
+/* Mapbox popup customizado */
+.mapboxgl-popup-content {
+  font-family: var(--font) !important;
+  font-size: 12px !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+}
+.mapboxgl-popup-content strong {
+  color: var(--dark);
+  font-weight: 700;
+}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1 class="page-title">Qual mapa fica <em>melhor</em>?</h1>
+  <p class="page-sub">
+    Os 3 usando exatamente o mesmo endereço, mesmo tamanho e mesmo fundo do card do perfil do médico.
+    Compare visualmente e escolha qual a gente implementa no app.
+  </p>
+  <div class="page-meta">
+    <div class="meta-dot"></div>
+    <span>Endereço de teste: <strong>Av. Paulista, 1578 — São Paulo / SP</strong></span>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- OPÇÃO 1 — MAPBOX GL JS -->
+  <div class="option">
+    <div class="opt-head">
+      <div class="opt-num">1</div>
+      <div class="opt-name">Mapbox GL JS</div>
+      <div class="opt-tag free">Free tier</div>
+    </div>
+    <div class="map-wrap"><div id="map-mapbox"></div></div>
+    <div class="opt-footer">
+      <div class="opt-row pos"><span class="opt-row-icon">✓</span><span>Estilo <strong style="color:#fff">dark nativo</strong> que combina com o card preto</span></div>
+      <div class="opt-row pos"><span class="opt-row-icon">✓</span><span>Marker verde <strong style="color:var(--green)">#00E5A0</strong> da marca vita id</span></div>
+      <div class="opt-row pos"><span class="opt-row-icon">✓</span><span>Usado por Strava, Figma, Shopify — estética 2025+</span></div>
+      <div class="opt-row neg"><span class="opt-row-icon">!</span><span>Precisa criar conta Mapbox (grátis, 2 min) e gerar API key</span></div>
+    </div>
+  </div>
+
+  <!-- OPÇÃO 2 — GOOGLE MAPS EMBED -->
+  <div class="option">
+    <div class="opt-head">
+      <div class="opt-num">2</div>
+      <div class="opt-name">Google Maps (iframe)</div>
+      <div class="opt-tag free">Sem API key</div>
+    </div>
+    <div class="map-wrap">
+      <iframe
+        src="https://maps.google.com/maps?q=Avenida+Paulista+1578+Sao+Paulo&z=16&output=embed"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+    <div class="opt-footer">
+      <div class="opt-row pos"><span class="opt-row-icon">✓</span><span>Zero config — funciona já, sem conta, sem API key</span></div>
+      <div class="opt-row pos"><span class="opt-row-icon">✓</span><span>Familiar — todo mundo reconhece Google Maps</span></div>
+      <div class="opt-row neg"><span class="opt-row-icon">!</span><span>Visual claro que <strong style="color:#fff">não combina</strong> com o card dark</span></div>
+      <div class="opt-row neg"><span class="opt-row-icon">!</span><span>Zero customização (marker, cores, popup) — fica "cara de Google"</span></div>
+    </div>
+  </div>
+
+  <!-- OPÇÃO 3 — LEAFLET + OSM -->
+  <div class="option">
+    <div class="opt-head">
+      <div class="opt-num">3</div>
+      <div class="opt-name">Leaflet + OpenStreetMap</div>
+      <div class="opt-tag free">100% grátis</div>
+    </div>
+    <div class="map-wrap"><div id="map-leaflet"></div></div>
+    <div class="opt-footer">
+      <div class="opt-row pos"><span class="opt-row-icon">✓</span><span>Nenhuma conta, nenhuma API key, sem cota mensal</span></div>
+      <div class="opt-row pos"><span class="opt-row-icon">✓</span><span>Marker customizado verde combina com a marca</span></div>
+      <div class="opt-row neg"><span class="opt-row-icon">!</span><span>Visual tiles OSM é "wikipedia" — menos premium que Mapbox</span></div>
+      <div class="opt-row neg"><span class="opt-row-icon">!</span><span>Geocoding (endereço → coordenada) fica por conta externa (Nominatim, que é gratuito mas mais lento)</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="choose-bar">
+  <div class="choose-text">
+    <strong>Como decidir:</strong> olhe qual fica mais coerente com o card preto "Dr. Lucas Borelli" acima,
+    e qual passa a sensação de app premium 2025+ que você quer. A escolha define como o mapa vai viver no perfil.
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   1) MAPBOX GL JS
+   Pra testar, crie uma conta grátis em https://account.mapbox.com,
+   gere um token e cole abaixo. Sem token, este card mostra fallback.
+   ============================================================ */
+mapboxgl.accessToken = 'COLE_SEU_TOKEN_MAPBOX_AQUI';
+
+const PAULISTA = [-46.6565, -23.5614]; // lng, lat — Av Paulista 1578
+
+try {
+  const mbMap = new mapboxgl.Map({
+    container: 'map-mapbox',
+    style: 'mapbox://styles/mapbox/dark-v11',
+    center: PAULISTA,
+    zoom: 15.2,
+    pitchWithRotate: false,
+    attributionControl: false
+  });
+  mbMap.addControl(new mapboxgl.AttributionControl({ compact: true }));
+
+  mbMap.on('load', () => {
+    // Marker customizado verde vita id
+    const el = document.createElement('div');
+    el.style.cssText = `
+      width: 24px; height: 24px;
+      background: #00E5A0;
+      border: 3px solid #0D0F14;
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px #00E5A0, 0 2px 8px rgba(0,229,160,.5);
+    `;
+    new mapboxgl.Marker({ element: el })
+      .setLngLat(PAULISTA)
+      .setPopup(new mapboxgl.Popup({ offset: 18 }).setHTML(
+        '<strong>Clínica Exemplo</strong><br>Av. Paulista, 1578'
+      ))
+      .addTo(mbMap);
+  });
+} catch (err) {
+  document.getElementById('map-mapbox').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9CA3AF;font-size:12px;padding:20px;text-align:center">Falha ao carregar Mapbox<br><small style="opacity:.7">'+ err.message +'</small></div>';
+}
+
+/* ============================================================
+   3) LEAFLET + OpenStreetMap
+   ============================================================ */
+try {
+  const leafMap = L.map('map-leaflet', {
+    center: [-23.5614, -46.6565],
+    zoom: 16,
+    zoomControl: false,
+    attributionControl: true
+  });
+
+  // Tiles OSM padrão. Para visual mais dark, existe CartoDB Dark Matter:
+  // 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    attribution: '© OSM & CartoDB'
+  }).addTo(leafMap);
+
+  // Marker verde customizado (divIcon)
+  const greenIcon = L.divIcon({
+    className: 'vita-marker',
+    html: '<div style="width:22px;height:22px;background:#00E5A0;border:3px solid #0D0F14;border-radius:50%;box-shadow:0 0 0 2px #00E5A0, 0 2px 8px rgba(0,229,160,.5)"></div>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11]
+  });
+  L.marker([-23.5614, -46.6565], { icon: greenIcon })
+    .addTo(leafMap)
+    .bindPopup('<strong>Clínica Exemplo</strong><br>Av. Paulista, 1578');
+} catch (err) {
+  document.getElementById('map-leaflet').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9CA3AF;font-size:12px;padding:20px;text-align:center">Falha ao carregar Leaflet<br><small style="opacity:.7">'+ err.message +'</small></div>';
+}
+</script>
+
+</body>
+</html>

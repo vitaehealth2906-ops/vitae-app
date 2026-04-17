@@ -109,23 +109,26 @@
         </div>
 
         <div class="field">
-            <div class="field-label">Nome da Clínica (opcional)</div>
-            <input class="field-input" type="text" id="clinicaInput" placeholder="Ex: Clínica São Lucas">
+            <div class="field-label">Nome da Clínica</div>
+            <input class="field-input" type="text" id="clinicaInput" placeholder="Ex: Clínica São Lucas" required>
         </div>
 
         <div class="field">
-            <div class="field-label">Endereço da Clínica (opcional)</div>
-            <input class="field-input" type="text" id="enderecoInput" placeholder="Rua, número, bairro">
+            <div class="field-label">Endereço completo da Clínica</div>
+            <input class="field-input" type="text" id="enderecoInput" placeholder="Rua, número, bairro, cidade" required>
+            <div style="font-size:11px;color:#9CA3AF;margin-top:6px;line-height:1.5;">
+                Aparece no seu perfil com um mapa para o paciente saber onde te encontrar.
+            </div>
         </div>
 
         <div class="field">
-            <div class="field-label">Telefone da Clínica (opcional)</div>
-            <input class="field-input" type="tel" id="telInput" placeholder="(11) 3333-4444" oninput="mascaraTelefone(this)" maxlength="15">
+            <div class="field-label">Telefone da Clínica</div>
+            <input class="field-input" type="tel" id="telInput" placeholder="(11) 3333-4444" oninput="mascaraTelefone(this)" maxlength="15" required>
         </div>
 
         <div class="field">
-            <div class="field-label">Valor médio da sua consulta (opcional)</div>
-            <input class="field-input" type="text" inputmode="numeric" id="valorInput" placeholder="R$ 400" oninput="mascaraValor(this)">
+            <div class="field-label">Valor médio da sua consulta</div>
+            <input class="field-input" type="text" inputmode="numeric" id="valorInput" placeholder="R$ 400" oninput="mascaraValor(this)" required>
             <div style="font-size:11px;color:#9CA3AF;margin-top:6px;line-height:1.5;">
                 Usamos para mostrar quanto tempo você economiza com pré-consultas digitais. Fica só no seu perfil.
             </div>
@@ -167,18 +170,26 @@
         const valorRaw = document.getElementById('valorInput').value.replace(/\D/g, '');
         const valorConsulta = valorRaw ? Number(valorRaw) : null;
 
-        if (!crm || !ufCrm || !especialidade) {
+        const faltando = [];
+        if (!crm) faltando.push('CRM');
+        if (!ufCrm) faltando.push('UF');
+        if (!especialidade) faltando.push('especialidade');
+        if (!clinica) faltando.push('nome da clínica');
+        if (!enderecoClinica || enderecoClinica.length < 5) faltando.push('endereço completo da clínica');
+        if (!telefoneClinica || telefoneClinica.replace(/\D/g, '').length < 10) faltando.push('telefone da clínica');
+        if (!valorConsulta || valorConsulta <= 0) faltando.push('valor da consulta');
+
+        if (faltando.length > 0) {
             const err = document.getElementById('errorMsg');
-            err.textContent = 'Preencha CRM, UF e especialidade.';
+            err.textContent = 'Preencha: ' + faltando.join(', ') + '.';
             err.style.display = 'block';
-            setTimeout(() => err.style.display = 'none', 3000);
+            setTimeout(() => err.style.display = 'none', 4000);
             return;
         }
 
         try {
             await vitaeAPI.cadastroMedico({
-                crm, ufCrm, especialidade, clinica, enderecoClinica, telefoneClinica,
-                ...(valorConsulta ? { valorConsulta } : {}),
+                crm, ufCrm, especialidade, clinica, enderecoClinica, telefoneClinica, valorConsulta,
             });
             // Update local user data
             const u = vitaeAPI.getUsuario();

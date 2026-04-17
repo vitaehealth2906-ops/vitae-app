@@ -6,6 +6,8 @@
 <title>vitaid — Plataforma Medica</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="desktop-core.css" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
 /* ============================================================
    APP SHELL — estilos globais do single-page (sidebar/topbar/skeleton)
@@ -871,6 +873,14 @@
               <div class="ps"><div class="psn" style="color:#fff" id="pf-pfStat2">--</div><div class="psl">Respondidas</div></div>
               <div class="ps"><div class="psn" style="color:#fff" id="pf-pfStat3">--</div><div class="psl">Pendentes</div></div>
               <div class="ps"><div class="psn" style="color:#fff" id="pf-pfStat4">--</div><div class="psl">Pacientes</div></div>
+            </div>
+          </div>
+
+          <div class="clinic-map-card" id="pf-clinicMap">
+            <div class="clinic-map-inner" id="pf-clinicMapInner"></div>
+            <div class="clinic-map-footer" id="pf-clinicMapFooter" style="display:none">
+              <div class="clinic-map-name" id="pf-clinicName">--</div>
+              <div class="clinic-map-addr" id="pf-clinicAddr">--</div>
             </div>
           </div>
         </div>
@@ -3043,6 +3053,66 @@ function renderPerfil(){
   document.getElementById('pf-pfStat4').textContent = dash.totalPacientes || 0;
 
   pfLoadNotifPrefs();
+  pfRenderClinicMap(m);
+}
+
+function pfRenderClinicMap(m){
+  var inner = document.getElementById('pf-clinicMapInner');
+  var footer = document.getElementById('pf-clinicMapFooter');
+  if(!inner) return;
+
+  // Limpa mapa anterior (trocar de endereco/voltar pra aba)
+  if(window._pfLeafletMap){ try{ window._pfLeafletMap.remove(); }catch(e){} window._pfLeafletMap = null; }
+  inner.innerHTML = '';
+
+  var lat = m && m.latitudeClinica;
+  var lng = m && m.longitudeClinica;
+  var name = (m && m.clinica) || '';
+  var addr = (m && m.enderecoClinica) || '';
+
+  // Sem lat/lng: mostra empty state bonito no mesmo card
+  if(!lat || !lng){
+    inner.innerHTML = '<div class="clinic-map-empty">'+
+      '<svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>'+
+      (addr ? 'Nao conseguimos localizar o endereco.<br>Revise no cadastro.' : 'Adicione o endereco da clinica<br>para aparecer no mapa.')+
+      '</div>';
+    footer.style.display = 'none';
+    return;
+  }
+
+  footer.style.display = 'block';
+  document.getElementById('pf-clinicName').textContent = name || 'Sua clinica';
+  document.getElementById('pf-clinicAddr').textContent = addr;
+
+  // Cria Leaflet com tiles dark da CartoDB
+  var map = L.map(inner, {
+    center: [lat, lng],
+    zoom: 16,
+    zoomControl: false,
+    attributionControl: true,
+    dragging: true,
+    scrollWheelZoom: false,
+    touchZoom: true,
+    doubleClickZoom: true
+  });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OSM &amp; CartoDB'
+  }).addTo(map);
+
+  var icon = L.divIcon({
+    className: 'vita-marker-wrap',
+    html: '<div class="vita-marker-icon"></div>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11]
+  });
+  L.marker([lat, lng], { icon: icon })
+    .addTo(map)
+    .bindPopup('<strong>'+ (name || 'Sua clinica') +'</strong><br>'+ addr);
+
+  window._pfLeafletMap = map;
+  // Fix tamanho apos a view ficar visivel
+  setTimeout(function(){ try{ map.invalidateSize(); }catch(e){} }, 80);
 }
 
 function pfOpenEdit(fieldKey, title, placeholder, apiField){

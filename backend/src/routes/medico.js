@@ -4,6 +4,7 @@ const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const storage = require('../services/storage');
+const { geocodificar } = require('../services/geocoding');
 
 const router = express.Router();
 
@@ -17,10 +18,10 @@ const cadastroMedicoSchema = z.object({
   crm: z.string().min(4, 'CRM invalido').max(20),
   ufCrm: z.string().length(2, 'UF deve ter 2 caracteres'),
   especialidade: z.string().min(2, 'Especialidade obrigatoria'),
-  clinica: z.string().optional(),
-  enderecoClinica: z.string().optional(),
-  telefoneClinica: z.string().optional(),
-  valorConsulta: z.number().positive().optional().nullable(),
+  clinica: z.string().min(2, 'Nome da clinica obrigatorio'),
+  enderecoClinica: z.string().min(5, 'Endereco da clinica obrigatorio'),
+  telefoneClinica: z.string().min(10, 'Telefone da clinica obrigatorio'),
+  valorConsulta: z.number().positive('Valor da consulta obrigatorio'),
 });
 
 // ---------------------------------------------------------------------------
@@ -44,6 +45,9 @@ router.post('/', validate(cadastroMedicoSchema), async (req, res, next) => {
       data: { tipo: 'MEDICO' },
     });
 
+    // Geocodifica endereco em background (tolerante a falha)
+    const coord = await geocodificar(enderecoClinica);
+
     const medico = await prisma.medico.create({
       data: {
         usuarioId,
@@ -53,7 +57,9 @@ router.post('/', validate(cadastroMedicoSchema), async (req, res, next) => {
         clinica,
         enderecoClinica,
         telefoneClinica,
-        valorConsulta: valorConsulta ?? null,
+        valorConsulta,
+        latitudeClinica: coord?.lat ?? null,
+        longitudeClinica: coord?.lng ?? null,
       },
     });
 
@@ -96,12 +102,22 @@ router.put('/', async (req, res, next) => {
   try {
     const { especialidade, clinica, enderecoClinica, telefoneClinica, valorConsulta } = req.body;
 
+    // Se o endereco mudou, re-geocodifica pra atualizar lat/lng do mapa
+    let geoPatch = {};
+    if (enderecoClinica !== undefined) {
+      const coord = await geocodificar(enderecoClinica);
+      geoPatch = {
+        latitudeClinica: coord?.lat ?? null,
+        longitudeClinica: coord?.lng ?? null,
+      };
+    }
+
     const medico = await prisma.medico.update({
       where: { usuarioId: req.usuario.id },
       data: {
         ...(especialidade && { especialidade }),
         ...(clinica !== undefined && { clinica }),
-        ...(enderecoClinica !== undefined && { enderecoClinica }),
+        ...(enderecoClinica !== undefined && { enderecoClinica, ...geoPatch }),
         ...(telefoneClinica !== undefined && { telefoneClinica }),
         ...(valorConsulta !== undefined && { valorConsulta: valorConsulta === null ? null : Number(valorConsulta) }),
       },
