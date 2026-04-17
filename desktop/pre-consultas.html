@@ -292,6 +292,11 @@ function formatTime(s) {
   var m = Math.floor(s / 60), sec = Math.floor(s % 60);
   return m + ':' + (sec < 10 ? '0' : '') + sec;
 }
+function filterExames(q) {
+  var items = document.querySelectorAll('.exame-item');
+  var query = q.toLowerCase();
+  items.forEach(function(el) { el.style.display = (el.dataset.nome || '').includes(query) ? '' : 'none'; });
+}
 function timeBetween(d1, d2) {
   if (!d1 || !d2) return '--';
   var diff = Math.abs(new Date(d2) - new Date(d1));
@@ -599,43 +604,115 @@ async function openDetail(pcId) {
 
     html += '</div>'; // end left-col
 
-    // ═══ RIGHT COLUMN ═══
+    // ═══ RIGHT COLUMN: RG + Alergias + Meds + Exames ═══
     html += '<div class="right-cards">';
 
-    // 1. Risco Clinico
-    var hasUrgente = alertas.some(function(a){return (a.tipo||'').toLowerCase()==='urgente'});
-    var hasAtencao = alertas.some(function(a){return (a.tipo||'').toLowerCase()==='atencao'});
-    var riskClass, riskText;
-    if (hasUrgente) { riskClass = 'rc-red'; riskText = '<span class="ri-value bad">Risco elevado</span>'; }
-    else if (hasAtencao) { riskClass = 'rc-yellow'; riskText = '<span class="ri-value warn">Requer atencao</span>'; }
-    else { riskClass = 'rc-green'; riskText = '<span class="ri-value ok">Perfil estavel</span>'; }
-    html += '<div class="ri-card ' + riskClass + '"><div class="ri-title">Risco Clinico</div>' + riskText;
-    if (alertas.length) html += '<div class="ri-sub">' + alertas.length + ' alerta(s) identificado(s)</div>';
+    // 1. RG da Saude do paciente
+    html += '<div class="ri-card" style="background:var(--dark);color:#fff;border:none;padding:20px;position:relative;overflow:hidden">';
+    html += '<div style="position:absolute;bottom:0;left:0;right:0;height:1.5px;background:linear-gradient(90deg,var(--green),var(--cyan),transparent)"></div>';
+    html += '<div style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:800;color:#fff;margin-bottom:14px">vita<span style="display:inline-flex;align-items:center;justify-content:center;background:var(--grad);color:var(--dark);font-weight:800;padding:1px 4px;border-radius:3px;margin-left:1px;font-size:11px">id</span><span style="margin-left:auto;font-size:9px;font-weight:600;color:rgba(255,255,255,.2);letter-spacing:.1em;text-transform:uppercase">RG da Saude</span></div>';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
+    if (foto) html += '<img src="' + foto + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover">';
+    else html += '<div style="width:36px;height:36px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--dark)">' + initials + '</div>';
+    html += '<div><div style="font-size:14px;font-weight:700">' + escHtml(pc.pacienteNome || 'Paciente') + '</div>';
+    if (age) html += '<div style="font-size:11px;color:rgba(255,255,255,.35)">' + age + ' anos</div>';
+    html += '</div></div>';
+    // Dados do perfil
+    var perfSaude = (currentPacienteData && currentPacienteData.perfilSaude) || {};
+    var rgFields = [];
+    if (perfSaude.tipoSanguineo) rgFields.push({l:'Sangue',v:perfSaude.tipoSanguineo});
+    if (perfSaude.alturaCm) rgFields.push({l:'Altura',v:(perfSaude.alturaCm/100).toFixed(2).replace('.',',')+'m'});
+    if (perfSaude.pesoKg) rgFields.push({l:'Peso',v:perfSaude.pesoKg+'kg'});
+    if (rgFields.length) {
+      html += '<div style="display:flex;gap:12px;margin-top:8px">';
+      rgFields.forEach(function(f) {
+        html += '<div style="flex:1;text-align:center;background:rgba(255,255,255,.05);border-radius:7px;padding:8px 4px"><div style="font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">'+f.l+'</div><div style="font-size:14px;font-weight:800">'+f.v+'</div></div>';
+      });
+      html += '</div>';
+    }
+    if (!currentPacienteData) html += '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:8px">Paciente sem cadastro completo</div>';
     html += '</div>';
 
-    // 2. Conflitos Med x Alergia
-    html += buildConflitosCard(currentPacienteData);
+    // 2. Alergias
+    html += '<div class="ri-card"><div class="ri-title" style="color:var(--bad)"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--bad);fill:none;stroke-width:2;vertical-align:-2px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Alergias</div>';
+    if (currentPacienteData && currentPacienteData.alergias && currentPacienteData.alergias.length) {
+      var als = currentPacienteData.alergias;
+      var meds = currentPacienteData.medicamentos || [];
+      var medNames = meds.filter(function(m){return m.ativo}).map(function(m){return (m.nome||'').toLowerCase()});
+      // Agrupar por gravidade
+      var graves = als.filter(function(a){return a.gravidade==='GRAVE'});
+      var moderadas = als.filter(function(a){return a.gravidade==='MODERADA'});
+      var leves = als.filter(function(a){return a.gravidade!=='GRAVE'&&a.gravidade!=='MODERADA'});
+      function renderAlPills(list) {
+        return list.map(function(a) {
+          var conflict = medNames.some(function(mn){return mn.includes((a.nome||'').toLowerCase()) || (a.nome||'').toLowerCase().includes(mn)});
+          var pill = '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(217,68,82,.06);border:1px solid rgba(217,68,82,.12);color:rgba(217,68,82,.8);font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;margin:2px 3px 2px 0">' + escHtml(a.nome);
+          if (conflict) pill += '<span style="background:rgba(239,68,68,.12);color:var(--bad);font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:2px">Em uso</span>';
+          pill += '</span>';
+          return pill;
+        }).join('');
+      }
+      if (graves.length) html += '<div style="font-size:10px;font-weight:700;color:var(--bad);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px">Graves ('+graves.length+')</div><div style="display:flex;flex-wrap:wrap">'+renderAlPills(graves)+'</div>';
+      if (moderadas.length) html += '<div style="font-size:10px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px">Moderadas ('+moderadas.length+')</div><div style="display:flex;flex-wrap:wrap">'+renderAlPills(moderadas)+'</div>';
+      if (leves.length) html += '<div style="font-size:10px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px">Leves ('+leves.length+')</div><div style="display:flex;flex-wrap:wrap">'+renderAlPills(leves)+'</div>';
+    } else {
+      html += '<div style="font-size:12px;color:var(--t3);padding:8px 0">' + (currentPacienteData ? 'Nenhuma alergia registrada' : 'Dados indisponiveis') + '</div>';
+    }
+    html += '</div>';
 
-    // 3. Timeline
-    html += '<div class="ri-card rc-blue"><div class="ri-title">Timeline</div>';
-    html += '<ul class="ri-list">';
-    html += '<li class="li-blue">Enviada: ' + fmtDate(pc.criadoEm) + '</li>';
-    if (pc.linkAbertoEm) html += '<li class="li-blue">Aberta: ' + fmtDate(pc.linkAbertoEm) + '</li>';
-    html += '<li class="li-green">Respondida: ' + fmtDate(pc.respondidaEm) + '</li>';
-    html += '<li class="li-blue">Tempo de resposta: ' + timeBetween(pc.criadoEm, pc.respondidaEm) + '</li>';
-    html += '</ul></div>';
+    // 3. Medicamentos em uso
+    html += '<div class="ri-card"><div class="ri-title" style="color:var(--green)"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--green);fill:none;stroke-width:2;vertical-align:-2px;margin-right:4px"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/></svg>Medicamentos em uso</div>';
+    if (currentPacienteData && currentPacienteData.medicamentos && currentPacienteData.medicamentos.length) {
+      var medsAtivos = currentPacienteData.medicamentos.filter(function(m){return m.ativo});
+      var alNames = (currentPacienteData.alergias||[]).map(function(a){return (a.nome||'').toLowerCase()});
+      if (medsAtivos.length) {
+        medsAtivos.forEach(function(m) {
+          var conflict = alNames.some(function(an){return an.includes((m.nome||'').toLowerCase()) || (m.nome||'').toLowerCase().includes(an)});
+          html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">';
+          html += '<div style="width:36px;height:36px;border-radius:10px;background:rgba(0,229,160,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:2"><path d="M4.5 12.5l8-8a4 4 0 015.66 5.66l-8 8a4 4 0 01-5.66-5.66z"/><line x1="8" y1="8" x2="16" y2="16"/></svg></div>';
+          html += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">' + escHtml(m.nome) + (conflict?'<span style="background:rgba(239,68,68,.1);color:var(--bad);font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:6px">Alergia</span>':'') + '</div>';
+          html += '<div style="font-size:11px;color:var(--t3)">' + escHtml((m.dosagem||'')+(m.frequencia?' . '+m.frequencia:'')) + '</div></div>';
+          if (m.horario) html += '<span style="background:rgba(0,229,160,.08);color:rgba(0,229,160,.7);font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px">' + escHtml(m.horario) + '</span>';
+          html += '</div>';
+        });
+      } else {
+        html += '<div style="font-size:12px;color:var(--t3);padding:8px 0">Nenhum medicamento ativo</div>';
+      }
+    } else {
+      html += '<div style="font-size:12px;color:var(--t3);padding:8px 0">' + (currentPacienteData ? 'Nenhum medicamento registrado' : 'Dados indisponiveis') + '</div>';
+    }
+    html += '</div>';
 
-    // 4. Exames Recentes
-    html += buildExamesCard(currentPacienteData);
-
-    // 5. Historico de consultas
-    var sameName = (pc.pacienteNome || '').toLowerCase();
-    var countSame = allPC.filter(function(p){return (p.pacienteNome||'').toLowerCase() === sameName}).length;
-    html += '<div class="ri-card rc-purple"><div class="ri-title">Historico</div>';
-    html += '<div class="ri-value">' + countSame + 'a consulta com este paciente</div></div>';
-
-    // 6. Perfil Rapido
-    html += buildPerfilRapidoCard(currentPacienteData, age, r);
+    // 4. Exames
+    html += '<div class="ri-card"><div class="ri-title" style="color:var(--info)"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--info);fill:none;stroke-width:2;vertical-align:-2px;margin-right:4px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Exames</div>';
+    html += '<div style="margin-bottom:8px"><input type="text" placeholder="Buscar exame..." style="width:100%;padding:7px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:var(--font);font-size:12px;color:var(--t1);outline:none" oninput="filterExames(this.value)"></div>';
+    html += '<div id="examesList">';
+    if (currentPacienteData && currentPacienteData.exames && currentPacienteData.exames.length) {
+      currentPacienteData.exames.slice(0,8).forEach(function(e) {
+        var statusColor = e.status==='CONCLUIDO'?'var(--ok)':e.status==='PROCESSANDO'?'var(--warn)':'var(--info)';
+        html += '<div class="exame-item" data-nome="'+escHtml((e.tipoExame||e.nomeArquivo||'').toLowerCase())+'" style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">';
+        html += '<div style="width:6px;height:6px;border-radius:50%;background:'+statusColor+';flex-shrink:0;margin-top:5px"></div>';
+        html += '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">' + escHtml(e.tipoExame||e.nomeArquivo||'Exame') + '</div>';
+        html += '<div style="font-size:10px;color:var(--t3)">' + fmtDate(e.dataExame) + (e.laboratorio?' . '+escHtml(e.laboratorio):'') + '</div>';
+        // Parametros alterados
+        if (e.parametros && e.parametros.length) {
+          var alterados = e.parametros.filter(function(p){return p.status==='ATENCAO'||p.status==='CRITICO'});
+          if (alterados.length) {
+            html += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">';
+            alterados.slice(0,3).forEach(function(p) {
+              var c = p.status==='CRITICO'?'var(--bad)':'var(--warn)';
+              html += '<span style="font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;background:rgba('+(p.status==='CRITICO'?'239,68,68':'245,158,11')+',.08);color:'+c+'">' + escHtml(p.nome) + ' ' + escHtml(p.valor||'') + '</span>';
+            });
+            html += '</div>';
+          }
+        }
+        html += '</div></div>';
+      });
+      if (currentPacienteData.exames.length > 8) html += '<div style="font-size:11px;color:var(--t3);text-align:center;padding:6px 0">+ ' + (currentPacienteData.exames.length - 8) + ' exames anteriores</div>';
+    } else {
+      html += '<div style="font-size:12px;color:var(--t3);padding:8px 0">' + (currentPacienteData ? 'Nenhum exame registrado' : 'Dados indisponiveis') + '</div>';
+    }
+    html += '</div></div>';
 
     html += '</div>'; // end right-cards
     html += '</div>'; // end detail-grid
