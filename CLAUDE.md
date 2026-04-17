@@ -58,6 +58,20 @@ Lucas Borelli (fundador, 18 anos, Americana-SP) foi internado por crise alergica
 
 ## 3. REGRAS ABSOLUTAS (nunca quebrar)
 
+### 🚨 BANCO DE DADOS — REGRA DE OURO (LER ANTES DE TUDO)
+
+> **EM 17/04/2026, UM CLAUDE PARALELO DESTRUIU OS DADOS DE PRODUCAO DO LUCAS** (paciente Daniel + AutorizacaoAcessos + outros) ao adicionar `--accept-data-loss` no script de build do Railway. Cada deploy aplicava o schema novo apagando dados conflitantes. **NUNCA repetir isso.**
+
+- **NUNCA** adicionar `prisma db push` no script `build` do `backend/package.json`. O build SO faz `prisma generate`. Schema vai por outra via.
+- **NUNCA** usar a flag `--accept-data-loss` em ambiente que tenha (ou possa ter) dados reais. Essa flag autoriza o Prisma a DROPAR colunas/tabelas/dados sem perguntar.
+- **NUNCA** mudar schema (`backend/prisma/schema.prisma`) e fazer push na main sem antes:
+  1. Avisar Lucas
+  2. Pensar se a mudanca pode dropar dados (ex: `@@unique` em tabela com duplicatas, remover coluna, mudar tipo)
+  3. Aplicar manualmente via `railway run npx prisma db push` (SEM `--accept-data-loss`) e revisar o que vai mudar antes de aceitar
+  4. OU criar migration versionada com `npx prisma migrate dev`
+- **NUNCA** abrir 2+ sessoes Claude paralelas mexendo no mesmo projeto. As sessoes nao sabem o que a outra fez. Conflito de schema/banco e quase certo. Se precisa paralelizar, USA UMA sessao Claude e ela dispara agentes coordenados.
+- Antes de qualquer commit que mude `backend/prisma/schema.prisma` ou `backend/package.json`, RELER esta secao e PERGUNTAR pro Lucas.
+
 ### Design
 - LER `vitae-core.css` ANTES de criar/modificar qualquer tela
 - Olhar pelo menos 2 telas existentes como referencia antes de criar nova
