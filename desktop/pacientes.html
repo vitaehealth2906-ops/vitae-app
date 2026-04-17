@@ -58,10 +58,6 @@
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       <span>Dashboard</span>
     </a>
-    <a class="nl" href="pre-consulta.html" style="text-decoration:none">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="13" x2="12" y2="18"/><line x1="9.5" y1="15.5" x2="14.5" y2="15.5"/></svg>
-      <span>Nova Pre-Consulta</span>
-    </a>
     <a class="nl" href="pre-consultas.html" style="text-decoration:none">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       <span>Pre-Consultas</span>
@@ -99,10 +95,6 @@
     <span class="tb-sub" id="tbs">Gerencie seus pacientes</span>
     <div class="tb-space"></div>
     <span class="tb-time" id="tbClock"></span>
-    <button class="tb-btn tb-prim" onclick="window.location.href='pre-consulta.html'">
-      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Nova Pre-Consulta
-    </button>
   </div>
 
   <div class="content">
@@ -240,7 +232,7 @@ function renderPatients() {
 
     return '<div class="tr" style="grid-template-columns:2fr 1fr 1fr 80px" onclick="openPatient(\'' + (p.pacienteId || '') + '\',\'' + sanitizeAttr(name) + '\',\'' + sanitizeAttr(tel) + '\')">' +
       '<div style="display:flex;align-items:center;gap:10px">' +
-        '<div class="av" style="width:30px;height:30px;font-size:10px;flex-shrink:0">' + initials + '</div>' +
+        renderAvatar(p, initials, 30) +
         '<div><div class="tc">' + sanitize(name) + '</div><div class="ts">' + sanitize(tel) + '</div></div>' +
       '</div>' +
       '<span class="tc">' + pcCount + ' pre-consulta' + (pcCount !== 1 ? 's' : '') + '</span>' +
@@ -404,6 +396,13 @@ function getInitials(nome) {
   var parts = nome.replace(/^(Dr\.?\s*|Dra\.?\s*)/i, '').trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   return parts[0] ? parts[0].substring(0, 2).toUpperCase() : '--';
+}
+function pickFoto(o){if(!o)return'';return o.fotoUrl||o.foto||o.pacienteFotoUrl||(o.usuario&&(o.usuario.fotoUrl||o.usuario.foto))||(o.paciente&&(o.paciente.fotoUrl||o.paciente.foto))||'';}
+function renderAvatar(o, ini, size){
+  var s = size || 30, fs = Math.max(10, Math.round(s*0.32)), foto = pickFoto(o);
+  var style = 'width:'+s+'px;height:'+s+'px;font-size:'+fs+'px;flex-shrink:0;overflow:hidden';
+  if (foto) return '<div class="av" style="'+style+'"><img src="'+foto+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.parentNode.textContent=\''+sanitizeAttr(ini)+'\'"></div>';
+  return '<div class="av" style="'+style+'">'+ini+'</div>';
 }
 
 function calcAge(dateStr) {

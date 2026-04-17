@@ -562,6 +562,66 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 9 — 17/04/2026 (PC de casa) — 4 ajustes no desktop medico
+
+**Contexto:** Lucas abriu desktop e pontou 4 problemas visuais de uma vez. Pediu pesquisa profunda antes de implementar (plan mode com 3 Explore agents em paralelo). Plano aprovado com 3 decisoes tomadas via AskUserQuestion. Depois: "tudo" (executou as 4).
+
+**Os 4 ajustes:**
+
+1. **Mini-lista Dashboard limpa** (`desktop/dashboard.html`):
+   - Removido: badge texto "Respondida/Pendente/Aberto/Expirada" + botao copiar-link
+   - Adicionado: borda lateral esquerda 3px colorida por status (verde=respondida, amarela=pendente, azul=aberto, vermelha=expirada) — mesmo padrao dos insight cards da sessao 15/04
+   - Mantido: avatar + nome + data + lixeira
+   - Tooltip `title` com o status pra acessibilidade (daltonicos)
+
+2. **Clique em exame abre arquivo direto** (`desktop/pre-consultas.html` linha 663):
+   - Antes: `window.open('../11-exames-lista.html?pacienteId=X&openExamId=Y')` — abria tela mobile inteira
+   - Agora: `window.open(e.arquivoUrl, '_blank', 'noopener')` — abre PDF/imagem direto
+   - Se exame sem arquivoUrl, card fica sem cursor pointer
+
+3. **Aba "Nova Pre-Consulta" unificada**:
+   - Removida aba da sidebar em 7 arquivos: dashboard, pre-consultas, pre-consulta, pacientes, crm, templates, perfil
+   - Removido botao topbar verde "+ Nova Pre-Consulta" de dashboard, pacientes, pre-consultas
+   - Adicionado botao `.btn-p` no header da pagina Pre-Consultas (lado direito do titulo, `.ph` ja tem `justify-content:space-between`)
+   - Modal inline do dashboard ficou orfao no codigo (funcoes openModal/gerarPreConsulta/etc ainda existem mas nunca sao chamadas — deixadas caso reative)
+
+4. **Fotos dos pacientes nos avatares** (3 telas):
+   - Funcao util `pickFoto(obj)` — procura em `fotoUrl`, `foto`, `pacienteFotoUrl`, `usuario.fotoUrl`, `paciente.fotoUrl`
+   - Funcao `renderAvatar(obj, ini, size)` — se tem foto retorna `<div><img>`, senao fallback iniciais
+   - `onerror` no `<img>` volta pra iniciais se URL quebrada (nunca aparece quadrado quebrado)
+   - Aplicado em: dashboard `renderPC`, pre-consultas `renderList`, pacientes `renderPatients`
+
+**Arquivos modificados:**
+- `desktop/dashboard.html` (CSS + renderPC + renderAvatar + removida aba/botao)
+- `desktop/pre-consultas.html` (sidebar + topbar + header com botao + exame direto + renderAvatarInline)
+- `desktop/pacientes.html` (sidebar + topbar + renderAvatar + tabela usa ele)
+- `desktop/pre-consulta.html` (sidebar)
+- `desktop/crm.html` (sidebar)
+- `desktop/templates.html` (sidebar)
+- `desktop/perfil.html` (sidebar)
+
+**Commits:** ainda nao feito (Lucas pediu pra pausar e validar visualmente antes)
+
+**Skills usadas:**
+- Plan mode com 3 Explore agents em paralelo (mapear UI desktop, ler Obsidian vault, investigar bugs avatares/exames)
+- AskUserQuestion pra 3 decisoes (prioridade da foto, como abrir exame, status como borda colorida)
+- Plano salvo em `C:\Users\win11\.claude\plans\nao-quero-que-impleemnte-steady-bear.md`
+
+**Decisoes confirmadas:**
+- Foto: prioridade `fotoUrl` do perfil → `pacienteFotoUrl` da pre-consulta → iniciais
+- Exame: abrir PDF/imagem direto (Caminho A). Tela desktop dedicada fica pra proxima fase se Lucas sentir falta
+- Status: remover texto, manter cor na borda lateral esquerda (padrao insight cards 15/04)
+
+**Pendente pra proxima sessao:**
+- Lucas testar visualmente as 4 mudancas
+- Validar que bucket Supabase tem URL publica (se foto nao carregar, ajustar permissao)
+- Testar exame abre de verdade em aba nova (depende de e.arquivoUrl ser URL direta do Storage)
+- Commit + push apos validacao
+- Limpeza futura: remover codigo orfao do modal inline do dashboard (openModal, gerarPreConsulta, etc) se confirmado que nao vai reativar
+- Considerar aplicar mesma limpeza na pagina Pre-Consultas (tirar badge + botao copiar) se Lucas quiser consistencia com Dashboard
+
+---
+
 ### Sessao 8 — 16/04/2026 (notebook, handoff pro PC de casa)
 **O que foi feito:**
 10 commits em 3 frentes: dashboard pills + 2 mockups visuais + redesign completo da aba Templates.

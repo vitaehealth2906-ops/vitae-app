@@ -16,11 +16,14 @@
 .impact-lbl{font-size:11.5px;color:var(--t3);line-height:1.35}
 .impact-banner{display:none;align-items:center;gap:9px;background:var(--acc);border:1px solid var(--accb);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;cursor:pointer;font-size:12px;color:var(--green);font-weight:600}
 .impact-banner svg{width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:2;flex-shrink:0}
-.pc-row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .13s}
+.pc-row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);border-left:3px solid transparent;cursor:pointer;transition:background .13s}
 .pc-row:last-child{border-bottom:none}.pc-row:hover{background:var(--bg)}
-.pc-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px;flex-shrink:0}
-.pc-s-pending{background:var(--warn-bg);color:var(--warn)}.pc-s-open{background:var(--info-bg);color:var(--info)}
-.pc-s-done{background:var(--ok-bg);color:var(--ok)}.pc-s-expired{background:var(--bad-bg);color:var(--bad)}
+.pc-b-pending{border-left-color:var(--warn)}
+.pc-b-open{border-left-color:var(--info)}
+.pc-b-done{border-left-color:var(--ok)}
+.pc-b-expired{border-left-color:var(--bad)}
+.pc-row .av{overflow:hidden}
+.pc-row .av img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
 .pc-actions{display:flex;gap:4px;margin-left:auto;flex-shrink:0}
 .pc-act{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
 .pc-act:hover{background:var(--s2)}.pc-act svg{width:12px;height:12px;stroke:var(--t2);fill:none;stroke-width:2}
@@ -108,7 +111,6 @@
   <nav class="sb-nav">
     <div class="sb-g">Principal</div>
     <a class="nl on" href="dashboard.html" style="text-decoration:none"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span></a>
-    <a class="nl" href="pre-consulta.html" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="13" x2="12" y2="18"/><line x1="9.5" y1="15.5" x2="14.5" y2="15.5"/></svg><span>Nova Pre-Consulta</span></a>
     <a class="nl" href="pre-consultas.html" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span>Pre-Consultas</span><span class="pip pip-g" id="pipPc" style="display:none">0</span></a>
     <div class="sb-g">Gestao</div>
     <a class="nl" href="pacientes.html" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg><span>Pacientes</span></a>
@@ -128,7 +130,6 @@
   <div class="topbar">
     <span class="tb-title">Dashboard</span><div class="tb-sep"></div><span class="tb-sub" id="tbs">--</span><div class="tb-space"></div>
     <span class="tb-time" id="tbClock"></span>
-    <button class="tb-btn tb-prim" onclick="openModal()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova Pre-Consulta</button>
   </div>
 
   <div class="content">
@@ -219,12 +220,12 @@ function renderPC(){var now=new Date(),ts=now.toISOString().split('T')[0],wa=new
   document.getElementById('listCount').textContent=list.length+' pre-consulta'+(list.length!==1?'s':'');
   if(!list.length){document.getElementById('pcList').innerHTML='';document.getElementById('pcEmpty').style.display='block';return;}
   document.getElementById('pcEmpty').style.display='none';
-  document.getElementById('pcList').innerHTML=list.map(function(pc){var n=pc.pacienteNome||'Paciente',ini=getInitials(n),sc=pc.status==='RESPONDIDA'?'pc-s-done':pc.status==='PENDENTE'?'pc-s-pending':pc.status==='ABERTO'?'pc-s-open':'pc-s-expired',
+  document.getElementById('pcList').innerHTML=list.map(function(pc){var n=pc.pacienteNome||'Paciente',ini=getInitials(n),bc=pc.status==='RESPONDIDA'?'pc-b-done':pc.status==='PENDENTE'?'pc-b-pending':pc.status==='ABERTO'?'pc-b-open':'pc-b-expired',
     st=pc.status==='RESPONDIDA'?'Respondida':pc.status==='PENDENTE'?'Pendente':pc.status==='ABERTO'?'Aberto':'Expirada',dt=fmtDate(pc.respondidaEm||pc.criadoEm||''),
     cl=pc.status==='RESPONDIDA'?'onclick="window.location.href=\'pre-consultas.html?id='+pc.id+'\'"':'',
-    cp=(pc.status==='PENDENTE'||pc.status==='ABERTO')&&pc.linkToken?'<div class="pc-act" onclick="event.stopPropagation();copyLink(\''+pc.linkToken+'\')" title="Copiar link"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>':'',
+    av=renderAvatar(pc,ini,32),
     dl='<div class="pc-act del" onclick="event.stopPropagation();askDelete(\''+pc.id+'\',\''+sa(n)+'\')" title="Apagar"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/></svg></div>';
-    return'<div class="pc-row" '+cl+'><div class="av" style="width:32px;height:32px;font-size:10px">'+ini+'</div><div style="flex:1;min-width:0"><div class="pname">'+s(n)+'</div><div class="pmeta">'+dt+'</div></div><span class="pc-status '+sc+'">'+st+'</span><div class="pc-actions">'+cp+dl+'</div></div>';}).join('');
+    return'<div class="pc-row '+bc+'" '+cl+' title="'+sa(st)+'">'+av+'<div style="flex:1;min-width:0"><div class="pname">'+s(n)+'</div><div class="pmeta">'+dt+'</div></div><div class="pc-actions">'+dl+'</div></div>';}).join('');
 }
 
 function copyLink(t){var u=window.location.origin+'/pre-consulta.html?token='+t;navigator.clipboard.writeText(u).then(function(){toast('Link copiado.','ok');});}
@@ -263,6 +264,10 @@ function openCalc(){if(!_impactCtx)return;var c=_impactCtx,h='<div class="calc-r
 function closeCalc(){document.getElementById('calcOverlay').classList.remove('show');}
 
 function getInitials(n){if(!n)return'--';var p=n.replace(/^(Dr\.?\s*|Dra\.?\s*)/i,'').trim().split(/\s+/);return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():p[0]?p[0].substring(0,2).toUpperCase():'--';}
+function pickFoto(o){if(!o)return'';return o.fotoUrl||o.foto||o.pacienteFotoUrl||(o.usuario&&(o.usuario.fotoUrl||o.usuario.foto))||(o.paciente&&(o.paciente.fotoUrl||o.paciente.foto))||'';}
+function renderAvatar(o,ini,size){var s=size||32,fs=Math.max(10,Math.round(s*0.32)),foto=pickFoto(o),st='width:'+s+'px;height:'+s+'px;font-size:'+fs+'px;overflow:hidden';
+  if(foto)return'<div class="av" style="'+st+'"><img src="'+foto+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.parentNode.textContent=\''+sa(ini)+'\'"></div>';
+  return'<div class="av" style="'+st+'">'+ini+'</div>';}
 function formatDr(n){if(!n)return'Medico';if(/^(Dr\.?|Dra\.?)\s/i.test(n))return n;return'Dr. '+n;}
 function fmtHM(m){if(!m||m<=0)return'0min';var h=Math.floor(m/60),mm=Math.round(m%60);if(h===0)return mm+'min';if(mm===0)return h+'h';return h+'h'+(mm<10?'0':'')+mm;}
 function fmtDate(d){if(!d)return'--';var dt=new Date(d);return dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});}
