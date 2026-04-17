@@ -30,6 +30,7 @@ const app = express();
 // Em producao, restringir para o dominio real
 const allowedOrigins = [
   'https://vitaehealth2906-ops.github.io',
+  'https://vitae-app.vercel.app',
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
