@@ -1,0 +1,3207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vitaid — Plataforma Medica</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="desktop-core.css" rel="stylesheet">
+<style>
+/* ============================================================
+   APP SHELL — estilos globais do single-page (sidebar/topbar/skeleton)
+   ============================================================ */
+.view{animation:viewIn .12s ease-out}
+@keyframes viewIn{from{opacity:.6}to{opacity:1}}
+
+/* Skeleton shimmer pro boot inicial */
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.sk{background:linear-gradient(90deg,#F2F4F7 25%,#E8EBF0 50%,#F2F4F7 75%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;border-radius:6px}
+.sk-text{height:14px;margin-bottom:8px}
+.sk-title{height:20px;width:60%;margin-bottom:12px}
+.sk-card{height:64px;border-radius:12px;margin-bottom:8px}
+.sk-row{height:52px;border-bottom:1px solid var(--border)}
+.sk-dark{background:linear-gradient(90deg,rgba(255,255,255,.06) 25%,rgba(255,255,255,.10) 50%,rgba(255,255,255,.06) 75%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;border-radius:6px}
+
+/* Boot error banner — quando alguma API falha no boot */
+.boot-err{background:var(--bad-bg,rgba(239,68,68,.06));border:1px solid rgba(239,68,68,.18);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--bad,#EF4444)}
+.boot-err svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
+.boot-err button{margin-left:auto;background:transparent;border:1px solid currentColor;color:inherit;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+
+/* View placeholder pras abas ainda nao migradas (Fases 1-6) */
+.view-placeholder{background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:60px 30px;text-align:center;color:var(--t3)}
+.view-placeholder .ph-title{font-size:16px;font-weight:800;color:var(--t1);margin-bottom:6px;letter-spacing:-.3px}
+.view-placeholder .ph-sub{font-size:13px;line-height:1.5;max-width:420px;margin:0 auto}
+
+/* ============================================================
+   VIEW: DASHBOARD (Fase 1) — estilos especificos
+   ============================================================ */
+.impact-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.impact-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s;text-align:center}
+.impact-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.impact-num{font-size:28px;font-weight:800;letter-spacing:-1.5px;line-height:1;margin-bottom:5px}
+.impact-num.green{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.impact-num.cta{color:var(--green);font-size:14px;font-weight:700;letter-spacing:0}
+.impact-lbl{font-size:11.5px;color:var(--t3);line-height:1.35}
+.impact-banner{display:none;align-items:center;gap:9px;background:var(--acc);border:1px solid var(--accb);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;cursor:pointer;font-size:12px;color:var(--green);font-weight:600}
+.impact-banner svg{width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:2;flex-shrink:0}
+.pc-row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);border-left:3px solid transparent;cursor:pointer;transition:background .13s}
+.pc-row:last-child{border-bottom:none}.pc-row:hover{background:var(--bg)}
+.pc-b-pending{border-left-color:var(--warn)}
+.pc-b-open{border-left-color:var(--info)}
+.pc-b-done{border-left-color:var(--ok)}
+.pc-b-expired{border-left-color:var(--bad)}
+.pc-row .av{overflow:hidden}
+.pc-row .av img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.pc-actions{display:flex;gap:4px;margin-left:auto;flex-shrink:0}
+.pc-act{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
+.pc-act:hover{background:var(--s2)}.pc-act svg{width:12px;height:12px;stroke:var(--t2);fill:none;stroke-width:2}
+.pc-act.del:hover{background:var(--bad-bg)}.pc-act.del:hover svg{stroke:var(--bad)}
+.greeting-card{background:var(--dark);border-radius:var(--r);padding:18px 22px;margin-bottom:16px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden}
+.greeting-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1.5px;background:linear-gradient(90deg,var(--green),var(--cyan),transparent)}
+.greeting-av{width:42px;height:42px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--dark);flex-shrink:0}
+.greeting-name{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px}
+.greeting-spec{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
+.calc-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center}
+.calc-overlay.show{display:flex}
+.calc-body{background:var(--surface);border-radius:16px;padding:28px;width:480px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.calc-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.calc-row:last-child{border-bottom:none}
+.calc-label{color:var(--t2)}.calc-val{font-weight:700;color:var(--t1)}
+.calc-disclaimer{font-size:11px;color:var(--t3);margin-top:14px;line-height:1.5;padding-top:12px;border-top:1px solid var(--border)}
+
+/* ============================================================
+   VIEW: PRE-CONSULTAS (Fase 2) — lista + detalhe + player audio
+   ============================================================ */
+/* Lista */
+.pc-list-item{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);cursor:default;transition:background .13s}
+.pc-list-item:last-child{border-bottom:none}
+.pc-list-item:hover{background:var(--bg)}
+.pc-list-item.clickable{cursor:pointer}
+.pc-avatar{width:38px;height:38px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--dark);flex-shrink:0;overflow:hidden}
+.pc-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.pc-info{flex:1;min-width:0}
+.pc-name{font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-date{font-size:11px;color:var(--t3);margin-top:2px}
+.pc-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:12px;flex-shrink:0}
+.pc-badge-PENDENTE,.pc-badge-ABERTO{background:var(--warn-bg);color:var(--warn)}
+.pc-badge-RESPONDIDA{background:var(--ok-bg);color:var(--ok)}
+.pc-badge-EXPIRADA{background:var(--bad-bg);color:var(--bad)}
+.pc-actions-row{display:flex;gap:4px;margin-left:8px;flex-shrink:0}
+.pc-act-btn{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
+.pc-act-btn:hover{background:var(--s2)}
+.pc-act-btn svg{width:13px;height:13px;stroke:var(--t2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pc-act-btn.del:hover{background:var(--bad-bg)}.pc-act-btn.del:hover svg{stroke:var(--bad)}
+.no-data{text-align:center;padding:48px 20px;color:var(--t3);font-size:13px}
+
+/* Detalhe */
+.detail-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:22px;align-items:start}
+.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer;padding:6px 10px;border-radius:8px;transition:background .13s;margin-bottom:14px;border:none;background:none;font-family:var(--font)}
+.back-btn:hover{background:var(--s2)}
+.back-btn svg{width:14px;height:14px;stroke:var(--t2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hero-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.hero-photo{width:64px;height:64px;border-radius:50%;background:var(--grad);padding:2.5px;flex-shrink:0}
+.hero-photo-inner{width:100%;height:100%;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--green);overflow:hidden}
+.hero-photo-inner img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.hero-name{font-size:17px;font-weight:800;color:var(--t1);letter-spacing:-.3px;margin-bottom:3px}
+.hero-meta{font-size:12px;color:var(--t3);margin-bottom:4px}
+.hero-desc{font-size:12.5px;color:var(--t2);font-style:italic;line-height:1.5;max-width:400px}
+.stale-warn{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;background:var(--warn-bg);border:1px solid rgba(245,158,11,.15);font-size:12px;color:var(--warn);font-weight:600;margin-bottom:16px}
+.stale-warn svg{width:15px;height:15px;stroke:var(--warn);fill:none;stroke-width:2;flex-shrink:0;stroke-linecap:round;stroke-linejoin:round}
+
+/* Player dark */
+.dk-player{background:#0D0F14;border-radius:14px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.12),0 0 30px rgba(0,229,160,.05)}
+.dk-player::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1.5px;background:linear-gradient(90deg,var(--green),var(--cyan),transparent)}
+.dk-player.playing{box-shadow:0 4px 24px rgba(0,0,0,.15),0 0 40px rgba(0,229,160,.1)}
+@keyframes glowPulse{0%,100%{box-shadow:0 4px 24px rgba(0,0,0,.12),0 0 30px rgba(0,229,160,.05)}50%{box-shadow:0 4px 24px rgba(0,0,0,.15),0 0 50px rgba(0,229,160,.1)}}
+.dk-player.idle{animation:glowPulse 3s ease-in-out infinite}
+.dk-player.playing{animation:none}
+.dk-top{display:flex;align-items:center;justify-content:center;gap:24px;margin-bottom:14px}
+.dk-play{width:52px;height:52px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;box-shadow:0 2px 16px rgba(0,229,160,.3);transition:transform .15s}
+.dk-play:active{transform:scale(.92)}
+.dk-play svg{width:20px;height:20px;fill:#fff;stroke:none}
+.dk-play .ic-pause{display:none}
+.dk-player.playing .dk-play .ic-play{display:none}
+.dk-player.playing .dk-play .ic-pause{display:block}
+.dk-skip{width:32px;height:32px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .15s,border-color .15s}
+.dk-skip:hover{border-color:rgba(0,229,160,.35)}
+.dk-skip:active{transform:scale(.9)}
+.dk-skip svg{width:15px;height:15px;fill:none;stroke:rgba(255,255,255,.6);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.dk-skip.flash svg{stroke:var(--green)}.dk-skip.flash{border-color:rgba(0,229,160,.5)}
+.dk-waveform{width:100%;height:48px;border-radius:8px;margin-bottom:10px}
+.dk-prog-wrap{width:100%;height:3px;background:rgba(255,255,255,.08);border-radius:3px;cursor:pointer;position:relative}
+.dk-prog-fill{height:100%;background:var(--grad);border-radius:3px;width:0%;transition:width .1s linear}
+.dk-timer{display:flex;justify-content:space-between;font-family:'Plus Jakarta Sans',monospace;font-size:11px;font-weight:600;color:rgba(255,255,255,.4);margin-top:6px}
+.dk-speed-row{display:flex;justify-content:flex-end;margin-top:8px}
+.dk-speed{padding:3px 9px;border-radius:100px;background:transparent;border:1px solid rgba(255,255,255,.1);font-family:var(--font);font-size:11px;font-weight:700;color:rgba(255,255,255,.45);cursor:pointer;transition:all .15s}
+.dk-speed:hover{border-color:rgba(0,229,160,.3);color:rgba(255,255,255,.7)}
+.dk-speed.boosted{background:rgba(0,229,160,.12);border-color:rgba(0,229,160,.4);color:#5AFFBA}
+
+/* Transcricao */
+.trans-toggle{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;font-size:12px;font-weight:700;color:var(--green);cursor:pointer;user-select:none;margin:-8px 0 12px}
+.trans-toggle:hover{text-shadow:0 0 8px rgba(0,229,160,.3)}
+.trans-toggle svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5;transition:transform .2s}
+.trans-toggle.open svg{transform:rotate(180deg)}
+.trans-box{max-height:0;overflow:hidden;background:#0D0F14;border-radius:14px;transition:max-height .35s cubic-bezier(.4,0,.2,1);margin-bottom:16px;position:relative}
+.trans-box.open{max-height:220px;overflow-y:auto}
+.trans-box.open::before,.trans-box.open::after{content:'';position:sticky;left:0;right:0;display:block;height:24px;pointer-events:none;z-index:2}
+.trans-box.open::before{top:0;background:linear-gradient(to bottom,#0D0F14 0%,rgba(13,15,20,0) 100%);margin-bottom:-24px}
+.trans-box.open::after{bottom:0;background:linear-gradient(to top,#0D0F14 0%,rgba(13,15,20,0) 100%);margin-top:-24px}
+.trans-inner{padding:16px 18px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.22);font-weight:500}
+@keyframes wordPulse{0%{background:rgba(0,229,160,.3)}100%{background:transparent}}
+.tw-word.pulse{animation:wordPulse .2s ease;border-radius:3px;padding:0 2px;margin:0 -2px}
+.tw-word{transition:color .15s;color:rgba(255,255,255,.22);cursor:pointer}
+.tw-word:hover{color:rgba(0,229,160,.7)}
+.tw-word.spoken{color:#00E5A0}
+.tw-word.current{color:#5AFFBA;font-weight:700;text-shadow:0 0 14px rgba(0,229,160,.55)}
+.trans-box::-webkit-scrollbar{width:2px}.trans-box::-webkit-scrollbar-track{background:transparent}.trans-box::-webkit-scrollbar-thumb{background:rgba(0,229,160,.25);border-radius:3px}
+
+/* Insight cards */
+.section-lbl{font-size:13px;font-weight:800;color:var(--t1);margin-bottom:10px;letter-spacing:-.2px}
+.ins-card{display:flex;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;position:relative;overflow:hidden;margin-bottom:8px;padding-left:20px}
+.ins-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px}
+.ins-card.urgente::before{background:var(--bad)}.ins-card.atencao::before{background:var(--warn)}.ins-card.info::before{background:var(--info)}
+.ins-card.queixa::before{background:var(--info)}.ins-card.historico::before{background:#8B5CF6}
+.ins-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ins-icon svg{width:16px;height:16px;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.ins-icon.red{background:rgba(239,68,68,.08)}.ins-icon.red svg{stroke:var(--bad)}
+.ins-icon.yellow{background:rgba(245,158,11,.08)}.ins-icon.yellow svg{stroke:var(--warn)}
+.ins-icon.blue{background:rgba(59,130,246,.08)}.ins-icon.blue svg{stroke:var(--info)}
+.ins-icon.green{background:rgba(0,229,160,.08)}.ins-icon.green svg{stroke:var(--green)}
+.ins-icon.purple{background:rgba(139,92,246,.08)}.ins-icon.purple svg{stroke:#8B5CF6}
+.ins-icon.gray{background:rgba(156,163,175,.08)}.ins-icon.gray svg{stroke:var(--t3)}
+.ins-content{flex:1;min-width:0}
+.ins-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:3px;line-height:1.3}
+.ins-msg{font-size:12px;color:var(--t3);line-height:1.5}
+
+/* Right column */
+.right-cards{display:flex;flex-direction:column;gap:10px}
+
+/* Detail action buttons */
+.detail-actions{display:flex;gap:8px;margin-bottom:16px}
+.detail-actions .btn{height:38px;font-size:13px}
+
+/* ============================================================
+   VIEW: PACIENTES (Fase 3)
+   ============================================================ */
+.patient-detail{display:none;animation:vIn .2s ease both}
+.patient-detail.show{display:block}
+.pd-header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.pd-back{width:34px;height:34px;border-radius:8px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0}
+.pd-back:hover{background:var(--s2)}
+.pd-back svg{width:14px;height:14px;stroke:var(--t2);fill:none;stroke-width:2}
+.pd-info{flex:1}
+.pd-name{font-size:17px;font-weight:800;letter-spacing:-.3px}
+.pd-meta{font-size:12px;color:var(--t3);margin-top:2px}
+.pd-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.pd-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.pd-card-title{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:700;cursor:pointer;transition:background .13s}
+.pd-card-title:hover{background:var(--bg)}
+.pd-card-title svg{width:14px;height:14px;fill:none;stroke-width:2;flex-shrink:0}
+.pd-card-title .count{margin-left:auto;font-size:11px;font-weight:600;color:var(--t3);background:var(--s2);padding:2px 8px;border-radius:12px}
+.pd-card-body{padding:14px 16px}
+.pd-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.pd-item:last-child{border-bottom:none}
+.pd-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.pd-item-name{font-size:12.5px;font-weight:600;margin-bottom:2px}
+.pd-item-sub{font-size:11px;color:var(--t3)}
+.pd-empty{padding:20px 16px;text-align:center;font-size:12px;color:var(--t3)}
+.no-vinculo{background:var(--warn-bg);border:1px solid rgba(245,158,11,.15);border-radius:var(--r);padding:18px;text-align:center;margin-bottom:18px}
+.no-vinculo-title{font-size:14px;font-weight:700;color:var(--warn);margin-bottom:6px}
+.no-vinculo-msg{font-size:12.5px;color:var(--t2);line-height:1.6}
+.pc-list{margin-top:18px}
+.pc-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer;transition:background .13s}
+.pc-item:hover{background:var(--bg)}
+.pc-item .pc-date{font-size:11px;color:var(--t3);margin-left:auto}
+
+/* ============================================================
+   VIEW: TEMPLATES (Fase 5)
+   ============================================================ */
+.tpl-pills{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:6px;scroll-behavior:smooth;flex-wrap:nowrap}
+.tpl-pills::-webkit-scrollbar{height:4px}.tpl-pills::-webkit-scrollbar-track{background:transparent}.tpl-pills::-webkit-scrollbar-thumb{background:var(--t4);border-radius:2px}
+.tpl-pill{padding:8px 16px;border-radius:22px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--t2);cursor:pointer;transition:all .15s;white-space:nowrap;font-family:var(--font);flex-shrink:0}
+.tpl-pill.active{background:var(--acc);border-color:var(--accb);color:var(--green)}.tpl-pill:hover:not(.active){background:var(--s2)}
+.tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.tpl-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;cursor:pointer;transition:all .18s;position:relative;display:flex;align-items:center;gap:14px}
+.tpl-card:hover{transform:translateY(-2px);border-color:rgba(0,0,0,.09);box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.tpl-card-icon{width:42px;height:42px;border-radius:10px;background:var(--acc);border:1px solid var(--accb);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tpl-card-icon svg{width:20px;height:20px;stroke:var(--green);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tpl-card-body{flex:1;min-width:0}
+.tpl-card-name{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpl-card-meta{font-size:11.5px;color:var(--t3);display:flex;gap:4px;align-items:center}
+.tpl-card-menu{width:32px;height:32px;border-radius:8px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
+.tpl-card-menu:hover{background:rgba(0,0,0,.05)}
+.tpl-empty{text-align:center;padding:60px 20px;color:var(--t3)}
+.tpl-empty-icon{width:64px;height:64px;border-radius:16px;background:var(--acc);border:1px solid var(--accb);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.tpl-empty-icon svg{width:28px;height:28px;stroke:var(--green);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tpl-empty-title{font-size:16px;font-weight:700;color:var(--t1);margin-bottom:6px}
+.tpl-empty-desc{font-size:13px;color:var(--t3);line-height:1.6;max-width:340px;margin:0 auto}
+
+.onb-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:1100;display:none;align-items:center;justify-content:center}
+.onb-overlay.show{display:flex}
+.onb-card{background:var(--surface);border-radius:20px;padding:32px;width:440px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:mIn .25s ease both;position:relative}
+.onb-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;background:var(--s2);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
+.onb-close:hover{background:var(--s3)}
+.onb-close svg{width:14px;height:14px;stroke:var(--t2);fill:none;stroke-width:2;stroke-linecap:round}
+.onb-dots{display:flex;gap:8px;justify-content:center;margin-bottom:28px}
+.onb-dot{width:8px;height:8px;border-radius:50%;background:var(--s3);transition:all .25s}
+.onb-dot.active{background:var(--green);width:24px;border-radius:4px}
+.onb-illust{display:flex;justify-content:center;align-items:center;margin:0 auto 24px;width:100px;height:100px;border-radius:20px;background:var(--acc)}
+.onb-illust svg{width:48px;height:48px;stroke:var(--green);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.onb-title{font-size:20px;font-weight:900;letter-spacing:-.4px;color:var(--t1);text-align:center;margin-bottom:10px}
+.onb-title em{color:var(--green);font-style:italic}
+.onb-desc{font-size:14px;color:var(--t2);text-align:center;line-height:1.55;margin-bottom:28px;max-width:360px;margin-left:auto;margin-right:auto}
+.onb-btn-primary{width:100%;padding:14px;background:var(--grad);color:var(--dark);font-family:var(--font);font-size:14px;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:opacity .15s}
+.onb-btn-primary:hover{opacity:.9}
+.onb-skip{display:block;text-align:center;font-size:12px;color:var(--t3);margin-top:12px;background:none;border:none;cursor:pointer;width:100%;padding:8px;font-family:var(--font)}
+.onb-skip:hover{color:var(--t2)}
+
+.create-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:1100;display:none;align-items:center;justify-content:center}
+.create-overlay.show{display:flex}
+.create-modal{background:var(--surface);border-radius:20px;width:600px;max-width:92vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:mIn .25s ease both}
+.create-modal::-webkit-scrollbar{width:4px}.create-modal::-webkit-scrollbar-thumb{background:var(--t4);border-radius:2px}
+.cm-header{display:flex;align-items:center;justify-content:space-between;padding:24px 28px 0}
+.cm-title{font-size:17px;font-weight:800;color:var(--t1);letter-spacing:-.3px}
+.cm-close{width:32px;height:32px;border-radius:8px;background:var(--s2);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
+.cm-close:hover{background:var(--s3)}
+.cm-close svg{width:14px;height:14px;stroke:var(--t2);fill:none;stroke-width:2;stroke-linecap:round}
+.cm-steps{display:flex;align-items:center;gap:8px;padding:16px 28px 0}
+.cm-step{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--t3)}
+.cm-step.active{color:var(--green)}.cm-step.done{color:var(--ok)}
+.cm-step-num{width:22px;height:22px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--t3);transition:all .2s}
+.cm-step.active .cm-step-num{background:var(--acc);color:var(--green);border:1px solid var(--accb)}
+.cm-step.done .cm-step-num{background:var(--ok-bg);color:var(--ok)}
+.cm-sep{flex:0 0 20px;height:1px;background:var(--border)}
+.cm-body{padding:24px 28px 28px}
+.cm-field{margin-bottom:18px}
+.cm-field label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:6px}
+.cm-field input,.cm-field textarea{width:100%;padding:10px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;transition:border-color .15s,box-shadow .15s}
+.cm-field input:focus,.cm-field textarea:focus{border-color:rgba(0,229,160,.45);box-shadow:0 0 0 3px rgba(0,229,160,.07)}
+.cm-field input::placeholder,.cm-field textarea::placeholder{color:var(--t4)}
+.cm-field input.err,.cm-field textarea.err{border-color:rgba(239,68,68,.5);box-shadow:0 0 0 3px rgba(239,68,68,.07)}
+.cm-field textarea{resize:vertical;min-height:140px;line-height:1.7}
+.cm-toggle-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:18px}
+.cm-toggle-row label{font-size:13px;font-weight:600;flex:1;cursor:pointer}
+.cm-hint{display:flex;gap:10px;padding:12px 14px;background:rgba(59,130,246,.04);border-radius:10px;margin-bottom:18px;position:relative;overflow:hidden}
+.cm-hint::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--info)}
+.cm-hint-icon{width:28px;height:28px;border-radius:8px;background:var(--info-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cm-hint-icon svg{width:14px;height:14px;stroke:var(--info);fill:none;stroke-width:2}
+.cm-hint-text{font-size:12px;color:var(--t2);line-height:1.5}
+.cm-footer{display:flex;gap:10px;padding:20px 28px 24px;border-top:1px solid var(--border)}
+.cm-footer .btn{flex:1;justify-content:center;height:40px}
+
+.pv-question{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:8px}
+.pv-num{width:24px;height:24px;border-radius:50%;background:var(--acc);border:1px solid var(--accb);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--green);flex-shrink:0}
+.pv-body{flex:1;min-width:0}
+.pv-text{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:2px}
+.pv-type{font-size:11px;color:var(--t3)}
+.pv-mandatory{opacity:.6}
+.pv-mandatory .pv-num{background:var(--s2);border-color:var(--border);color:var(--t3)}
+.pv-mandatory-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px;display:flex;align-items:center;gap:6px}
+.pv-mandatory-label svg{width:12px;height:12px;stroke:var(--t3);fill:none;stroke-width:2}
+
+.cm-confirm{text-align:center;padding:40px 20px}
+.cm-confirm-check{width:64px;height:64px;border-radius:50%;background:var(--ok-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;animation:cmPop .4s cubic-bezier(.34,1.56,.64,1)}
+.cm-confirm-check svg{width:28px;height:28px;stroke:var(--ok);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.cm-confirm-title{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:6px}
+.cm-confirm-sub{font-size:13px;color:var(--t3)}
+@keyframes cmPop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+
+.actions-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:1100;display:none;align-items:center;justify-content:center}
+.actions-overlay.show{display:flex}
+.actions-card{background:var(--surface);border-radius:16px;padding:8px;width:280px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:mIn .2s ease both}
+.actions-item{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;cursor:pointer;transition:background .13s;font-size:13px;font-weight:600;color:var(--t1)}
+.actions-item:hover{background:var(--bg)}
+.actions-item svg{width:16px;height:16px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.actions-item.danger{color:var(--bad)}
+.actions-item.danger svg{stroke:var(--bad)}
+.actions-sep{height:1px;background:var(--border);margin:4px 8px}
+
+.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:1100;display:none;align-items:center;justify-content:center}
+.preview-overlay.show{display:flex}
+.preview-card{background:var(--surface);border-radius:16px;padding:28px;width:480px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:mIn .2s ease both}
+.preview-card::-webkit-scrollbar{width:4px}.preview-card::-webkit-scrollbar-thumb{background:var(--t4);border-radius:2px}
+
+.delete-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:1200;display:none;align-items:center;justify-content:center}
+.delete-overlay.show{display:flex}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* ============================================================
+   VIEW: PERFIL (Fase 6)
+   ============================================================ */
+.notif-item{border-bottom:1px solid var(--border)}
+.notif-item:last-child{border-bottom:none}
+.notif-head{cursor:pointer;transition:background .15s;gap:10px;border-bottom:none !important}
+.notif-head:hover{background:var(--s2)}
+.notif-chev{width:14px;height:14px;stroke:var(--t3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;transition:transform .25s,stroke .15s}
+.notif-head:hover .notif-chev{stroke:var(--green)}
+.notif-item.open .notif-chev{transform:rotate(180deg);stroke:var(--green)}
+.notif-body{max-height:0;overflow:hidden;transition:max-height .3s ease;background:var(--s2)}
+.notif-item.open .notif-body{max-height:520px}
+.notif-inner{padding:16px 18px 18px}
+.notif-preview{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.notif-preview-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.notif-preview-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.notif-preview-tag{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.notif-preview-time{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-left:auto}
+.notif-preview-name{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.notif-preview-body{font-size:12px;color:var(--t2);line-height:1.45}
+.notif-preview.urg .notif-preview-dot{background:var(--bad);box-shadow:0 0 0 3px rgba(239,68,68,0.15)}
+.notif-preview.urg .notif-preview-tag{color:var(--bad)}
+.notif-preview.ret .notif-preview-dot{background:var(--info)}
+.notif-preview.ret .notif-preview-tag{color:var(--info)}
+.notif-preview.res .notif-preview-dot{background:var(--green)}
+.notif-preview.res .notif-preview-tag{color:var(--green)}
+.notif-rules{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.notif-rule{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.notif-rule-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.notif-rule-label::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.notif-rule-label.ok{color:var(--ok)}
+.notif-rule-label.ok::before{background:var(--ok)}
+.notif-rule-label.off{color:var(--t3)}
+.notif-rule-label.off::before{background:var(--t3)}
+.notif-rule ul{list-style:none;padding:0;margin:0}
+.notif-rule li{font-size:11.5px;color:var(--t2);line-height:1.5;padding-left:12px;position:relative;margin-bottom:4px}
+.notif-rule li:last-child{margin-bottom:0}
+.notif-rule li::before{content:'';width:3px;height:3px;border-radius:50%;background:var(--t4);position:absolute;left:2px;top:7px}
+.notif-foot{margin-top:12px;font-size:11px;color:var(--t3);display:flex;align-items:center;gap:6px}
+.notif-foot svg{width:12px;height:12px;stroke:var(--t3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.notif-banner{background:var(--warn-bg);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:10px 12px;margin:12px 18px 0;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--warn)}
+.notif-banner svg{width:16px;height:16px;stroke:var(--warn);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.notif-banner.hide{display:none}
+</style>
+<script src="../device-router.js"></script>
+<script>vitaeDevice.guardDesktop();</script>
+</head>
+<body>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- ============================================================
+     ZONA GLOBAL DE MODAIS — modais das views ficam aqui (Fases 1-6)
+     ============================================================ -->
+<div id="modal-zone">
+
+  <!-- DASHBOARD: Nova Pre-Consulta -->
+  <div class="modal-overlay" id="dash-modalQuick" onclick="if(event.target===this)dashCloseModal()">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="modal-title">Nova Pre-Consulta</div>
+        <div style="cursor:pointer;padding:4px" onclick="dashCloseModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      </div>
+      <div class="modal-sub">Preencha os dados para gerar o link</div>
+      <div class="field"><label>Nome do paciente *</label><input type="text" id="dash-mNome" placeholder="Ex: Maria Silva"></div>
+      <div class="g2">
+        <div class="field"><label>WhatsApp</label><input type="tel" id="dash-mPhone" placeholder="(11) 99999-9999" oninput="fmtPhone(this)"></div>
+        <div class="field"><label>Email</label><input type="email" id="dash-mEmail" placeholder="paciente@email.com"></div>
+      </div>
+      <div class="field"><label>Template</label><select id="dash-mTemplate"><option value="">Padrao VitaID</option></select></div>
+      <div id="dash-mLinkBox" style="display:none;margin-bottom:14px">
+        <div style="background:var(--ok-bg);border:1px solid rgba(0,196,122,.15);border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--ok);margin-bottom:6px">Link gerado</div>
+          <div id="dash-mLinkUrl" style="font-size:12px;color:var(--t1);word-break:break-all;margin-bottom:10px;font-family:monospace"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-p" onclick="dashCopyModalLink()" style="flex:1;height:34px;justify-content:center"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg><span id="dash-mCopyTxt">Copiar</span></button>
+            <button class="btn btn-s" onclick="dashOpenWA()" style="height:34px"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>WhatsApp</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" id="dash-mFooter">
+        <button class="btn btn-s" onclick="dashCloseModal()">Cancelar</button>
+        <button class="btn btn-p" id="dash-mGenBtn" onclick="dashGerarPreConsulta()"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>Gerar link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD: Como Calculamos -->
+  <div class="calc-overlay" id="dash-calcOverlay" onclick="if(event.target===this)dashCloseCalc()">
+    <div class="calc-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+        <div class="modal-title">Como calculamos seu ganho</div>
+        <div style="cursor:pointer;padding:4px" onclick="dashCloseCalc()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      </div>
+      <div id="dash-calcBody"></div>
+      <div class="calc-disclaimer">Estimativa conservadora baseada em tempo medio economizado por especialidade com pre-consulta estruturada. Resultados reais podem variar.</div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD: Confirmar exclusao -->
+  <div class="modal-overlay" id="dash-modalDelete" onclick="if(event.target===this)dashCloseDelete()">
+    <div class="modal" style="width:380px">
+      <div class="modal-title">Apagar pre-consulta</div>
+      <div class="modal-sub" id="dash-deleteMsg">Tem certeza?</div>
+      <div class="modal-footer">
+        <button class="btn btn-s" onclick="dashCloseDelete()">Cancelar</button>
+        <button class="btn btn-danger" id="dash-deleteBtn" onclick="dashConfirmDelete()"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/></svg>Apagar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRE-CONSULTAS: Exportar para iClinic -->
+  <div class="modal-overlay" id="pc-modalIcl" onclick="if(event.target===this)pcCloseIclModal()">
+    <div class="modal icl-modal">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div style="width:38px;height:38px;border-radius:9px;background:#1565C0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;letter-spacing:-.3px">iC</div>
+        <div>
+          <div class="modal-title" style="margin-bottom:2px">Exportar para iClinic</div>
+          <div style="font-size:12px;color:var(--t3)" id="pc-iclSubtitle">Resumo pronto para colar no prontuario</div>
+        </div>
+      </div>
+      <div class="icl-tip">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Copie o texto abaixo e cole na aba <strong>Evolucao / Anamnese</strong> do prontuario do paciente no iClinic.
+      </div>
+      <div class="slabel" style="margin-bottom:8px">Resumo clinico formatado</div>
+      <div class="icl-note" id="pc-iclNote" onclick="pcSelectAllEl(this)"></div>
+      <div class="icl-actions">
+        <button class="btn btn-p" id="pc-iclCopyBtn" onclick="pcCopyIclinic()" style="flex:1;justify-content:center;height:40px;font-size:13.5px">
+          <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          <span id="pc-iclCopyTxt">Copiar texto</span>
+        </button>
+        <button class="btn btn-s" onclick="pcDownloadIclinic()" style="height:40px">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Baixar .txt
+        </button>
+        <button class="btn btn-s" onclick="pcCloseIclModal()" style="height:40px">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRE-CONSULTAS: Confirmar exclusao -->
+  <div class="modal-overlay" id="pc-modalDel" onclick="if(event.target===this)pcCloseDelModal()">
+    <div class="modal" style="width:380px">
+      <div class="modal-title">Apagar pre-consulta</div>
+      <div class="modal-sub" id="pc-delMsg">Tem certeza que deseja apagar esta pre-consulta?</div>
+      <div class="modal-footer">
+        <button class="btn btn-s" onclick="pcCloseDelModal()">Cancelar</button>
+        <button class="btn btn-danger" id="pc-delBtn" onclick="pcConfirmDel()">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/></svg>
+          Apagar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEMPLATES: Onboarding -->
+  <div class="onb-overlay" id="tpl-onbOverlay" onclick="if(event.target===this)tplOnbClose()">
+    <div class="onb-card">
+      <button class="onb-close" onclick="tplOnbClose()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="onb-dots" id="tpl-onbDots">
+        <div class="onb-dot active"></div><div class="onb-dot"></div><div class="onb-dot"></div><div class="onb-dot"></div>
+      </div>
+      <div id="tpl-onbContent"></div>
+      <button class="onb-btn-primary" id="tpl-onbBtn" onclick="tplOnbNext()">Proximo</button>
+      <button class="onb-skip" onclick="tplOnbSkip()">Pular introducao</button>
+    </div>
+  </div>
+
+  <!-- TEMPLATES: Criar/Editar -->
+  <div class="create-overlay" id="tpl-createOverlay" onclick="if(event.target===this)tplCloseCreate()">
+    <div class="create-modal" onclick="event.stopPropagation()">
+      <div class="cm-header">
+        <div class="cm-title" id="tpl-cmTitle">Novo template</div>
+        <button class="cm-close" onclick="tplCloseCreate()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="cm-steps" id="tpl-cmSteps">
+        <div class="cm-step active" data-step="1"><div class="cm-step-num">1</div><span>Perguntas</span></div>
+        <div class="cm-sep"></div>
+        <div class="cm-step" data-step="2"><div class="cm-step-num">2</div><span>Preview</span></div>
+        <div class="cm-sep"></div>
+        <div class="cm-step" data-step="3"><div class="cm-step-num">3</div><span>Pronto</span></div>
+      </div>
+      <div class="cm-body" id="tpl-cmBody"></div>
+    </div>
+  </div>
+
+  <!-- TEMPLATES: Acoes (3 pontos) -->
+  <div class="actions-overlay" id="tpl-actionsOverlay" onclick="if(event.target===this)tplCloseActions()">
+    <div class="actions-card" onclick="event.stopPropagation()">
+      <div class="actions-item" onclick="tplDoPreviewFromMenu()">
+        <svg viewBox="0 0 24 24" stroke="var(--t2)"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Ver preview
+      </div>
+      <div class="actions-item" onclick="tplDoEditFromMenu()">
+        <svg viewBox="0 0 24 24" stroke="var(--t2)"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+        Editar template
+      </div>
+      <div class="actions-sep"></div>
+      <div class="actions-item danger" onclick="tplDoDeleteFromMenu()">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        Apagar template
+      </div>
+    </div>
+  </div>
+
+  <!-- TEMPLATES: Preview -->
+  <div class="preview-overlay" id="tpl-previewOverlay" onclick="if(event.target===this)tplClosePreviewModal()">
+    <div class="preview-card" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div class="modal-title" id="tpl-previewTitle">Preview</div>
+        <button class="cm-close" onclick="tplClosePreviewModal()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="tpl-previewBody"></div>
+    </div>
+  </div>
+
+  <!-- TEMPLATES: Confirmar exclusao -->
+  <div class="delete-overlay" id="tpl-deleteOverlay" onclick="if(event.target===this)tplCloseDeleteModal()">
+    <div class="modal" style="width:380px" onclick="event.stopPropagation()">
+      <div class="modal-title">Apagar template</div>
+      <div class="modal-sub" id="tpl-deleteMsg">Tem certeza que deseja apagar este template? As consultas ja realizadas com ele continuarao intactas.</div>
+      <div class="modal-footer">
+        <button class="btn btn-s" onclick="tplCloseDeleteModal()">Cancelar</button>
+        <button class="btn btn-danger" id="tpl-deleteBtn" onclick="tplConfirmDeleteTemplate()">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/></svg>Apagar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERFIL: Editar campo -->
+  <div class="modal-overlay" id="pf-modalEdit" onclick="if(event.target===this)pfCloseEdit()">
+    <div class="modal">
+      <div class="modal-title" id="pf-editTitle">Editar</div>
+      <div class="modal-sub" id="pf-editSub"></div>
+      <div class="field">
+        <label id="pf-editLabel">Campo</label>
+        <input type="text" id="pf-editInput">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-s" onclick="pfCloseEdit()">Cancelar</button>
+        <button class="btn btn-p" id="pf-editSaveBtn" onclick="pfSaveEdit()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERFIL: Confirmar desligar alertas urgentes -->
+  <div class="modal-overlay" id="pf-modalConfirmUrg" onclick="if(event.target===this)pfCloseConfirmUrg()">
+    <div class="modal" style="width:420px">
+      <div class="modal-title">Desativar alertas urgentes?</div>
+      <div class="modal-sub">Voce deixara de ser avisado quando pacientes descreverem sintomas criticos. Casos graves podem passar despercebidos ate voce abrir o dashboard.</div>
+      <div class="modal-footer">
+        <button class="btn btn-s" onclick="pfCloseConfirmUrg()">Manter ligado</button>
+        <button class="btn btn-danger" onclick="pfConfirmDisableUrg()">Desativar mesmo assim</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERFIL: Confirmar logout -->
+  <div class="modal-overlay" id="pf-modalLogout" onclick="if(event.target===this)pfCloseLogout()">
+    <div class="modal" style="width:380px">
+      <div class="modal-title">Sair da conta</div>
+      <div class="modal-sub">Tem certeza que deseja sair? Voce precisara fazer login novamente.</div>
+      <div class="modal-footer">
+        <button class="btn btn-s" onclick="pfCloseLogout()">Cancelar</button>
+        <button class="btn btn-danger" onclick="pfDoLogout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sair</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="app">
+
+<!-- ============================================================
+     SIDEBAR — persistente (NUNCA recarrega ao trocar de aba)
+     ============================================================ -->
+<aside class="sidebar">
+  <div class="sb-logo"><div class="logo">vita<span class="ib">id</span></div><span class="sb-tag">Medico</span></div>
+  <nav class="sb-nav" id="sbNav">
+    <div class="sb-g">Principal</div>
+    <a class="nl" id="nl-dashboard" data-view="dashboard" href="#dashboard" style="text-decoration:none"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span></a>
+    <a class="nl" id="nl-pre-consultas" data-view="pre-consultas" href="#pre-consultas" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span>Pre-Consultas</span><span class="pip pip-g" id="pipPc" style="display:none">0</span></a>
+    <div class="sb-g">Gestao</div>
+    <a class="nl" id="nl-pacientes" data-view="pacientes" href="#pacientes" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg><span>Pacientes</span></a>
+    <a class="nl" id="nl-crm" data-view="crm" href="#crm" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>CRM & Retornos</span></a>
+    <div class="sb-g">Ferramentas</div>
+    <a class="nl" id="nl-templates" data-view="templates" href="#templates" style="text-decoration:none"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg><span>Templates</span></a>
+    <a class="nl" id="nl-perfil" data-view="perfil" href="#perfil" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Meu Perfil</span></a>
+  </nav>
+  <a class="sb-user" href="#perfil" style="text-decoration:none">
+    <div class="sb-av sk-dark" id="sbAvatar" style="width:36px;height:36px"></div>
+    <div style="flex:1;min-width:0">
+      <div class="sb-name" id="sbName"><div class="sk-dark" style="width:100px;height:11px"></div></div>
+      <div class="sb-crm" id="sbCrm" style="margin-top:4px"><div class="sk-dark" style="width:70px;height:9px"></div></div>
+    </div>
+  </a>
+</aside>
+
+<!-- ============================================================
+     MAIN — topbar persistente + content com 6 views
+     ============================================================ -->
+<div class="main">
+  <div class="topbar">
+    <span class="tb-title" id="tbTitle">Carregando...</span>
+    <div class="tb-sep"></div>
+    <span class="tb-sub" id="tbSub">--</span>
+    <div class="tb-space"></div>
+    <span class="tb-time" id="tbClock"></span>
+  </div>
+
+  <div class="content" id="contentWrapper">
+
+    <!-- VIEW: DASHBOARD -->
+    <div id="view-dashboard" class="view">
+      <div class="greeting-card">
+        <div class="greeting-av" id="dash-greetAv">--</div>
+        <div><div class="greeting-name" id="dash-greetName">Carregando...</div><div class="greeting-spec" id="dash-greetSpec"></div></div>
+      </div>
+
+      <div class="impact-row">
+        <div class="impact-card" onclick="dashOpenCalc()"><div class="impact-num" id="dash-impactTempo">--</div><div class="impact-lbl">Tempo economizado</div></div>
+        <div class="impact-card" onclick="dashOpenCalc()"><div class="impact-num green" id="dash-impactValor">--</div><div class="impact-lbl">Valor potencial</div></div>
+        <div class="impact-card" onclick="dashOpenCalc()"><div class="impact-num" id="dash-impactPacientes">--</div><div class="impact-lbl">Pacientes extras</div></div>
+      </div>
+      <div class="impact-banner" id="dash-impactBanner" onclick="navigate('perfil')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <span>Configure o valor da sua consulta para ver quanto ganha em R$ com pre-consultas.</span>
+      </div>
+
+      <div class="alert-bar" id="dash-alertBar" style="display:none">
+        <div class="adot"></div>
+        <div class="abody"><div class="at" id="dash-alertTitle">--</div><div class="as" id="dash-alertSub">--</div></div>
+        <button class="acta" id="dash-alertBtn">Ver resumo</button>
+      </div>
+
+      <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">
+        <div class="stat" style="cursor:pointer" onclick="dashFilterByStatus('all')"><div class="stat-l">Total pacientes</div><div class="stat-n" style="color:#0D0F14" id="dash-statTotal">--</div></div>
+        <div class="stat" style="cursor:pointer" onclick="dashFilterByStatus('pendentes')"><div class="stat-l">Pendentes</div><div class="stat-n" style="color:#0D0F14" id="dash-statPending">--</div></div>
+        <div class="stat" style="cursor:pointer" onclick="dashFilterByStatus('respondidas')"><div class="stat-l">Respondidas</div><div class="stat-n" style="color:#0D0F14" id="dash-statDone">--</div></div>
+      </div>
+
+      <div style="position:relative;margin-bottom:12px">
+        <svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="dash-globalSearch" placeholder="Buscar paciente..." oninput="dashSearchPC(this.value)" style="width:100%;padding:11px 14px 11px 40px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;transition:border-color .15s,box-shadow .15s" onfocus="this.style.borderColor='rgba(0,229,160,.45)';this.style.boxShadow='0 0 0 3px rgba(0,229,160,.07)'" onblur="this.style.borderColor='';this.style.boxShadow=''">
+      </div>
+
+      <div class="filters" id="dash-pcFilters">
+        <div class="filter on" data-f="all" onclick="dashSetFilter(this)">Todos</div>
+        <div class="filter" data-f="today" onclick="dashSetFilter(this)">Hoje</div>
+        <div class="filter" data-f="week" onclick="dashSetFilter(this)">Esta semana</div>
+        <div class="filter" data-f="month" onclick="dashSetFilter(this)">Este mes</div>
+        <div class="filter" data-f="pendentes" onclick="dashSetFilter(this)" id="dash-pillPendentes">Pendentes</div>
+        <div class="filter" data-f="respondidas" onclick="dashSetFilter(this)">Respondidas</div>
+      </div>
+
+      <div class="card">
+        <div class="qh"><div class="qt">Pre-consultas</div><div class="qm" id="dash-listCount">Carregando...</div></div>
+        <div id="dash-pcList"></div>
+        <div class="no-result" id="dash-pcEmpty" style="display:none">Nenhuma pre-consulta encontrada.</div>
+      </div>
+    </div>
+
+    <!-- VIEW: PRE-CONSULTAS -->
+    <div id="view-pre-consultas" class="view" style="display:none">
+      <div id="pc-viewList">
+        <div class="ph"><div><h1>Pre-Consultas</h1><p>Gerencie todas as pre-consultas enviadas</p></div><a class="btn btn-p" href="pre-consulta.html" style="text-decoration:none;height:40px;padding:0 18px;flex-shrink:0"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova Pre-Consulta</a></div>
+        <div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="pc-searchInput" placeholder="Buscar paciente..." oninput="pcFilterList()" style="width:100%;padding:11px 14px 11px 40px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;transition:border-color .15s,box-shadow .15s" onfocus="this.style.borderColor='rgba(0,229,160,.45)';this.style.boxShadow='0 0 0 3px rgba(0,229,160,.07)'" onblur="this.style.borderColor='';this.style.boxShadow=''"></div>
+        <div class="filters" id="pc-filterBar">
+          <button class="filter on" data-f="all" onclick="pcSetFilter('all',this)">Todas</button>
+          <button class="filter" data-f="PENDENTE" onclick="pcSetFilter('PENDENTE',this)">Pendentes</button>
+          <button class="filter" data-f="RESPONDIDA" onclick="pcSetFilter('RESPONDIDA',this)">Respondidas</button>
+          <button class="filter" data-f="EXPIRADA" onclick="pcSetFilter('EXPIRADA',this)">Expiradas</button>
+        </div>
+        <div class="tw" id="pc-pcTable">
+          <div class="no-data" id="pc-pcEmpty">Carregando...</div>
+        </div>
+      </div>
+      <div id="pc-viewDetail" style="display:none"></div>
+    </div>
+
+    <!-- VIEW: PACIENTES -->
+    <div id="view-pacientes" class="view" style="display:none">
+      <div id="pt-listView">
+        <div class="ph">
+          <div><h1>Pacientes</h1><p id="pt-ptCount">Carregando...</p></div>
+          <button class="btn btn-s" onclick="ptExportCSV()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button>
+        </div>
+        <div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="pt-ptSearch" placeholder="Buscar paciente..." oninput="ptFilterPatients()" style="width:100%;padding:11px 14px 11px 40px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;transition:border-color .15s,box-shadow .15s" onfocus="this.style.borderColor='rgba(0,229,160,.45)';this.style.boxShadow='0 0 0 3px rgba(0,229,160,.07)'" onblur="this.style.borderColor='';this.style.boxShadow=''"></div>
+        <div class="filters" id="pt-ptFilters">
+          <div class="filter on" data-status="all" onclick="ptSetFilter(this)">Todos</div>
+          <div class="filter" data-status="with-pc" onclick="ptSetFilter(this)">Com pre-consulta</div>
+          <div class="filter" data-status="no-vinculo" onclick="ptSetFilter(this)">Sem vinculo</div>
+        </div>
+        <div class="tw">
+          <div class="th2" style="grid-template-columns:2fr 1fr 1fr 80px"><span>Paciente</span><span>Pre-consultas</span><span>Ultima atividade</span><span></span></div>
+          <div id="pt-ptTableBody"></div>
+          <div class="no-result" id="pt-ptEmpty" style="display:none">Nenhum paciente encontrado.</div>
+        </div>
+      </div>
+
+      <div class="patient-detail" id="pt-detailView">
+        <div class="pd-header">
+          <div class="pd-back" onclick="ptBackToList()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+          <div class="av" id="pt-pdAvatar" style="width:42px;height:42px;font-size:14px">--</div>
+          <div class="pd-info">
+            <div class="pd-name" id="pt-pdName">--</div>
+            <div class="pd-meta" id="pt-pdMeta">--</div>
+          </div>
+        </div>
+        <div id="pt-pdNoVinculo" style="display:none">
+          <div class="no-vinculo">
+            <div class="no-vinculo-title">Paciente sem vinculo</div>
+            <div class="no-vinculo-msg" id="pt-noVinculoMsg">Este paciente respondeu uma pre-consulta antes de criar conta no vita id. Sem cadastro, nao ha exames, alergias ou medicamentos para mostrar.</div>
+          </div>
+        </div>
+        <div id="pt-pdCards">
+          <div class="pd-grid">
+            <div class="pd-card">
+              <div class="pd-card-title" style="color:var(--bad)" onclick="ptToggleCard(this)">
+                <svg viewBox="0 0 24 24" style="stroke:var(--bad)"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Alergias <span class="count" id="pt-countAlergias">0</span>
+              </div>
+              <div class="pd-card-body" id="pt-bodyAlergias"><div class="pd-empty">Nenhuma alergia registrada</div></div>
+            </div>
+            <div class="pd-card">
+              <div class="pd-card-title" style="color:var(--green)" onclick="ptToggleCard(this)">
+                <svg viewBox="0 0 24 24" style="stroke:var(--green)"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/></svg>
+                Medicamentos <span class="count" id="pt-countMeds">0</span>
+              </div>
+              <div class="pd-card-body" id="pt-bodyMeds"><div class="pd-empty">Nenhum medicamento registrado</div></div>
+            </div>
+            <div class="pd-card">
+              <div class="pd-card-title" style="color:var(--info)" onclick="ptToggleCard(this)">
+                <svg viewBox="0 0 24 24" style="stroke:var(--info)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Exames <span class="count" id="pt-countExames">0</span>
+              </div>
+              <div class="pd-card-body" id="pt-bodyExames"><div class="pd-empty">Nenhum exame registrado</div></div>
+            </div>
+            <div class="pd-card">
+              <div class="pd-card-title" style="color:#8b5cf6" onclick="ptToggleCard(this)">
+                <svg viewBox="0 0 24 24" style="stroke:#8b5cf6"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                Condicoes <span class="count" id="pt-countCondicoes">0</span>
+              </div>
+              <div class="pd-card-body" id="pt-bodyCondicoes"><div class="pd-empty">Nenhuma condicao registrada</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="pc-list" id="pt-pdPreConsultas">
+          <div class="slabel">Pre-consultas deste paciente</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: CRM -->
+    <div id="view-crm" class="view" style="display:none">
+      <div class="ph">
+        <div><h1>CRM & Retornos</h1><p>Acompanhe seus pacientes e aumente a retencao</p></div>
+        <button class="btn btn-p" onclick="crmNotifyAllOverdue()" style="height:40px;padding:0 18px"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Notificar atrasados</button>
+      </div>
+
+      <div class="crmg">
+        <div>
+          <div class="filters" id="crm-crmFilters">
+            <div class="filter on" data-crm="all" onclick="crmSetFilter(this)">Todos</div>
+            <div class="filter" data-crm="overdue" onclick="crmSetFilter(this)">Atrasados</div>
+            <div class="filter" data-crm="recent" onclick="crmSetFilter(this)">Ultimos 30 dias</div>
+            <div class="filter" data-crm="pending" onclick="crmSetFilter(this)">Pendentes</div>
+            <div class="filter" data-crm="responded" onclick="crmSetFilter(this)">Respondidas</div>
+          </div>
+          <div class="tw">
+            <div class="th2" style="grid-template-columns:2fr 1fr 1.2fr 90px 110px"><span>Paciente</span><span>Status</span><span>Data</span><span>Dias</span><span></span></div>
+            <div id="crm-crmBody"></div>
+            <div class="no-result" id="crm-crmEmpty" style="display:none">Nenhum registro encontrado.</div>
+          </div>
+        </div>
+        <div>
+          <div class="cms"><div class="cmsn" style="color:#0D0F14" id="crm-crmTotal">--</div><div class="cmsl">Total de pre-consultas</div></div>
+          <div class="cms"><div class="cmsn" style="color:#0D0F14" id="crm-crmRespondidas">--</div><div class="cmsl">Respondidas</div></div>
+          <div class="cms"><div class="cmsn" style="color:#0D0F14" id="crm-crmPendentes">--</div><div class="cmsl">Aguardando resposta</div></div>
+          <div class="cms"><div class="cmsn" style="color:#0D0F14" id="crm-crmOverdue">--</div><div class="cmsl">Sem resposta ha mais de 7 dias</div></div>
+          <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-top:8px">
+            <div class="slabel" style="margin-bottom:11px">Como funciona</div>
+            <div class="tip"><div class="tipn">1</div><p>Crie uma pre-consulta e envie o link via WhatsApp.</p></div>
+            <div class="tip"><div class="tipn">2</div><p>Acompanhe aqui quem respondeu e quem esta pendente.</p></div>
+            <div class="tip"><div class="tipn">3</div><p>Reenvie o link para pacientes que nao responderam.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: TEMPLATES -->
+    <div id="view-templates" class="view" style="display:none">
+      <div class="ph">
+        <div>
+          <h1>Templates</h1>
+          <p>Crie formularios personalizados para agilizar suas pre-consultas</p>
+        </div>
+        <div style="display:flex;gap:9px;flex-shrink:0">
+          <button class="btn btn-s" onclick="tplOnbShow()">
+            <svg viewBox="0 0 24 24" stroke="var(--t2)" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Como funciona?
+          </button>
+          <button class="btn btn-p" onclick="tplOpenCreate()" style="height:38px;padding:0 20px;font-size:13.5px">
+            <svg viewBox="0 0 24 24" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Criar template
+          </button>
+        </div>
+      </div>
+
+      <div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="tpl-searchInput" placeholder="Buscar template..." oninput="tplOnSearchInput()" style="width:100%;padding:11px 14px 11px 40px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;transition:border-color .15s,box-shadow .15s" onfocus="this.style.borderColor='rgba(0,229,160,.45)';this.style.boxShadow='0 0 0 3px rgba(0,229,160,.07)'" onblur="this.style.borderColor='';this.style.boxShadow=''"></div>
+
+      <div class="tpl-pills" id="tpl-tplPills">
+        <button class="tpl-pill active" onclick="tplSetFilter(this,'recentes')">Recentes</button>
+        <button class="tpl-pill" onclick="tplSetFilter(this,'usados')">Mais usados</button>
+        <button class="tpl-pill" onclick="tplSetFilter(this,'az')">A-Z</button>
+        <button class="tpl-pill" onclick="tplSetFilter(this,'curtos')">Curtos</button>
+        <button class="tpl-pill" onclick="tplSetFilter(this,'longos')">Longos</button>
+        <button class="tpl-pill" onclick="tplSetFilter(this,'naousados')">Nao usados</button>
+        <button class="tpl-pill" onclick="tplSetFilter(this,'audio')">Com audio</button>
+      </div>
+
+      <div class="tpl-grid" id="tpl-tplGrid"></div>
+    </div>
+
+    <!-- VIEW: PERFIL -->
+    <div id="view-perfil" class="view" style="display:none">
+      <div class="ph"><div><h1>Meu Perfil</h1><p>Gerencie seus dados e configuracoes</p></div></div>
+      <div class="profile-layout">
+        <div>
+          <div class="profile-card">
+            <div class="prof-av" id="pf-profAvatar">--</div>
+            <div class="prof-name" id="pf-profName">Carregando...</div>
+            <div class="prof-crm" id="pf-profCrm">--</div>
+            <div class="prof-stats">
+              <div class="ps"><div class="psn" style="color:#fff" id="pf-pfStat1">--</div><div class="psl">Pre-consultas</div></div>
+              <div class="ps"><div class="psn" style="color:#fff" id="pf-pfStat2">--</div><div class="psl">Respondidas</div></div>
+              <div class="ps"><div class="psn" style="color:#fff" id="pf-pfStat3">--</div><div class="psl">Pendentes</div></div>
+              <div class="ps"><div class="psn" style="color:#fff" id="pf-pfStat4">--</div><div class="psl">Pacientes</div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="setting-group">
+            <div class="sg-title">Dados Profissionais</div>
+            <div class="sg-row clickable" onclick="pfOpenEdit('crm','CRM','Numero do CRM','crm')"><div style="flex:1"><div class="sg-label">CRM / UF</div><div class="sg-sub" id="pf-fieldCrm">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            <div class="sg-row clickable" onclick="pfOpenEdit('especialidade','Especialidade','Sua especialidade medica','especialidade')"><div style="flex:1"><div class="sg-label">Especialidade</div><div class="sg-sub" id="pf-fieldEspecialidade">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            <div class="sg-row clickable" onclick="pfOpenEdit('clinica','Nome da clinica','Nome da sua clinica ou consultorio','clinica')"><div style="flex:1"><div class="sg-label">Nome da clinica</div><div class="sg-sub" id="pf-fieldClinica">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            <div class="sg-row clickable" onclick="pfOpenEdit('enderecoClinica','Endereco','Endereco da clinica','enderecoClinica')"><div style="flex:1"><div class="sg-label">Endereco</div><div class="sg-sub" id="pf-fieldEndereco">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            <div class="sg-row clickable" onclick="pfOpenEdit('telefoneClinica','Telefone da clinica','Telefone de contato','telefoneClinica')"><div style="flex:1"><div class="sg-label">Telefone da clinica</div><div class="sg-sub" id="pf-fieldTelefone">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            <div class="sg-row clickable" onclick="pfOpenEdit('valorConsulta','Valor da consulta','Valor medio em reais (ex: 250)','valorConsulta')"><div style="flex:1"><div class="sg-label">Valor medio da consulta</div><div class="sg-sub" id="pf-fieldValor">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </div>
+
+          <div class="setting-group">
+            <div class="sg-title">Notificacoes</div>
+            <div class="notif-banner hide" id="pf-notifWarn">
+              <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Alertas urgentes desativados. Casos criticos podem nao chegar ate voce.</span>
+            </div>
+
+            <div class="notif-item" id="pf-notifUrg">
+              <div class="sg-row notif-head" onclick="pfToggleNotifOpen('pf-notifUrg', event)">
+                <div style="flex:1"><div class="sg-label">Alertas urgentes</div><div class="sg-sub">Avisamos quando um paciente descreve algo grave</div></div>
+                <svg class="notif-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                <div class="toggle on" id="pf-togUrg" onclick="pfToggleNotifSwitch(event, 'urgente')"></div>
+              </div>
+              <div class="notif-body"><div class="notif-inner">
+                <div class="notif-preview urg">
+                  <div class="notif-preview-head"><div class="notif-preview-dot"></div><span class="notif-preview-tag">Urgente</span><span class="notif-preview-time">Ha 2 min</span></div>
+                  <div class="notif-preview-name">Maria S., 45a</div>
+                  <div class="notif-preview-body">"Dor no peito forte, irradia pro braco esquerdo ha 2 horas"</div>
+                </div>
+                <div class="notif-rules">
+                  <div class="notif-rule"><div class="notif-rule-label ok">Voce recebe quando</div><ul><li>Paciente menciona sintomas criticos no relato</li><li>Identificamos 3 ou mais sinais de urgencia</li><li>Consulta marcada para as proximas 24h</li></ul></div>
+                  <div class="notif-rule"><div class="notif-rule-label off">Voce NAO recebe quando</div><ul><li>O caso ja foi marcado como resolvido</li><li>Paciente em acompanhamento ativo da mesma queixa</li></ul></div>
+                </div>
+                <div class="notif-foot"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Chega por push no celular e destaca no topo do dashboard.</span></div>
+              </div></div>
+            </div>
+
+            <div class="notif-item" id="pf-notifRet">
+              <div class="sg-row notif-head" onclick="pfToggleNotifOpen('pf-notifRet', event)">
+                <div style="flex:1"><div class="sg-label">Lembretes de retorno</div><div class="sg-sub">Avisamos 1 dia antes do retorno sugerido</div></div>
+                <svg class="notif-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                <div class="toggle on" id="pf-togRet" onclick="pfToggleNotifSwitch(event, 'retorno')"></div>
+              </div>
+              <div class="notif-body"><div class="notif-inner">
+                <div class="notif-preview ret">
+                  <div class="notif-preview-head"><div class="notif-preview-dot"></div><span class="notif-preview-tag">Retorno amanha</span><span class="notif-preview-time">Hoje, 18:00</span></div>
+                  <div class="notif-preview-name">Joao P., 14 dias apos consulta</div>
+                  <div class="notif-preview-body">Conduta: reavaliar lesao e ajustar dose se necessario</div>
+                </div>
+                <div class="notif-rules">
+                  <div class="notif-rule"><div class="notif-rule-label ok">Voce recebe quando</div><ul><li>A conduta previu retorno em data definida</li><li>Falta 1 dia util para a data sugerida</li><li>Dentro do horario comercial (9h-18h)</li></ul></div>
+                  <div class="notif-rule"><div class="notif-rule-label off">Voce NAO recebe quando</div><ul><li>Marcou o paciente como "ja retornou"</li><li>Retorno foi remarcado pelo app</li></ul></div>
+                </div>
+                <div class="notif-foot"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Chega por push no celular e como card no dashboard do dia.</span></div>
+              </div></div>
+            </div>
+
+            <div class="notif-item" id="pf-notifRes">
+              <div class="sg-row notif-head" onclick="pfToggleNotifOpen('pf-notifRes', event)">
+                <div style="flex:1"><div class="sg-label">Resumo diario</div><div class="sg-sub">E-mail com tudo que aconteceu no dia</div></div>
+                <svg class="notif-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                <div class="toggle" id="pf-togRes" onclick="pfToggleNotifSwitch(event, 'resumo')"></div>
+              </div>
+              <div class="notif-body"><div class="notif-inner">
+                <div class="notif-preview res">
+                  <div class="notif-preview-head"><div class="notif-preview-dot"></div><span class="notif-preview-tag">Seu dia no vita id</span><span class="notif-preview-time">19:00</span></div>
+                  <div class="notif-preview-name">17 de abril &middot; 8 pacientes atendidos</div>
+                  <div class="notif-preview-body">2 alertas urgentes resolvidos &middot; 3 retornos marcados para amanha</div>
+                </div>
+                <div class="notif-rules">
+                  <div class="notif-rule"><div class="notif-rule-label ok">Voce recebe quando</div><ul><li>Atendeu pelo menos 1 paciente no dia</li><li>Todo dia as 19h no seu fuso horario</li></ul></div>
+                  <div class="notif-rule"><div class="notif-rule-label off">Voce NAO recebe quando</div><ul><li>Dia sem atendimentos</li><li>Desativou esta opcao</li></ul></div>
+                </div>
+                <div class="notif-foot"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg><span>Chega no e-mail cadastrado na sua conta.</span></div>
+              </div></div>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="sg-title">Conta</div>
+            <div class="sg-row"><div style="flex:1"><div class="sg-label">E-mail</div><div class="sg-sub" id="pf-fieldEmail">--</div></div></div>
+            <div class="sg-row"><div style="flex:1"><div class="sg-label">Celular</div><div class="sg-sub" id="pf-fieldCelular">--</div></div></div>
+            <div class="sg-row"><div><button class="btn btn-danger" onclick="pfOpenLogout()" style="height:30px;font-size:12px"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sair da conta</button></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script src="../api.js"></script>
+<script>
+/* ============================================================
+   APP SHELL — boot + state + router (Fase 0)
+   Documentacao das fases em C:\Users\win11\.claude\plans\
+   ============================================================ */
+
+/* ---------- STATE CENTRAL ---------- */
+var state = {
+  // Datasets carregados no boot (paralelo)
+  medico: null,
+  usuario: null,
+  dashStats: null,
+  allPC: [],
+  allPacientes: [],
+  allTemplates: [],
+
+  // Meta
+  _ts: {},          // timestamps de fetch por chave
+  _bootError: {},   // erros do boot por chave
+  _booted: false,
+
+  // TTL em ms por dataset (sessao = Infinity)
+  _ttl: {
+    medico: Infinity,
+    usuario: Infinity,
+    dashStats: 5*60*1000,
+    allPC: 5*60*1000,
+    allPacientes: 10*60*1000,
+    allTemplates: Infinity
+  },
+
+  invalidate: function(key){ this._ts[key] = 0; },
+  isStale: function(key){
+    var ttl = this._ttl[key];
+    if(ttl === Infinity) return false;
+    return (Date.now() - (this._ts[key]||0)) > ttl;
+  }
+};
+
+/* ---------- CONFIG POR VIEW ---------- */
+var VIEW_CONFIG = {
+  'dashboard':      { title: 'Dashboard',      sub: '--' },
+  'pre-consultas':  { title: 'Pre-Consultas',  sub: 'Todas as pre-consultas' },
+  'pacientes':      { title: 'Pacientes',      sub: 'Seus pacientes cadastrados' },
+  'crm':            { title: 'CRM & Retornos', sub: 'Acompanhamento e retencao' },
+  'templates':      { title: 'Templates',      sub: 'Seus formularios de pre-consulta' },
+  'perfil':         { title: 'Meu Perfil',     sub: 'Gerencie seus dados' }
+};
+
+/* ---------- BOOT (paralelo, allSettled) ---------- */
+async function boot(){
+  setTodayDate();
+
+  var calls = [
+    { key:'medico',        fn: function(){ return vitaeAPI.getPerfilMedico(); } },
+    { key:'dashStats',     fn: function(){ return vitaeAPI.getDashboardMedico(); } },
+    { key:'allPC',         fn: function(){ return vitaeAPI.listarPreConsultas(); } },
+    { key:'allPacientes',  fn: function(){ return vitaeAPI.getPacientesMedico(); } },
+    { key:'allTemplates',  fn: function(){ return vitaeAPI.listarTemplates(); } }
+  ];
+
+  var results = await Promise.allSettled(calls.map(function(c){ return c.fn(); }));
+
+  results.forEach(function(r, i){
+    var key = calls[i].key;
+    if(r.status === 'fulfilled'){
+      var v = r.value;
+      if(key === 'medico'){
+        state.medico = v.medico || v;
+        state.usuario = (state.medico && state.medico.usuario) || {};
+      } else if(key === 'dashStats'){
+        state.dashStats = v || {};
+      } else if(key === 'allPC'){
+        state.allPC = v.preConsultas || v || [];
+      } else if(key === 'allPacientes'){
+        state.allPacientes = v.pacientes || v || [];
+      } else if(key === 'allTemplates'){
+        state.allTemplates = v.templates || v || [];
+      }
+      state._ts[key] = Date.now();
+    } else {
+      state._bootError[key] = (r.reason && r.reason.message) || 'Erro desconhecido';
+      console.error('[boot] '+key+':', r.reason);
+    }
+  });
+
+  state._booted = true;
+  hydrateSidebar();
+  updatePipBadge();
+
+  // Renderiza view atual com dados do state
+  var r = parseRoute();
+  renderView(r.view, r.param);
+}
+
+/* ---------- SIDEBAR HYDRATION (apos boot) ---------- */
+function hydrateSidebar(){
+  var u = state.usuario || {};
+  var m = state.medico || {};
+  var nome = u.nome || '';
+  var ini = getInitials(nome);
+
+  var av = document.getElementById('sbAvatar');
+  av.classList.remove('sk-dark');
+  av.textContent = ini;
+
+  var name = document.getElementById('sbName');
+  name.innerHTML = '';
+  name.textContent = formatDr(nome);
+
+  var crm = document.getElementById('sbCrm');
+  crm.innerHTML = '';
+  crm.textContent = m.crm ? ('CRM '+m.crm+(m.ufCrm?' . '+m.ufCrm:'')) : '--';
+}
+
+/* ---------- PIP BADGE ---------- */
+function updatePipBadge(){
+  var pending = (state.allPC || []).filter(function(pc){
+    return pc.status === 'PENDENTE' || pc.status === 'ABERTO';
+  }).length;
+  var pip = document.getElementById('pipPc');
+  pip.textContent = pending;
+  pip.style.display = pending > 0 ? '' : 'none';
+}
+
+/* ---------- ROUTER ---------- */
+function parseRoute(){
+  var hash = (location.hash || '#dashboard').slice(1);
+  var parts = hash.split('/');
+  var view = parts[0] || 'dashboard';
+  if(!VIEW_CONFIG[view]) view = 'dashboard';
+  return { view: view, param: parts[1] || null };
+}
+
+function navigate(view, param){
+  var hash = '#' + view + (param ? '/' + param : '');
+  if(location.hash !== hash){
+    location.hash = hash;  // dispara hashchange -> renderView
+  } else {
+    renderView(view, param);
+  }
+}
+
+function renderView(view, param){
+  // Hooks de cleanup (Fase 2 vai adicionar pauseAudioIfPlaying aqui)
+  if(typeof onViewLeave === 'function') onViewLeave();
+
+  // Esconder todas as views, mostrar a target
+  var allViews = document.querySelectorAll('.view');
+  for(var i=0; i<allViews.length; i++) allViews[i].style.display = 'none';
+  var target = document.getElementById('view-'+view);
+  if(target) target.style.display = '';
+
+  // Atualizar nav active state
+  setNavActive(view);
+
+  // Atualizar topbar
+  var cfg = VIEW_CONFIG[view] || {};
+  document.getElementById('tbTitle').textContent = cfg.title || '--';
+
+  // Sub do dashboard mostra data; outras views usam o sub fixo
+  if(view === 'dashboard'){
+    setTodayDate();
+  } else {
+    document.getElementById('tbSub').textContent = cfg.sub || '--';
+  }
+
+  // Dispatch pra renderX especifica (vai existir nas Fases 1-6)
+  var renderFn = window['render' + view.replace(/(^|-)([a-z])/g, function(m,_,c){return c.toUpperCase();})];
+  if(typeof renderFn === 'function'){
+    try{ renderFn(param); }catch(e){ console.error('[render]', view, e); }
+  }
+}
+
+function setNavActive(view){
+  var nls = document.querySelectorAll('#sbNav .nl');
+  for(var i=0; i<nls.length; i++) nls[i].classList.remove('on');
+  var target = document.getElementById('nl-'+view);
+  if(target) target.classList.add('on');
+}
+
+window.addEventListener('hashchange', function(){
+  var r = parseRoute();
+  renderView(r.view, r.param);
+});
+
+/* ---------- UTILITIES (compartilhadas entre views) ---------- */
+function getInitials(n){
+  if(!n) return '--';
+  var p = n.replace(/^(Dr\.?\s*|Dra\.?\s*)/i,'').trim().split(/\s+/);
+  return p.length>=2 ? (p[0][0]+p[p.length-1][0]).toUpperCase() : (p[0]?p[0].substring(0,2).toUpperCase():'--');
+}
+function formatDr(n){
+  if(!n) return 'Medico';
+  if(/^(Dr\.?|Dra\.?)\s/i.test(n)) return n;
+  return 'Dr. ' + n;
+}
+function pickFoto(o){
+  if(!o) return '';
+  return o.fotoUrl || (o.paciente && o.paciente.fotoUrl) || (o.usuario && o.usuario.fotoUrl) || o.pacienteFotoUrl || '';
+}
+function renderAvatar(o, ini, size){
+  var s = size || 32;
+  var fs = Math.max(10, Math.round(s*0.32));
+  var foto = pickFoto(o);
+  var st = 'width:'+s+'px;height:'+s+'px;font-size:'+fs+'px;overflow:hidden';
+  if(foto) return '<div class="av" style="'+st+'"><img src="'+foto+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.parentNode.textContent=\''+sa(ini)+'\'"></div>';
+  return '<div class="av" style="'+st+'">'+ini+'</div>';
+}
+function fmtHM(m){
+  if(!m||m<=0) return '0min';
+  var h=Math.floor(m/60), mm=Math.round(m%60);
+  if(h===0) return mm+'min';
+  if(mm===0) return h+'h';
+  return h+'h'+(mm<10?'0':'')+mm;
+}
+function fmtDate(d){
+  if(!d) return '--';
+  var dt = new Date(d);
+  return dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+}
+function fmtPhone(el){
+  var v=el.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>=11) el.value='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7,11);
+  else if(v.length>=7) el.value='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
+  else if(v.length>=3) el.value='('+v.slice(0,2)+') '+v.slice(2);
+  else if(v.length>=1) el.value='('+v;
+}
+function s(x){ return String(x||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function sa(x){ return String(x||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+function setTodayDate(){
+  var now=new Date();
+  var d=['Domingo','Segunda','Terca','Quarta','Quinta','Sexta','Sabado'];
+  var m=['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var el = document.getElementById('tbSub');
+  if(el) el.textContent = d[now.getDay()]+', '+now.getDate()+' de '+m[now.getMonth()];
+}
+
+function toast(msg, type){
+  type = type || 'ok';
+  var ic = {ok:'V', warn:'!', err:'X', info:'i'};
+  var st = document.getElementById('toastStack');
+  var t = document.createElement('div');
+  t.className = 'toast toast-'+type;
+  t.innerHTML = '<div class="toast-icon">'+(ic[type]||'i')+'</div><span>'+msg+'</span>';
+  st.appendChild(t);
+  setTimeout(function(){ t.classList.add('out'); setTimeout(function(){ t.remove(); },300); }, 3000);
+}
+
+function updateClock(){
+  var el = document.getElementById('tbClock');
+  if(el) el.textContent = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ============================================================
+   VIEW: DASHBOARD (Fase 1) — funcoes especificas
+   ============================================================ */
+var dashState = {
+  filter: 'all',
+  search: '',
+  deleteTarget: null,
+  generatedLink: null,
+  generatedPhone: null,
+  impactCtx: null
+};
+
+var DASH_MIN_ECON = {'dermatologia':4,'clinica geral':7,'cardiologia':9,'pediatria':8,'ginecologia':8,'psiquiatria':10,'endocrinologia':8,'gastroenterologia':7,'neurologia':9,'oftalmologia':5,'ortopedia':6,'otorrinolaringologia':6,'urologia':7};
+
+function renderDashboard(){
+  var u = state.usuario || {};
+  var m = state.medico || {};
+  var dash = state.dashStats || {};
+  var ini = getInitials(u.nome || '');
+
+  document.getElementById('dash-greetAv').textContent = ini;
+  document.getElementById('dash-greetName').textContent = 'Bem-vindo(a), ' + formatDr(u.nome);
+  document.getElementById('dash-greetSpec').textContent = m.especialidade || '';
+
+  document.getElementById('dash-statTotal').textContent = dash.totalPacientes || 0;
+  document.getElementById('dash-statPending').textContent = dash.preConsultasPendentes || 0;
+  document.getElementById('dash-statDone').textContent = dash.preConsultasRespondidas || 0;
+
+  dashUpdateImpact();
+  dashCheckUrgentAlert();
+  dashRenderPC();
+  dashLoadTemplatesForModal();
+}
+
+function dashUpdateImpact(){
+  var s = state.dashStats || {};
+  var m = state.medico || {};
+  var r = s.preConsultasRespondidas || 0;
+  var e = (m.especialidade || '').toLowerCase().trim();
+  var mp = DASH_MIN_ECON[e] || 6;
+  var tm = r * mp;
+  var v = m.valorConsulta;
+  var ex = Math.floor(tm / 35);
+
+  document.getElementById('dash-impactTempo').textContent = fmtHM(tm);
+  document.getElementById('dash-impactPacientes').textContent = ex > 0 ? '+' + ex : '--';
+
+  var ve = document.getElementById('dash-impactValor');
+  var b = document.getElementById('dash-impactBanner');
+  if(v && v > 0 && tm > 0){
+    var vt = (tm/60) * v;
+    ve.textContent = 'R$ ' + Math.round(vt).toLocaleString('pt-BR');
+    ve.className = 'impact-num green';
+    b.style.display = 'none';
+  } else if(v && v > 0){
+    ve.textContent = 'R$ 0';
+    ve.className = 'impact-num green';
+    b.style.display = 'none';
+  } else {
+    ve.textContent = 'Configurar';
+    ve.className = 'impact-num cta';
+    if(r > 0) b.style.display = 'flex';
+  }
+  dashState.impactCtx = { resp:r, esp:e||'geral', minPC:mp, totalMin:tm, valor:v, vTotal:(v&&v>0)?(tm/60)*v:null, extras:ex };
+}
+
+function dashCheckUrgentAlert(){
+  var bar = document.getElementById('dash-alertBar');
+  bar.style.display = 'none';
+  for(var i = 0; i < state.allPC.length; i++){
+    var pc = state.allPC[i];
+    if(pc.status !== 'RESPONDIDA') continue;
+    var sm = null;
+    try{ sm = typeof pc.summaryIA === 'string' ? JSON.parse(pc.summaryIA) : pc.summaryIA; }catch(e){}
+    if(!sm || !sm.alertas) continue;
+    var u = sm.alertas.find(function(a){ return a.tipo === 'urgente' || a.tipo === 'URGENTE'; });
+    if(u){
+      bar.style.display = 'flex';
+      document.getElementById('dash-alertTitle').textContent = (pc.pacienteNome || 'Paciente') + ' -- ' + (u.titulo || 'Alerta urgente');
+      document.getElementById('dash-alertSub').textContent = u.mensagem || 'Investigacao urgente recomendada';
+      var pcId = pc.id;
+      document.getElementById('dash-alertBtn').onclick = function(){ navigate('pre-consultas', pcId); };
+      break;
+    }
+  }
+}
+
+function dashRenderPC(){
+  var now = new Date();
+  var ts = now.toISOString().split('T')[0];
+  var wa = new Date(now); wa.setDate(wa.getDate() - 7);
+  var ws = wa.toISOString().split('T')[0];
+
+  var list = (state.allPC || []).filter(function(pc){
+    if(dashState.search){
+      var n = (pc.pacienteNome || '').toLowerCase();
+      if(!n.includes(dashState.search.toLowerCase())) return false;
+    }
+    if(dashState.filter === 'pendentes') return pc.status === 'PENDENTE' || pc.status === 'ABERTO';
+    if(dashState.filter === 'respondidas') return pc.status === 'RESPONDIDA';
+    var d = pc.criadoEm ? pc.criadoEm.split('T')[0] : '';
+    if(dashState.filter === 'today') return d === ts;
+    if(dashState.filter === 'week') return d >= ws;
+    if(dashState.filter === 'month') return d.substring(0,7) === ts.substring(0,7);
+    return true;
+  });
+
+  document.getElementById('dash-listCount').textContent = list.length + ' pre-consulta' + (list.length !== 1 ? 's' : '');
+  if(!list.length){
+    document.getElementById('dash-pcList').innerHTML = '';
+    document.getElementById('dash-pcEmpty').style.display = 'block';
+    return;
+  }
+  document.getElementById('dash-pcEmpty').style.display = 'none';
+  document.getElementById('dash-pcList').innerHTML = list.map(function(pc){
+    var n = pc.pacienteNome || 'Paciente';
+    var ini = getInitials(n);
+    var bc = pc.status === 'RESPONDIDA' ? 'pc-b-done' : pc.status === 'PENDENTE' ? 'pc-b-pending' : pc.status === 'ABERTO' ? 'pc-b-open' : 'pc-b-expired';
+    var st = pc.status === 'RESPONDIDA' ? 'Respondida' : pc.status === 'PENDENTE' ? 'Pendente' : pc.status === 'ABERTO' ? 'Aberto' : 'Expirada';
+    var dt = fmtDate(pc.respondidaEm || pc.criadoEm || '');
+    var cl = pc.status === 'RESPONDIDA' ? 'onclick="navigate(\'pre-consultas\',\'' + pc.id + '\')"' : '';
+    var av = renderAvatar(pc, ini, 32);
+    var dl = '<div class="pc-act del" onclick="event.stopPropagation();dashAskDelete(\'' + pc.id + '\',\'' + sa(n) + '\')" title="Apagar"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/></svg></div>';
+    return '<div class="pc-row ' + bc + '" ' + cl + ' title="' + sa(st) + '">' + av + '<div style="flex:1;min-width:0"><div class="pname">' + s(n) + '</div><div class="pmeta">' + dt + '</div></div><div class="pc-actions">' + dl + '</div></div>';
+  }).join('');
+}
+
+function dashSetFilter(el){
+  document.querySelectorAll('#dash-pcFilters .filter').forEach(function(f){ f.classList.remove('on'); });
+  el.classList.add('on');
+  dashState.filter = el.dataset.f;
+  dashRenderPC();
+}
+function dashFilterByStatus(t){
+  dashState.filter = t === 'all' ? 'all' : t;
+  document.querySelectorAll('#dash-pcFilters .filter').forEach(function(f){ f.classList.remove('on'); });
+  var pill = t === 'all' ? document.querySelector('#dash-pcFilters .filter[data-f="all"]') : document.getElementById('dash-pill' + t.charAt(0).toUpperCase() + t.slice(1));
+  if(pill) pill.classList.add('on');
+  dashRenderPC();
+}
+function dashSearchPC(q){ dashState.search = q; dashRenderPC(); }
+
+function dashAskDelete(id, n){
+  dashState.deleteTarget = id;
+  document.getElementById('dash-deleteMsg').textContent = 'Apagar pre-consulta de ' + n + '?';
+  document.getElementById('dash-modalDelete').classList.add('show');
+}
+function dashCloseDelete(){
+  document.getElementById('dash-modalDelete').classList.remove('show');
+  dashState.deleteTarget = null;
+}
+async function dashConfirmDelete(){
+  if(!dashState.deleteTarget) return;
+  var b = document.getElementById('dash-deleteBtn');
+  b.textContent = 'Apagando...';
+  b.disabled = true;
+  try{
+    await vitaeAPI.deletarPreConsulta(dashState.deleteTarget);
+    toast('Apagada.', 'ok');
+    dashCloseDelete();
+    state.allPC = state.allPC.filter(function(p){ return p.id !== dashState.deleteTarget; });
+    state.invalidate('dashStats');
+    updatePipBadge();
+    dashRenderPC();
+    // refetch stats em background
+    vitaeAPI.getDashboardMedico().then(function(d){
+      state.dashStats = d || {};
+      state._ts.dashStats = Date.now();
+      if(document.getElementById('view-dashboard').style.display !== 'none'){
+        document.getElementById('dash-statTotal').textContent = state.dashStats.totalPacientes || 0;
+        document.getElementById('dash-statPending').textContent = state.dashStats.preConsultasPendentes || 0;
+        document.getElementById('dash-statDone').textContent = state.dashStats.preConsultasRespondidas || 0;
+        dashUpdateImpact();
+      }
+    }).catch(function(){});
+  }catch(e){ toast(e.message || 'Erro.', 'err'); }
+  b.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/></svg>Apagar';
+  b.disabled = false;
+}
+
+function dashOpenModal(){
+  document.getElementById('dash-mLinkBox').style.display = 'none';
+  document.getElementById('dash-mFooter').style.display = '';
+  document.getElementById('dash-mNome').value = '';
+  document.getElementById('dash-mPhone').value = '';
+  document.getElementById('dash-mEmail').value = '';
+  document.getElementById('dash-modalQuick').classList.add('show');
+  document.getElementById('dash-mNome').focus();
+}
+function dashCloseModal(){
+  document.getElementById('dash-modalQuick').classList.remove('show');
+}
+
+async function dashGerarPreConsulta(){
+  var nome = document.getElementById('dash-mNome').value.trim();
+  if(!nome){ toast('Preencha o nome.', 'warn'); return; }
+  var btn = document.getElementById('dash-mGenBtn');
+  btn.textContent = 'Gerando...';
+  btn.disabled = true;
+  try{
+    var body = { pacienteNome: nome };
+    var tel = document.getElementById('dash-mPhone').value.replace(/\D/g, '');
+    var email = document.getElementById('dash-mEmail').value.trim();
+    if(tel) body.pacienteTel = tel;
+    if(email) body.pacienteEmail = email;
+    var tid = document.getElementById('dash-mTemplate').value;
+    if(tid) body.templateId = tid;
+    var res = await vitaeAPI.criarPreConsulta(body);
+    var pc = res.preConsulta || res;
+    var token = pc.linkToken || '';
+    var url = window.location.origin + '/pre-consulta.html?token=' + token;
+    dashState.generatedLink = url;
+    dashState.generatedPhone = tel;
+    document.getElementById('dash-mLinkUrl').textContent = url;
+    document.getElementById('dash-mLinkBox').style.display = 'block';
+    document.getElementById('dash-mFooter').style.display = 'none';
+    toast('Pre-consulta criada para ' + nome + '.', 'ok');
+
+    // Atualiza state em background
+    state.invalidate('allPC');
+    state.invalidate('dashStats');
+    Promise.all([vitaeAPI.listarPreConsultas(), vitaeAPI.getDashboardMedico()]).then(function(arr){
+      state.allPC = arr[0].preConsultas || arr[0] || [];
+      state.dashStats = arr[1] || {};
+      state._ts.allPC = Date.now();
+      state._ts.dashStats = Date.now();
+      updatePipBadge();
+      if(document.getElementById('view-dashboard').style.display !== 'none'){
+        document.getElementById('dash-statPending').textContent = state.dashStats.preConsultasPendentes || 0;
+        document.getElementById('dash-statTotal').textContent = state.dashStats.totalPacientes || 0;
+        document.getElementById('dash-statDone').textContent = state.dashStats.preConsultasRespondidas || 0;
+        dashUpdateImpact();
+        dashRenderPC();
+      }
+    }).catch(function(){});
+  }catch(e){ toast(e.message || 'Erro.', 'err'); }
+  btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>Gerar link';
+  btn.disabled = false;
+}
+
+function dashCopyModalLink(){
+  if(!dashState.generatedLink) return;
+  navigator.clipboard.writeText(dashState.generatedLink).then(function(){
+    document.getElementById('dash-mCopyTxt').textContent = 'Copiado';
+    setTimeout(function(){ document.getElementById('dash-mCopyTxt').textContent = 'Copiar'; }, 2000);
+    toast('Link copiado.', 'ok');
+  });
+}
+function dashOpenWA(){
+  if(!dashState.generatedLink) return;
+  var n = document.getElementById('dash-mNome').value.trim();
+  var num = dashState.generatedPhone || '';
+  var msg = encodeURIComponent('Ola ' + n + '! Antes da sua consulta, preencha este formulario rapido:\n\n' + dashState.generatedLink + '\n\nLeva menos de 5 minutos.');
+  window.open('https://wa.me/55' + num + '?text=' + msg, '_blank');
+}
+function dashLoadTemplatesForModal(){
+  var sel = document.getElementById('dash-mTemplate');
+  if(!sel) return;
+  // Reset (so mantem opcao default)
+  sel.innerHTML = '<option value="">Padrao VitaID</option>';
+  var t = state.allTemplates || [];
+  t.forEach(function(tp){
+    var o = document.createElement('option');
+    o.value = tp.id;
+    o.textContent = tp.nome + ' (' + ((tp.perguntas || []).length) + ' perguntas)';
+    sel.appendChild(o);
+  });
+}
+
+function dashOpenCalc(){
+  if(!dashState.impactCtx) return;
+  var c = dashState.impactCtx;
+  var h = '<div class="calc-row"><span class="calc-label">Pre-consultas respondidas</span><span class="calc-val">' + c.resp + '</span></div><div class="calc-row"><span class="calc-label">Especialidade</span><span class="calc-val">' + c.esp + '</span></div><div class="calc-row"><span class="calc-label">Min. economizados/consulta</span><span class="calc-val">' + c.minPC + ' min</span></div><div class="calc-row"><span class="calc-label">Tempo total economizado</span><span class="calc-val">' + fmtHM(c.totalMin) + '</span></div>';
+  if(c.valor && c.valor > 0) h += '<div class="calc-row"><span class="calc-label">Seu valor/consulta</span><span class="calc-val">R$ ' + c.valor + '</span></div><div class="calc-row"><span class="calc-label">Valor equivalente</span><span class="calc-val" style="color:var(--green)">R$ ' + Math.round(c.vTotal).toLocaleString('pt-BR') + '</span></div>';
+  h += '<div class="calc-row"><span class="calc-label">Pacientes extras (30-40 min cada)</span><span class="calc-val">' + (c.extras > 0 ? '+' + c.extras : '--') + '</span></div>';
+  document.getElementById('dash-calcBody').innerHTML = h;
+  document.getElementById('dash-calcOverlay').classList.add('show');
+}
+function dashCloseCalc(){
+  document.getElementById('dash-calcOverlay').classList.remove('show');
+}
+
+// Hook global de Esc fecha modais
+function onEscape(){
+  dashCloseModal();
+  dashCloseCalc();
+  dashCloseDelete();
+  if(typeof pcCloseIclModal === 'function') pcCloseIclModal();
+  if(typeof pcCloseDelModal === 'function') pcCloseDelModal();
+  if(typeof tplCloseCreate === 'function') tplCloseCreate();
+  if(typeof tplCloseActions === 'function') tplCloseActions();
+  if(typeof tplClosePreviewModal === 'function') tplClosePreviewModal();
+  if(typeof tplCloseDeleteModal === 'function') tplCloseDeleteModal();
+  if(typeof tplOnbClose === 'function'){
+    var ob = document.getElementById('tpl-onbOverlay');
+    if(ob && ob.classList.contains('show')) tplOnbClose();
+  }
+  if(typeof pfCloseEdit === 'function') pfCloseEdit();
+  if(typeof pfCloseLogout === 'function') pfCloseLogout();
+  if(typeof pfCloseConfirmUrg === 'function') pfCloseConfirmUrg();
+}
+
+/* ============================================================
+   VIEW: PRE-CONSULTAS (Fase 2) — lista + detalhe + player audio
+   ============================================================ */
+var pcState = {
+  filter: 'all',
+  search: '',
+  deleteTargetId: null,
+  currentPC: null,
+  currentPacienteData: null,
+
+  // Audio player state
+  ttsAudio: null,
+  ttsPlaying: false,
+  audioCtx: null,
+  analyser: null,
+  audioSource: null,
+  animFrameId: null,
+  canvasEl: null,
+  canvasCtx: null,
+
+  // Transcricao state
+  transcricaoPalavras: [],
+  lastKaraokeIdx: null,
+  autoFollowPausedUntil: 0,
+  audioPlaybackRate: 1
+};
+
+/* Entry point chamado pelo router */
+function renderPreConsultas(param){
+  // Se tem param na URL (#pre-consultas/abc123), abre o detalhe
+  if(param){
+    pcOpenDetail(param);
+  } else {
+    // Mostra a lista, esconde detalhe
+    pcStopAudio();
+    document.getElementById('pc-viewDetail').style.display = 'none';
+    document.getElementById('pc-viewList').style.display = '';
+    document.getElementById('tbTitle').textContent = 'Pre-Consultas';
+    document.getElementById('tbSub').textContent = 'Todas as pre-consultas';
+    pcRenderList();
+  }
+}
+
+/* ---------- Utilities especificas ---------- */
+function escHtml(x){ return String(x||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(x){ return String(x||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function pcCalcAge(dateStr){
+  if(!dateStr) return null;
+  var d;
+  if(dateStr.includes('/')){ var p = dateStr.split('/'); d = new Date(p[2], p[1]-1, p[0]); }
+  else d = new Date(dateStr);
+  if(isNaN(d.getTime())) return null;
+  return Math.floor((Date.now() - d.getTime()) / (365.25*24*60*60*1000));
+}
+function pcDaysSince(dateStr){
+  if(!dateStr) return 999;
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+}
+function pcFmtDateLong(dateStr){
+  if(!dateStr) return '--';
+  try { return new Date(dateStr).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); } catch(e){ return '--'; }
+}
+function pcFmtDateShort(dateStr){
+  if(!dateStr) return '--';
+  try { return new Date(dateStr).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}); } catch(e){ return '--'; }
+}
+function pcFormatTime(s){
+  var m = Math.floor(s/60), sec = Math.floor(s%60);
+  return m + ':' + (sec<10?'0':'') + sec;
+}
+function pcRenderAvatarInline(o, ini, className){
+  var foto = pickFoto(o);
+  if(foto) return '<div class="'+className+'"><img src="'+foto+'" alt="" onerror="this.parentNode.textContent=\''+String(ini).replace(/'/g,"\\'")+'\'"></div>';
+  return '<div class="'+className+'">'+ini+'</div>';
+}
+function pcStatusLabel(s){
+  var map = {PENDENTE:'Pendente',ABERTO:'Aberto',RESPONDIDA:'Respondida',EXPIRADA:'Expirada'};
+  return map[s] || s || 'Pendente';
+}
+function pcFilterExames(q){
+  var items = document.querySelectorAll('.exame-item');
+  var query = q.toLowerCase();
+  items.forEach(function(el){ el.style.display = (el.dataset.nome || '').includes(query) ? '' : 'none'; });
+}
+
+/* ---------- LISTA ---------- */
+function pcSetFilter(f, btn){
+  pcState.filter = f;
+  document.querySelectorAll('#pc-filterBar .filter').forEach(function(b){ b.classList.remove('on'); });
+  if(btn) btn.classList.add('on');
+  pcRenderList();
+}
+function pcFilterList(){
+  pcState.search = (document.getElementById('pc-searchInput').value || '').toLowerCase().trim();
+  pcRenderList();
+}
+function pcRenderList(){
+  var filtered = (state.allPC || []).filter(function(pc){
+    if(pcState.filter !== 'all'){
+      if(pcState.filter === 'PENDENTE'){ if(pc.status !== 'PENDENTE' && pc.status !== 'ABERTO') return false; }
+      else if(pc.status !== pcState.filter) return false;
+    }
+    if(pcState.search && (pc.pacienteNome || '').toLowerCase().indexOf(pcState.search) === -1) return false;
+    return true;
+  });
+  filtered.sort(function(a,b){
+    var sa = a.status === 'RESPONDIDA' ? 0 : 1;
+    var sb = b.status === 'RESPONDIDA' ? 0 : 1;
+    if(sa !== sb) return sa - sb;
+    return new Date(b.criadoEm || 0) - new Date(a.criadoEm || 0);
+  });
+
+  var table = document.getElementById('pc-pcTable');
+  if(!filtered.length){
+    table.innerHTML = '<div class="no-data">Nenhuma pre-consulta encontrada.</div>';
+    return;
+  }
+
+  var html = '';
+  filtered.forEach(function(pc){
+    var ini = getInitials(pc.pacienteNome);
+    var isResp = pc.status === 'RESPONDIDA';
+    var isPend = pc.status === 'PENDENTE' || pc.status === 'ABERTO';
+    var dateStr = pcFmtDateShort(pc.criadoEm);
+
+    html += '<div class="pc-list-item' + (isResp ? ' clickable' : '') + '"' + (isResp ? ' onclick="navigate(\'pre-consultas\',\'' + pc.id + '\')"' : '') + '>';
+    html += pcRenderAvatarInline(pc, ini, 'pc-avatar');
+    html += '<div class="pc-info"><div class="pc-name">' + (pc.pacienteNome || 'Sem nome') + '</div><div class="pc-date">' + dateStr + '</div></div>';
+    html += '<span class="pc-badge pc-badge-' + (pc.status || 'PENDENTE') + '">' + pcStatusLabel(pc.status) + '</span>';
+    html += '<div class="pc-actions-row">';
+    if(isPend && pc.linkToken){
+      var link = window.location.origin + '/pre-consulta.html?token=' + pc.linkToken;
+      html += '<div class="pc-act-btn" onclick="event.stopPropagation();pcCopyLink(\'' + link + '\')" title="Copiar link"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></div>';
+    }
+    html += '<div class="pc-act-btn del" onclick="event.stopPropagation();pcAskDel(\'' + pc.id + '\',\'' + (pc.pacienteNome || '').replace(/'/g,"\\'") + '\')" title="Apagar"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></div>';
+    html += '</div></div>';
+  });
+  table.innerHTML = html;
+}
+function pcCopyLink(link){
+  navigator.clipboard.writeText(link).then(function(){ toast('Link copiado','ok'); }).catch(function(){ toast('Erro ao copiar','err'); });
+}
+
+/* ---------- DELETE ---------- */
+function pcAskDel(id, nome){
+  pcState.deleteTargetId = id;
+  document.getElementById('pc-delMsg').textContent = 'Tem certeza que deseja apagar a pre-consulta de ' + (nome || 'este paciente') + '?';
+  document.getElementById('pc-modalDel').classList.add('show');
+}
+function pcCloseDelModal(){
+  var m = document.getElementById('pc-modalDel');
+  if(m) m.classList.remove('show');
+  pcState.deleteTargetId = null;
+}
+async function pcConfirmDel(){
+  if(!pcState.deleteTargetId) return;
+  try{
+    await vitaeAPI.deletarPreConsulta(pcState.deleteTargetId);
+    state.allPC = state.allPC.filter(function(p){ return p.id !== pcState.deleteTargetId; });
+    state.invalidate('dashStats');
+    updatePipBadge();
+    toast('Pre-consulta apagada','ok');
+    pcCloseDelModal();
+    pcRenderList();
+  }catch(err){ toast('Erro ao apagar: ' + (err.message || ''), 'err'); }
+}
+
+/* ---------- DETALHE ---------- */
+async function pcOpenDetail(pcId){
+  document.getElementById('pc-viewList').style.display = 'none';
+  var detailEl = document.getElementById('pc-viewDetail');
+  detailEl.style.display = '';
+  detailEl.innerHTML = '<div class="no-data">Carregando resumo...</div>';
+
+  document.getElementById('tbTitle').textContent = 'Resumo do Paciente';
+  document.getElementById('tbSub').textContent = 'Pre-consulta respondida';
+
+  try{
+    var data = await vitaeAPI.getPreConsulta(pcId);
+    var pc = data.preConsulta;
+    pcState.currentPC = pc;
+    var summary = pc.summaryJson || {};
+    var r = pc.respostas || {};
+    var summaryText = summary.textoVoz || summary.summaryTexto || pc.summaryIA || '';
+    var descBreve = summary.descricaoBreve || (summaryText ? summaryText.split('. ')[0] + '.' : '');
+    var respondidaEm = pcFmtDateShort(pc.respondidaEm);
+    var days = pcDaysSince(pc.respondidaEm);
+    var foto = pc.pacienteFotoUrl || r.fotoUrl || (pc.paciente && pc.paciente.fotoUrl) || null;
+    var age = pcCalcAge(r.dataNascimento || r.nascimento);
+    var initials = getInitials(pc.pacienteNome);
+    var audioUrl = pc.audioSummaryUrl || null;
+
+    pcState.currentPacienteData = null;
+    if(pc.pacienteId){
+      try{
+        var pacResult = await vitaeAPI.getPerfilPacienteMedico(pc.pacienteId);
+        pcState.currentPacienteData = pacResult.paciente || pacResult;
+      }catch(e){}
+    }
+
+    var html = '';
+    html += '<button class="back-btn" onclick="navigate(\'pre-consultas\')"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Voltar</button>';
+    html += '<div class="detail-grid">';
+    html += '<div class="left-col">';
+
+    // Hero
+    html += '<div class="hero-card">';
+    html += '<div class="hero-photo"><div class="hero-photo-inner">';
+    if(foto) html += '<img src="' + foto + '" onerror="this.parentElement.textContent=\'' + initials + '\'">';
+    else html += initials;
+    html += '</div></div>';
+    html += '<div>';
+    html += '<div class="hero-name">' + (pc.pacienteNome || 'Paciente') + '</div>';
+    html += '<div class="hero-meta">' + (age ? age + ' anos' : '') + (respondidaEm !== '--' ? (age ? ' &middot; ' : '') + 'Respondida em ' + respondidaEm : '') + '</div>';
+    if(descBreve) html += '<div class="hero-desc">"' + escHtml(descBreve) + '"</div>';
+    html += '</div></div>';
+
+    if(days > 7){
+      html += '<div class="stale-warn"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Pre-consulta com mais de 7 dias. Dados podem estar desatualizados.</div>';
+    }
+
+    if(summaryText){
+      html += '<div class="dk-player idle" id="pc-audioPlayer" data-summary-text="' + escAttr(summaryText) + '"' + (audioUrl ? ' data-audio-url="' + audioUrl + '"' : '') + '>';
+      html += '<div class="dk-top">';
+      html += '<button class="dk-skip" id="pc-skipBack5" onclick="pcSkipAudio(-5)" title="Voltar 5s"><svg viewBox="0 0 24 24"><path d="M9 14l-4-4 4-4"/><path d="M5 10h9a6 6 0 010 12H11"/></svg></button>';
+      html += '<button class="dk-play" onclick="pcToggleAudio()"><svg class="ic-play" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg><svg class="ic-pause" viewBox="0 0 24 24"><rect x="5" y="3" width="4" height="18" rx="1"/><rect x="15" y="3" width="4" height="18" rx="1"/></svg></button>';
+      html += '<button class="dk-skip" id="pc-skipFwd5" onclick="pcSkipAudio(5)" title="Avancar 5s"><svg viewBox="0 0 24 24"><path d="M15 14l4-4-4-4"/><path d="M19 10h-9a6 6 0 000 12h3"/></svg></button>';
+      html += '</div>';
+      html += '<canvas class="dk-waveform" id="pc-waveformCanvas"></canvas>';
+      html += '<div class="dk-prog-wrap" onclick="pcSeekAudio(event)"><div class="dk-prog-fill" id="pc-progressFill"></div></div>';
+      html += '<div class="dk-timer"><span id="pc-audioTimerCurrent">0:00</span><span id="pc-audioTimerTotal">0:00</span></div>';
+      html += '<div class="dk-speed-row"><button class="dk-speed" id="pc-speedCycle" onclick="pcCicloVelocidade()">1x</button></div>';
+      html += '</div>';
+
+      var palavrasArr = summaryText.trim().split(/\s+/).filter(Boolean);
+      pcState.transcricaoPalavras = palavrasArr;
+      pcState.lastKaraokeIdx = null;
+
+      html += '<div class="trans-toggle" id="pc-transToggle" onclick="pcToggleTranscricao()"><span id="pc-transToggleLabel">Ver transcricao</span><svg viewBox="0 0 24 24"><polyline points="6,9 12,15 18,9"/></svg></div>';
+      html += '<div class="trans-box" id="pc-transBox"><div class="trans-inner" id="pc-transInner">';
+      palavrasArr.forEach(function(w, idx){
+        html += '<span class="tw-word" data-idx="' + idx + '" onclick="pcSeekToWord(' + idx + ')">' + escHtml(w) + '</span> ';
+      });
+      html += '</div></div>';
+    }
+
+    html += '<div class="detail-actions">';
+    html += '<button class="btn btn-p" onclick="toast(\'Consulta iniciada\',\'ok\')" style="flex:1;justify-content:center"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.18 2a2 2 0 012-1.82h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Iniciar consulta</button>';
+    html += '<button class="btn btn-s" onclick="pcOpenIclModal()" style="background:rgba(21,101,192,.08);border-color:rgba(21,101,192,.18);color:#1565C0"><svg viewBox="0 0 24 24" style="stroke:#1565C0"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>iClinic</button>';
+    html += '</div>';
+
+    var alertas = summary.alertas || [];
+    if(alertas.length > 0){
+      html += '<div class="section-lbl">Pontos de atencao</div>';
+      alertas.forEach(function(a){
+        var tipo = (a.tipo || 'INFO').toLowerCase();
+        var titulo = a.titulo || (a.mensagem || '').substring(0,40);
+        var msg = a.titulo ? (a.mensagem || '') : '';
+        var iconColor = tipo === 'urgente' ? 'red' : (tipo === 'atencao' ? 'yellow' : 'blue');
+        var iconSvg = {
+          urgente: '<svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>',
+          atencao: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+          info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'
+        }[tipo] || '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
+        html += '<div class="ins-card ' + tipo + '">';
+        html += '<div class="ins-icon ' + iconColor + '">' + iconSvg + '</div>';
+        html += '<div class="ins-content"><div class="ins-title">' + escHtml(titulo) + '</div>';
+        if(msg) html += '<div class="ins-msg">' + escHtml(msg) + '</div>';
+        html += '</div></div>';
+      });
+    }
+
+    var blocos = summary.blocos || [];
+    var blocoMap = {};
+    blocos.forEach(function(b){ if(b.conteudo && b.conteudo.trim()) blocoMap[(b.titulo||'').toLowerCase()] = b.conteudo.trim(); });
+    function findBloco(keywords){
+      for(var k in blocoMap){ for(var i=0;i<keywords.length;i++){ if(k.indexOf(keywords[i]) !== -1) return blocoMap[k]; } }
+      return null;
+    }
+    var queixaRaw = findBloco(['queixa','motivo']) || r.queixaPrincipal || r.queixa || '';
+    if(r.duracaoSintomas && queixaRaw && queixaRaw.indexOf(r.duracaoSintomas) === -1) queixaRaw += ' (' + r.duracaoSintomas + ')';
+    var historicoRaw = findBloco(['historico relevante','doenca','cirurgi','internac']) || [r.doencasAtuais, r.cirurgias, r.historicoInternacoes].filter(Boolean).join('. ');
+
+    var refHtml = '';
+    if(queixaRaw){
+      refHtml += '<div class="ins-card queixa"><div class="ins-icon blue"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>';
+      refHtml += '<div class="ins-content"><div class="ins-title">Queixa principal</div><div class="ins-msg">' + escHtml(queixaRaw) + '</div></div></div>';
+    }
+    if(historicoRaw){
+      refHtml += '<div class="ins-card historico"><div class="ins-icon purple"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>';
+      refHtml += '<div class="ins-content"><div class="ins-title">Historico relevante</div><div class="ins-msg">' + escHtml(historicoRaw) + '</div></div></div>';
+    }
+    if(refHtml){
+      html += '<div class="section-lbl" style="margin-top:16px">Referencia</div>';
+      html += refHtml;
+    }
+    html += '</div>'; // left-col
+
+    // Right column
+    html += '<div class="right-cards">';
+    var pacMeds = pcState.currentPacienteData ? (pcState.currentPacienteData.medicamentos || []) : [];
+    var pacAlergias = pcState.currentPacienteData ? (pcState.currentPacienteData.alergias || []) : [];
+    var pacExames = pcState.currentPacienteData ? (pcState.currentPacienteData.exames || []) : [];
+    var medsAtivos = pacMeds.filter(function(m){ return m.ativo; });
+    var alergiasGraves = pacAlergias.filter(function(a){ return a.gravidade === 'GRAVE'; }).length;
+
+    var medsChip = medsAtivos.length > 0 ? medsAtivos.length + ' ativo' + (medsAtivos.length !== 1 ? 's' : '') : 'Nenhum';
+    var medNames = medsAtivos.map(function(m){ return escHtml(m.nome); }).join(', ');
+    var medsDesc = medsAtivos.length > 0 ? medNames : 'Nenhum medicamento em uso';
+    html += '<div style="background:#fff;border:1px solid #EAECF0;border-radius:12px;padding:18px;box-shadow:0 1px 2px rgba(16,24,40,.04)">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+    html += '<div style="width:40px;height:40px;background:#ECFDF5;border-radius:10px;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:#00C47A;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></div>';
+    html += '<div style="padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;background:#ECFDF5;color:#027A48;display:flex;align-items:center;gap:5px"><span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span>' + medsChip + '</div>';
+    html += '</div>';
+    html += '<div style="font-size:15px;font-weight:700;color:#0D0F14;margin-bottom:4px">Medicamentos em uso</div>';
+    html += '<div style="font-size:12px;color:#6B7280;line-height:1.5">' + medsDesc + '</div>';
+    html += '</div>';
+
+    var alergiasCount = pacAlergias.length;
+    var alergiasChipClass = alergiasGraves > 0 ? 'background:#FEF3F2;color:#B42318' : 'background:#ECFDF5;color:#027A48';
+    var alergiasChipText = alergiasCount > 0 ? (alergiasGraves > 0 ? alergiasGraves + ' grave' + (alergiasGraves !== 1 ? 's' : '') : alergiasCount + ' registrada' + (alergiasCount !== 1 ? 's' : '')) : 'Nenhuma';
+    var alergNames = pacAlergias.map(function(a){ return escHtml(a.nome); }).join(', ');
+    var alergiasDesc = alergiasCount > 0 ? alergNames + (alergiasGraves > 0 ? ' -- reacoes graves registradas' : '') : 'Nenhuma alergia registrada';
+    var alergiasCardBorder = alergiasGraves > 0 ? 'border-color:#FECDCA' : '';
+    var alergiasIconBg = alergiasGraves > 0 ? 'background:#FEF3F2' : 'background:#ECFDF5';
+    var alergiasIconStroke = alergiasGraves > 0 ? 'stroke:#EF4444' : 'stroke:#00C47A';
+    html += '<div style="background:#fff;border:1px solid #EAECF0;border-radius:12px;padding:18px;box-shadow:0 1px 2px rgba(16,24,40,.04);' + alergiasCardBorder + '">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+    html += '<div style="width:40px;height:40px;' + alergiasIconBg + ';border-radius:10px;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:20px;height:20px;' + alergiasIconStroke + ';fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg></div>';
+    html += '<div style="padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;' + alergiasChipClass + ';display:flex;align-items:center;gap:5px"><span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span>' + alergiasChipText + '</div>';
+    html += '</div>';
+    html += '<div style="font-size:15px;font-weight:700;color:#0D0F14;margin-bottom:4px">Alergias</div>';
+    html += '<div style="font-size:12px;color:#6B7280;line-height:1.5">' + alergiasDesc + '</div>';
+    html += '</div>';
+
+    html += '<div style="margin-top:4px">';
+    html += '<div style="font-size:19px;font-weight:800;color:var(--green);letter-spacing:-.4px;margin-bottom:12px">Exames de ' + escHtml((pc.pacienteNome || '').split(' ')[0]) + '</div>';
+    html += '<div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Buscar exame..." style="width:100%;padding:10px 12px 10px 36px;background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:12px;font-family:var(--font);font-size:13px;color:var(--t1);outline:none" oninput="pcFilterExames(this.value)"></div>';
+    html += '<div id="pc-examesList" style="max-height:400px;overflow-y:auto">';
+    if(pacExames.length){
+      pacExames.forEach(function(e){
+        var tipo = escHtml(e.tipoExame || 'Exame');
+        var nome = escHtml(e.nomeArquivo || tipo);
+        var meta = pcFmtDateLong(e.dataExame) + (e.laboratorio ? ' -- ' + escHtml(e.laboratorio) : '');
+        var thumbHtml = '';
+        if(e.arquivoUrl){
+          thumbHtml = '<img src="'+e.arquivoUrl+'" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.parentElement.innerHTML=\'<div style=\\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f6f8\\\'><svg width=\\\'28\\\' height=\\\'28\\\' viewBox=\\\'0 0 24 24\\\' fill=\\\'none\\\' stroke=\\\'rgba(13,15,20,.12)\\\' stroke-width=\\\'1.5\\\'><path d=\\\'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z\\\'/><polyline points=\\\'14 2 14 8 20 8\\\'/></svg></div>\'">';
+        } else {
+          thumbHtml = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f6f8"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,.12)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>';
+        }
+        var examUrl = e.arquivoUrl ? String(e.arquivoUrl).replace(/'/g,"\\'") : '';
+        var examClick = examUrl ? 'onclick="window.open(\''+examUrl+'\',\'_blank\',\'noopener\')" style="cursor:pointer;' : 'style="';
+        html += '<div class="exame-item" data-nome="' + (tipo+' '+nome).toLowerCase() + '" '+examClick+'border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);padding:10px;margin-bottom:10px;transition:box-shadow .15s"  onmouseover="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.08),0 6px 24px rgba(0,0,0,.06)\'" onmouseout="this.style.boxShadow=\'0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)\'">';
+        html += '<div style="display:flex;gap:14px;align-items:stretch">';
+        html += '<div style="width:90px;min-height:100px;border-radius:8px;background:#f0f2f5;overflow:hidden;flex-shrink:0">' + thumbHtml + '</div>';
+        html += '<div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0">';
+        html += '<div style="font-size:11px;color:rgba(13,15,20,.4);text-transform:capitalize;line-height:1.3">' + tipo + '</div>';
+        html += '<div style="font-size:14px;font-weight:700;color:var(--green);line-height:1.35">' + nome + '</div>';
+        html += '<div style="font-size:11px;color:rgba(13,15,20,.35);margin-top:2px">' + meta + '</div>';
+        html += '</div></div></div>';
+      });
+    } else {
+      html += '<div style="text-align:center;padding:30px 10px;color:var(--t3);font-size:13px">' + (pcState.currentPacienteData ? 'Nenhum exame registrado' : 'Paciente sem cadastro completo') + '</div>';
+    }
+    html += '</div></div>';
+    html += '</div>'; // right-cards
+    html += '</div>'; // detail-grid
+
+    detailEl.innerHTML = html;
+
+    // Init canvas waveform
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        pcState.canvasEl = document.getElementById('pc-waveformCanvas');
+        if(pcState.canvasEl){
+          var dpr = window.devicePixelRatio || 1;
+          var rect = pcState.canvasEl.getBoundingClientRect();
+          pcState.canvasEl.width = (rect.width || 300) * dpr;
+          pcState.canvasEl.height = (rect.height || 48) * dpr;
+          pcState.canvasCtx = pcState.canvasEl.getContext('2d');
+          pcState.canvasCtx.scale(dpr, dpr);
+          pcDrawIdleWaveform();
+        }
+      });
+    });
+  }catch(err){
+    detailEl.innerHTML = '<button class="back-btn" onclick="navigate(\'pre-consultas\')"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Voltar</button><div class="no-data">Erro ao carregar: ' + (err.message || '') + '</div>';
+  }
+}
+
+/* ---------- Audio cleanup (chamado ao trocar view) ---------- */
+function pcStopAudio(){
+  if(pcState.ttsAudio){ try{ pcState.ttsAudio.pause(); }catch(e){} pcState.ttsAudio = null; }
+  pcState.ttsPlaying = false;
+  if(pcState.animFrameId){ cancelAnimationFrame(pcState.animFrameId); pcState.animFrameId = null; }
+  pcState.transcricaoPalavras = [];
+  pcState.lastKaraokeIdx = null;
+  if(typeof speechSynthesis !== 'undefined') try{ speechSynthesis.cancel(); }catch(e){}
+}
+
+/* ---------- AUDIO PLAYER ---------- */
+if(typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+    if(typeof r === 'number') r = [r,r,r,r];
+    var rad = r[0] || 0;
+    this.moveTo(x+rad,y); this.lineTo(x+w-rad,y); this.quadraticCurveTo(x+w,y,x+w,y+rad);
+    this.lineTo(x+w,y+h-rad); this.quadraticCurveTo(x+w,y+h,x+w-rad,y+h);
+    this.lineTo(x+rad,y+h); this.quadraticCurveTo(x,y+h,x,y+h-rad);
+    this.lineTo(x,y+rad); this.quadraticCurveTo(x,y,x+rad,y); this.closePath();
+  };
+}
+
+function pcInitAudioContext(){
+  if(pcState.audioCtx) return;
+  pcState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  pcState.analyser = pcState.audioCtx.createAnalyser();
+  pcState.analyser.fftSize = 128;
+  pcState.analyser.smoothingTimeConstant = 0.8;
+}
+function pcConnectAudioToAnalyser(el){
+  if(pcState.audioSource){ try{ pcState.audioSource.disconnect(); }catch(e){} }
+  pcState.audioSource = pcState.audioCtx.createMediaElementSource(el);
+  pcState.audioSource.connect(pcState.analyser);
+  pcState.analyser.connect(pcState.audioCtx.destination);
+}
+function pcDrawWaveform(){
+  if(!pcState.canvasEl || !pcState.canvasCtx || !pcState.analyser) return;
+  var dpr = window.devicePixelRatio || 1;
+  var W = pcState.canvasEl.width / dpr, H = pcState.canvasEl.height / dpr;
+  var bufLen = pcState.analyser.frequencyBinCount;
+  var dataArr = new Uint8Array(bufLen);
+  function draw(){
+    pcState.animFrameId = requestAnimationFrame(draw);
+    pcState.analyser.getByteFrequencyData(dataArr);
+    pcState.canvasCtx.clearRect(0,0,W,H);
+    var barCount = 40, gap = 3, barW = (W - (barCount-1)*gap)/barCount;
+    var step = Math.floor(bufLen/barCount);
+    for(var i=0;i<barCount;i++){
+      var val = dataArr[i*step]/255;
+      var barH = Math.max(3, val*H*0.9);
+      var x = i*(barW+gap), y = (H-barH)/2;
+      var ratio = i/barCount;
+      var g = Math.round(229 - ratio*40), b = Math.round(160 + ratio*56);
+      pcState.canvasCtx.fillStyle = 'rgba(0,'+g+','+b+','+(0.5+val*0.5)+')';
+      pcState.canvasCtx.beginPath(); pcState.canvasCtx.roundRect(x,y,barW,barH,barW/2); pcState.canvasCtx.fill();
+    }
+  }
+  draw();
+}
+function pcDrawIdleWaveform(){
+  if(!pcState.canvasEl || !pcState.canvasCtx) return;
+  var dpr = window.devicePixelRatio || 1;
+  var W = pcState.canvasEl.width / dpr, H = pcState.canvasEl.height / dpr;
+  pcState.canvasCtx.clearRect(0,0,W,H);
+  var barCount = 40, gap = 3, barW = (W - (barCount-1)*gap)/barCount;
+  for(var i=0;i<barCount;i++){
+    var val = 0.15 + 0.12*Math.sin(i*0.3);
+    var barH = Math.max(3, val*H);
+    var x = i*(barW+gap), y = (H-barH)/2;
+    var ratio = i/barCount;
+    var g = Math.round(229 - ratio*40), b = Math.round(160 + ratio*56);
+    pcState.canvasCtx.fillStyle = 'rgba(0,'+g+','+b+',0.2)';
+    pcState.canvasCtx.beginPath(); pcState.canvasCtx.roundRect(x,y,barW,barH,barW/2); pcState.canvasCtx.fill();
+  }
+}
+function pcToggleAudio(){
+  var player = document.getElementById('pc-audioPlayer');
+  if(!player) return;
+  if(pcState.ttsPlaying){
+    if(pcState.ttsAudio) pcState.ttsAudio.pause();
+    pcState.ttsPlaying = false;
+    player.classList.remove('playing'); player.classList.add('idle');
+    if(pcState.animFrameId){ cancelAnimationFrame(pcState.animFrameId); pcState.animFrameId = null; }
+    pcDrawIdleWaveform();
+    return;
+  }
+  var cachedUrl = player.dataset.audioUrl;
+  if(cachedUrl){ pcPlayAudioUrl(cachedUrl); return; }
+  var pcId = pcState.currentPC && pcState.currentPC.id;
+  var token = null;
+  try{ token = localStorage.getItem('vitae_token'); }catch(e){}
+  if(pcId && token){
+    fetch((typeof API_URL !== 'undefined' ? API_URL : '') + '/pre-consulta/' + pcId + '/tts', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r){
+      if(!r.ok) return r.json().then(function(j){ throw new Error(j.erro || 'TTS '+r.status); });
+      return r.blob();
+    }).then(function(blob){
+      var url = URL.createObjectURL(blob);
+      player.dataset.audioUrl = url;
+      pcPlayAudioUrl(url);
+    }).catch(function(){ pcFallbackBrowserTTS(); });
+    return;
+  }
+  pcFallbackBrowserTTS();
+}
+function pcPlayAudioUrl(url){
+  var player = document.getElementById('pc-audioPlayer');
+  pcInitAudioContext();
+  if(pcState.audioCtx.state === 'suspended') pcState.audioCtx.resume();
+  if(!pcState.ttsAudio || pcState.ttsAudio.src !== url){
+    pcState.ttsAudio = new Audio(url);
+    pcState.ttsAudio.crossOrigin = 'anonymous';
+    try{ pcConnectAudioToAnalyser(pcState.ttsAudio); }catch(e){}
+  }
+  if(pcState.audioPlaybackRate) pcState.ttsAudio.playbackRate = pcState.audioPlaybackRate;
+  pcState.ttsAudio.play().then(function(){
+    pcState.ttsPlaying = true;
+    player.classList.add('playing'); player.classList.remove('idle');
+    pcDrawWaveform();
+  }).catch(function(){ pcFallbackBrowserTTS(); });
+  pcState.ttsAudio.onloadedmetadata = function(){
+    var tot = document.getElementById('pc-audioTimerTotal');
+    if(tot && pcState.ttsAudio.duration) tot.textContent = pcFormatTime(pcState.ttsAudio.duration);
+  };
+  pcState.ttsAudio.ontimeupdate = function(){
+    var pct = pcState.ttsAudio.duration ? (pcState.ttsAudio.currentTime / pcState.ttsAudio.duration * 100) : 0;
+    var fill = document.getElementById('pc-progressFill');
+    if(fill) fill.style.width = pct + '%';
+    var cur = document.getElementById('pc-audioTimerCurrent');
+    var tot = document.getElementById('pc-audioTimerTotal');
+    if(cur) cur.textContent = pcFormatTime(pcState.ttsAudio.currentTime);
+    if(tot && pcState.ttsAudio.duration) tot.textContent = pcFormatTime(pcState.ttsAudio.duration);
+    pcAtualizarKaraoke(pcState.ttsAudio.currentTime);
+  };
+  pcState.ttsAudio.onended = function(){
+    pcState.ttsPlaying = false;
+    player.classList.remove('playing'); player.classList.add('idle');
+    if(pcState.animFrameId){ cancelAnimationFrame(pcState.animFrameId); pcState.animFrameId = null; }
+    pcDrawIdleWaveform();
+    var fill = document.getElementById('pc-progressFill');
+    if(fill) fill.style.width = '0%';
+    pcState.lastKaraokeIdx = null;
+    document.querySelectorAll('.tw-word').forEach(function(s){ s.classList.remove('current'); s.classList.add('spoken'); });
+  };
+}
+function pcSeekAudio(e){
+  if(!pcState.ttsAudio || !pcState.ttsAudio.duration) return;
+  var rect = e.currentTarget.getBoundingClientRect();
+  pcState.ttsAudio.currentTime = ((e.clientX - rect.left)/rect.width) * pcState.ttsAudio.duration;
+}
+function pcSkipAudio(delta){
+  if(!pcState.ttsAudio) return;
+  pcState.ttsAudio.currentTime = Math.max(0, Math.min(pcState.ttsAudio.duration || 0, (pcState.ttsAudio.currentTime || 0) + delta));
+  var btn = delta > 0 ? document.getElementById('pc-skipFwd5') : document.getElementById('pc-skipBack5');
+  if(btn){ btn.classList.add('flash'); setTimeout(function(){ btn.classList.remove('flash'); }, 200); }
+}
+var PC_SPEED_CYCLE = [1, 1.5, 2];
+function pcCicloVelocidade(){
+  var atual = pcState.audioPlaybackRate || 1;
+  var idx = PC_SPEED_CYCLE.indexOf(atual);
+  var prox = PC_SPEED_CYCLE[(idx + 1) % PC_SPEED_CYCLE.length];
+  if(pcState.ttsAudio) pcState.ttsAudio.playbackRate = prox;
+  pcState.audioPlaybackRate = prox;
+  var btn = document.getElementById('pc-speedCycle');
+  if(btn){ btn.textContent = prox + 'x'; btn.classList.toggle('boosted', prox !== 1); }
+}
+function pcFallbackBrowserTTS(){
+  var player = document.getElementById('pc-audioPlayer');
+  var text = player ? player.dataset.summaryText : '';
+  if(!text || !window.speechSynthesis) return;
+  var utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'pt-BR'; utt.rate = 0.95;
+  utt.onstart = function(){ pcState.ttsPlaying = true; if(player){ player.classList.add('playing'); player.classList.remove('idle'); } };
+  utt.onend = function(){ pcState.ttsPlaying = false; if(player){ player.classList.remove('playing'); player.classList.add('idle'); } };
+  speechSynthesis.speak(utt);
+}
+
+/* ---------- TRANSCRICAO KARAOKE ---------- */
+function pcToggleTranscricao(){
+  var t = document.getElementById('pc-transToggle');
+  var box = document.getElementById('pc-transBox');
+  var lbl = document.getElementById('pc-transToggleLabel');
+  if(!t || !box) return;
+  var aberto = box.classList.toggle('open');
+  t.classList.toggle('open', aberto);
+  if(lbl) lbl.textContent = aberto ? 'Ocultar transcricao' : 'Ver transcricao';
+  if(aberto) pcSetupTransScrollListener();
+}
+function pcSeekToWord(idx){
+  if(!pcState.transcricaoPalavras.length) return;
+  var inner = document.getElementById('pc-transInner');
+  if(inner){
+    var spans = inner.querySelectorAll('.tw-word');
+    if(spans[idx]){ spans[idx].classList.remove('pulse'); void spans[idx].offsetWidth; spans[idx].classList.add('pulse'); }
+  }
+  var player = document.getElementById('pc-audioPlayer');
+  var cachedUrl = player && player.dataset.audioUrl;
+  if(!pcState.ttsAudio && cachedUrl){
+    pcPlayAudioUrl(cachedUrl);
+    var tryNav = function(){
+      if(pcState.ttsAudio && pcState.ttsAudio.duration){ pcState.ttsAudio.currentTime = idx * (pcState.ttsAudio.duration / pcState.transcricaoPalavras.length); }
+      else setTimeout(tryNav, 100);
+    };
+    tryNav();
+    return;
+  }
+  if(pcState.ttsAudio && pcState.ttsAudio.duration){
+    pcState.ttsAudio.currentTime = idx * (pcState.ttsAudio.duration / pcState.transcricaoPalavras.length);
+  }
+}
+function pcSetupTransScrollListener(){
+  var box = document.getElementById('pc-transBox');
+  if(!box || box._scrollBound) return;
+  box._scrollBound = true;
+  box.addEventListener('scroll', function(){
+    if(window._programmaticScroll) return;
+    pcState.autoFollowPausedUntil = Date.now() + 4000;
+  });
+}
+function pcAtualizarKaraoke(currentTime){
+  if(!pcState.transcricaoPalavras.length || !pcState.ttsAudio || !pcState.ttsAudio.duration) return;
+  var inner = document.getElementById('pc-transInner');
+  if(!inner) return;
+  var tpp = pcState.ttsAudio.duration / pcState.transcricaoPalavras.length;
+  var idxAtual = Math.floor((currentTime + 0.2) / tpp);
+  if(idxAtual >= pcState.transcricaoPalavras.length) idxAtual = pcState.transcricaoPalavras.length - 1;
+  if(idxAtual < 0) idxAtual = -1;
+  if(pcState.lastKaraokeIdx === idxAtual) return;
+  pcState.lastKaraokeIdx = idxAtual;
+  var spans = inner.querySelectorAll('.tw-word');
+  spans.forEach(function(s, i){
+    s.classList.remove('current','spoken');
+    if(i < idxAtual) s.classList.add('spoken');
+    else if(i === idxAtual) s.classList.add('current');
+  });
+  if(Date.now() < pcState.autoFollowPausedUntil) return;
+  var box = document.getElementById('pc-transBox');
+  if(box && box.classList.contains('open') && idxAtual >= 0 && spans[idxAtual]){
+    var boxRect = box.getBoundingClientRect();
+    var curRect = spans[idxAtual].getBoundingClientRect();
+    var targetY = boxRect.top + 72;
+    if(curRect.top < boxRect.top + 10 || curRect.top > targetY + 30){
+      window._programmaticScroll = true;
+      box.scrollTop += (curRect.top - targetY);
+      setTimeout(function(){ window._programmaticScroll = false; }, 50);
+    }
+  }
+}
+
+/* ---------- iCLINIC EXPORT ---------- */
+function pcOpenIclModal(){
+  if(!pcState.currentPC) return;
+  var pc = pcState.currentPC;
+  var summary = pc.summaryJson || {};
+  var r = pc.respostas || {};
+  var summaryText = summary.textoVoz || summary.summaryTexto || pc.summaryIA || '';
+  var alertas = summary.alertas || [];
+  document.getElementById('pc-iclSubtitle').textContent = (pc.pacienteNome || 'Paciente');
+
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  var timeStr = now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  var urgStr = 'ROTINA';
+  if(alertas.some(function(a){ return (a.tipo || '').toLowerCase() === 'urgente'; })) urgStr = 'URGENTE -- Investigacao prioritaria';
+  else if(alertas.some(function(a){ return (a.tipo || '').toLowerCase() === 'atencao'; })) urgStr = 'ATENCAO -- Monitoramento necessario';
+
+  var queixa = r.queixaPrincipal || r.queixa || '';
+  var meds = r.medicamentosEmUso || '';
+  var alergias = r.alergias || '';
+  var historico = [r.doencasAtuais, r.cirurgias, r.historicoInternacoes].filter(Boolean).join('. ') || '';
+
+  var note = '======================================\n' +
+    '   RESUMO PRE-CONSULTA -- vitaid\n' +
+    '   ' + (pc.pacienteNome || 'Paciente') + '\n' +
+    '   ' + dateStr + ' as ' + timeStr + '\n' +
+    '   ' + urgStr + '\n' +
+    '======================================\n\n';
+  if(summaryText) note += '> RESUMO CLINICO\n' + summaryText + '\n\n';
+  if(queixa) note += '> QUEIXA PRINCIPAL\n' + queixa + '\n\n';
+  if(historico) note += '> HISTORICO\n' + historico + '\n\n';
+  if(meds) note += '> MEDICAMENTOS EM USO\n' + meds + '\n\n';
+  if(alergias) note += '> ALERGIAS\n' + alergias + '\n\n';
+  if(alertas.length){
+    note += '> PONTOS DE ATENCAO\n';
+    alertas.forEach(function(a){ note += '- ' + (a.titulo || '') + ': ' + (a.mensagem || '') + '\n'; });
+    note += '\n';
+  }
+  note += '-----------------------------------------\n' +
+    'Resumo gerado pelo vitaid.\n' +
+    'Este resumo nao substitui a avaliacao clinica.\n' +
+    '-----------------------------------------';
+
+  document.getElementById('pc-iclNote').textContent = note;
+  document.getElementById('pc-iclCopyTxt').textContent = 'Copiar texto';
+  document.getElementById('pc-iclCopyBtn').className = 'btn btn-p';
+  document.getElementById('pc-modalIcl').classList.add('show');
+}
+function pcCloseIclModal(){ var m = document.getElementById('pc-modalIcl'); if(m) m.classList.remove('show'); }
+function pcSelectAllEl(el){
+  var range = document.createRange(); range.selectNodeContents(el);
+  var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+}
+function pcCopyIclinic(){
+  var text = document.getElementById('pc-iclNote').textContent;
+  navigator.clipboard.writeText(text).then(function(){
+    document.getElementById('pc-iclCopyTxt').textContent = 'Copiado!';
+    toast('Texto copiado -- cole no prontuario do iClinic','ok');
+    setTimeout(function(){ document.getElementById('pc-iclCopyTxt').textContent = 'Copiar texto'; }, 3000);
+  }).catch(function(){
+    pcSelectAllEl(document.getElementById('pc-iclNote'));
+    toast('Selecione e copie manualmente (Ctrl+C)','warn');
+  });
+}
+function pcDownloadIclinic(){
+  var text = document.getElementById('pc-iclNote').textContent;
+  var name = (pcState.currentPC.pacienteNome || 'paciente').replace(/\s+/g,'-').toLowerCase();
+  var date = new Date().toISOString().split('T')[0];
+  var a = document.createElement('a');
+  a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+  a.download = 'vitaid-resumo-' + name + '-' + date + '.txt';
+  a.click();
+  toast('Arquivo baixado','ok');
+}
+
+/* ---------- View leave hook (pausar audio ao sair de pre-consultas) ---------- */
+function onViewLeave(){
+  // Se estava em pre-consultas (com player), para tudo
+  pcStopAudio();
+}
+
+/* ============================================================
+   VIEW: PACIENTES (Fase 3)
+   ============================================================ */
+var ptState = { filter: 'all', search: '', currentPatientId: null };
+
+function renderPacientes(param){
+  var u = state.usuario || {};
+  var ini = getInitials(u.nome || '');
+  // Sidebar ja foi populada pelo boot, nao precisa repetir
+
+  // Se param tem id, abre detalhe — mas ainda precisamos do nome/tel
+  if(param){
+    // Procura na lista
+    var pac = (state.allPacientes || []).find(function(p){ return p.pacienteId === param; });
+    if(pac){
+      ptOpenPatient(pac.pacienteId, pac.pacienteNome || pac.nome, pac.pacienteTel || '');
+    } else {
+      ptOpenPatient(param, '', '');
+    }
+    return;
+  }
+
+  // Mostra lista
+  document.getElementById('pt-detailView').classList.remove('show');
+  document.getElementById('pt-detailView').style.display = 'none';
+  document.getElementById('pt-listView').style.display = 'block';
+  ptRenderPatients();
+}
+
+function ptRenderPatients(){
+  var search = (document.getElementById('pt-ptSearch').value || '').toLowerCase();
+  var list = (state.allPacientes || []).filter(function(p){
+    var name = (p.pacienteNome || p.nome || '').toLowerCase();
+    var matchSearch = !search || name.includes(search);
+    var hasPC = (p.preConsultasCount || 0) > 0;
+    var hasVinculo = !!p.pacienteId;
+    if(ptState.filter === 'with-pc' && !hasPC) return false;
+    if(ptState.filter === 'no-vinculo' && hasVinculo) return false;
+    return matchSearch;
+  });
+
+  var tbody = document.getElementById('pt-ptTableBody');
+  if(!list.length){
+    tbody.innerHTML = '';
+    document.getElementById('pt-ptEmpty').style.display = 'block';
+    document.getElementById('pt-ptCount').textContent = '0 pacientes';
+    return;
+  }
+  document.getElementById('pt-ptEmpty').style.display = 'none';
+  document.getElementById('pt-ptCount').textContent = list.length + ' paciente' + (list.length !== 1 ? 's' : '');
+
+  tbody.innerHTML = list.map(function(p){
+    var name = p.pacienteNome || p.nome || 'Paciente';
+    var tel = p.pacienteTel || '';
+    var pcCount = p.preConsultasCount || 0;
+    var lastDate = p.ultimaAtividade || p.respondidaEm || '';
+    var initials = getInitials(name);
+
+    return '<div class="tr" style="grid-template-columns:2fr 1fr 1fr 80px" onclick="ptOpenPatient(\'' + (p.pacienteId || '') + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')">' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        renderAvatar(p, initials, 30) +
+        '<div><div class="tc">' + s(name) + '</div><div class="ts">' + s(tel) + '</div></div>' +
+      '</div>' +
+      '<span class="tc">' + pcCount + ' pre-consulta' + (pcCount !== 1 ? 's' : '') + '</span>' +
+      '<span class="tc" style="color:var(--t3)">' + (lastDate ? ptFmtDateLong(lastDate) : '--') + '</span>' +
+      '<button class="sbtn sbtn-g" onclick="event.stopPropagation();ptOpenPatient(\'' + (p.pacienteId || '') + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')">Ver</button>' +
+    '</div>';
+  }).join('');
+}
+
+async function ptOpenPatient(pacienteId, name, tel){
+  ptState.currentPatientId = pacienteId;
+  document.getElementById('pt-listView').style.display = 'none';
+  var detail = document.getElementById('pt-detailView');
+  detail.classList.add('show');
+  detail.style.display = 'block';
+
+  var initials = getInitials(name);
+  document.getElementById('pt-pdAvatar').textContent = initials;
+  document.getElementById('pt-pdName').textContent = name;
+  document.getElementById('pt-pdMeta').textContent = tel || '';
+
+  if(!pacienteId){
+    document.getElementById('pt-pdNoVinculo').style.display = 'block';
+    document.getElementById('pt-noVinculoMsg').textContent = name + ' respondeu uma pre-consulta antes de criar conta no vita id. Sem cadastro, nao ha exames, alergias ou medicamentos para mostrar.';
+    document.getElementById('pt-pdCards').style.display = 'none';
+    ptRenderPatientPCs(name);
+    return;
+  }
+
+  document.getElementById('pt-pdNoVinculo').style.display = 'none';
+  document.getElementById('pt-pdCards').style.display = 'block';
+
+  ['pt-bodyAlergias','pt-bodyMeds','pt-bodyExames','pt-bodyCondicoes'].forEach(function(id){
+    document.getElementById(id).innerHTML = '<div class="pd-empty">Carregando...</div>';
+  });
+  ['pt-countAlergias','pt-countMeds','pt-countExames','pt-countCondicoes'].forEach(function(id){
+    document.getElementById(id).textContent = '...';
+  });
+
+  try{
+    var result = await vitaeAPI.getPerfilPacienteMedico(pacienteId);
+    var pac = result.paciente || {};
+    var perfil = pac.perfilSaude || {};
+
+    var metaParts = [];
+    if(perfil.dataNascimento) metaParts.push(ptCalcAge(perfil.dataNascimento) + ' anos');
+    if(perfil.tipoSanguineo) metaParts.push(perfil.tipoSanguineo);
+    if(tel) metaParts.push(tel);
+    document.getElementById('pt-pdMeta').textContent = metaParts.join(' . ') || tel || '';
+
+    var alergias = pac.alergias || [];
+    document.getElementById('pt-countAlergias').textContent = alergias.length;
+    document.getElementById('pt-bodyAlergias').innerHTML = alergias.length
+      ? alergias.map(function(a){
+        var dotColor = a.gravidade === 'GRAVE' ? 'var(--bad)' : a.gravidade === 'MODERADA' ? 'var(--warn)' : 'var(--ok)';
+        return '<div class="pd-item"><div class="pd-dot" style="background:' + dotColor + '"></div><div><div class="pd-item-name">' + s(a.nome) + '</div><div class="pd-item-sub">' + (a.gravidade || '') + ' . ' + (a.tipo || '') + '</div></div></div>';
+      }).join('')
+      : '<div class="pd-empty">Nenhuma alergia registrada</div>';
+
+    var meds = pac.medicamentos || [];
+    document.getElementById('pt-countMeds').textContent = meds.length;
+    document.getElementById('pt-bodyMeds').innerHTML = meds.length
+      ? meds.map(function(m){
+        var dotColor = m.ativo ? 'var(--green)' : 'var(--t3)';
+        return '<div class="pd-item"><div class="pd-dot" style="background:' + dotColor + '"></div><div><div class="pd-item-name">' + s(m.nome) + '</div><div class="pd-item-sub">' + s(m.dosagem || '') + ' . ' + s(m.frequencia || '') + (m.ativo ? '' : ' . Descontinuado') + '</div></div></div>';
+      }).join('')
+      : '<div class="pd-empty">Nenhum medicamento registrado</div>';
+
+    var exames = pac.exames || [];
+    document.getElementById('pt-countExames').textContent = exames.length;
+    document.getElementById('pt-bodyExames').innerHTML = exames.length
+      ? exames.slice(0, 5).map(function(e){
+        var dotColor = e.status === 'CONCLUIDO' ? 'var(--ok)' : e.status === 'PROCESSANDO' ? 'var(--warn)' : 'var(--info)';
+        return '<div class="pd-item"><div class="pd-dot" style="background:' + dotColor + '"></div><div><div class="pd-item-name">' + s(e.tipoExame || e.nomeArquivo || 'Exame') + '</div><div class="pd-item-sub">' + (e.dataExame ? ptFmtDateLong(e.dataExame) : '') + ' . ' + (e.laboratorio || '') + '</div></div></div>';
+      }).join('') + (exames.length > 5 ? '<div class="pd-empty">+ ' + (exames.length - 5) + ' exames anteriores</div>' : '')
+      : '<div class="pd-empty">Nenhum exame registrado</div>';
+
+    var condicoes = [];
+    if(perfil.condicoes && perfil.condicoes.length) condicoes = condicoes.concat(perfil.condicoes.map(function(c){ return { nome:c, tipo:'Condicao' }; }));
+    if(perfil.cirurgias && perfil.cirurgias.length) condicoes = condicoes.concat(perfil.cirurgias.map(function(c){ return { nome:c, tipo:'Cirurgia' }; }));
+    if(perfil.historico_familiar && perfil.historico_familiar.length) condicoes = condicoes.concat(perfil.historico_familiar.map(function(c){ return { nome:c, tipo:'Historico familiar' }; }));
+    document.getElementById('pt-countCondicoes').textContent = condicoes.length;
+    document.getElementById('pt-bodyCondicoes').innerHTML = condicoes.length
+      ? condicoes.map(function(c){
+        return '<div class="pd-item"><div class="pd-dot" style="background:#8b5cf6"></div><div><div class="pd-item-name">' + s(c.nome) + '</div><div class="pd-item-sub">' + c.tipo + '</div></div></div>';
+      }).join('')
+      : '<div class="pd-empty">Nenhuma condicao registrada</div>';
+
+    ptRenderPatientPCs(name);
+  }catch(err){ toast('Erro ao carregar dados do paciente.','err'); }
+}
+
+function ptRenderPatientPCs(patientName){
+  var pcs = (state.allPC || []).filter(function(pc){
+    return (pc.pacienteNome || '').toLowerCase() === (patientName || '').toLowerCase();
+  });
+  var container = document.getElementById('pt-pdPreConsultas');
+  container.innerHTML = '<div class="slabel">Pre-consultas deste paciente</div>';
+  if(!pcs.length){
+    container.innerHTML += '<div class="pd-empty">Nenhuma pre-consulta encontrada</div>';
+    return;
+  }
+  pcs.forEach(function(pc){
+    var statusBadge = pc.status === 'RESPONDIDA' ? '<span class="badge b-ok">Respondida</span>' :
+                      pc.status === 'PENDENTE' ? '<span class="badge b-warn">Pendente</span>' :
+                      pc.status === 'ABERTO' ? '<span class="badge b-info">Aberto</span>' :
+                      '<span class="badge b-bad">Expirada</span>';
+    var clickAction = pc.status === 'RESPONDIDA' ? 'onclick="navigate(\'pre-consultas\',\'' + pc.id + '\')"' : '';
+    container.innerHTML += '<div class="pc-item" ' + clickAction + '>' +
+      statusBadge +
+      '<span class="tc" style="flex:1;margin-left:6px">' + s(pc.templateNome || 'Pre-consulta') + '</span>' +
+      '<span class="pc-date">' + ptFmtDateLong(pc.criadoEm || '') + '</span>' +
+    '</div>';
+  });
+}
+
+function ptBackToList(){
+  document.getElementById('pt-detailView').classList.remove('show');
+  document.getElementById('pt-detailView').style.display = 'none';
+  document.getElementById('pt-listView').style.display = 'block';
+  ptState.currentPatientId = null;
+}
+function ptToggleCard(titleEl){
+  var body = titleEl.nextElementSibling;
+  body.style.display = body.style.display === 'none' ? 'block' : 'none';
+}
+function ptSetFilter(el){
+  document.querySelectorAll('#pt-ptFilters .filter').forEach(function(f){ f.classList.remove('on'); });
+  el.classList.add('on');
+  ptState.filter = el.dataset.status;
+  ptRenderPatients();
+}
+function ptFilterPatients(){ ptRenderPatients(); }
+function ptExportCSV(){
+  if(!(state.allPacientes || []).length){ toast('Nenhum paciente para exportar.', 'warn'); return; }
+  var header = 'Nome,Telefone,Pre-consultas,Ultima atividade';
+  var rows = state.allPacientes.map(function(p){
+    return [p.pacienteNome || p.nome || '', p.pacienteTel || '', p.preConsultasCount || 0, p.ultimaAtividade || ''].join(',');
+  });
+  var csv = [header].concat(rows).join('\n');
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'vitaid-pacientes.csv';
+  a.click();
+  toast('Lista exportada com sucesso.','ok');
+}
+function ptCalcAge(dateStr){
+  if(!dateStr) return '';
+  var birth = new Date(dateStr);
+  var now = new Date();
+  var age = now.getFullYear() - birth.getFullYear();
+  var m = now.getMonth() - birth.getMonth();
+  if(m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+  return age;
+}
+function ptFmtDateLong(d){
+  if(!d) return '--';
+  var dt = new Date(d);
+  return dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+/* ============================================================
+   VIEW: CRM (Fase 4)
+   ============================================================ */
+var crmState = { filter: 'all' };
+
+function renderCrm(){
+  crmUpdateStats();
+  crmRenderList();
+}
+
+function crmUpdateStats(){
+  var pcs = state.allPC || [];
+  var total = pcs.length;
+  var respondidas = pcs.filter(function(pc){ return pc.status === 'RESPONDIDA'; }).length;
+  var pendentes = pcs.filter(function(pc){ return pc.status === 'PENDENTE' || pc.status === 'ABERTO'; }).length;
+  var now = new Date();
+  var overdue = pcs.filter(function(pc){
+    if(pc.status !== 'PENDENTE' && pc.status !== 'ABERTO') return false;
+    var created = new Date(pc.criadoEm);
+    return (now - created) / 86400000 > 7;
+  }).length;
+  document.getElementById('crm-crmTotal').textContent = total;
+  document.getElementById('crm-crmRespondidas').textContent = respondidas;
+  document.getElementById('crm-crmPendentes').textContent = pendentes;
+  document.getElementById('crm-crmOverdue').textContent = overdue;
+}
+
+function crmRenderList(){
+  var now = new Date();
+  var thirtyAgo = new Date(now); thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+  var list = (state.allPC || []).filter(function(pc){
+    if(crmState.filter === 'overdue') return (pc.status === 'PENDENTE' || pc.status === 'ABERTO') && (now - new Date(pc.criadoEm)) / 86400000 > 7;
+    if(crmState.filter === 'recent'){ var d = new Date(pc.respondidaEm || pc.criadoEm); return d >= thirtyAgo; }
+    if(crmState.filter === 'pending') return pc.status === 'PENDENTE' || pc.status === 'ABERTO';
+    if(crmState.filter === 'responded') return pc.status === 'RESPONDIDA';
+    return true;
+  });
+  list.sort(function(a, b){
+    var aOverdue = (a.status === 'PENDENTE' || a.status === 'ABERTO') && (now - new Date(a.criadoEm)) / 86400000 > 7;
+    var bOverdue = (b.status === 'PENDENTE' || b.status === 'ABERTO') && (now - new Date(b.criadoEm)) / 86400000 > 7;
+    if(aOverdue && !bOverdue) return -1;
+    if(!aOverdue && bOverdue) return 1;
+    return new Date(b.criadoEm) - new Date(a.criadoEm);
+  });
+
+  var body = document.getElementById('crm-crmBody');
+  if(!list.length){
+    body.innerHTML = '';
+    document.getElementById('crm-crmEmpty').style.display = 'block';
+    return;
+  }
+  document.getElementById('crm-crmEmpty').style.display = 'none';
+
+  body.innerHTML = list.map(function(pc){
+    var name = pc.pacienteNome || 'Paciente';
+    var ini = getInitials(name);
+    var isOverdue = (pc.status === 'PENDENTE' || pc.status === 'ABERTO') && (now - new Date(pc.criadoEm)) / 86400000 > 7;
+    var isPending = pc.status === 'PENDENTE' || pc.status === 'ABERTO';
+    var isResponded = pc.status === 'RESPONDIDA';
+    var statusBadge = isOverdue ? '<span class="badge b-bad">Atrasado</span>' :
+                      isPending ? '<span class="badge b-warn">Pendente</span>' :
+                      isResponded ? '<span class="badge b-ok">Respondida</span>' :
+                      '<span class="badge b-info">Expirada</span>';
+    var dateStr = fmtDate(pc.respondidaEm || pc.criadoEm || '');
+    var daysAgo = Math.floor((now - new Date(pc.criadoEm)) / 86400000);
+    var daysText = daysAgo === 0 ? 'hoje' : daysAgo === 1 ? 'ontem' : daysAgo + ' dias';
+
+    var actionBtn = '';
+    if(isPending && pc.pacienteTel){
+      actionBtn = '<button class="sbtn sbtn-g" onclick="event.stopPropagation();crmReenviarWA(\'' + sa(name) + '\',\'' + (pc.pacienteTel || '') + '\',\'' + (pc.linkToken || '') + '\')">Reenviar</button>';
+    } else if(isPending && pc.linkToken){
+      actionBtn = '<button class="sbtn sbtn-g" onclick="event.stopPropagation();crmCopyLink(\'' + pc.linkToken + '\')">Copiar link</button>';
+    } else if(isResponded){
+      actionBtn = '<button class="sbtn sbtn-d" onclick="event.stopPropagation();navigate(\'pre-consultas\',\'' + pc.id + '\')">Ver resumo</button>';
+    }
+    var rowClass = isOverdue ? 'tr urg-row' : 'tr';
+    return '<div class="' + rowClass + '" style="grid-template-columns:2fr 1fr 1.2fr 90px 110px">' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<div class="av" style="width:30px;height:30px;font-size:10px;flex-shrink:0">' + ini + '</div>' +
+        '<div><div class="tc">' + s(name) + '</div><div class="ts">' + s(pc.pacienteTel || '') + '</div></div>' +
+      '</div>' +
+      '<span>' + statusBadge + '</span>' +
+      '<span class="tc" style="color:' + (isOverdue ? 'var(--bad)' : 'var(--t3)') + ';font-weight:' + (isOverdue ? '600' : '400') + '">' + dateStr + '</span>' +
+      '<span class="tc" style="color:var(--t3)">' + daysText + '</span>' +
+      '<span>' + actionBtn + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+function crmSetFilter(el){
+  document.querySelectorAll('#crm-crmFilters .filter').forEach(function(f){ f.classList.remove('on'); });
+  el.classList.add('on');
+  crmState.filter = el.dataset.crm;
+  crmRenderList();
+}
+
+function crmReenviarWA(nome, tel, token){
+  var url = window.location.origin + '/pre-consulta.html?token=' + token;
+  var num = tel.replace(/\D/g, '');
+  var msg = encodeURIComponent('Ola ' + nome + '! Lembrando de preencher o formulario antes da consulta:\n\n' + url + '\n\nLeva menos de 5 minutos.');
+  window.open('https://wa.me/55' + num + '?text=' + msg, '_blank');
+  toast('WhatsApp aberto para ' + nome + '.', 'ok');
+}
+
+function crmCopyLink(token){
+  var url = window.location.origin + '/pre-consulta.html?token=' + token;
+  navigator.clipboard.writeText(url).then(function(){ toast('Link copiado.', 'ok'); });
+}
+
+function crmNotifyAllOverdue(){
+  var now = new Date();
+  var overdue = (state.allPC || []).filter(function(pc){
+    return (pc.status === 'PENDENTE' || pc.status === 'ABERTO') && (now - new Date(pc.criadoEm)) / 86400000 > 7 && pc.pacienteTel;
+  });
+  if(!overdue.length){ toast('Nenhum paciente atrasado com telefone.', 'info'); return; }
+  overdue.forEach(function(pc){ crmReenviarWA(pc.pacienteNome || 'Paciente', pc.pacienteTel, pc.linkToken || ''); });
+  toast(overdue.length + ' notificacao(oes) enviadas via WhatsApp.', 'ok');
+}
+
+/* ============================================================
+   VIEW: TEMPLATES (Fase 5)
+   ============================================================ */
+var tplState = {
+  sort: 'recentes',
+  search: '',
+  menuTargetId: null,
+  menuTargetName: '',
+  deleteTargetId: null,
+  editingId: null,
+  cachedPerguntas: null,
+  onbStep: 0,
+  onbShownThisSession: false,
+  // Step storage
+  stepNome: '',
+  stepPerguntas: '',
+  stepAudio: true
+};
+
+var TPL_ONB_KEY = 'vitae_tpl_onboarding_visto_desktop';
+
+var TPL_ONB_SLIDES = [
+  { illust: '<svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></svg>',
+    title: 'O que e um <em>template</em>?',
+    desc: 'Um conjunto de perguntas personalizado para enviar ao paciente antes da consulta. Voce cria uma vez e reutiliza sempre.',
+    btn: 'Proximo' },
+  { illust: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    title: 'Por que <em>criar</em> um?',
+    desc: 'Economize ate 15 minutos por consulta. Perguntas certas significam respostas uteis e consultas mais produtivas.',
+    btn: 'Proximo' },
+  { illust: '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><line x1="9" y1="11" x2="15" y2="7"/><line x1="9" y1="13" x2="15" y2="17"/></svg>',
+    title: 'Como <em>funciona</em>?',
+    desc: 'Crie suas perguntas, envie o link pro paciente via WhatsApp, e receba as respostas organizadas antes da consulta.',
+    btn: 'Proximo' },
+  { illust: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+    title: 'Crie seu primeiro <em>template</em>',
+    desc: 'Clique em "Criar template" no topo da pagina para comecar.',
+    btn: 'Comecar', last: true }
+];
+
+function renderTemplates(){
+  tplRenderGrid();
+  // Onboarding: mostrar apenas na primeira visita da sessao se nunca foi visto
+  if(!tplState.onbShownThisSession){
+    tplState.onbShownThisSession = true;
+    try{ if(!localStorage.getItem(TPL_ONB_KEY)) setTimeout(tplOnbShow, 500); }catch(e){}
+  }
+}
+
+function tplRenderGrid(){
+  var grid = document.getElementById('tpl-tplGrid');
+  var tpls = (state.allTemplates || []).slice();
+
+  if(tplState.search){
+    tpls = tpls.filter(function(t){ return (t.nome || '').toLowerCase().indexOf(tplState.search) !== -1; });
+  }
+  if(tplState.sort === 'curtos') tpls = tpls.filter(function(t){ return ((t.perguntas || []).length + 3) < 5; });
+  else if(tplState.sort === 'longos') tpls = tpls.filter(function(t){ return ((t.perguntas || []).length + 3) >= 10; });
+  else if(tplState.sort === 'naousados') tpls = tpls.filter(function(t){ return !t.vezesUsado; });
+  else if(tplState.sort === 'audio') tpls = tpls.filter(function(t){ return t.permitirAudio === true; });
+
+  if(tplState.sort === 'usados') tpls.sort(function(a, b){ return (b.vezesUsado || 0) - (a.vezesUsado || 0); });
+  else if(tplState.sort === 'az') tpls.sort(function(a, b){ return (a.nome || '').localeCompare(b.nome || '', 'pt-BR'); });
+
+  if((state.allTemplates || []).length === 0){
+    grid.innerHTML = '<div class="tpl-empty" style="grid-column:1/-1">' +
+      '<div class="tpl-empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 3v18"/></svg></div>' +
+      '<div class="tpl-empty-title">Nenhum template ainda</div>' +
+      '<div class="tpl-empty-desc">Crie formularios personalizados para agilizar suas pre-consultas. Clique em "Criar template" para comecar.</div>' +
+      '</div>';
+    return;
+  }
+
+  if(tpls.length === 0){
+    var msg = tplState.search ? 'Nenhum template encontrado para "' + s(tplState.search) + '"' : 'Nenhum template encontrado neste filtro.';
+    grid.innerHTML = '<div class="tpl-empty" style="grid-column:1/-1">' +
+      '<div class="tpl-empty-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>' +
+      '<div class="tpl-empty-title">Nenhum template encontrado</div>' +
+      '<div class="tpl-empty-desc">' + msg + '</div></div>';
+    return;
+  }
+
+  grid.innerHTML = tpls.map(function(t){
+    var numQ = (t.perguntas || []).filter(function(p){ return !p.obrigatoria; }).length;
+    var totalQ = numQ + 3;
+    var safeName = (t.nome || '').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return '<div class="tpl-card" onclick="tplOpenEditTemplate(\'' + t.id + '\')">' +
+      '<div class="tpl-card-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>' +
+      '<div class="tpl-card-body">' +
+        '<div class="tpl-card-name">' + s(t.nome) + '</div>' +
+        '<div class="tpl-card-meta"><span>' + totalQ + ' perguntas</span><span style="color:var(--t4)">&#183;</span><span>' + (t.vezesUsado || 0) + ' vezes usado</span></div>' +
+      '</div>' +
+      '<button class="tpl-card-menu" onclick="event.stopPropagation();tplOpenActionsMenu(\'' + t.id + '\',\'' + safeName + '\')" title="Opcoes">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><circle cx="12" cy="6" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="18" r="1.5"/></svg>' +
+      '</button>' +
+    '</div>';
+  }).join('');
+}
+
+function tplOnSearchInput(){
+  tplState.search = document.getElementById('tpl-searchInput').value.trim().toLowerCase();
+  tplRenderGrid();
+}
+function tplSetFilter(btn, mode){
+  document.querySelectorAll('#tpl-tplPills .tpl-pill').forEach(function(p){ p.classList.remove('active'); });
+  btn.classList.add('active');
+  tplState.sort = mode;
+  tplRenderGrid();
+}
+
+/* ---------- 3-DOT MENU ---------- */
+function tplOpenActionsMenu(id, nome){
+  tplState.menuTargetId = id;
+  tplState.menuTargetName = nome;
+  document.getElementById('tpl-actionsOverlay').classList.add('show');
+}
+function tplCloseActions(){
+  document.getElementById('tpl-actionsOverlay').classList.remove('show');
+  tplState.menuTargetId = null;
+  tplState.menuTargetName = '';
+}
+async function tplDoPreviewFromMenu(){
+  var tid = tplState.menuTargetId;
+  tplCloseActions();
+  try{
+    var data = await vitaeAPI.buscarTemplate(tid);
+    var tpl = data.template;
+    var perguntas = tpl.perguntas || [];
+    var custom = perguntas.filter(function(p){ return !p.obrigatoria; });
+    var mandatory = perguntas.filter(function(p){ return p.obrigatoria; });
+    document.getElementById('tpl-previewTitle').textContent = tpl.nome;
+    var html = '';
+    if(custom.length > 0){
+      custom.forEach(function(p, i){
+        html += '<div class="pv-question"><div class="pv-num">' + (i + 1) + '</div><div class="pv-body"><div class="pv-text">' + s(p.texto) + '</div><div class="pv-type">' + tplFormatTipo(p.tipo) + '</div></div></div>';
+      });
+    }
+    if(mandatory.length > 0){
+      html += '<div class="pv-mandatory-label"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Perguntas obrigatorias (fixas)</div>';
+      mandatory.forEach(function(p, i){
+        html += '<div class="pv-question pv-mandatory"><div class="pv-num">' + (custom.length + i + 1) + '</div><div class="pv-body"><div class="pv-text">' + s(p.texto) + '</div><div class="pv-type">' + tplFormatTipo(p.tipo) + '</div></div></div>';
+      });
+    }
+    if(!html) html = '<div style="padding:20px;text-align:center;color:var(--t3)">Nenhuma pergunta neste template.</div>';
+    document.getElementById('tpl-previewBody').innerHTML = html;
+    document.getElementById('tpl-previewOverlay').classList.add('show');
+  }catch(e){ toast('Erro ao carregar preview: ' + (e.message || ''), 'err'); }
+}
+function tplClosePreviewModal(){ document.getElementById('tpl-previewOverlay').classList.remove('show'); }
+function tplDoEditFromMenu(){
+  var tid = tplState.menuTargetId;
+  tplCloseActions();
+  tplOpenEditTemplate(tid);
+}
+function tplDoDeleteFromMenu(){
+  tplState.deleteTargetId = tplState.menuTargetId;
+  var nome = tplState.menuTargetName;
+  tplCloseActions();
+  document.getElementById('tpl-deleteMsg').textContent = 'Tem certeza que deseja apagar "' + nome + '"? As consultas ja realizadas com este template continuarao intactas.';
+  document.getElementById('tpl-deleteOverlay').classList.add('show');
+}
+function tplCloseDeleteModal(){
+  document.getElementById('tpl-deleteOverlay').classList.remove('show');
+  tplState.deleteTargetId = null;
+}
+async function tplConfirmDeleteTemplate(){
+  if(!tplState.deleteTargetId) return;
+  var btn = document.getElementById('tpl-deleteBtn');
+  btn.textContent = 'Apagando...';
+  btn.disabled = true;
+  try{
+    await vitaeAPI.apagarTemplate(tplState.deleteTargetId);
+    tplCloseDeleteModal();
+    toast('Template apagado', 'ok');
+    await tplReloadTemplates();
+  }catch(e){ toast('Erro ao apagar: ' + (e.message || ''), 'err'); }
+  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/></svg>Apagar';
+  btn.disabled = false;
+}
+
+async function tplReloadTemplates(){
+  try{
+    var data = await vitaeAPI.listarTemplates();
+    state.allTemplates = data.templates || [];
+    state._ts.allTemplates = Date.now();
+    if(document.getElementById('view-templates').style.display !== 'none') tplRenderGrid();
+  }catch(e){}
+}
+
+/* ---------- CREATE / EDIT MODAL ---------- */
+function tplOpenCreate(){
+  tplState.editingId = null;
+  tplState.cachedPerguntas = null;
+  tplState.stepNome = '';
+  tplState.stepPerguntas = '';
+  tplState.stepAudio = true;
+  document.getElementById('tpl-cmTitle').textContent = 'Novo template';
+  tplShowCreateStep(1);
+  document.getElementById('tpl-createOverlay').classList.add('show');
+}
+async function tplOpenEditTemplate(id){
+  try{
+    var data = await vitaeAPI.buscarTemplate(id);
+    var tpl = data.template;
+    tplState.editingId = id;
+    tplState.cachedPerguntas = null;
+    var custom = (tpl.perguntas || []).filter(function(p){ return !p.obrigatoria; });
+    tplState.stepNome = tpl.nome || '';
+    tplState.stepPerguntas = custom.map(function(p){ return p.texto; }).join('\n');
+    tplState.stepAudio = tpl.permitirAudio !== false;
+    document.getElementById('tpl-cmTitle').textContent = 'Editar template';
+    tplShowCreateStep(1);
+    document.getElementById('tpl-createOverlay').classList.add('show');
+  }catch(e){ toast('Erro ao carregar template: ' + (e.message || ''), 'err'); }
+}
+function tplCloseCreate(){
+  document.getElementById('tpl-createOverlay').classList.remove('show');
+  tplState.editingId = null;
+  tplState.cachedPerguntas = null;
+}
+function tplShowCreateStep(step){
+  // Captura valores do step atual antes de trocar
+  if(document.getElementById('tpl-cmNome')) tplState.stepNome = document.getElementById('tpl-cmNome').value.trim();
+  if(document.getElementById('tpl-cmPerguntas')) tplState.stepPerguntas = document.getElementById('tpl-cmPerguntas').value.trim();
+  if(document.getElementById('tpl-cmAudioToggle')) tplState.stepAudio = document.getElementById('tpl-cmAudioToggle').classList.contains('on');
+
+  document.querySelectorAll('#tpl-cmSteps .cm-step').forEach(function(stp){
+    var sn = parseInt(stp.getAttribute('data-step'));
+    stp.classList.remove('active','done');
+    if(sn === step) stp.classList.add('active');
+    else if(sn < step) stp.classList.add('done');
+  });
+
+  var body = document.getElementById('tpl-cmBody');
+  if(step === 1){
+    body.innerHTML =
+      '<div class="cm-field"><label>Nome do template</label>' +
+      '<input type="text" id="tpl-cmNome" placeholder="Ex: Cardiologia geral" value="' + escAttr(tplState.stepNome || '') + '"></div>' +
+      '<div class="cm-field"><label>Perguntas</label>' +
+      '<textarea id="tpl-cmPerguntas" placeholder="Escreva uma pergunta por linha&#10;&#10;Ex:&#10;O que voce esta sentindo?&#10;Ha quanto tempo sente isso?&#10;Toma algum medicamento?">' + escHtml(tplState.stepPerguntas || '') + '</textarea></div>' +
+      '<div class="cm-toggle-row">' +
+        '<label for="tpl-cmAudioToggle">Permitir audio do paciente</label>' +
+        '<div class="toggle' + (tplState.stepAudio ? ' on' : '') + '" id="tpl-cmAudioToggle" onclick="tplToggleAudio()"></div>' +
+      '</div>' +
+      '<div class="cm-hint">' +
+        '<div class="cm-hint-icon"><svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div>' +
+        '<div class="cm-hint-text">Escreva uma pergunta por linha. O sistema organiza o tipo de resposta automaticamente.</div>' +
+      '</div>' +
+      '<div class="cm-footer" style="border-top:none;padding:0">' +
+        '<button class="btn btn-s" onclick="tplCloseCreate()">Cancelar</button>' +
+        '<button class="btn btn-p" id="tpl-cmPreviewBtn" onclick="tplGoToPreview()">' +
+          '<svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
+          'Ver preview</button>' +
+      '</div>';
+    return;
+  }
+
+  if(step === 2){
+    var custom = (tplState.cachedPerguntas || []).filter(function(p){ return !p.obrigatoria; });
+    var mandatory = (tplState.cachedPerguntas || []).filter(function(p){ return p.obrigatoria; });
+    var html = '';
+    custom.forEach(function(p, i){
+      html += '<div class="pv-question"><div class="pv-num">' + (i + 1) + '</div><div class="pv-body"><div class="pv-text">' + s(p.texto) + '</div><div class="pv-type">' + tplFormatTipo(p.tipo) + '</div></div></div>';
+    });
+    if(mandatory.length > 0){
+      html += '<div class="pv-mandatory-label"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Perguntas obrigatorias (fixas)</div>';
+      mandatory.forEach(function(p, i){
+        html += '<div class="pv-question pv-mandatory"><div class="pv-num">' + (custom.length + i + 1) + '</div><div class="pv-body"><div class="pv-text">' + s(p.texto) + '</div><div class="pv-type">' + tplFormatTipo(p.tipo) + '</div></div></div>';
+      });
+    }
+    body.innerHTML =
+      '<div style="font-size:12px;color:var(--t3);margin-bottom:14px;font-style:italic;text-align:center">Assim o paciente vai ver o formulario</div>' +
+      html +
+      '<div class="cm-footer" style="border-top:none;padding:16px 0 0">' +
+        '<button class="btn btn-s" onclick="tplBackToEdit()">Voltar pra editar</button>' +
+        '<button class="btn btn-p" id="tpl-cmSaveBtn" onclick="tplDoSaveTemplate()">' +
+          '<svg viewBox="0 0 24 24" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+          'Salvar template</button>' +
+      '</div>';
+    return;
+  }
+
+  if(step === 3){
+    body.innerHTML =
+      '<div class="cm-confirm">' +
+        '<div class="cm-confirm-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>' +
+        '<div class="cm-confirm-title">Template ' + (tplState.editingId ? 'atualizado' : 'criado') + ' com sucesso</div>' +
+        '<div class="cm-confirm-sub">Ja esta disponivel na sua lista de templates.</div>' +
+      '</div>';
+    setTimeout(function(){ tplCloseCreate(); tplReloadTemplates(); }, 2000);
+  }
+}
+function tplToggleAudio(){
+  var t = document.getElementById('tpl-cmAudioToggle');
+  if(t) t.classList.toggle('on');
+}
+function tplPareceInstrucao(texto){
+  var linhas = texto.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 2; });
+  if(linhas.length <= 2) return true;
+  var comInterrogacao = linhas.filter(function(l){ return l.endsWith('?'); }).length;
+  return comInterrogacao < linhas.length * 0.4;
+}
+async function tplGoToPreview(){
+  var nomeEl = document.getElementById('tpl-cmNome');
+  var pergEl = document.getElementById('tpl-cmPerguntas');
+  var nome = nomeEl.value.trim();
+  var texto = pergEl.value.trim();
+  nomeEl.classList.remove('err');
+  pergEl.classList.remove('err');
+  if(!nome){ nomeEl.classList.add('err'); nomeEl.focus(); return; }
+  if(!texto){ pergEl.classList.add('err'); pergEl.focus(); return; }
+
+  // Capture state values
+  tplState.stepNome = nome;
+  tplState.stepPerguntas = texto;
+  tplState.stepAudio = document.getElementById('tpl-cmAudioToggle').classList.contains('on');
+
+  var btn = document.getElementById('tpl-cmPreviewBtn');
+  var originalHtml = btn.innerHTML;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" style="animation:spin .8s linear infinite"><circle cx="12" cy="12" r="10" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg> Montando preview...';
+  btn.disabled = true;
+  try{
+    var perguntas;
+    if(tplPareceInstrucao(texto)){
+      var data = await vitaeAPI.gerarPerguntasIA(texto);
+      perguntas = data.perguntas || [];
+    } else {
+      var data = await vitaeAPI.classificarPerguntas(texto);
+      perguntas = data.perguntas || [];
+    }
+    if(perguntas.filter(function(p){ return !p.obrigatoria; }).length === 0){
+      btn.innerHTML = originalHtml;
+      btn.disabled = false;
+      pergEl.classList.add('err');
+      toast('Nao foi possivel identificar perguntas. Tente escrever uma pergunta por linha.', 'warn');
+      return;
+    }
+    tplState.cachedPerguntas = perguntas;
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+    tplShowCreateStep(2);
+  }catch(e){
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+    toast('Erro: ' + (e.message || 'Tente novamente'), 'err');
+  }
+}
+function tplBackToEdit(){ tplShowCreateStep(1); }
+async function tplDoSaveTemplate(){
+  if(!tplState.cachedPerguntas) return tplBackToEdit();
+  var nome = tplState.stepNome;
+  if(!nome && tplState.editingId){
+    var found = (state.allTemplates || []).find(function(t){ return t.id === tplState.editingId; });
+    if(found) nome = found.nome;
+  }
+  if(!nome){ toast('Nome do template nao encontrado. Volte e preencha.', 'warn'); return; }
+
+  var btn = document.getElementById('tpl-cmSaveBtn');
+  if(!btn) return;
+  var originalHtml = btn.innerHTML;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" style="animation:spin .8s linear infinite"><circle cx="12" cy="12" r="10" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg> Salvando...';
+  btn.disabled = true;
+
+  var audio = tplState.stepAudio;
+  try{
+    if(tplState.editingId) await vitaeAPI.editarTemplate(tplState.editingId, { nome: nome, perguntas: tplState.cachedPerguntas, permitirAudio: audio });
+    else await vitaeAPI.criarTemplate({ nome: nome, perguntas: tplState.cachedPerguntas, permitirAudio: audio });
+    tplShowCreateStep(3);
+    toast('Template ' + (tplState.editingId ? 'atualizado' : 'criado') + ' com sucesso', 'ok');
+  }catch(e){
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+    toast('Erro ao salvar: ' + (e.message || 'Tente novamente'), 'err');
+  }
+}
+
+/* ---------- ONBOARDING ---------- */
+function tplOnbShow(){
+  tplState.onbStep = 0;
+  tplOnbRender();
+  document.getElementById('tpl-onbOverlay').classList.add('show');
+}
+function tplOnbClose(){
+  try{ localStorage.setItem(TPL_ONB_KEY, 'true'); }catch(e){}
+  document.getElementById('tpl-onbOverlay').classList.remove('show');
+}
+function tplOnbSkip(){ tplOnbClose(); }
+function tplOnbNext(){
+  if(tplState.onbStep < TPL_ONB_SLIDES.length - 1){
+    tplState.onbStep++;
+    tplOnbRender();
+  } else {
+    tplOnbClose();
+    tplOpenCreate();
+  }
+}
+function tplOnbRender(){
+  var slide = TPL_ONB_SLIDES[tplState.onbStep];
+  document.querySelectorAll('#tpl-onbDots .onb-dot').forEach(function(d, i){ d.classList.toggle('active', i === tplState.onbStep); });
+  var html = '';
+  if(slide.illust) html += '<div class="onb-illust">' + slide.illust + '</div>';
+  html += '<div class="onb-title">' + slide.title + '</div>';
+  html += '<div class="onb-desc">' + slide.desc + '</div>';
+  document.getElementById('tpl-onbContent').innerHTML = html;
+  document.getElementById('tpl-onbBtn').textContent = slide.btn;
+  var skipBtn = document.querySelector('#tpl-onbOverlay .onb-skip');
+  if(skipBtn) skipBtn.style.display = slide.last ? 'none' : '';
+}
+
+function tplFormatTipo(tipo){
+  if(!tipo) return 'Texto livre';
+  var map = {
+    'texto':'Texto livre','texto_longo':'Texto longo','escala':'Escala 0-10','escala_0_10':'Escala 0-10',
+    'sim_nao':'Sim / Nao','booleano':'Sim / Nao','localizacao':'Localizacao corporal','data':'Data',
+    'numero':'Numerico','multipla_escolha':'Multipla escolha','lista':'Lista'
+  };
+  return map[tipo] || tipo.charAt(0).toUpperCase() + tipo.slice(1).replace(/_/g, ' ');
+}
+
+/* ============================================================
+   VIEW: PERFIL (Fase 6)
+   ============================================================ */
+var pfState = { editField: null, pendingUrgToggle: null };
+
+var PF_NOTIF_KEYS = { urgente: 'vitae_notif_urgente', retorno: 'vitae_notif_retorno', resumo: 'vitae_notif_resumo' };
+var PF_NOTIF_DEFAULT = { urgente: true, retorno: true, resumo: false };
+var PF_NOTIF_TOGGLE_ID = { urgente: 'pf-togUrg', retorno: 'pf-togRet', resumo: 'pf-togRes' };
+var PF_NOTIF_LABEL = { urgente: 'Alertas urgentes', retorno: 'Lembretes de retorno', resumo: 'Resumo diario' };
+
+function renderPerfil(){
+  var m = state.medico || {};
+  var u = state.usuario || {};
+  var dash = state.dashStats || {};
+  var initials = getInitials(u.nome || '');
+
+  document.getElementById('pf-profAvatar').textContent = initials;
+  document.getElementById('pf-profName').textContent = formatDr(u.nome || 'Medico');
+  document.getElementById('pf-profCrm').textContent = 'CRM ' + (m.crm || '--') + ' . ' + (m.ufCrm || '--') + ' . ' + (m.especialidade || '--');
+
+  document.getElementById('pf-fieldCrm').textContent = (m.crm || '--') + ' / ' + (m.ufCrm || '--');
+  document.getElementById('pf-fieldEspecialidade').textContent = m.especialidade || 'Nao informada';
+  document.getElementById('pf-fieldClinica').textContent = m.clinica || 'Nao informada';
+  document.getElementById('pf-fieldEndereco').textContent = m.enderecoClinica || 'Nao informado';
+  document.getElementById('pf-fieldTelefone').textContent = m.telefoneClinica || 'Nao informado';
+  document.getElementById('pf-fieldValor').textContent = m.valorConsulta ? 'R$ ' + m.valorConsulta : 'Nao informado';
+  document.getElementById('pf-fieldEmail').textContent = u.email || '--';
+  document.getElementById('pf-fieldCelular').textContent = u.celular || 'Nao informado';
+
+  document.getElementById('pf-pfStat1').textContent = dash.totalPreConsultas || (state.allPC || []).length || 0;
+  document.getElementById('pf-pfStat2').textContent = dash.preConsultasRespondidas || 0;
+  document.getElementById('pf-pfStat3').textContent = dash.preConsultasPendentes || 0;
+  document.getElementById('pf-pfStat4').textContent = dash.totalPacientes || 0;
+
+  pfLoadNotifPrefs();
+}
+
+function pfOpenEdit(fieldKey, title, placeholder, apiField){
+  pfState.editField = { fieldKey: fieldKey, apiField: apiField };
+  document.getElementById('pf-editTitle').textContent = 'Editar ' + title;
+  document.getElementById('pf-editLabel').textContent = title;
+  document.getElementById('pf-editInput').placeholder = placeholder;
+  var currentVal = '';
+  var m = state.medico || {};
+  if(fieldKey === 'crm') currentVal = m.crm || '';
+  else if(fieldKey === 'especialidade') currentVal = m.especialidade || '';
+  else if(fieldKey === 'clinica') currentVal = m.clinica || '';
+  else if(fieldKey === 'enderecoClinica') currentVal = m.enderecoClinica || '';
+  else if(fieldKey === 'telefoneClinica') currentVal = m.telefoneClinica || '';
+  else if(fieldKey === 'valorConsulta') currentVal = m.valorConsulta || '';
+  document.getElementById('pf-editInput').value = currentVal;
+  document.getElementById('pf-modalEdit').classList.add('show');
+  document.getElementById('pf-editInput').focus();
+}
+function pfCloseEdit(){
+  document.getElementById('pf-modalEdit').classList.remove('show');
+  pfState.editField = null;
+}
+async function pfSaveEdit(){
+  if(!pfState.editField) return;
+  var val = document.getElementById('pf-editInput').value.trim();
+  if(!val){ toast('Preencha o campo.', 'warn'); return; }
+  var btn = document.getElementById('pf-editSaveBtn');
+  btn.textContent = 'Salvando...';
+  btn.disabled = true;
+  try{
+    var body = {};
+    body[pfState.editField.apiField] = pfState.editField.apiField === 'valorConsulta' ? parseFloat(val) : val;
+    await vitaeAPI.atualizarMedico(body);
+    // Atualiza state.medico em memoria
+    state.medico = state.medico || {};
+    state.medico[pfState.editField.apiField] = body[pfState.editField.apiField];
+    state._ts.medico = Date.now();
+    toast('Dado atualizado com sucesso.', 'ok');
+    pfCloseEdit();
+    renderPerfil();
+  }catch(err){ toast(err.message || 'Erro ao salvar.', 'err'); }
+  btn.textContent = 'Salvar';
+  btn.disabled = false;
+}
+
+function pfOpenLogout(){ document.getElementById('pf-modalLogout').classList.add('show'); }
+function pfCloseLogout(){ document.getElementById('pf-modalLogout').classList.remove('show'); }
+function pfDoLogout(){
+  localStorage.removeItem('vitae_token');
+  localStorage.removeItem('vitae_refresh_token');
+  localStorage.removeItem('vitae_usuario');
+  toast('Sessao encerrada.', 'info');
+  setTimeout(function(){ window.location.href = 'login.html'; }, 600);
+}
+
+function pfToggleNotifOpen(itemId, ev){
+  if(ev && (ev.target.classList.contains('toggle') || ev.target.closest('.toggle'))) return;
+  var item = document.getElementById(itemId);
+  var isOpen = item.classList.contains('open');
+  document.querySelectorAll('#view-perfil .notif-item.open').forEach(function(el){ el.classList.remove('open'); });
+  if(!isOpen) item.classList.add('open');
+}
+function pfToggleNotifSwitch(ev, tipo){
+  ev.stopPropagation();
+  var el = document.getElementById(PF_NOTIF_TOGGLE_ID[tipo]);
+  var willDisable = el.classList.contains('on');
+  if(tipo === 'urgente' && willDisable){
+    pfState.pendingUrgToggle = el;
+    document.getElementById('pf-modalConfirmUrg').classList.add('show');
+    return;
+  }
+  pfApplyNotifChange(el, tipo, !willDisable);
+}
+function pfApplyNotifChange(el, tipo, ligado){
+  if(ligado) el.classList.add('on'); else el.classList.remove('on');
+  try{ localStorage.setItem(PF_NOTIF_KEYS[tipo], ligado ? '1' : '0'); }catch(e){}
+  if(tipo === 'urgente') pfRefreshUrgBanner();
+  toast(PF_NOTIF_LABEL[tipo] + (ligado ? ' ativado' : ' desativado'), ligado ? 'ok' : 'warn');
+}
+function pfCloseConfirmUrg(){
+  document.getElementById('pf-modalConfirmUrg').classList.remove('show');
+  pfState.pendingUrgToggle = null;
+}
+function pfConfirmDisableUrg(){
+  if(pfState.pendingUrgToggle) pfApplyNotifChange(pfState.pendingUrgToggle, 'urgente', false);
+  pfCloseConfirmUrg();
+}
+function pfRefreshUrgBanner(){
+  var banner = document.getElementById('pf-notifWarn');
+  var on = document.getElementById('pf-togUrg').classList.contains('on');
+  if(on) banner.classList.add('hide'); else banner.classList.remove('hide');
+}
+function pfLoadNotifPrefs(){
+  Object.keys(PF_NOTIF_KEYS).forEach(function(tipo){
+    var saved;
+    try{ saved = localStorage.getItem(PF_NOTIF_KEYS[tipo]); }catch(e){ saved = null; }
+    var ligado = saved === null ? PF_NOTIF_DEFAULT[tipo] : saved === '1';
+    var el = document.getElementById(PF_NOTIF_TOGGLE_ID[tipo]);
+    if(!el) return;
+    if(ligado) el.classList.add('on'); else el.classList.remove('on');
+  });
+  pfRefreshUrgBanner();
+}
+
+// Atalho Ctrl+K foca search do dashboard quando view ativa
+document.addEventListener('keydown', function(e){
+  if((e.ctrlKey || e.metaKey) && e.key === 'k'){
+    if(document.getElementById('view-dashboard').style.display !== 'none'){
+      e.preventDefault();
+      var inp = document.getElementById('dash-globalSearch');
+      if(inp) inp.focus();
+    }
+  }
+  // Enter no modal de editar perfil salva
+  if(e.key === 'Enter' && pfState && pfState.editField){
+    var modal = document.getElementById('pf-modalEdit');
+    if(modal && modal.classList.contains('show')) pfSaveEdit();
+  }
+});
+
+/* ---------- AUTH GATE + KICKOFF ---------- */
+(function(){
+  var token = localStorage.getItem('vitae_token');
+  if(!token){
+    var app = document.querySelector('.app');
+    app.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#F4F6FA;width:100%">' +
+      '<div style="text-align:center;max-width:360px;padding:40px;">' +
+      '<div style="font-size:48px;font-weight:900;letter-spacing:-2px;background:linear-gradient(90deg,#00E5A0,#00B4D8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;">vita id</div>' +
+      '<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9CA3AF;margin-bottom:32px;">Plataforma Medica</div>' +
+      '<div style="font-size:16px;color:#4B5563;margin-bottom:24px;line-height:1.5;">Faca login pra acessar o dashboard do medico.</div>' +
+      '<a href="login.html" style="display:inline-flex;align-items:center;gap:8px;padding:14px 36px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;font-size:15px;font-weight:700;border-radius:14px;text-decoration:none;box-shadow:0 4px 16px rgba(0,229,160,0.3);">Fazer login</a>' +
+      '</div></div>';
+    return;
+  }
+
+  // Aplica nav active state da rota atual ANTES do boot pra UX nao "piscar"
+  var r = parseRoute();
+  setNavActive(r.view);
+  var cfg = VIEW_CONFIG[r.view] || {};
+  document.getElementById('tbTitle').textContent = cfg.title || '--';
+
+  // Esconde views que nao sao a atual
+  var allViews = document.querySelectorAll('.view');
+  for(var i=0; i<allViews.length; i++){
+    allViews[i].style.display = (allViews[i].id === 'view-'+r.view) ? '' : 'none';
+  }
+
+  // Atalho global: Esc fecha modais (fases futuras adicionam handlers)
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){
+      if(typeof onEscape === 'function') onEscape();
+    }
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>
