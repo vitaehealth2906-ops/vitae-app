@@ -41,9 +41,8 @@
   // Guard: redireciona se está na versão errada
   // Chamar nas páginas desktop pra forçar mobile se necessário (e vice-versa)
   window.vitaeDevice.guardDesktop = function() {
-    if (isMobile) {
-      window.location.href = '/20-medico-dashboard.html';
-    }
+    // Guard desativado — notebook do Lucas tem tela <1024 e era redirecionado pro mobile
+    // TODO: reativar quando tiver breakpoint ajustado ou toggle manual
   };
 
   window.vitaeDevice.guardMobile = function() {
