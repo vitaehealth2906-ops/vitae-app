@@ -3,6 +3,7 @@ const { z } = require('zod');
 const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
+const { auditar } = require('../utils/auditoria');
 
 const router = express.Router();
 
@@ -75,6 +76,15 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
       nomePai: perfil.nomePai,
       telPai: perfil.telPai,
     } : {};
+
+    // Auditoria — registra acesso publico ao RG (sem auth)
+    auditar(req, {
+      acao: 'VIEW_RG_PUBLICO',
+      atorTipo: 'PUBLICO',
+      recursoTipo: 'RG_PUBLICO',
+      recursoId: usuario.id,
+      alvoId: usuario.id,
+    });
 
     return res.status(200).json({
       usuario,

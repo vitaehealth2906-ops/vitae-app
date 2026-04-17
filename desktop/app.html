@@ -498,26 +498,6 @@
     </div>
   </div>
 
-  <!-- TEMPLATES: Criar/Editar -->
-  <div class="create-overlay" id="tpl-createOverlay" onclick="if(event.target===this)tplCloseCreate()">
-    <div class="create-modal" onclick="event.stopPropagation()">
-      <div class="cm-header">
-        <div class="cm-title" id="tpl-cmTitle">Novo template</div>
-        <button class="cm-close" onclick="tplCloseCreate()">
-          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="cm-steps" id="tpl-cmSteps">
-        <div class="cm-step active" data-step="1"><div class="cm-step-num">1</div><span>Perguntas</span></div>
-        <div class="cm-sep"></div>
-        <div class="cm-step" data-step="2"><div class="cm-step-num">2</div><span>Preview</span></div>
-        <div class="cm-sep"></div>
-        <div class="cm-step" data-step="3"><div class="cm-step-num">3</div><span>Pronto</span></div>
-      </div>
-      <div class="cm-body" id="tpl-cmBody"></div>
-    </div>
-  </div>
-
   <!-- TEMPLATES: Acoes (3 pontos) -->
   <div class="actions-overlay" id="tpl-actionsOverlay" onclick="if(event.target===this)tplCloseActions()">
     <div class="actions-card" onclick="event.stopPropagation()">
@@ -827,36 +807,63 @@
 
     <!-- VIEW: TEMPLATES -->
     <div id="view-templates" class="view" style="display:none">
-      <div class="ph">
-        <div>
-          <h1>Templates</h1>
-          <p>Crie formularios personalizados para agilizar suas pre-consultas</p>
+      <!-- Modo lista -->
+      <div id="tpl-listView">
+        <div class="ph">
+          <div>
+            <h1>Templates</h1>
+            <p>Crie formularios personalizados para agilizar suas pre-consultas</p>
+          </div>
+          <div style="display:flex;gap:9px;flex-shrink:0">
+            <button class="btn btn-s" onclick="tplOnbShow()">
+              <svg viewBox="0 0 24 24" stroke="var(--t2)" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Como funciona?
+            </button>
+            <button class="btn btn-p" onclick="tplOpenCreate()" style="height:38px;padding:0 20px;font-size:13.5px">
+              <svg viewBox="0 0 24 24" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Criar template
+            </button>
+          </div>
         </div>
-        <div style="display:flex;gap:9px;flex-shrink:0">
-          <button class="btn btn-s" onclick="tplOnbShow()">
-            <svg viewBox="0 0 24 24" stroke="var(--t2)" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            Como funciona?
-          </button>
-          <button class="btn btn-p" onclick="tplOpenCreate()" style="height:38px;padding:0 20px;font-size:13.5px">
-            <svg viewBox="0 0 24 24" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Criar template
-          </button>
+
+        <div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="tpl-searchInput" placeholder="Buscar template..." oninput="tplOnSearchInput()" style="width:100%;padding:11px 14px 11px 40px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;transition:border-color .15s,box-shadow .15s" onfocus="this.style.borderColor='rgba(0,229,160,.45)';this.style.boxShadow='0 0 0 3px rgba(0,229,160,.07)'" onblur="this.style.borderColor='';this.style.boxShadow=''"></div>
+
+        <div class="tpl-pills" id="tpl-tplPills">
+          <button class="tpl-pill active" onclick="tplSetFilter(this,'recentes')">Recentes</button>
+          <button class="tpl-pill" onclick="tplSetFilter(this,'usados')">Mais usados</button>
+          <button class="tpl-pill" onclick="tplSetFilter(this,'az')">A-Z</button>
+          <button class="tpl-pill" onclick="tplSetFilter(this,'curtos')">Curtos</button>
+          <button class="tpl-pill" onclick="tplSetFilter(this,'longos')">Longos</button>
+          <button class="tpl-pill" onclick="tplSetFilter(this,'naousados')">Nao usados</button>
+          <button class="tpl-pill" onclick="tplSetFilter(this,'audio')">Com audio</button>
         </div>
+
+        <div class="tpl-grid" id="tpl-tplGrid"></div>
       </div>
 
-      <div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="tpl-searchInput" placeholder="Buscar template..." oninput="tplOnSearchInput()" style="width:100%;padding:11px 14px 11px 40px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;transition:border-color .15s,box-shadow .15s" onfocus="this.style.borderColor='rgba(0,229,160,.45)';this.style.boxShadow='0 0 0 3px rgba(0,229,160,.07)'" onblur="this.style.borderColor='';this.style.boxShadow=''"></div>
-
-      <div class="tpl-pills" id="tpl-tplPills">
-        <button class="tpl-pill active" onclick="tplSetFilter(this,'recentes')">Recentes</button>
-        <button class="tpl-pill" onclick="tplSetFilter(this,'usados')">Mais usados</button>
-        <button class="tpl-pill" onclick="tplSetFilter(this,'az')">A-Z</button>
-        <button class="tpl-pill" onclick="tplSetFilter(this,'curtos')">Curtos</button>
-        <button class="tpl-pill" onclick="tplSetFilter(this,'longos')">Longos</button>
-        <button class="tpl-pill" onclick="tplSetFilter(this,'naousados')">Nao usados</button>
-        <button class="tpl-pill" onclick="tplSetFilter(this,'audio')">Com audio</button>
+      <!-- Modo criar/editar (tela dedicada, nao popup) -->
+      <div id="tpl-criarView" style="display:none">
+        <div class="ph">
+          <div>
+            <h1 id="tpl-cmTitle">Novo template</h1>
+            <p>Monte um formulario customizado em 3 passos</p>
+          </div>
+          <div style="display:flex;gap:9px;flex-shrink:0">
+            <button class="btn btn-s" onclick="tplCloseCreate()">
+              <svg viewBox="0 0 24 24" stroke="var(--t2)" stroke-linecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Voltar para lista
+            </button>
+          </div>
+        </div>
+        <div class="cm-steps" id="tpl-cmSteps" style="margin-bottom:20px">
+          <div class="cm-step active" data-step="1"><div class="cm-step-num">1</div><span>Perguntas</span></div>
+          <div class="cm-sep"></div>
+          <div class="cm-step" data-step="2"><div class="cm-step-num">2</div><span>Preview</span></div>
+          <div class="cm-sep"></div>
+          <div class="cm-step" data-step="3"><div class="cm-step-num">3</div><span>Pronto</span></div>
+        </div>
+        <div class="cm-body" id="tpl-cmBody"></div>
       </div>
-
-      <div class="tpl-grid" id="tpl-tplGrid"></div>
     </div>
 
     <!-- VIEW: PERFIL -->
@@ -2635,11 +2642,37 @@ var TPL_ONB_SLIDES = [
     btn: 'Proximo' },
   { illust: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
     title: 'Crie seu primeiro <em>template</em>',
-    desc: 'Clique em "Criar template" no topo da pagina para comecar.',
-    btn: 'Comecar', last: true }
+    desc: 'Voce vai para uma tela dedicada com 3 passos: escrever perguntas, conferir preview, e salvar.',
+    btn: 'Criar template', last: true }
 ];
 
-function renderTemplates(){
+function renderTemplates(param){
+  var listView = document.getElementById('tpl-listView');
+  var criarView = document.getElementById('tpl-criarView');
+  var modos = { 'criar': 1, 'criar-preview': 2, 'criar-pronto': 3 };
+
+  if(param && modos[param]){
+    // Modo criar: redirects defensivos se state incompleto
+    if(param === 'criar-preview'){
+      // Se ja salvou, voltar pra preview seria caminho para salvar duplicado - bloqueia
+      if(tplState._justSaved){ navigate('templates'); return; }
+      if(!tplState.cachedPerguntas){ navigate('templates', 'criar'); return; }
+    }
+    if(param === 'criar-pronto' && !tplState._justSaved){
+      navigate('templates', tplState.cachedPerguntas ? 'criar-preview' : 'criar');
+      return;
+    }
+    listView.style.display = 'none';
+    criarView.style.display = '';
+    var titulo = tplState.editingId ? 'Editar template' : 'Novo template';
+    document.getElementById('tpl-cmTitle').textContent = titulo;
+    tplShowCreateStep(modos[param]);
+    return;
+  }
+
+  // Modo lista
+  criarView.style.display = 'none';
+  listView.style.display = '';
   tplRenderGrid();
   // Onboarding: mostrar apenas na primeira visita da sessao se nunca foi visto
   if(!tplState.onbShownThisSession){
@@ -2795,9 +2828,8 @@ function tplOpenCreate(){
   tplState.stepNome = '';
   tplState.stepPerguntas = '';
   tplState.stepAudio = true;
-  document.getElementById('tpl-cmTitle').textContent = 'Novo template';
-  tplShowCreateStep(1);
-  document.getElementById('tpl-createOverlay').classList.add('show');
+  tplState._justSaved = false;
+  navigate('templates', 'criar');
 }
 async function tplOpenEditTemplate(id){
   try{
@@ -2805,19 +2837,19 @@ async function tplOpenEditTemplate(id){
     var tpl = data.template;
     tplState.editingId = id;
     tplState.cachedPerguntas = null;
+    tplState._justSaved = false;
     var custom = (tpl.perguntas || []).filter(function(p){ return !p.obrigatoria; });
     tplState.stepNome = tpl.nome || '';
     tplState.stepPerguntas = custom.map(function(p){ return p.texto; }).join('\n');
     tplState.stepAudio = tpl.permitirAudio !== false;
-    document.getElementById('tpl-cmTitle').textContent = 'Editar template';
-    tplShowCreateStep(1);
-    document.getElementById('tpl-createOverlay').classList.add('show');
+    navigate('templates', 'criar');
   }catch(e){ toast('Erro ao carregar template: ' + (e.message || ''), 'err'); }
 }
 function tplCloseCreate(){
-  document.getElementById('tpl-createOverlay').classList.remove('show');
   tplState.editingId = null;
   tplState.cachedPerguntas = null;
+  tplState._justSaved = false;
+  navigate('templates');
 }
 function tplShowCreateStep(step){
   // Captura valores do step atual antes de trocar
@@ -2888,7 +2920,11 @@ function tplShowCreateStep(step){
         '<div class="cm-confirm-title">Template ' + (tplState.editingId ? 'atualizado' : 'criado') + ' com sucesso</div>' +
         '<div class="cm-confirm-sub">Ja esta disponivel na sua lista de templates.</div>' +
       '</div>';
-    setTimeout(function(){ tplCloseCreate(); tplReloadTemplates(); }, 2000);
+    tplReloadTemplates();
+    setTimeout(function(){
+      var r = parseRoute();
+      if(r.view === 'templates' && r.param === 'criar-pronto') tplCloseCreate();
+    }, 2000);
   }
 }
 function tplToggleAudio(){
@@ -2939,14 +2975,14 @@ async function tplGoToPreview(){
     tplState.cachedPerguntas = perguntas;
     btn.innerHTML = originalHtml;
     btn.disabled = false;
-    tplShowCreateStep(2);
+    navigate('templates', 'criar-preview');
   }catch(e){
     btn.innerHTML = originalHtml;
     btn.disabled = false;
     toast('Erro: ' + (e.message || 'Tente novamente'), 'err');
   }
 }
-function tplBackToEdit(){ tplShowCreateStep(1); }
+function tplBackToEdit(){ navigate('templates', 'criar'); }
 async function tplDoSaveTemplate(){
   if(!tplState.cachedPerguntas) return tplBackToEdit();
   var nome = tplState.stepNome;
@@ -2966,8 +3002,9 @@ async function tplDoSaveTemplate(){
   try{
     if(tplState.editingId) await vitaeAPI.editarTemplate(tplState.editingId, { nome: nome, perguntas: tplState.cachedPerguntas, permitirAudio: audio });
     else await vitaeAPI.criarTemplate({ nome: nome, perguntas: tplState.cachedPerguntas, permitirAudio: audio });
-    tplShowCreateStep(3);
+    tplState._justSaved = true;
     toast('Template ' + (tplState.editingId ? 'atualizado' : 'criado') + ' com sucesso', 'ok');
+    navigate('templates', 'criar-pronto');
   }catch(e){
     btn.innerHTML = originalHtml;
     btn.disabled = false;
@@ -2992,7 +3029,7 @@ function tplOnbNext(){
     tplOnbRender();
   } else {
     tplOnbClose();
-    tplOpenCreate();
+    tplOpenCreate(); // navigate('templates','criar') via tplOpenCreate
   }
 }
 function tplOnbRender(){

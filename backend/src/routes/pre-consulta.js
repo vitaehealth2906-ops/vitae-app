@@ -10,6 +10,119 @@ const { enviarEmailPreConsultaRespondida } = require('../services/email');
 const { enviarSMSConfirmacaoPreConsulta } = require('../services/sms');
 const storage = require('../services/storage');
 const { transcreverAudio } = require('../services/transcription');
+const { normalizarTelefone, variantesTelefone } = require('../utils/telefone');
+const { auditar } = require('../utils/auditoria');
+
+// ----------------------------------------------------------------------------
+// VINCULAR PACIENTE — coracao do fix do "Daniel sumiu"
+//
+// Recebe a PC + (opcional) pacienteIdLogado.
+// Retorna o pacienteId que deve ser gravado na PC e cria automaticamente:
+//   - Registro de Consentimento LGPD (upsert, nao duplica)
+//   - Registro de AutorizacaoAcesso (medico ↔ paciente, persiste pra sempre)
+//
+// Logica:
+//   1. Se pacienteIdLogado existe → usa direto (caminho mais confiavel)
+//   2. Senao, tenta auto-link por telefone normalizado
+//   3. Senao, tenta auto-link por email (case-insensitive)
+//   4. Se nada funciona → retorna null (paciente fica anonimo, mas pelo menos
+//      ja avisamos isso no front)
+//
+// Idempotente: pode ser chamado multiplas vezes sem duplicar nada.
+// ----------------------------------------------------------------------------
+async function vincularPaciente({ preConsulta, pacienteIdLogado, req }) {
+  let pacienteId = pacienteIdLogado || null;
+
+  // Tentativa de auto-link se nao tem pacienteId ainda
+  if (!pacienteId) {
+    const telCanonico = normalizarTelefone(preConsulta.pacienteTel);
+    const variantes = telCanonico ? variantesTelefone(preConsulta.pacienteTel) : [];
+
+    if (variantes.length > 0 || preConsulta.pacienteEmail) {
+      const orFilters = [];
+      if (variantes.length > 0) orFilters.push({ celular: { in: variantes } });
+      if (preConsulta.pacienteEmail) {
+        orFilters.push({ email: { equals: preConsulta.pacienteEmail, mode: 'insensitive' } });
+      }
+      // findFirst ordenado por criadoEm asc — sempre pega o mais antigo (deterministico)
+      const matchUsuario = await prisma.usuario.findFirst({
+        where: { OR: orFilters },
+        orderBy: { criadoEm: 'asc' },
+        select: { id: true },
+      });
+      if (matchUsuario) pacienteId = matchUsuario.id;
+    }
+  }
+
+  // Se nao tem paciente vinculado, nao ha o que fazer
+  if (!pacienteId) return null;
+
+  // Cria/atualiza Consentimento LGPD (upsert via unique [usuarioId, tipo, versao])
+  try {
+    const ipAddress = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim() || null;
+    const userAgent = req.headers['user-agent'] || null;
+    await prisma.consentimento.upsert({
+      where: { usuarioId_tipo_versao: { usuarioId: pacienteId, tipo: 'COMPARTILHAMENTO_MEDICO', versao: '1.0' } },
+      update: {
+        aceito: true,
+        ipAddress,
+        userAgent,
+        revogadoEm: null, // re-ativa caso tenha sido revogado
+      },
+      create: {
+        usuarioId: pacienteId,
+        tipo: 'COMPARTILHAMENTO_MEDICO',
+        versao: '1.0',
+        aceito: true,
+        ipAddress,
+        userAgent,
+      },
+    });
+  } catch (e) {
+    console.error('[CONSENT] erro:', e.message);
+  }
+
+  // Cria/atualiza AutorizacaoAcesso (medico ↔ paciente). Esse e o vinculo
+  // persistente que faz o paciente aparecer na aba Pacientes do medico.
+  // Renova a expiraEm pra 180 dias a cada nova interacao.
+  try {
+    const expiraEm = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+    await prisma.autorizacaoAcesso.upsert({
+      where: { pacienteId_medicoId: { pacienteId, medicoId: preConsulta.medicoId } },
+      update: {
+        ativo: true,
+        expiraEm,
+        revogadoEm: null,
+      },
+      create: {
+        pacienteId,
+        medicoId: preConsulta.medicoId,
+        tipoAcesso: 'LEITURA',
+        categorias: ['exames', 'perfil', 'pre-consultas'],
+        ativo: true,
+        expiraEm,
+      },
+    });
+  } catch (e) {
+    console.error('[AUTORIZACAO] erro:', e.message);
+  }
+
+  // Auditoria — registra que esse paciente passou a ter vinculo com esse medico
+  auditar(req, {
+    acao: 'AUTO_LINK_PACIENTE',
+    atorTipo: 'SISTEMA',
+    recursoTipo: 'PACIENTE',
+    recursoId: pacienteId,
+    alvoId: pacienteId,
+    metadata: {
+      medicoId: preConsulta.medicoId,
+      preConsultaId: preConsulta.id,
+      origem: pacienteIdLogado ? 'login' : 'auto-match',
+    },
+  });
+
+  return pacienteId;
+}
 
 const audioUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
@@ -95,7 +208,7 @@ router.post('/', verificarAuth, validate(criarPreConsultaSchema), async (req, re
 // Marca link como aberto + tenta auto-fill pelo telefone/email do paciente
 // ---------------------------------------------------------------------------
 
-router.get('/t/:token', async (req, res, next) => {
+router.get('/t/:token', authOpcional, async (req, res, next) => {
   try {
     const preConsulta = await prisma.preConsulta.findUnique({
       where: { linkToken: req.params.token },
@@ -133,49 +246,71 @@ router.get('/t/:token', async (req, res, next) => {
       });
     }
 
-    // Tentar encontrar paciente no Vitae pelo telefone ou email
+    // Auto-fill perfil do paciente — APENAS se o requisitante estiver autenticado
+    // como o proprio dono dos dados.
+    //
+    // Regra LGPD: nao podemos retornar dados clinicos (alergias, meds, exames, CPF, etc)
+    // pra qualquer pessoa que tenha o linkToken. Antes esse endpoint era publico e
+    // expunha tudo. Agora exige que o usuario logado seja o mesmo que esta sendo
+    // identificado pelo telefone/email da PC.
     let perfilPaciente = null;
     try {
-      const usuarioVitae = preConsulta.pacienteTel || preConsulta.pacienteEmail
-        ? await prisma.usuario.findFirst({
-            where: {
-              OR: [
-                preConsulta.pacienteTel ? { celular: preConsulta.pacienteTel.replace(/\D/g, '').replace(/^(\d{2})(\d+)$/, '+55$1$2') } : undefined,
-                preConsulta.pacienteEmail ? { email: preConsulta.pacienteEmail } : undefined,
-              ].filter(Boolean),
-            },
+      const variantesTel = variantesTelefone(preConsulta.pacienteTel);
+      if (variantesTel.length > 0 || preConsulta.pacienteEmail) {
+        const orFilters = [];
+        if (variantesTel.length > 0) orFilters.push({ celular: { in: variantesTel } });
+        if (preConsulta.pacienteEmail) {
+          orFilters.push({ email: { equals: preConsulta.pacienteEmail, mode: 'insensitive' } });
+        }
+        const usuarioVitae = await prisma.usuario.findFirst({
+          where: { OR: orFilters },
+          orderBy: { criadoEm: 'asc' },
+          select: { id: true, nome: true, email: true, celular: true },
+        });
+
+        // Verifica se o usuario logado E o mesmo que esta sendo identificado
+        const requisitanteId = req.usuario && req.usuario.id ? req.usuario.id : null;
+        const podeVerDados = usuarioVitae && requisitanteId && usuarioVitae.id === requisitanteId;
+
+        if (podeVerDados) {
+          // Carrega dados completos com cuidado (so quando autorizado)
+          const dadosClinicos = await prisma.usuario.findUnique({
+            where: { id: usuarioVitae.id },
             include: {
               perfilSaude: true,
               medicamentos: { where: { ativo: true }, select: { nome: true, dosagem: true } },
               alergias: { select: { nome: true, gravidade: true } },
               exames: { orderBy: { dataExame: 'desc' }, take: 5, select: { tipoExame: true, dataExame: true } },
             },
-          })
-        : null;
-
-      if (usuarioVitae && usuarioVitae.perfilSaude) {
-        const ps = usuarioVitae.perfilSaude;
-        perfilPaciente = {
-          nome: ps.nomeSocial || usuarioVitae.nome,
-          dataNascimento: ps.dataNascimento,
-          cpf: ps.cpf,
-          genero: ps.genero,
-          celular: usuarioVitae.celular,
-          email: usuarioVitae.email,
-          planoSaude: ps.planoSaude,
-          carteirinhaPlano: ps.carteirinhaPlano,
-          condicoes: ps.condicoes,
-          cirurgias: ps.cirurgias || [],
-          historicoFamiliar: ps.historicoFamiliar || [],
-          fuma: ps.fuma,
-          alcool: ps.alcool,
-          horasSono: ps.horasSono,
-          nivelAtividade: ps.nivelAtividade,
-          limitacoesAcessibilidade: ps.limitacoesAcessibilidade,
-          medicamentos: usuarioVitae.medicamentos.map(m => `${m.nome}${m.dosagem ? ` ${m.dosagem}` : ''}`),
-          alergias: usuarioVitae.alergias.map(a => a.nome),
-          examesRecentes: usuarioVitae.exames.map(e => e.tipoExame || 'Exame').join(', '),
-        };
+          });
+          if (dadosClinicos && dadosClinicos.perfilSaude) {
+            const ps = dadosClinicos.perfilSaude;
+            perfilPaciente = {
+              nome: ps.nomeSocial || dadosClinicos.nome,
+              dataNascimento: ps.dataNascimento,
+              cpf: ps.cpf,
+              genero: ps.genero,
+              celular: dadosClinicos.celular,
+              email: dadosClinicos.email,
+              planoSaude: ps.planoSaude,
+              carteirinhaPlano: ps.carteirinhaPlano,
+              condicoes: ps.condicoes,
+              cirurgias: ps.cirurgias || [],
+              historicoFamiliar: ps.historicoFamiliar || [],
+              fuma: ps.fuma,
+              alcool: ps.alcool,
+              horasSono: ps.horasSono,
+              nivelAtividade: ps.nivelAtividade,
+              limitacoesAcessibilidade: ps.limitacoesAcessibilidade,
+              medicamentos: dadosClinicos.medicamentos.map(m => `${m.nome}${m.dosagem ? ` ${m.dosagem}` : ''}`),
+              alergias: dadosClinicos.alergias.map(a => a.nome),
+              examesRecentes: dadosClinicos.exames.map(e => e.tipoExame || 'Exame').join(', '),
+            };
+          }
+        } else if (usuarioVitae) {
+          // Avisa o frontend que existe conta mas precisa fazer login pra ver/usar
+          perfilPaciente = { existeContaVitae: true, precisaLogin: true };
+        }
       }
     } catch (lookupErr) {
       console.error('[PRE-CONSULTA] Erro ao buscar perfil do paciente:', lookupErr.message);
@@ -252,8 +387,9 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
       console.error('[PRE-CONSULTA] Erro ao gerar summary IA:', aiErr.message);
     }
 
-    // Capturar pacienteId se o usuario estiver logado (auth opcional)
+    // Capturar pacienteId logado E tentar auto-link se nao tem (cria AutorizacaoAcesso + Consentimento)
     const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
+    const pacienteIdFinal = await vincularPaciente({ preConsulta, pacienteIdLogado, req });
 
     const atualizada = await prisma.preConsulta.update({
       where: { id: preConsulta.id },
@@ -266,27 +402,9 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
         summaryJson,
         status: 'RESPONDIDA',
         respondidaEm: new Date(),
-        ...(pacienteIdLogado && { pacienteId: pacienteIdLogado }),
+        ...(pacienteIdFinal && { pacienteId: pacienteIdFinal }),
       },
     });
-
-    // Registrar consentimento LGPD (compartilhamento com medico)
-    if (pacienteIdLogado) {
-      try {
-        await prisma.consentimento.create({
-          data: {
-            usuarioId: pacienteIdLogado,
-            tipo: 'COMPARTILHAMENTO_MEDICO',
-            versao: '1.0',
-            aceito: true,
-            ipAddress: (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim(),
-            userAgent: req.headers['user-agent'] || null,
-          },
-        });
-      } catch (e) {
-        console.error('[CONSENT] Erro ao registrar:', e.message);
-      }
-    }
 
     // TTS: Generate ElevenLabs audio in background (fire-and-forget)
     if (summaryJson && (summaryJson.textoVoz || summaryIA)) {
@@ -427,8 +545,11 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
       });
     }
 
-    // === ETAPA 4 — Capturar pacienteId se o usuario estiver logado ===
+    // === ETAPA 4 — Capturar pacienteId logado E tentar auto-link via tel/email ===
+    // vincularPaciente cria AutorizacaoAcesso + Consentimento automaticamente.
+    // Resolve o bug do "Daniel sumiu da aba Pacientes".
     const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
+    const pacienteIdFinal = await vincularPaciente({ preConsulta, pacienteIdLogado, req });
 
     // === ETAPA 4 — Salvar pre-consulta imediatamente (SEM gerar summary sincrono) ===
     // Summary/Whisper/TTS saem do caminho critico e viram tarefas pendentes (Etapa 5)
@@ -437,7 +558,7 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
       transcricao: transcricao || null,
       status: 'RESPONDIDA',
       respondidaEm: new Date(),
-      ...(pacienteIdLogado && { pacienteId: pacienteIdLogado }),
+      ...(pacienteIdFinal && { pacienteId: pacienteIdFinal }),
     };
     if (finalAudioUrl && audioConfirmado) updateData.audioUrl = finalAudioUrl;
     if (finalFotoUrl && fotoConfirmada) updateData.pacienteFotoUrl = finalFotoUrl;
@@ -446,24 +567,6 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
       where: { id: preConsulta.id },
       data: updateData,
     });
-
-    // Registrar consentimento LGPD (compartilhamento com medico)
-    if (pacienteIdLogado) {
-      try {
-        await prisma.consentimento.create({
-          data: {
-            usuarioId: pacienteIdLogado,
-            tipo: 'COMPARTILHAMENTO_MEDICO',
-            versao: '1.0',
-            aceito: true,
-            ipAddress: (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim(),
-            userAgent: req.headers['user-agent'] || null,
-          },
-        });
-      } catch (e) {
-        console.error('[CONSENT] Erro ao registrar:', e.message);
-      }
-    }
 
     // === ETAPA 5 — Enfileirar processamento assincrono (fora do caminho critico) ===
     // Summary, Whisper, TTS vao pra fila. Worker processa em background.

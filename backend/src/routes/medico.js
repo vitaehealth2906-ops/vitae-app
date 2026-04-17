@@ -5,6 +5,7 @@ const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const storage = require('../services/storage');
 const { geocodificar } = require('../services/geocoding');
+const { auditar } = require('../utils/auditoria');
 
 const router = express.Router();
 
@@ -130,7 +131,14 @@ router.put('/', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// GET /pacientes — Listar pacientes que autorizaram acesso
+// GET /pacientes — Listar pacientes do medico
+//
+// Retorna UNIAO de:
+//   1. Pacientes com AutorizacaoAcesso ativa (vinculo formal)
+//   2. Pacientes com PreConsulta respondida com pacienteId vinculado
+//   3. Pacientes "anonimos" (PreConsulta com pacienteId NULL) — agrupados por
+//      pacienteNome+pacienteTel pra nao perder info, mas marcados como sem-vinculo
+// Tudo deduplicado e enriquecido com contadores e ultima atividade.
 // ---------------------------------------------------------------------------
 
 router.get('/pacientes', async (req, res, next) => {
@@ -140,28 +148,224 @@ router.get('/pacientes', async (req, res, next) => {
       return res.status(403).json({ erro: 'Perfil medico nao encontrado' });
     }
 
+    // 1) Autorizacoes ativas — fonte primaria de "vinculo formal"
     const autorizacoes = await prisma.autorizacaoAcesso.findMany({
       where: { medicoId: medico.id, ativo: true },
       include: {
         paciente: {
           select: {
-            id: true,
-            nome: true,
-            email: true,
-            celular: true,
-            fotoUrl: true,
-            perfilSaude: true,
+            id: true, nome: true, email: true, celular: true, fotoUrl: true,
+            perfilSaude: { select: { dataNascimento: true, tipoSanguineo: true } },
+            alergias: { select: { gravidade: true } },
+            medicamentos: { where: { ativo: true }, select: { id: true } },
           },
         },
       },
     });
 
-    const pacientes = autorizacoes.map((a) => ({
-      autorizacaoId: a.id,
-      tipoAcesso: a.tipoAcesso,
-      categorias: a.categorias,
-      expiraEm: a.expiraEm,
-      ...a.paciente,
+    // 2) Todas as pre-consultas do medico (vivas) — pra contar por paciente e detectar anonimos
+    const pcs = await prisma.preConsulta.findMany({
+      where: { medicoId: medico.id, deletadoEm: null },
+      orderBy: { criadoEm: 'desc' },
+      select: {
+        id: true, pacienteId: true, pacienteNome: true, pacienteTel: true,
+        pacienteFotoUrl: true, status: true, criadoEm: true, respondidaEm: true,
+      },
+    });
+
+    // Agrupa pre-consultas por pacienteId (vinculados) e por nome+tel (anonimos)
+    const porPacienteId = new Map();
+    const porChaveAnonima = new Map();
+    for (const pc of pcs) {
+      if (pc.pacienteId) {
+        if (!porPacienteId.has(pc.pacienteId)) porPacienteId.set(pc.pacienteId, []);
+        porPacienteId.get(pc.pacienteId).push(pc);
+      } else {
+        const chave = `${(pc.pacienteNome || '').trim().toLowerCase()}|${(pc.pacienteTel || '').replace(/\D/g, '')}`;
+        if (!porChaveAnonima.has(chave)) porChaveAnonima.set(chave, []);
+        porChaveAnonima.get(chave).push(pc);
+      }
+    }
+
+    // Monta lista final de pacientes vinculados (autorizacoes + pre-consultas com pacienteId)
+    const pacientesVinculadosMap = new Map(); // pacienteId → registro
+
+    // Adiciona quem tem AutorizacaoAcesso
+    for (const a of autorizacoes) {
+      const p = a.paciente;
+      const pcsDaqui = porPacienteId.get(p.id) || [];
+      const ultimaAtividade = pcsDaqui[0]?.respondidaEm || pcsDaqui[0]?.criadoEm || a.criadoEm || null;
+      const pcRespondidas = pcsDaqui.filter(x => x.status === 'RESPONDIDA').length;
+      const pcPendentes = pcsDaqui.filter(x => x.status === 'PENDENTE' || x.status === 'ABERTO').length;
+      const alergiasGraves = (p.alergias || []).filter(x => x.gravidade === 'GRAVE').length;
+
+      pacientesVinculadosMap.set(p.id, {
+        pacienteId: p.id,
+        pacienteNome: p.nome,
+        pacienteTel: p.celular,
+        pacienteEmail: p.email,
+        pacienteFotoUrl: p.fotoUrl,
+        temVinculo: true,
+        autorizacaoId: a.id,
+        tipoAcesso: a.tipoAcesso,
+        expiraEm: a.expiraEm,
+        dataNascimento: p.perfilSaude?.dataNascimento || null,
+        tipoSanguineo: p.perfilSaude?.tipoSanguineo || null,
+        alergiasGraves,
+        medicamentosAtivos: (p.medicamentos || []).length,
+        preConsultasCount: pcsDaqui.length,
+        preConsultasRespondidas: pcRespondidas,
+        preConsultasPendentes: pcPendentes,
+        ultimaAtividade,
+      });
+    }
+
+    // Adiciona pacientes que tem PreConsulta com pacienteId mas SEM AutorizacaoAcesso
+    // (cenario antigo — antes do auto-link estar ativo)
+    for (const [pacienteId, pcsDaqui] of porPacienteId.entries()) {
+      if (pacientesVinculadosMap.has(pacienteId)) continue;
+      const usuario = await prisma.usuario.findUnique({
+        where: { id: pacienteId },
+        select: {
+          id: true, nome: true, email: true, celular: true, fotoUrl: true,
+          perfilSaude: { select: { dataNascimento: true, tipoSanguineo: true } },
+          alergias: { select: { gravidade: true } },
+          medicamentos: { where: { ativo: true }, select: { id: true } },
+        },
+      });
+      if (!usuario) continue;
+      const ultimaAtividade = pcsDaqui[0]?.respondidaEm || pcsDaqui[0]?.criadoEm || null;
+      pacientesVinculadosMap.set(pacienteId, {
+        pacienteId,
+        pacienteNome: usuario.nome,
+        pacienteTel: usuario.celular,
+        pacienteEmail: usuario.email,
+        pacienteFotoUrl: usuario.fotoUrl,
+        temVinculo: true,
+        autorizacaoId: null, // sem autorizacao formal ainda
+        dataNascimento: usuario.perfilSaude?.dataNascimento || null,
+        tipoSanguineo: usuario.perfilSaude?.tipoSanguineo || null,
+        alergiasGraves: (usuario.alergias || []).filter(x => x.gravidade === 'GRAVE').length,
+        medicamentosAtivos: (usuario.medicamentos || []).length,
+        preConsultasCount: pcsDaqui.length,
+        preConsultasRespondidas: pcsDaqui.filter(x => x.status === 'RESPONDIDA').length,
+        preConsultasPendentes: pcsDaqui.filter(x => x.status === 'PENDENTE' || x.status === 'ABERTO').length,
+        ultimaAtividade,
+      });
+    }
+
+    // Adiciona pacientes ANONIMOS (sem conta) — agrupados por nome+tel
+    const anonimos = [];
+    for (const [chave, pcsDaqui] of porChaveAnonima.entries()) {
+      const primeiroPc = pcsDaqui[0];
+      if (!primeiroPc.pacienteNome) continue; // ignora completamente sem nome
+      anonimos.push({
+        pacienteId: null,
+        chaveAnonima: chave,
+        pacienteNome: primeiroPc.pacienteNome,
+        pacienteTel: primeiroPc.pacienteTel,
+        pacienteEmail: null,
+        pacienteFotoUrl: primeiroPc.pacienteFotoUrl,
+        temVinculo: false,
+        preConsultasCount: pcsDaqui.length,
+        preConsultasRespondidas: pcsDaqui.filter(x => x.status === 'RESPONDIDA').length,
+        preConsultasPendentes: pcsDaqui.filter(x => x.status === 'PENDENTE' || x.status === 'ABERTO').length,
+        ultimaAtividade: pcsDaqui[0]?.respondidaEm || pcsDaqui[0]?.criadoEm || null,
+      });
+    }
+
+    const pacientes = [
+      ...Array.from(pacientesVinculadosMap.values()),
+      ...anonimos,
+    ].sort((a, b) => {
+      const da = a.ultimaAtividade ? new Date(a.ultimaAtividade).getTime() : 0;
+      const db = b.ultimaAtividade ? new Date(b.ultimaAtividade).getTime() : 0;
+      return db - da;
+    });
+
+    return res.status(200).json({ pacientes });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /pacientes/buscar?q=daniel — Autocomplete de pacientes (medico criando PC)
+//
+// Busca em pacientes vinculados ao medico (vinculo via AutorizacaoAcesso ou
+// PreConsulta com pacienteId). Retorna ate 10 matches por nome/email/tel.
+// Usado pelo modal "Nova Pre-Consulta" pra reaproveitar dados em vez de redigitar.
+// ---------------------------------------------------------------------------
+
+router.get('/pacientes/buscar', async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) {
+      return res.status(403).json({ erro: 'Perfil medico nao encontrado' });
+    }
+    const q = String(req.query.q || '').trim();
+    if (q.length < 2) return res.status(200).json({ pacientes: [] });
+
+    // IDs de pacientes ja vinculados a esse medico (via autorizacao OU pre-consulta)
+    const [autorizacoes, preConsultas] = await Promise.all([
+      prisma.autorizacaoAcesso.findMany({
+        where: { medicoId: medico.id, ativo: true },
+        select: { pacienteId: true },
+      }),
+      prisma.preConsulta.findMany({
+        where: { medicoId: medico.id, pacienteId: { not: null }, deletadoEm: null },
+        select: { pacienteId: true, pacienteNome: true, pacienteTel: true, pacienteEmail: true },
+      }),
+    ]);
+    const pacienteIds = Array.from(new Set([
+      ...autorizacoes.map(a => a.pacienteId),
+      ...preConsultas.map(pc => pc.pacienteId).filter(Boolean),
+    ]));
+
+    if (pacienteIds.length === 0) {
+      // Tambem busca em PCs anonimas (nome/tel)
+      const orFilters = [
+        { pacienteNome: { contains: q, mode: 'insensitive' } },
+      ];
+      if (/\d/.test(q)) orFilters.push({ pacienteTel: { contains: q.replace(/\D/g, '') } });
+      const pcsAnonimas = await prisma.preConsulta.findMany({
+        where: { medicoId: medico.id, pacienteId: null, deletadoEm: null, OR: orFilters },
+        orderBy: { criadoEm: 'desc' },
+        take: 10,
+        select: { pacienteNome: true, pacienteTel: true, pacienteEmail: true, pacienteFotoUrl: true, criadoEm: true },
+      });
+      const dedup = new Map();
+      pcsAnonimas.forEach(p => {
+        const k = `${p.pacienteNome}|${p.pacienteTel || ''}`;
+        if (!dedup.has(k)) dedup.set(k, { ...p, pacienteId: null, temVinculo: false });
+      });
+      return res.status(200).json({ pacientes: Array.from(dedup.values()) });
+    }
+
+    // Busca em Usuario por nome/email/celular (case-insensitive)
+    const orFilters = [
+      { nome: { contains: q, mode: 'insensitive' } },
+      { email: { contains: q, mode: 'insensitive' } },
+    ];
+    if (/\d/.test(q)) orFilters.push({ celular: { contains: q.replace(/\D/g, '') } });
+
+    const usuarios = await prisma.usuario.findMany({
+      where: { id: { in: pacienteIds }, OR: orFilters },
+      take: 10,
+      select: {
+        id: true, nome: true, email: true, celular: true, fotoUrl: true,
+        perfilSaude: { select: { dataNascimento: true } },
+      },
+    });
+
+    const pacientes = usuarios.map(u => ({
+      pacienteId: u.id,
+      pacienteNome: u.nome,
+      pacienteEmail: u.email,
+      pacienteTel: u.celular,
+      pacienteFotoUrl: u.fotoUrl,
+      dataNascimento: u.perfilSaude?.dataNascimento || null,
+      temVinculo: true,
     }));
 
     return res.status(200).json({ pacientes });
@@ -213,15 +417,41 @@ router.get('/pacientes/:pacienteId', async (req, res, next) => {
 
     const { pacienteId } = req.params;
 
-    // Verifica vinculo: o paciente respondeu pelo menos 1 pre-consulta desse medico
-    const vinculo = await prisma.preConsulta.findFirst({
-      where: { medicoId: medico.id, pacienteId },
+    // Validacao em 2 niveis:
+    //   1. AutorizacaoAcesso ativa (paciente nao revogou) — fonte primaria
+    //   2. Fallback: pelo menos 1 PreConsulta entre medico e paciente (legado)
+    const autorizacao = await prisma.autorizacaoAcesso.findFirst({
+      where: {
+        medicoId: medico.id,
+        pacienteId,
+        ativo: true,
+        OR: [
+          { expiraEm: null },
+          { expiraEm: { gt: new Date() } },
+        ],
+      },
       select: { id: true },
     });
 
-    if (!vinculo) {
-      return res.status(403).json({ erro: 'Voce nao tem acesso a esse paciente' });
+    if (!autorizacao) {
+      const vinculo = await prisma.preConsulta.findFirst({
+        where: { medicoId: medico.id, pacienteId, deletadoEm: null },
+        select: { id: true },
+      });
+      if (!vinculo) {
+        return res.status(403).json({ erro: 'Voce nao tem acesso a esse paciente' });
+      }
     }
+
+    // Auditoria — registra acesso a dados clinicos
+    auditar(req, {
+      acao: 'VIEW_PACIENTE',
+      atorTipo: 'MEDICO',
+      recursoTipo: 'PACIENTE',
+      recursoId: pacienteId,
+      alvoId: pacienteId,
+      metadata: { medicoId: medico.id },
+    });
 
     const paciente = await prisma.usuario.findUnique({
       where: { id: pacienteId },
@@ -411,6 +641,70 @@ router.get('/diagnostico-pre-consulta', async (req, res, next) => {
     });
 
     return res.status(200).json({ total: diagnostico.length, preConsultas: diagnostico });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /migrar-autorizacoes — Popula AutorizacaoAcesso retroativamente
+//
+// Para cada PreConsulta DESSE medico que ja tem pacienteId vinculado, cria
+// (upsert idempotente) a AutorizacaoAcesso correspondente. Resolve o problema
+// do "Daniel nao aparece em Pacientes" pra dados antigos, antes do auto-link
+// estar ativo no responder.
+// ---------------------------------------------------------------------------
+
+router.post('/migrar-autorizacoes', async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) return res.status(403).json({ erro: 'Perfil medico nao encontrado' });
+
+    const pcs = await prisma.preConsulta.findMany({
+      where: { medicoId: medico.id, pacienteId: { not: null }, deletadoEm: null },
+      select: { id: true, pacienteId: true, criadoEm: true },
+      orderBy: { criadoEm: 'asc' },
+    });
+
+    const pacienteIds = Array.from(new Set(pcs.map(pc => pc.pacienteId)));
+    let criadas = 0;
+    let atualizadas = 0;
+
+    for (const pacienteId of pacienteIds) {
+      const primeirapc = pcs.find(p => p.pacienteId === pacienteId);
+      const expiraEm = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+      const existente = await prisma.autorizacaoAcesso.findUnique({
+        where: { pacienteId_medicoId: { pacienteId, medicoId: medico.id } },
+      });
+      if (existente) {
+        await prisma.autorizacaoAcesso.update({
+          where: { pacienteId_medicoId: { pacienteId, medicoId: medico.id } },
+          data: { ativo: true, expiraEm, revogadoEm: null },
+        });
+        atualizadas++;
+      } else {
+        await prisma.autorizacaoAcesso.create({
+          data: {
+            pacienteId,
+            medicoId: medico.id,
+            tipoAcesso: 'LEITURA',
+            categorias: ['exames', 'perfil', 'pre-consultas'],
+            ativo: true,
+            expiraEm,
+            criadoEm: primeirapc.criadoEm,
+          },
+        });
+        criadas++;
+      }
+    }
+
+    auditar(req, {
+      acao: 'MIGRAR_AUTORIZACOES',
+      atorTipo: 'MEDICO',
+      metadata: { medicoId: medico.id, criadas, atualizadas, totalPacientes: pacienteIds.length },
+    });
+
+    return res.status(200).json({ ok: true, criadas, atualizadas, totalPacientes: pacienteIds.length });
   } catch (err) {
     next(err);
   }

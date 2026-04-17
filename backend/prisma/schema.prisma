@@ -329,10 +329,15 @@ model PreConsulta {
   criadoEm        DateTime @default(now()) @map("criado_em")
   atualizadoEm    DateTime @updatedAt @map("atualizado_em")
 
+  deletadoEm      DateTime? @map("deletado_em") // soft-delete
+
   medico          Medico   @relation(fields: [medicoId], references: [id], onDelete: Cascade)
   template        FormTemplate? @relation(fields: [templateId], references: [id])
   paciente        Usuario? @relation("paciente_pre_consultas", fields: [pacienteId], references: [id], onDelete: SetNull)
 
+  @@index([medicoId, pacienteId])
+  @@index([medicoId, criadoEm])
+  @@index([medicoId, status])
   @@map("pre_consultas")
 }
 
@@ -351,6 +356,8 @@ model AutorizacaoAcesso {
   paciente        Usuario  @relation("paciente_autorizacoes", fields: [pacienteId], references: [id], onDelete: Cascade)
   medico          Medico   @relation("medico_autorizacoes", fields: [medicoId], references: [id], onDelete: Cascade)
 
+  @@unique([pacienteId, medicoId])
+  @@index([medicoId, ativo])
   @@map("autorizacoes_acesso")
 }
 
@@ -407,5 +414,26 @@ model Consentimento {
 
   usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
+  @@unique([usuarioId, tipo, versao])
   @@map("consentimentos")
+}
+
+// ---- AUDITORIA DE ACESSO (LGPD: quem viu qual dado, quando, de onde) ----
+model AuditoriaAcesso {
+  id              String   @id @default(uuid())
+  atorId          String?  @map("ator_id") // usuario que acessou (medico ou paciente)
+  atorTipo        String   @map("ator_tipo") // MEDICO, PACIENTE, PUBLICO
+  acao            String   // VIEW_PACIENTE, VIEW_EXAME, VIEW_RG_PUBLICO, VIEW_PRECONSULTA, etc
+  recursoId       String?  @map("recurso_id") // id do recurso acessado
+  recursoTipo     String?  @map("recurso_tipo") // PACIENTE, EXAME, PRECONSULTA, RG_PUBLICO
+  alvoId          String?  @map("alvo_id") // id do dono do dado (se diferente do ator)
+  ipAddress       String?  @map("ip_address")
+  userAgent       String?  @map("user_agent")
+  metadata        Json?    // contexto adicional
+  criadoEm        DateTime @default(now()) @map("criado_em")
+
+  @@index([atorId, criadoEm])
+  @@index([alvoId, criadoEm])
+  @@index([recursoTipo, recursoId])
+  @@map("auditorias_acesso")
 }

@@ -56,6 +56,39 @@ app.use(
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// ── Trust proxy (Railway/Vercel) — pra rate limit pegar IP real ──
+app.set('trust proxy', 1);
+
+// ── Rate limiting (defesa basica contra abuso) ──────────
+const rateLimit = require('express-rate-limit');
+
+// Limite geral pra rotas autenticadas — generoso pro uso real (300 req/min por IP)
+const limiterGeral = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas requisicoes. Aguarde um momento.' },
+});
+
+// Limite mais apertado pra rotas publicas (60 req/min por IP)
+const limiterPublico = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas tentativas. Aguarde um momento.' },
+});
+
+// Limite ESPECIFICO pra login/cadastro (defesa contra brute force) — 20 por 15min
+const limiterAuth = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas tentativas de login. Aguarde 15 minutos.' },
+});
+
 // ── Health check ───────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -90,22 +123,26 @@ app.post('/test-scan', require('multer')({ storage: require('multer').memoryStor
 });
 
 // ── Montagem das rotas ─────────────────────────────────
-app.use('/auth', authRoutes);
-app.use('/perfil', perfilRoutes);
-app.use('/exames', examesRoutes);
-app.use('/medicamentos', medicamentosRoutes);
-app.use('/alergias', alergiasRoutes);
-app.use('/scores', scoresRoutes);
-app.use('/checkin', checkinRoutes);
-app.use('/notificacoes', notificacoesRoutes);
-app.use('/pdf', pdfRoutes);
-app.use('/medico', medicoRoutes);
-app.use('/pre-consulta', preConsultaRoutes);
-app.use('/agendamento', agendamentoRoutes);
-app.use('/autorizacao', autorizacaoRoutes);
-app.use('/consentimento', consentimentoRoutes);
-app.use('/templates', templatesRoutes);
-app.use('/timeline', timelineRoutes);
+// Auth: brute-force protection mais agressiva
+app.use('/auth', limiterAuth, authRoutes);
+// Pre-consulta: tem rotas publicas (responder, GET por token) — limite publico
+app.use('/pre-consulta', limiterPublico, preConsultaRoutes);
+// Autorizacao: tem rotas publicas (rg-publico, exame-publico) — limite publico
+app.use('/autorizacao', limiterPublico, autorizacaoRoutes);
+// Demais rotas: limite geral (300/min)
+app.use('/perfil', limiterGeral, perfilRoutes);
+app.use('/exames', limiterGeral, examesRoutes);
+app.use('/medicamentos', limiterGeral, medicamentosRoutes);
+app.use('/alergias', limiterGeral, alergiasRoutes);
+app.use('/scores', limiterGeral, scoresRoutes);
+app.use('/checkin', limiterGeral, checkinRoutes);
+app.use('/notificacoes', limiterGeral, notificacoesRoutes);
+app.use('/pdf', limiterGeral, pdfRoutes);
+app.use('/medico', limiterGeral, medicoRoutes);
+app.use('/agendamento', limiterGeral, agendamentoRoutes);
+app.use('/consentimento', limiterGeral, consentimentoRoutes);
+app.use('/templates', limiterGeral, templatesRoutes);
+app.use('/timeline', limiterGeral, timelineRoutes);
 
 // ── 404 para rotas nao encontradas ────────────────────
 app.use((_req, res) => {
