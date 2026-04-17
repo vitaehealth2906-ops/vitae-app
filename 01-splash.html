@@ -212,10 +212,23 @@
     <div class="curtain" id="curtain"></div>
 </div>
 
+<script src="device-router.js"></script>
 <script src="api.js"></script>
 <script>
-    // Se ja esta logado, pula direto para o perfil
-    const destino = vitaeAPI.isLoggedIn() ? '08-perfil.html' : '00-escolha.html';
+    // Se ja esta logado, decide destino baseado no tipo e dispositivo
+    let destino = '00-escolha.html';
+    if (vitaeAPI.isLoggedIn()) {
+        try {
+            const u = JSON.parse(localStorage.getItem('vitae_usuario'));
+            if (u && u.tipo === 'MEDICO' && vitaeDevice.isDesktop) {
+                destino = 'desktop/dashboard.html';
+            } else {
+                destino = '08-perfil.html';
+            }
+        } catch(e) {
+            destino = '08-perfil.html';
+        }
+    }
 
     // At 6.5s: logo shrinks + blur, glow dims, particles fade
     setTimeout(() => {

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vitaid — Meu Perfil</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="desktop-core.css" rel="stylesheet">
+<script src="../device-router.js"></script>
+<script>vitaeDevice.guardDesktop();</script>
+</head>
+<body>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- MODAL: Editar campo -->
+<div class="modal-overlay" id="modalEdit" onclick="if(event.target===this)closeEdit()">
+  <div class="modal">
+    <div class="modal-title" id="editTitle">Editar</div>
+    <div class="modal-sub" id="editSub"></div>
+    <div class="field">
+      <label id="editLabel">Campo</label>
+      <input type="text" id="editInput">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-s" onclick="closeEdit()">Cancelar</button>
+      <button class="btn btn-p" id="editSaveBtn" onclick="saveEdit()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Confirmar logout -->
+<div class="modal-overlay" id="modalLogout" onclick="if(event.target===this)closeLogout()">
+  <div class="modal" style="width:380px">
+    <div class="modal-title">Sair da conta</div>
+    <div class="modal-sub">Tem certeza que deseja sair? Voce precisara fazer login novamente.</div>
+    <div class="modal-footer">
+      <button class="btn btn-s" onclick="closeLogout()">Cancelar</button>
+      <button class="btn btn-danger" onclick="doLogout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sair</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="logo">vita<span class="ib">id</span></div>
+    <span class="sb-tag">Medico</span>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-g">Principal</div>
+    <a class="nl" href="dashboard.html" style="text-decoration:none">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a class="nl" href="pre-consulta.html" style="text-decoration:none">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="13" x2="12" y2="18"/><line x1="9.5" y1="15.5" x2="14.5" y2="15.5"/></svg>
+      <span>Nova Pre-Consulta</span>
+    </a>
+    <a class="nl" href="pre-consultas.html" style="text-decoration:none">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Pre-Consultas</span>
+    </a>
+    <div class="sb-g">Gestao</div>
+    <a class="nl" href="pacientes.html" style="text-decoration:none">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <span>Pacientes</span>
+    </a>
+    <a class="nl" href="crm.html" style="text-decoration:none">
+      <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span>CRM & Retornos</span>
+    </a>
+    <div class="sb-g">Ferramentas</div>
+    <a class="nl" href="templates.html" style="text-decoration:none">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+      <span>Templates</span>
+    </a>
+    <a class="nl on" href="perfil.html" style="text-decoration:none">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Meu Perfil</span>
+    </a>
+  </nav>
+  <a class="sb-user" href="perfil.html" style="text-decoration:none">
+    <div class="sb-av" id="sbAvatar">--</div>
+    <div><div class="sb-name" id="sbName">Carregando...</div><div class="sb-crm" id="sbCrm">--</div></div>
+  </a>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <span class="tb-title">Meu Perfil</span>
+    <div class="tb-sep"></div>
+    <span class="tb-sub">Gerencie seus dados e configuracoes</span>
+    <div class="tb-space"></div>
+    <span class="tb-time" id="tbClock"></span>
+  </div>
+
+  <div class="content">
+    <div class="ph"><div><h1>Meu Perfil</h1><p>Gerencie seus dados e configuracoes</p></div></div>
+    <div class="profile-layout">
+      <div>
+        <div class="profile-card">
+          <div class="prof-av" id="profAvatar">--</div>
+          <div class="prof-name" id="profName">Carregando...</div>
+          <div class="prof-crm" id="profCrm">--</div>
+          <div class="prof-stats" id="profStats">
+            <div class="ps"><div class="psn gn" id="pfStat1">--</div><div class="psl">Pre-consultas</div></div>
+            <div class="ps"><div class="psn" style="color:var(--ok)" id="pfStat2">--</div><div class="psl">Respondidas</div></div>
+            <div class="ps"><div class="psn" style="color:var(--warn)" id="pfStat3">--</div><div class="psl">Pendentes</div></div>
+            <div class="ps"><div class="psn" style="color:var(--info)" id="pfStat4">--</div><div class="psl">Pacientes</div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="setting-group">
+          <div class="sg-title">Dados Profissionais</div>
+          <div class="sg-row"><div style="flex:1"><div class="sg-label">CRM / UF</div><div class="sg-sub" id="fieldCrm">--</div></div><button class="sg-btn" onclick="openEdit('crm','CRM','Numero do CRM','crm')">Editar</button></div>
+          <div class="sg-row"><div style="flex:1"><div class="sg-label">Especialidade</div><div class="sg-sub" id="fieldEspecialidade">--</div></div><button class="sg-btn" onclick="openEdit('especialidade','Especialidade','Sua especialidade medica','especialidade')">Editar</button></div>
+          <div class="sg-row"><div style="flex:1"><div class="sg-label">Nome da clinica</div><div class="sg-sub" id="fieldClinica">--</div></div><button class="sg-btn" onclick="openEdit('clinica','Nome da clinica','Nome da sua clinica ou consultorio','clinica')">Editar</button></div>
+          <div class="sg-row"><div style="flex:1"><div class="sg-label">Endereco</div><div class="sg-sub" id="fieldEndereco">--</div></div><button class="sg-btn" onclick="openEdit('enderecoClinica','Endereco','Endereco da clinica','enderecoClinica')">Editar</button></div>
+          <div class="sg-row"><div style="flex:1"><div class="sg-label">Telefone da clinica</div><div class="sg-sub" id="fieldTelefone">--</div></div><button class="sg-btn" onclick="openEdit('telefoneClinica','Telefone da clinica','Telefone de contato','telefoneClinica')">Editar</button></div>
+          <div class="sg-row"><div style="flex:1"><div class="sg-label">Valor medio da consulta</div><div class="sg-sub" id="fieldValor">--</div></div><button class="sg-btn" onclick="openEdit('valorConsulta','Valor da consulta','Valor medio em reais (ex: 250)','valorConsulta')">Editar</button></div>
+        </div>
+        <div class="setting-group">
+          <div class="sg-title">Notificacoes</div>
+          <div class="sg-row"><div style="flex:1"><div class="sg-label">Alertas urgentes</div><div class="sg-sub">Notificar quando houver casos criticos</div></div><div class="toggle on" onclick="toggleSwitch(this)"></div></div>
+          <div class="sg-row"><div style="flex:1"><div class="sg-label">Lembretes de retorno</div><div class="sg-sub">Avisar quando um retorno estiver proximo</div></div><div class="toggle on" onclick="toggleSwitch(this)"></div></div>
+          <div class="sg-row"><div style="flex:1"><div class="sg-label">Resumo diario</div><div class="sg-sub">Receber resumo das consultas por e-mail</div></div><div class="toggle" onclick="toggleSwitch(this)"></div></div>
+        </div>
+        <div class="setting-group">
+          <div class="sg-title">Conta</div>
+          <div class="sg-row"><div style="flex:1"><div class="sg-label">E-mail</div><div class="sg-sub" id="fieldEmail">--</div></div></div>
+          <div class="sg-row"><div style="flex:1"><div class="sg-label">Celular</div><div class="sg-sub" id="fieldCelular">--</div></div></div>
+          <div class="sg-row"><div><button class="btn btn-danger" onclick="openLogout()" style="height:30px;font-size:12px"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sair da conta</button></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="../api.js"></script>
+<script>
+var medicoData = null;
+var usuarioData = null;
+var currentEditField = null;
+
+// Carregar dados reais do servidor
+async function loadProfile() {
+  try {
+    var result = await vitaeAPI.getPerfilMedico();
+    medicoData = result.medico || {};
+    usuarioData = medicoData.usuario || {};
+
+    // Profile card
+    var initials = getInitials(usuarioData.nome || '');
+    document.getElementById('profAvatar').textContent = initials;
+    document.getElementById('profName').textContent = formatDrName(usuarioData.nome || 'Medico');
+    document.getElementById('profCrm').textContent = 'CRM ' + (medicoData.crm || '--') + ' . ' + (medicoData.ufCrm || '--') + ' . ' + (medicoData.especialidade || '--');
+
+    // Sidebar
+    document.getElementById('sbAvatar').textContent = initials;
+    document.getElementById('sbName').textContent = formatDrName(usuarioData.nome || 'Medico');
+    document.getElementById('sbCrm').textContent = 'CRM ' + (medicoData.crm || '--') + ' . ' + (medicoData.ufCrm || '--');
+
+    // Fields
+    document.getElementById('fieldCrm').textContent = (medicoData.crm || '--') + ' / ' + (medicoData.ufCrm || '--');
+    document.getElementById('fieldEspecialidade').textContent = medicoData.especialidade || 'Nao informada';
+    document.getElementById('fieldClinica').textContent = medicoData.clinica || 'Nao informada';
+    document.getElementById('fieldEndereco').textContent = medicoData.enderecoClinica || 'Nao informado';
+    document.getElementById('fieldTelefone').textContent = medicoData.telefoneClinica || 'Nao informado';
+    document.getElementById('fieldValor').textContent = medicoData.valorConsulta ? 'R$ ' + medicoData.valorConsulta : 'Nao informado';
+    document.getElementById('fieldEmail').textContent = usuarioData.email || '--';
+    document.getElementById('fieldCelular').textContent = usuarioData.celular || 'Nao informado';
+
+    // Stats
+    loadStats();
+  } catch (err) {
+    // Fallback: usar dados do localStorage
+    var u = JSON.parse(localStorage.getItem('vitae_usuario') || '{}');
+    document.getElementById('profName').textContent = formatDrName(u.nome || 'Medico');
+    document.getElementById('profCrm').textContent = 'CRM ' + (u.crm || '--') + ' . ' + (u.uf || '--');
+    document.getElementById('sbName').textContent = formatDrName(u.nome || 'Medico');
+    toast('Erro ao carregar perfil. Verifique sua conexao.', 'err');
+  }
+}
+
+async function loadStats() {
+  try {
+    var stats = await vitaeAPI.getDashboardMedico();
+    document.getElementById('pfStat1').textContent = stats.totalPreConsultas || 0;
+    document.getElementById('pfStat2').textContent = stats.preConsultasRespondidas || 0;
+    document.getElementById('pfStat3').textContent = stats.preConsultasPendentes || 0;
+    document.getElementById('pfStat4').textContent = stats.totalPacientes || 0;
+  } catch (e) {}
+}
+
+function getInitials(nome) {
+  if (!nome) return '--';
+  var parts = nome.replace(/^(Dr\.?\s*|Dra\.?\s*)/i, '').trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return parts[0] ? parts[0].substring(0, 2).toUpperCase() : '--';
+}
+
+function formatDrName(nome) {
+  if (!nome) return 'Medico';
+  if (/^(Dr\.?|Dra\.?)\s/i.test(nome)) return nome;
+  return 'Dr. ' + nome;
+}
+
+// Editar campo
+function openEdit(fieldKey, title, placeholder, apiField) {
+  currentEditField = { fieldKey: fieldKey, apiField: apiField };
+  document.getElementById('editTitle').textContent = 'Editar ' + title;
+  document.getElementById('editLabel').textContent = title;
+  document.getElementById('editInput').placeholder = placeholder;
+
+  // Preencher valor atual
+  var currentVal = '';
+  if (medicoData) {
+    if (fieldKey === 'crm') currentVal = medicoData.crm || '';
+    else if (fieldKey === 'especialidade') currentVal = medicoData.especialidade || '';
+    else if (fieldKey === 'clinica') currentVal = medicoData.clinica || '';
+    else if (fieldKey === 'enderecoClinica') currentVal = medicoData.enderecoClinica || '';
+    else if (fieldKey === 'telefoneClinica') currentVal = medicoData.telefoneClinica || '';
+    else if (fieldKey === 'valorConsulta') currentVal = medicoData.valorConsulta || '';
+  }
+  document.getElementById('editInput').value = currentVal;
+  document.getElementById('modalEdit').classList.add('show');
+  document.getElementById('editInput').focus();
+}
+
+function closeEdit() {
+  document.getElementById('modalEdit').classList.remove('show');
+  currentEditField = null;
+}
+
+async function saveEdit() {
+  if (!currentEditField) return;
+  var val = document.getElementById('editInput').value.trim();
+  if (!val) { toast('Preencha o campo.', 'warn'); return; }
+
+  var btn = document.getElementById('editSaveBtn');
+  btn.textContent = 'Salvando...';
+  btn.disabled = true;
+
+  try {
+    var body = {};
+    body[currentEditField.apiField] = currentEditField.apiField === 'valorConsulta' ? parseFloat(val) : val;
+    await vitaeAPI.atualizarMedico(body);
+    toast('Dado atualizado com sucesso.', 'ok');
+    closeEdit();
+    loadProfile();
+  } catch (err) {
+    toast(err.message || 'Erro ao salvar.', 'err');
+  }
+  btn.textContent = 'Salvar';
+  btn.disabled = false;
+}
+
+// Logout
+function openLogout() { document.getElementById('modalLogout').classList.add('show'); }
+function closeLogout() { document.getElementById('modalLogout').classList.remove('show'); }
+function doLogout() {
+  localStorage.removeItem('vitae_token');
+  localStorage.removeItem('vitae_refresh_token');
+  localStorage.removeItem('vitae_usuario');
+  toast('Sessao encerrada.', 'info');
+  setTimeout(function() { window.location.href = 'login.html'; }, 600);
+}
+
+// Toggles
+function toggleSwitch(el) {
+  el.classList.toggle('on');
+  toast(el.classList.contains('on') ? 'Notificacao ativada' : 'Notificacao desativada', el.classList.contains('on') ? 'ok' : 'warn');
+}
+
+// Toast
+function toast(msg, type) {
+  type = type || 'ok';
+  var icons = {ok:'V', warn:'!', err:'X', info:'i'};
+  var stack = document.getElementById('toastStack');
+  var t = document.createElement('div');
+  t.className = 'toast toast-' + type;
+  t.innerHTML = '<div class="toast-icon">' + (icons[type] || 'i') + '</div><span>' + msg + '</span>';
+  stack.appendChild(t);
+  setTimeout(function() { t.classList.add('out'); setTimeout(function() { t.remove(); }, 300); }, 3000);
+}
+
+// Clock
+function updateClock() {
+  var now = new Date();
+  var el = document.getElementById('tbClock');
+  if (el) el.textContent = now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Keyboard
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeEdit(); closeLogout(); }
+  if (e.key === 'Enter' && currentEditField) saveEdit();
+});
+
+// Init
+loadProfile();
+</script>
+</body>
+</html>

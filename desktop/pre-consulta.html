@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vitaid — Nova Pre-Consulta</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="desktop-core.css" rel="stylesheet">
+<script src="../device-router.js"></script>
+<script>vitaeDevice.guardDesktop();</script>
+</head>
+<body>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo"><div class="logo">vita<span class="ib">id</span></div><span class="sb-tag">Medico</span></div>
+  <nav class="sb-nav">
+    <div class="sb-g">Principal</div>
+    <a class="nl" href="dashboard.html" style="text-decoration:none"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span></a>
+    <a class="nl on" href="pre-consulta.html" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="13" x2="12" y2="18"/><line x1="9.5" y1="15.5" x2="14.5" y2="15.5"/></svg><span>Nova Pre-Consulta</span></a>
+    <a class="nl" href="pre-consultas.html" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span>Pre-Consultas</span></a>
+    <div class="sb-g">Gestao</div>
+    <a class="nl" href="pacientes.html" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg><span>Pacientes</span></a>
+    <a class="nl" href="crm.html" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>CRM & Retornos</span></a>
+    <div class="sb-g">Ferramentas</div>
+    <a class="nl" href="templates.html" style="text-decoration:none"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg><span>Templates</span></a>
+    <a class="nl" href="perfil.html" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Meu Perfil</span></a>
+  </nav>
+  <a class="sb-user" href="perfil.html" style="text-decoration:none">
+    <div class="sb-av" id="sbAvatar">--</div>
+    <div><div class="sb-name" id="sbName">Carregando...</div><div class="sb-crm" id="sbCrm">--</div></div>
+  </a>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <span class="tb-title">Nova Pre-Consulta</span><div class="tb-sep"></div><span class="tb-sub">Envie o formulario antes da consulta</span><div class="tb-space"></div>
+    <span class="tb-time" id="tbClock"></span>
+  </div>
+
+  <div class="content">
+    <div class="ph"><div><h1>Nova Pre-Consulta</h1><p>Envie o formulario antes da consulta e economize ate 15 minutos</p></div></div>
+    <div class="fg">
+      <div>
+        <div class="fb">
+          <div class="fbt"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Dados do paciente</div>
+          <div class="g2">
+            <div class="field"><label>Nome completo *</label><input type="text" id="fNome" placeholder="Ex: Maria da Silva"><span class="err-msg" id="fNomeErr">Campo obrigatorio</span></div>
+            <div class="field"><label>WhatsApp</label><input type="tel" id="fPhone" placeholder="(11) 99999-9999" oninput="fmtPhone(this)"></div>
+          </div>
+          <div class="field"><label>Email</label><input type="email" id="fEmail" placeholder="paciente@email.com"></div>
+        </div>
+        <div class="fb">
+          <div class="fbt"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Consulta</div>
+          <div class="field"><label>Template</label><select id="fTemplate"><option value="">Padrao VitaID</option></select></div>
+          <div class="field"><label>Observacoes para o paciente</label><textarea id="fObs" placeholder="Ex: Traga exames recentes, venha em jejum..."></textarea></div>
+          <div class="fac">
+            <button class="btn btn-p" id="fSendBtn" onclick="sendPreConsulta()" style="flex:1;height:38px;justify-content:center"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>Gerar link e enviar</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="lg" id="lgCard" style="margin-bottom:14px">
+          <div class="lgl">Link gerado com sucesso</div>
+          <div class="lgu" id="lgUrl"></div>
+          <div class="lgbs">
+            <button class="lgb lgb-p" id="lgWa" onclick="openWA()"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Abrir WhatsApp</button>
+            <button class="lgb lgb-s" onclick="copyLinkFn()"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg><span id="copyTxt">Copiar link</span></button>
+          </div>
+        </div>
+        <div class="tips-box">
+          <div class="slabel" style="margin-bottom:12px">Como funciona</div>
+          <div class="tip"><div class="tipn">1</div><p><strong>Envie o link</strong> para o paciente via WhatsApp antes da consulta.</p></div>
+          <div class="tip"><div class="tipn">2</div><p>O paciente <strong>preenche o formulario</strong> com historico e sintomas.</p></div>
+          <div class="tip"><div class="tipn">3</div><p>O sistema gera o <strong>resumo clinico em audio</strong> de 60 segundos.</p></div>
+          <div class="tip"><div class="tipn">4</div><p>Voce chega preparado e <strong>ganha ate 15 min</strong> por consulta.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="../api.js"></script>
+<script>
+var generatedUrl = '';
+var generatedPhone = '';
+
+async function init() {
+  var u = JSON.parse(localStorage.getItem('vitae_usuario') || '{}');
+  var ini = getInitials(u.nome || '');
+  document.getElementById('sbAvatar').textContent = ini;
+  document.getElementById('sbName').textContent = u.nome ? ('Dr. ' + u.nome.replace(/^Dr\.?\s*/i,'')) : 'Medico';
+  document.getElementById('sbCrm').textContent = u.crm ? ('CRM ' + u.crm + ' . ' + (u.uf||'')) : '';
+
+  // Carregar templates reais
+  try {
+    var res = await vitaeAPI.listarTemplates();
+    var tpls = res.templates || res || [];
+    var sel = document.getElementById('fTemplate');
+    tpls.forEach(function(t) {
+      var opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.nome + ' (' + (t.perguntas ? t.perguntas.length : 0) + ' perguntas)';
+      sel.appendChild(opt);
+    });
+  } catch (e) {}
+}
+
+async function sendPreConsulta() {
+  var nome = document.getElementById('fNome').value.trim();
+  if (!nome) {
+    document.getElementById('fNome').classList.add('err');
+    document.getElementById('fNomeErr').classList.add('show');
+    return;
+  }
+  document.getElementById('fNome').classList.remove('err');
+  document.getElementById('fNomeErr').classList.remove('show');
+
+  var btn = document.getElementById('fSendBtn');
+  btn.textContent = 'Gerando...'; btn.disabled = true;
+
+  try {
+    var body = { pacienteNome: nome };
+    var tel = document.getElementById('fPhone').value.replace(/\D/g, '');
+    var email = document.getElementById('fEmail').value.trim();
+    if (tel) body.pacienteTel = tel;
+    if (email) body.pacienteEmail = email;
+    var tplId = document.getElementById('fTemplate').value;
+    if (tplId) body.templateId = tplId;
+
+    var result = await vitaeAPI.criarPreConsulta(body);
+    var pc = result.preConsulta || result;
+    var token = pc.linkToken || '';
+    generatedUrl = window.location.origin + '/pre-consulta.html?token=' + token;
+    generatedPhone = tel;
+
+    document.getElementById('lgUrl').textContent = generatedUrl;
+    document.getElementById('lgCard').classList.add('show');
+    document.getElementById('lgCard').scrollIntoView({behavior:'smooth',block:'nearest'});
+
+    toast('Pre-consulta criada para ' + nome + '.', 'ok');
+
+    // Abrir WhatsApp automaticamente se tem telefone
+    if (tel) openWA();
+  } catch (err) {
+    toast(err.message || 'Erro ao criar pre-consulta.', 'err');
+  }
+
+  btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>Gerar link e enviar';
+  btn.disabled = false;
+}
+
+function openWA() {
+  if (!generatedUrl) return;
+  var nome = document.getElementById('fNome').value.trim();
+  var num = generatedPhone || '';
+  var msg = encodeURIComponent('Ola ' + nome + '! Antes da sua consulta, preencha este formulario rapido:\n\n' + generatedUrl + '\n\nLeva menos de 5 minutos.');
+  window.open('https://wa.me/55' + num + '?text=' + msg, '_blank');
+}
+
+function copyLinkFn() {
+  if (!generatedUrl) return;
+  navigator.clipboard.writeText(generatedUrl).then(function() {
+    document.getElementById('copyTxt').textContent = 'Copiado';
+    setTimeout(function() { document.getElementById('copyTxt').textContent = 'Copiar link'; }, 2000);
+    toast('Link copiado.', 'ok');
+  });
+}
+
+function getInitials(n) { if(!n)return'--'; var p=n.replace(/^(Dr\.?\s*|Dra\.?\s*)/i,'').trim().split(/\s+/); return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():p[0]?p[0].substring(0,2).toUpperCase():'--'; }
+function fmtPhone(el) { var v=el.value.replace(/\D/g,''); if(v.length>=11)el.value='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7,11); else if(v.length>=6)el.value='('+v.slice(0,2)+') '+v.slice(2,6)+'-'+v.slice(6); }
+
+function toast(msg, type) {
+  type = type || 'ok';
+  var icons = {ok:'V', warn:'!', err:'X', info:'i'};
+  var stack = document.getElementById('toastStack');
+  var t = document.createElement('div');
+  t.className = 'toast toast-' + type;
+  t.innerHTML = '<div class="toast-icon">' + (icons[type] || 'i') + '</div><span>' + msg + '</span>';
+  stack.appendChild(t);
+  setTimeout(function() { t.classList.add('out'); setTimeout(function() { t.remove(); }, 300); }, 3000);
+}
+
+function updateClock() { var now=new Date(),el=document.getElementById('tbClock'); if(el)el.textContent=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+setInterval(updateClock, 1000); updateClock();
+
+init();
+</script>
+</body>
+</html>
