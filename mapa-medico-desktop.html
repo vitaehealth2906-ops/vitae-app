@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa do Fluxo Medico — Desktop · vita id</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#00E5A0; --cyan:#00B4D8;
+  --grad:linear-gradient(120deg,#00E5A0,#00B4D8);
+  --dark:#0D0F14; --bg:#F7F8FA; --surface:#fff;
+  --border:rgba(0,0,0,.07);
+  --t1:#0D0F14; --t2:#4B5563; --t3:#6B7280; --t4:#9CA3AF;
+  --shadow:0 1px 12px rgba(0,0,0,.07);
+  --font:'Plus Jakarta Sans',sans-serif;
+  --b-modal:#7C3AED; --b-filter:#10B981; --b-onb:#0EA5E9;
+  --b-state:#6B7280; --b-btn:#0D0F14; --b-warn:#F59E0B; --b-danger:#EF4444;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{font-family:var(--font);background:var(--bg);color:var(--t1)}
+body{padding:48px 32px 120px}
+a{color:inherit;text-decoration:none}
+
+/* ============ HEAD ============ */
+.page{max-width:1360px;margin:0 auto}
+.pg-title{font-size:34px;font-weight:900;letter-spacing:-.8px;margin-bottom:8px}
+.pg-title em{font-style:italic;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.pg-sub{font-size:14px;color:var(--t2);line-height:1.55;max-width:760px}
+.meta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.meta-chip{font-size:11.5px;color:var(--t3);padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:20px;display:inline-flex;align-items:center;gap:8px}
+.meta-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+
+.legend{margin-top:20px;padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+.legend-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--t4);margin-bottom:12px}
+.legend-grid{display:flex;gap:14px;flex-wrap:wrap}
+.legend-grid .tag{font-size:11.5px;font-weight:600}
+
+.tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.tag.modal{background:rgba(124,58,237,.1);color:var(--b-modal)}
+.tag.filter{background:rgba(16,185,129,.1);color:var(--b-filter)}
+.tag.onb{background:rgba(14,165,233,.1);color:var(--b-onb)}
+.tag.state{background:rgba(107,114,128,.12);color:var(--b-state)}
+.tag.btn{background:rgba(13,15,20,.08);color:var(--b-btn)}
+.tag.warn{background:rgba(245,158,11,.12);color:var(--b-warn)}
+.tag.danger{background:rgba(239,68,68,.1);color:var(--b-danger)}
+.tag.view{background:linear-gradient(120deg,rgba(0,229,160,.13),rgba(0,180,216,.13));color:#047857}
+
+/* ============ SECTIONS ============ */
+.section{margin-top:52px}
+.sec-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--t4);margin-bottom:14px}
+.sec-title{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:8px}
+.sec-sub{font-size:13.5px;color:var(--t2);margin-bottom:22px;line-height:1.55;max-width:760px}
+
+/* ============ CARDS ============ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.card-head{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start}
+.card-head .idx{font-size:11px;font-weight:800;color:var(--t4);min-width:36px;letter-spacing:.5px}
+.card-head .title{font-size:16.5px;font-weight:800;letter-spacing:-.2px}
+.card-head .sub{font-size:12.5px;color:var(--t3);margin-top:3px}
+.card-body{padding:18px 22px 22px}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:1080px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+/* ============ IFRAME PREVIEW ============ */
+.iframe-wrap{position:relative;width:100%;height:360px;overflow:hidden;border-radius:10px;border:1px solid var(--border);background:#F0F2F6}
+.iframe-wrap iframe{width:1440px;height:800px;border:0;transform:scale(.43);transform-origin:top left;pointer-events:none}
+.iframe-label{position:absolute;top:10px;left:10px;background:rgba(13,15,20,.85);color:#fff;font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:6px;letter-spacing:.4px}
+.open-btn{position:absolute;top:10px;right:10px;background:var(--surface);color:var(--t1);font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;border:1px solid var(--border);cursor:pointer}
+.open-btn:hover{background:var(--grad);color:#fff;border-color:transparent}
+
+/* ============ TREE (details) ============ */
+details{border:1px solid var(--border);border-radius:10px;margin-top:10px;background:#FAFBFC}
+details[open]{background:#fff;box-shadow:var(--shadow)}
+details summary{list-style:none;cursor:pointer;padding:12px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;user-select:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:'+';display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;background:var(--bg);font-weight:800;font-size:14px;color:var(--t2)}
+details[open] summary::before{content:'−';background:var(--grad);color:#fff}
+details .content{padding:4px 16px 16px 42px}
+
+ul.tree{list-style:none;padding-left:0}
+ul.tree li{position:relative;padding:6px 0 6px 18px;font-size:12.5px;color:var(--t2);line-height:1.55;border-left:1.5px dashed rgba(0,0,0,.08);margin-left:6px}
+ul.tree li::before{content:'';position:absolute;left:-1px;top:13px;width:12px;height:1.5px;background:rgba(0,0,0,.12)}
+ul.tree li strong{color:var(--t1);font-weight:700}
+ul.tree li code{background:rgba(0,0,0,.05);padding:1px 6px;border-radius:4px;font-size:11px;font-family:ui-monospace,Menlo,Consolas,monospace;color:#047857}
+ul.tree li em{font-style:normal;color:var(--t3);font-size:11.5px}
+ul.tree ul{list-style:none;padding-left:0;margin-top:2px}
+
+.kbd{display:inline-block;padding:1px 6px;font-size:10.5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;background:#fff;font-family:ui-monospace,Menlo,Consolas,monospace}
+
+/* ============ TABLE ============ */
+.t-index{width:100%;border-collapse:collapse;font-size:12.5px}
+.t-index thead th{background:#F0F2F6;color:var(--t3);font-weight:700;text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.8px}
+.t-index tbody td{padding:11px 12px;border-top:1px solid var(--border);color:var(--t2);vertical-align:top}
+.t-index tbody tr:hover td{background:#FAFBFC}
+.t-index code{background:rgba(0,0,0,.05);padding:1px 6px;border-radius:4px;font-size:11px;font-family:ui-monospace,Menlo,Consolas,monospace;color:#047857}
+
+/* ============ STANDALONE CARDS ============ */
+.stand-card{border:1px solid var(--border);border-radius:14px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.stand-card .head{padding:14px 18px;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:space-between}
+.stand-card .head h3{font-size:15px;font-weight:800}
+.stand-card .head .path{font-size:10.5px;color:rgba(255,255,255,.6);font-family:ui-monospace,Menlo,Consolas,monospace}
+.stand-card .body{padding:18px}
+
+/* ============ MODAL GRID ============ */
+.modal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:960px){.modal-grid{grid-template-columns:1fr}}
+.modal-card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.modal-card .mh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+.modal-card .mt{font-size:14px;font-weight:800}
+.modal-card .mid{font-size:10.5px;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--t4);margin-top:2px}
+.modal-card ul{margin-top:6px;padding-left:18px;font-size:12px;color:var(--t2);line-height:1.55}
+.modal-card ul li{margin-bottom:3px}
+.modal-card ul li strong{color:var(--t1)}
+
+/* ============ ONB slides ============ */
+.onb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:8px}
+@media(max-width:1080px){.onb-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.onb-grid{grid-template-columns:1fr}}
+.onb-slide{border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);padding:18px;text-align:center;position:relative}
+.onb-slide .step{position:absolute;top:10px;left:12px;font-size:10px;font-weight:800;color:var(--t4);letter-spacing:.6px}
+.onb-slide .illust{width:56px;height:56px;margin:6px auto 14px;border-radius:50%;background:rgba(0,229,160,.1);display:flex;align-items:center;justify-content:center;color:#047857}
+.onb-slide .illust svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.onb-slide .t{font-size:14px;font-weight:800;margin-bottom:6px}
+.onb-slide .t em{font-style:italic;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.onb-slide .d{font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:14px;min-height:60px}
+.onb-slide .b{display:inline-block;background:var(--grad);color:#fff;padding:6px 14px;border-radius:999px;font-size:11.5px;font-weight:700}
+
+/* ============ FOOTER NOTE ============ */
+.note{margin-top:14px;padding:12px 14px;background:#FFF8E1;border:1px solid #F59E0B40;border-radius:10px;font-size:12px;color:#92400E;line-height:1.55}
+.note strong{color:#78350F}
+
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ============ HEAD ============ -->
+<h1 class="pg-title">Mapa do Fluxo <em>Medico</em> — Desktop</h1>
+<p class="pg-sub">Auditoria completa da experiencia do medico no desktop. Cada view, modal, popup, dropdown, onboarding, slide, filter pill, estado vazio, toast e botao esta catalogado abaixo — sem excecao. Abra os <code>&lt;details&gt;</code> para expandir cada secao.</p>
+
+<div class="meta-row">
+  <span class="meta-chip"><span class="dot"></span>Atualizado 18 / Abr / 2026</span>
+  <span class="meta-chip">SPA <code style="font-size:10px;">app.html</code> + 2 telas standalone</span>
+  <span class="meta-chip">6 views · 12 modais · 27 filter pills · 4 slides onboarding</span>
+</div>
+
+<div class="legend">
+  <div class="legend-label">Legenda</div>
+  <div class="legend-grid">
+    <span class="tag view">View</span>
+    <span class="tag modal">Modal / Overlay</span>
+    <span class="tag filter">Filtro / Pill</span>
+    <span class="tag onb">Onboarding / Slide</span>
+    <span class="tag state">Estado / Skeleton</span>
+    <span class="tag btn">Botao</span>
+    <span class="tag warn">Observacao</span>
+    <span class="tag danger">Acao destrutiva</span>
+  </div>
+</div>
+
+<!-- ============ 1 · STANDALONE ============ -->
+<div class="section">
+  <div class="sec-label">1 · Telas standalone</div>
+  <h2 class="sec-title">Fora da SPA</h2>
+  <p class="sec-sub">Paginas que existem como arquivos HTML proprios, nao entram no sistema de hash routing. Redirect files foram omitidos exceto para listagem no final.</p>
+
+  <div class="grid-2">
+
+    <!-- LOGIN -->
+    <div class="stand-card">
+      <div class="head">
+        <div>
+          <h3>Login — Acesso exclusivo medico</h3>
+          <div class="path">desktop/login.html</div>
+        </div>
+        <span class="tag view">Standalone</span>
+      </div>
+      <div class="body">
+        <div class="iframe-wrap" style="height:320px">
+          <div class="iframe-label">login.html</div>
+          <button class="open-btn" onclick="window.open('desktop/login.html','_blank')">Abrir</button>
+          <iframe src="desktop/login.html" loading="lazy"></iframe>
+        </div>
+        <details style="margin-top:14px"><summary>Componentes (10)</summary>
+          <div class="content"><ul class="tree">
+            <li><strong>Logo</strong> "vita<em>id</em>" centralizado + subtitulo "Acesso exclusivo para medicos"</li>
+            <li><strong>Input email</strong> <code>#loginEmail</code> <em>(Enter → foca senha)</em></li>
+            <li><strong>Input senha</strong> <code>#loginSenha</code> <em>(Enter → submit)</em></li>
+            <li><strong>Botao</strong> <span class="tag btn">Entrar</span> <code>#loginBtn</code> · estados: idle → "Entrando..." (disabled)</li>
+            <li><strong>Mensagens de erro</strong> <code>#loginError</code>: "Preencha todos os campos" · "Esta area e exclusiva para medicos..." · "Erro ao entrar. Verifique email e senha."</li>
+            <li><strong>Toast stack</strong> <code>#toastStack</code> — variantes ok/warn/err/info (auto-dismiss 3s)</li>
+            <li><strong>Link footer</strong> "Ainda nao tem conta? Criar conta" → <code>../03-cadastro.html</code></li>
+            <li><strong>Redirect automatico</strong>: se <code>localStorage.vitae_usuario.tipo === 'MEDICO'</code> → <code>dashboard.html</code></li>
+            <li><span class="tag state">Estado</span> Loading no botao durante requisicao</li>
+            <li><span class="tag warn">Observacao</span> Bloqueia paciente logado com mensagem especifica sobre "app mobile"</li>
+          </ul></div>
+        </details>
+      </div>
+    </div>
+
+    <!-- PRE-CONSULTA GERADOR -->
+    <div class="stand-card">
+      <div class="head">
+        <div>
+          <h3>Gerador de Pre-Consulta</h3>
+          <div class="path">desktop/pre-consulta.html</div>
+        </div>
+        <span class="tag view">Standalone</span>
+      </div>
+      <div class="body">
+        <div class="iframe-wrap" style="height:320px">
+          <div class="iframe-label">pre-consulta.html</div>
+          <button class="open-btn" onclick="window.open('desktop/pre-consulta.html','_blank')">Abrir</button>
+          <iframe src="desktop/pre-consulta.html" loading="lazy"></iframe>
+        </div>
+        <details style="margin-top:14px"><summary>Componentes (14)</summary>
+          <div class="content"><ul class="tree">
+            <li><strong>Sidebar + Topbar</strong> compartilhadas (ver §3)</li>
+            <li><strong>Topbar</strong>: "Nova Pre-Consulta · Envie o formulario antes da consulta" + relogio</li>
+            <li><strong>Header</strong> H1 "Nova Pre-Consulta" + "...economize ate 15 minutos"</li>
+            <li><strong>Bloco 1 — Dados do Paciente</strong>
+              <ul>
+                <li>Nome* <code>#fNome</code> · erro inline <code>#fNomeErr</code> "Campo obrigatorio"</li>
+                <li>WhatsApp <code>#fPhone</code> <em>(auto-format BR via fmtPhone)</em></li>
+                <li>Email <code>#fEmail</code></li>
+              </ul>
+            </li>
+            <li><strong>Bloco 2 — Consulta</strong>
+              <ul>
+                <li>Template <code>#fTemplate</code> <em>(select carregado via vitaeAPI.listarTemplates)</em></li>
+                <li>Observacoes <code>#fObs</code> (textarea)</li>
+              </ul>
+            </li>
+            <li><span class="tag btn">Gerar link e enviar</span> <code>#fSendBtn</code> · estados: idle · "Gerando..." · sucesso · erro</li>
+            <li><strong>Card link gerado</strong> <code>.lg</code> (hidden ate sucesso):
+              <ul>
+                <li>URL <code>#lgUrl</code></li>
+                <li><span class="tag btn">Abrir WhatsApp</span> <code>#lgWa</code> — abre <code>wa.me/55[tel]</code> com mensagem</li>
+                <li><span class="tag btn">Copiar link</span> · label cicla "Copiar link" ↔ "Copiado" por 2s</li>
+              </ul>
+            </li>
+            <li><strong>Tips box</strong> "Como funciona" — 4 passos numerados (enviar link, paciente preenche, sistema gera resumo, medico ganha 15 min)</li>
+            <li><strong>Toasts</strong>: "Pre-consulta criada para [nome].", "Link copiado.", erro API</li>
+            <li><strong>Auto-abrir WhatsApp</strong> apos gerar SE telefone preenchido</li>
+            <li><span class="tag state">Loading</span> botao desabilitado + "Gerando..." durante API</li>
+            <li><span class="tag warn">Bug documentado</span> <code>openWA()</code> abre wa.me mesmo se telefone vazio → URL quebrada. Nao valida em <code>openWA()</code>, apenas no auto-trigger.</li>
+            <li><strong>Dependencias</strong>: <code>../api.js</code> (vitaeAPI.listarTemplates + vitaeAPI.criarPreConsulta)</li>
+          </ul></div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div class="card-head">
+      <span class="idx">1.3</span>
+      <div>
+        <div class="title">Redirects puros</div>
+        <div class="sub">Arquivos que apenas executam <code>location.replace</code> para o hash da SPA</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <table class="t-index">
+        <thead><tr><th style="width:28%">Arquivo</th><th>Aponta para</th><th style="width:30%">Uso</th></tr></thead>
+        <tbody>
+          <tr><td><code>desktop/dashboard.html</code></td><td><code>app.html#dashboard</code></td><td>Home padrao pos-login</td></tr>
+          <tr><td><code>desktop/pre-consultas.html</code></td><td><code>app.html#pre-consultas</code></td><td>Aba sidebar</td></tr>
+          <tr><td><code>desktop/pacientes.html</code></td><td><code>app.html#pacientes</code></td><td>Aba sidebar</td></tr>
+          <tr><td><code>desktop/crm.html</code></td><td><code>app.html#crm</code></td><td>Aba sidebar</td></tr>
+          <tr><td><code>desktop/templates.html</code></td><td><code>app.html#templates</code></td><td>Aba sidebar</td></tr>
+          <tr><td><code>desktop/perfil.html</code></td><td><code>app.html#perfil</code></td><td>Aba sidebar + card usuario</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 2 · SHELL ============ -->
+<div class="section">
+  <div class="sec-label">2 · Shell persistente da SPA</div>
+  <h2 class="sec-title">Sidebar · Topbar · Zonas globais</h2>
+  <p class="sec-sub">Aparece em toda view. Ponto unico onde o medico navega.</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head">
+        <span class="idx">2.1</span>
+        <div><div class="title">Sidebar</div><div class="sub">220px · tema escuro · <code>.sidebar</code> (persistente)</div></div>
+      </div>
+      <div class="card-body">
+        <ul class="tree">
+          <li><strong>Logo</strong> "vita<em>id</em>" + tag "Medico" <code>.sb-logo</code></li>
+          <li><strong>Grupo "Principal"</strong>
+            <ul>
+              <li><span class="tag btn">Dashboard</span> <code>#nl-dashboard</code> — icone grid 2x2</li>
+              <li><span class="tag btn">Pre-Consultas</span> <code>#nl-pre-consultas</code> — icone doc + <strong>badge pip</strong> <code>#pipPc</code> (pendentes, <span class="tag filter">verde</span>)</li>
+            </ul>
+          </li>
+          <li><strong>Grupo "Gestao"</strong>
+            <ul>
+              <li><span class="tag btn">Pacientes</span> <code>#nl-pacientes</code></li>
+              <li><span class="tag btn">CRM & Retornos</span> <code>#nl-crm</code></li>
+            </ul>
+          </li>
+          <li><strong>Grupo "Ferramentas"</strong>
+            <ul>
+              <li><span class="tag btn">Templates</span> <code>#nl-templates</code></li>
+              <li><span class="tag btn">Meu Perfil</span> <code>#nl-perfil</code></li>
+            </ul>
+          </li>
+          <li><strong>Card usuario (bottom)</strong> <code>.sb-user</code> → <code>#perfil</code>
+            <ul>
+              <li>Avatar <code>#sbAvatar</code> (iniciais ou foto) <span class="tag state">skeleton</span></li>
+              <li>Nome <code>#sbName</code> <span class="tag state">skeleton</span></li>
+              <li>CRM/UF <code>#sbCrm</code> <span class="tag state">skeleton</span></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="idx">2.2</span>
+        <div><div class="title">Topbar + Zonas Globais</div><div class="sub">Persistente no topo</div></div>
+      </div>
+      <div class="card-body">
+        <ul class="tree">
+          <li><strong>Topbar</strong>
+            <ul>
+              <li>Titulo dinamico <code>#tbTitle</code> (ex: "Dashboard", "Pre-Consultas")</li>
+              <li>Separador <code>.tb-sep</code></li>
+              <li>Subtitulo <code>#tbSub</code> (ex: "Todas as pre-consultas")</li>
+              <li>Relogio <code>#tbClock</code> — atualiza a cada 1s, formato HH:MM</li>
+            </ul>
+          </li>
+          <li><strong>Toast stack</strong> <code>#toastStack</code> — fixo <em>(variantes: <span class="tag filter">ok</span> <span class="tag warn">warn</span> <span class="tag danger">err</span> <span class="tag btn">info</span>, auto-dismiss 3s)</em></li>
+          <li><strong>Modal zone</strong> — sobrepoe toda a UI (ver §4)</li>
+          <li><span class="tag state">Skeleton</span> classes <code>.sk</code> <code>.sk-dark</code> · shimmer 1.4s no boot</li>
+          <li><strong>View transitions</strong> animacao <code>viewIn</code> 0.12s ease-out entre views</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 3 · VIEWS ============ -->
+<div class="section">
+  <div class="sec-label">3 · As 6 views da SPA</div>
+  <h2 class="sec-title">Preview + arvore completa</h2>
+  <p class="sec-sub">Cada view e identificada por hash (ex: <code>app.html#dashboard</code>). Alguns iframes podem mostrar a tela de login se voce nao estiver logado como medico — abra <code>desktop/app.html</code> direto para ver.</p>
+
+  <!-- VIEW 1 DASHBOARD -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-head">
+      <span class="idx">3.1</span>
+      <div>
+        <div class="title">Dashboard <span class="tag view">#dashboard</span></div>
+        <div class="sub">Home do medico — impacto, alertas, stats, lista de pre-consultas</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="grid-2">
+        <div class="iframe-wrap">
+          <div class="iframe-label">app.html#dashboard</div>
+          <button class="open-btn" onclick="window.open('desktop/app.html#dashboard','_blank')">Abrir</button>
+          <iframe src="desktop/app.html#dashboard" loading="lazy"></iframe>
+        </div>
+        <div>
+          <details open><summary>Componentes principais (9)</summary>
+            <div class="content"><ul class="tree">
+              <li><strong>Greeting card</strong> <code>.greeting-card</code> — avatar <code>#dash-greetAv</code> + "Oi, Dr. X" <code>#dash-greetName</code> + especialidade <code>#dash-greetSpec</code></li>
+              <li><strong>Impact row</strong> 3 cards clicaveis (→ abre <span class="tag modal">dash-calcOverlay</span>)
+                <ul>
+                  <li>Tempo economizado <code>#dash-impactTempo</code></li>
+                  <li>Valor potencial <code>#dash-impactValor</code> <em>(gradient green)</em></li>
+                  <li>Pacientes extras <code>#dash-impactPacientes</code></li>
+                </ul>
+              </li>
+              <li><strong>Impact banner</strong> <code>#dash-impactBanner</code> <span class="tag state">hidden por default</span> — "Configure o valor da sua consulta..." → <code>navigate('perfil')</code></li>
+              <li><strong>Alert bar urgencia</strong> <code>#dash-alertBar</code> <span class="tag state">hidden</span> — dot vermelho piscante + titulo + sub + <span class="tag btn">Ver resumo</span></li>
+              <li><strong>Stats row (3 clicaveis)</strong> — cada click seleciona pill correspondente embaixo
+                <ul>
+                  <li>Total pacientes <code>#dash-statTotal</code> → filter 'all'</li>
+                  <li>Pendentes <code>#dash-statPending</code> → filter 'pendentes'</li>
+                  <li>Respondidas <code>#dash-statDone</code> → filter 'respondidas'</li>
+                </ul>
+              </li>
+              <li><strong>Search global</strong> <code>#dash-globalSearch</code> · placeholder "Buscar paciente..." + icone lupa</li>
+              <li><strong>Filter pills (6)</strong> <code>#dash-pcFilters</code>
+                <ul>
+                  <li><span class="tag filter">Todos</span> <span class="tag filter">Hoje</span> <span class="tag filter">Esta semana</span> <span class="tag filter">Este mes</span> <span class="tag filter">Pendentes</span> <span class="tag filter">Respondidas</span></li>
+                </ul>
+              </li>
+              <li><strong>Card lista pre-consultas</strong>
+                <ul>
+                  <li>Contador <code>#dash-listCount</code></li>
+                  <li>Body dinamico <code>#dash-pcList</code></li>
+                  <li><span class="tag state">Empty</span> <code>#dash-pcEmpty</code> "Nenhuma pre-consulta encontrada."</li>
+                  <li>Cada row: borda lateral colorida por status — amarela (pending), azul (aberto), verde (done), vermelha (expired) — avatar + nome + data + tooltip daltonico</li>
+                  <li>Hover actions: copiar link · lixeira (abre <span class="tag modal">dash-modalDelete</span>)</li>
+                </ul>
+              </li>
+              <li><strong>Modais desta view</strong>: <span class="tag modal">dash-modalQuick</span> <span class="tag modal">dash-calcOverlay</span> <span class="tag modal">dash-modalDelete</span> (ver §4)</li>
+            </ul></div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 2 PRE-CONSULTAS -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-head">
+      <span class="idx">3.2</span>
+      <div>
+        <div class="title">Pre-Consultas <span class="tag view">#pre-consultas</span></div>
+        <div class="sub">Modo lista + modo detalhe (com audio player)</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="grid-2">
+        <div class="iframe-wrap">
+          <div class="iframe-label">app.html#pre-consultas</div>
+          <button class="open-btn" onclick="window.open('desktop/app.html#pre-consultas','_blank')">Abrir</button>
+          <iframe src="desktop/app.html#pre-consultas" loading="lazy"></iframe>
+        </div>
+        <div>
+          <details open><summary>Modo Lista</summary>
+            <div class="content"><ul class="tree">
+              <li><strong>Header</strong> H1 "Pre-Consultas" + <span class="tag btn">Nova Pre-Consulta</span> → <code>pre-consulta.html</code></li>
+              <li><strong>Search</strong> <code>#pc-searchInput</code></li>
+              <li><strong>Filter pills (4)</strong> <code>#pc-filterBar</code>
+                <ul><li><span class="tag filter">Todas</span> <span class="tag filter">Pendentes</span> <span class="tag filter">Respondidas</span> <span class="tag filter">Expiradas</span></li></ul>
+              </li>
+              <li><strong>Tabela</strong> <code>#pc-pcTable</code> com rows <code>.pc-list-item</code>: avatar + nome + data + badge status + hover actions</li>
+              <li><strong>Badges</strong>: <code>.pc-badge-PENDENTE</code> <code>.pc-badge-RESPONDIDA</code> <code>.pc-badge-EXPIRADA</code></li>
+              <li><span class="tag state">Empty</span> <code>#pc-pcEmpty</code> "Nenhuma pre-consulta encontrada."</li>
+            </ul></div>
+          </details>
+          <details><summary>Modo Detalhe (audio + transcricao + referencia)</summary>
+            <div class="content"><ul class="tree">
+              <li><span class="tag btn">Voltar</span> → <code>navigate('pre-consultas')</code></li>
+              <li><strong>Hero card</strong> avatar + nome + idade + data respondida + stale warning (>7 dias)</li>
+              <li><strong>Dark Player</strong> <code>.dk-player</code> estados <code>.idle</code> / <code>.playing</code>
+                <ul>
+                  <li>Play/Pause 52px <code>.dk-play</code></li>
+                  <li>Skip back 5s <code>#pc-skipBack5</code> (tooltip "Voltar 5s")</li>
+                  <li>Skip fwd 5s <code>#pc-skipFwd5</code> (tooltip "Avancar 5s")</li>
+                  <li>Waveform canvas <code>#pc-waveformCanvas</code> 48px</li>
+                  <li>Progress bar <code>.dk-prog-wrap</code> (click = seek)</li>
+                  <li>Timer atual / total (fonte monospace)</li>
+                  <li>Speed cycle <code>#pc-speedCycle</code> — cicla <strong>0.75x · 1x · 1.25x · 1.5x</strong></li>
+                </ul>
+              </li>
+              <li><strong>Toggle transcricao</strong> <code>#pc-transToggle</code> label "Ver transcricao" ↔ "Ocultar"
+                <ul>
+                  <li><code>.trans-box</code> estados <code>.open</code> / hidden</li>
+                  <li>Karaoke <code>.tw-word</code> com classes <em>pulse / spoken / current</em></li>
+                  <li>Palavra atual trava na 3a linha · pulso verde ao clicar palavra · scroll manual pausa auto-follow por 4s</li>
+                </ul>
+              </li>
+              <li><strong>Insight cards</strong> <code>.ins-card</code>
+                <ul>
+                  <li>Queixa principal (borda azul)</li>
+                  <li>Alergias (borda vermelha)</li>
+                  <li>Medicamentos (borda verde)</li>
+                  <li>Exames (borda azul)</li>
+                  <li>Pontos de atencao</li>
+                </ul>
+              </li>
+              <li><strong>Botoes acao</strong>
+                <ul>
+                  <li><span class="tag btn">Iniciar consulta</span> (primary green com icone telefone)</li>
+                  <li><span class="tag btn">iClinic</span> (azul custom) → abre <span class="tag modal">pc-modalIcl</span></li>
+                </ul>
+              </li>
+              <li><strong>Lista exames</strong> <code>#pc-examesList</code> max-h 400px · click em exame abre arquivoUrl em nova aba</li>
+              <li><strong>Modais desta view</strong>: <span class="tag modal">pc-modalIcl</span> <span class="tag modal">pc-modalDel</span></li>
+            </ul></div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 3 PACIENTES -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-head">
+      <span class="idx">3.3</span>
+      <div>
+        <div class="title">Pacientes <span class="tag view">#pacientes</span></div>
+        <div class="sub">Lista + detalhe com grid 2x2 de cards clinicos</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="grid-2">
+        <div class="iframe-wrap">
+          <div class="iframe-label">app.html#pacientes</div>
+          <button class="open-btn" onclick="window.open('desktop/app.html#pacientes','_blank')">Abrir</button>
+          <iframe src="desktop/app.html#pacientes" loading="lazy"></iframe>
+        </div>
+        <div>
+          <details open><summary>Modo Lista</summary>
+            <div class="content"><ul class="tree">
+              <li><strong>Header</strong> H1 "Pacientes" + contador <code>#pt-ptCount</code> + <span class="tag btn">Exportar CSV</span></li>
+              <li><strong>Search</strong> <code>#pt-ptSearch</code></li>
+              <li><strong>Filter pills (5)</strong> <code>#pt-ptFilters</code>
+                <ul><li><span class="tag filter">Todos</span> <span class="tag filter">Com PC pendente</span> <span class="tag filter">Atencao</span> <span class="tag filter">Ja respondeu</span> <span class="tag filter">Sem vinculo</span></li></ul>
+              </li>
+              <li><strong>Tabela 4 cols</strong>: Paciente (2fr) · Status (1.4fr) · Ultima atividade (1fr) · Acoes (80px)</li>
+              <li>Acoes por row: <span class="tag btn">Ver</span> (abre detalhe) · <span class="tag btn">Info</span> (para sem-vinculo)</li>
+              <li><span class="tag state">Empty</span> <code>#pt-ptEmpty</code></li>
+            </ul></div>
+          </details>
+          <details><summary>Modo Detalhe</summary>
+            <div class="content"><ul class="tree">
+              <li><span class="tag btn">Back</span> <code>.pd-back</code> → <code>ptBackToList()</code></li>
+              <li><strong>Header</strong> avatar 42px + nome <code>#pt-pdName</code> + meta idade/CPF <code>#pt-pdMeta</code></li>
+              <li><strong>No-vinculo alert</strong> <code>#pt-pdNoVinculo</code> <span class="tag state">condicional</span> — "Paciente sem vinculo" + explicacao</li>
+              <li><strong>Grid 2x2 de cards</strong> <code>#pt-pdCards</code> (accordions inline, padrao sessao 15/04):
+                <ul>
+                  <li><strong>Alergias</strong> <span class="tag danger">icone vermelho</span> · count <code>#pt-countAlergias</code> · body <code>#pt-bodyAlergias</code></li>
+                  <li><strong>Medicamentos</strong> <span class="tag filter">icone verde</span> · <code>#pt-countMeds</code> · <code>#pt-bodyMeds</code></li>
+                  <li><strong>Exames</strong> <span class="tag onb">icone azul</span> · <code>#pt-countExames</code> · <code>#pt-bodyExames</code></li>
+                  <li><strong>Condicoes</strong> icone roxo · <code>#pt-countCondicoes</code> · <code>#pt-bodyCondicoes</code></li>
+                </ul>
+              </li>
+              <li><strong>Lista "Pre-consultas deste paciente"</strong> <code>#pt-pdPreConsultas</code> · cada item clicavel → <code>navigate('pre-consultas', id)</code></li>
+            </ul></div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 4 CRM -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-head">
+      <span class="idx">3.4</span>
+      <div>
+        <div class="title">CRM & Retornos <span class="tag view">#crm</span></div>
+        <div class="sub">Acompanhar retencao · stats · retornos atrasados</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="grid-2">
+        <div class="iframe-wrap">
+          <div class="iframe-label">app.html#crm</div>
+          <button class="open-btn" onclick="window.open('desktop/app.html#crm','_blank')">Abrir</button>
+          <iframe src="desktop/app.html#crm" loading="lazy"></iframe>
+        </div>
+        <div>
+          <details open><summary>Componentes (7)</summary>
+            <div class="content"><ul class="tree">
+              <li><strong>Header</strong> H1 + <span class="tag btn">Notificar atrasados</span> → <code>crmNotifyAllOverdue()</code></li>
+              <li><strong>Layout grid 2 colunas</strong> <code>.crmg</code></li>
+              <li><strong>Col esquerda — Filter pills (5)</strong> <code>#crm-crmFilters</code>
+                <ul><li><span class="tag filter">Todos</span> <span class="tag filter">Atrasados</span> <span class="tag filter">Ultimos 30 dias</span> <span class="tag filter">Pendentes</span> <span class="tag filter">Respondidas</span></li></ul>
+              </li>
+              <li><strong>Tabela 5 cols</strong> <code>#crm-crmBody</code>: Paciente (2fr) · Status (1fr) · Data (1.2fr) · Dias (90px) · Acoes (110px)
+                <ul>
+                  <li>Acoes: <span class="tag btn">Reenviar</span> (WhatsApp) · <span class="tag btn">Copiar link</span></li>
+                </ul>
+              </li>
+              <li><span class="tag state">Empty</span> <code>#crm-crmEmpty</code> "Nenhum registro encontrado."</li>
+              <li><strong>Col direita — 4 stats</strong>
+                <ul>
+                  <li>Total <code>#crm-crmTotal</code></li>
+                  <li>Respondidas <code>#crm-crmRespondidas</code></li>
+                  <li>Aguardando resposta <code>#crm-crmPendentes</code></li>
+                  <li>Sem resposta >7d <code>#crm-crmOverdue</code></li>
+                </ul>
+              </li>
+              <li><strong>Info box "Como funciona"</strong> com 3 tips numerados: criar → acompanhar → reenviar</li>
+            </ul></div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 5 TEMPLATES -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-head">
+      <span class="idx">3.5</span>
+      <div>
+        <div class="title">Templates <span class="tag view">#templates</span></div>
+        <div class="sub">Lista + modo criar/editar 3 steps + onboarding 4 slides</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="grid-2">
+        <div class="iframe-wrap">
+          <div class="iframe-label">app.html#templates</div>
+          <button class="open-btn" onclick="window.open('desktop/app.html#templates','_blank')">Abrir</button>
+          <iframe src="desktop/app.html#templates" loading="lazy"></iframe>
+        </div>
+        <div>
+          <details open><summary>Modo Lista</summary>
+            <div class="content"><ul class="tree">
+              <li><strong>Header</strong> H1 + 2 botoes:
+                <ul>
+                  <li><span class="tag btn">Como funciona?</span> → <code>tplOnbShow()</code> (reabre <span class="tag onb">onboarding</span>)</li>
+                  <li><span class="tag btn">Criar template</span> → <code>tplOpenCreate()</code></li>
+                </ul>
+              </li>
+              <li><strong>Search</strong> <code>#tpl-searchInput</code></li>
+              <li><strong>Filter pills (7, scroll horizontal)</strong> <code>#tpl-tplPills</code>
+                <ul><li><span class="tag filter">Recentes</span> <span class="tag filter">Mais usados</span> <span class="tag filter">A-Z</span> <span class="tag filter">Curtos</span> <span class="tag filter">Longos</span> <span class="tag filter">Nao usados</span> <span class="tag filter">Com audio</span></li></ul>
+              </li>
+              <li><strong>Grid 3 colunas</strong> <code>#tpl-tplGrid</code>
+                <ul>
+                  <li>Card: icone accent + nome + meta (N perguntas, ~X min) + menu 3 pontos</li>
+                  <li>Menu 3 pontos → abre <span class="tag modal">tpl-actionsOverlay</span></li>
+                </ul>
+              </li>
+              <li><span class="tag state">Empty state</span> <code>.tpl-empty</code> icone gradient + titulo + descricao</li>
+              <li><strong>Onboarding trigger</strong>: 1a visita da sessao → setTimeout 500ms → abre <span class="tag onb">tpl-onbOverlay</span></li>
+            </ul></div>
+          </details>
+          <details><summary>Modo Criar / Editar</summary>
+            <div class="content"><ul class="tree">
+              <li><strong>Header</strong> titulo dinamico <code>#tpl-cmTitle</code> "Novo template" | "Editar template" + <span class="tag btn">Voltar para lista</span></li>
+              <li><strong>Step indicator 3 passos</strong> <code>#tpl-cmSteps</code>: <strong>Perguntas → Preview → Pronto</strong></li>
+              <li><strong>Step 1 (Perguntas)</strong>
+                <ul>
+                  <li>Input Nome <code>#tpl-cmNome</code> ("Ex: Cardiologia geral")</li>
+                  <li>Textarea Perguntas <code>#tpl-cmPerguntas</code> (1 por linha)</li>
+                  <li>Toggle audio <code>#tpl-cmAudioToggle</code> <code>.toggle</code></li>
+                  <li><span class="tag btn">Ver preview</span> <code>#tpl-cmPreviewBtn</code></li>
+                  <li><span class="tag btn">Cancelar</span></li>
+                </ul>
+              </li>
+              <li><strong>Step 2 (Preview)</strong>
+                <ul>
+                  <li>Pre-visualizacao das perguntas renderizadas</li>
+                  <li><span class="tag btn">Voltar pra editar</span></li>
+                  <li><span class="tag btn">Salvar template</span> <code>#tpl-cmSaveBtn</code></li>
+                </ul>
+              </li>
+              <li><strong>Step 3 (Pronto)</strong> <code>.cm-confirm</code> — checkmark animado + "Template criado!" + nome</li>
+            </ul></div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 6 PERFIL -->
+  <div class="card" style="margin-bottom:0">
+    <div class="card-head">
+      <span class="idx">3.6</span>
+      <div>
+        <div class="title">Meu Perfil <span class="tag view">#perfil</span></div>
+        <div class="sub">Dados profissionais · mapa clinica · notificacoes · conta</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="grid-2">
+        <div class="iframe-wrap">
+          <div class="iframe-label">app.html#perfil</div>
+          <button class="open-btn" onclick="window.open('desktop/app.html#perfil','_blank')">Abrir</button>
+          <iframe src="desktop/app.html#perfil" loading="lazy"></iframe>
+        </div>
+        <div>
+          <details open><summary>Coluna esquerda</summary>
+            <div class="content"><ul class="tree">
+              <li><strong>Profile card (tema escuro)</strong>
+                <ul>
+                  <li>Avatar 72px <code>#pf-profAvatar</code> (gradient)</li>
+                  <li>Nome <code>#pf-profName</code></li>
+                  <li>CRM/UF/Especialidade <code>#pf-profCrm</code></li>
+                  <li>4 stats: Pre-consultas <code>#pf-pfStat1</code> · Respondidas <code>#pf-pfStat2</code> · Pendentes <code>#pf-pfStat3</code> · Pacientes <code>#pf-pfStat4</code></li>
+                </ul>
+              </li>
+              <li><strong>Clinic map</strong> <code>#pf-clinicMap</code> (Leaflet) <code>#pf-clinicMapInner</code>
+                <ul>
+                  <li>Footer <code>#pf-clinicMapFooter</code>: nome <code>#pf-clinicName</code> + endereco <code>#pf-clinicAddr</code></li>
+                  <li><span class="tag state">Empty state</span> se sem clinica cadastrada</li>
+                </ul>
+              </li>
+            </ul></div>
+          </details>
+          <details><summary>Coluna direita — Dados Profissionais (6 campos)</summary>
+            <div class="content"><ul class="tree">
+              <li>Cada row <code>.sg-row.clickable</code> → abre <span class="tag modal">pf-modalEdit</span></li>
+              <li><strong>CRM/UF</strong> <code>#pf-fieldCrm</code></li>
+              <li><strong>Especialidade</strong> <code>#pf-fieldEspecialidade</code></li>
+              <li><strong>Nome da clinica</strong> <code>#pf-fieldClinica</code></li>
+              <li><strong>Endereco</strong> <code>#pf-fieldEndereco</code></li>
+              <li><strong>Telefone da clinica</strong> <code>#pf-fieldTelefone</code></li>
+              <li><strong>Valor medio da consulta</strong> <code>#pf-fieldValor</code></li>
+            </ul></div>
+          </details>
+          <details><summary>Coluna direita — Notificacoes (3 accordions)</summary>
+            <div class="content"><ul class="tree">
+              <li><span class="tag warn">Warning banner</span> <code>#pf-notifWarn</code> (hidden) "Alertas urgentes desativados..."</li>
+              <li><strong>Alertas urgentes</strong> <code>#pf-notifUrg</code>
+                <ul>
+                  <li>Toggle <code>#pf-togUrg</code> (ON default) — desativar abre <span class="tag modal">pf-modalConfirmUrg</span></li>
+                  <li>Body expansivel: preview vermelho "Maria S., 45a · Dor no peito..." + 2 colunas "Voce recebe / NAO recebe"</li>
+                  <li>Footer: "Chega por push no celular..."</li>
+                </ul>
+              </li>
+              <li><strong>Lembretes de retorno</strong> <code>#pf-notifRet</code>
+                <ul>
+                  <li>Toggle <code>#pf-togRet</code> (ON default)</li>
+                  <li>Preview azul "Joao P., 14 dias apos consulta"</li>
+                </ul>
+              </li>
+              <li><strong>Resumo diario</strong> <code>#pf-notifRes</code>
+                <ul>
+                  <li>Toggle <code>#pf-togRes</code> <strong>(OFF default)</strong></li>
+                  <li>Preview verde "Seu dia no vita id · 19:00"</li>
+                </ul>
+              </li>
+            </ul></div>
+          </details>
+          <details><summary>Coluna direita — Conta</summary>
+            <div class="content"><ul class="tree">
+              <li>Email <code>#pf-fieldEmail</code> <em>(read-only)</em></li>
+              <li>Celular <code>#pf-fieldCelular</code> <em>(read-only)</em></li>
+              <li><span class="tag danger">Sair da conta</span> <code>.btn-danger</code> → abre <span class="tag modal">pf-modalLogout</span></li>
+            </ul></div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 4 · MODAIS ============ -->
+<div class="section">
+  <div class="sec-label">4 · Modais & Overlays globais</div>
+  <h2 class="sec-title">Os 12 popups do sistema</h2>
+  <p class="sec-sub">Ficam no bloco <code>modal-zone</code> fora das views, acionados por botoes/rows especificos. ID comeca com prefixo da view dona (dash- · pc- · tpl- · pf-).</p>
+
+  <div class="modal-grid">
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Nova Pre-Consulta</div><div class="mid">#dash-modalQuick</div></div><span class="tag modal">1</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: botao no dashboard (inline modal ha orfao no codigo apos unificacao 17/04 — foi movido para pagina Pre-Consultas)</li>
+        <li>Campos: Nome (com autocomplete <code>#dash-mAutoBox</code>) · WhatsApp · Email · Template (select)</li>
+        <li>Box link gerado <code>#dash-mLinkBox</code> — URL <code>#dash-mLinkUrl</code> + botoes Copiar / WhatsApp</li>
+        <li>Footer: <span class="tag btn">Cancelar</span> <span class="tag btn">Gerar link</span> <code>#dash-mGenBtn</code></li>
+        <li>Close: click overlay ou X</li>
+      </ul>
+    </div>
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Como Calculamos</div><div class="mid">#dash-calcOverlay</div></div><span class="tag modal">2</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: click em qualquer card de impacto (tempo / valor / pacientes)</li>
+        <li>Body dinamico <code>#dash-calcBody</code> com linhas <code>.calc-row</code></li>
+        <li>Disclaimer: "Estimativa conservadora baseada em tempo medio..."</li>
+        <li>Close: click overlay ou X</li>
+      </ul>
+    </div>
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Apagar Pre-Consulta (dashboard)</div><div class="mid">#dash-modalDelete</div></div><span class="tag modal">3</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: lixeira hover em row do dashboard</li>
+        <li>Mensagem dinamica <code>#dash-deleteMsg</code></li>
+        <li>Footer: <span class="tag btn">Cancelar</span> <span class="tag danger">Apagar</span> <code>#dash-deleteBtn</code></li>
+      </ul>
+    </div>
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Exportar para iClinic</div><div class="mid">#pc-modalIcl</div></div><span class="tag modal">4</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: botao "iClinic" no detalhe de pre-consulta</li>
+        <li>Badge azul "iC" (#1565C0)</li>
+        <li>Dica <code>.icl-tip</code>: "Copie o texto abaixo e cole na aba Evolucao / Anamnese..."</li>
+        <li>Texto pre-formatado <code>#pc-iclNote</code> (monoespacado)</li>
+        <li>Footer: <span class="tag btn">Copiar texto</span> (primary) <span class="tag btn">Baixar .txt</span> <span class="tag btn">Fechar</span></li>
+      </ul>
+    </div>
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Apagar Pre-Consulta (lista PC)</div><div class="mid">#pc-modalDel</div></div><span class="tag modal">5</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: lixeira na lista de pre-consultas</li>
+        <li>Mensagem <code>#pc-delMsg</code></li>
+        <li>Footer: <span class="tag btn">Cancelar</span> <span class="tag danger">Apagar</span> <code>#pc-delBtn</code></li>
+      </ul>
+    </div>
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Onboarding Templates</div><div class="mid">#tpl-onbOverlay</div></div><span class="tag onb">6 · slides</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: 1a visita de <code>#templates</code> na sessao · botao "Como funciona?"</li>
+        <li>Key localStorage <code>vitae_tpl_onboarding_visto_desktop</code></li>
+        <li>Dots <code>#tpl-onbDots</code> (4) + botao X (<code>.onb-close</code>) + botao "Pular introducao" (some no ultimo slide)</li>
+        <li>Content dinamico <code>#tpl-onbContent</code></li>
+        <li>Botao primario <code>#tpl-onbBtn</code> — label muda por slide ("Proximo" → "Criar template")</li>
+        <li>Ver os 4 slides detalhados em <strong>§5</strong> abaixo</li>
+      </ul>
+    </div>
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Menu de Acoes (3 pontos Template)</div><div class="mid">#tpl-actionsOverlay</div></div><span class="tag modal">7</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: menu 3 pontos em card de template</li>
+        <li><span class="tag btn">Ver preview</span> (icone olho) → <code>tplDoPreviewFromMenu()</code></li>
+        <li><span class="tag btn">Editar template</span> (icone lapis) → <code>tplDoEditFromMenu()</code></li>
+        <li>Separador <code>.actions-sep</code></li>
+        <li><span class="tag danger">Apagar template</span> (icone lixeira) → <code>tplDoDeleteFromMenu()</code></li>
+      </ul>
+    </div>
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Preview Template</div><div class="mid">#tpl-previewOverlay</div></div><span class="tag modal">8</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: "Ver preview" no menu de acoes</li>
+        <li>Titulo <code>#tpl-previewTitle</code> + X (<code>.cm-close</code>)</li>
+        <li>Body <code>#tpl-previewBody</code> dinamico com perguntas renderizadas</li>
+      </ul>
+    </div>
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Apagar Template</div><div class="mid">#tpl-deleteOverlay</div></div><span class="tag modal">9</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: "Apagar template" no menu de acoes</li>
+        <li>Mensagem <code>#tpl-deleteMsg</code>: "Tem certeza que deseja apagar este template? As consultas ja realizadas com ele continuarao intactas."</li>
+        <li>Footer: <span class="tag btn">Cancelar</span> <span class="tag danger">Apagar</span></li>
+      </ul>
+    </div>
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Editar Campo (perfil)</div><div class="mid">#pf-modalEdit</div></div><span class="tag modal">10</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: click em qualquer row de "Dados Profissionais"</li>
+        <li>Titulo dinamico <code>#pf-editTitle</code> (ex: "Editar CRM")</li>
+        <li>Subtitulo <code>#pf-editSub</code></li>
+        <li>Input <code>#pf-editInput</code></li>
+        <li>Footer: <span class="tag btn">Cancelar</span> <span class="tag btn">Salvar</span> <code>#pf-editSaveBtn</code></li>
+      </ul>
+    </div>
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Desativar Alertas Urgentes?</div><div class="mid">#pf-modalConfirmUrg</div></div><span class="tag modal">11</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: toggle OFF em "Alertas urgentes" (pede confirmacao antes)</li>
+        <li>Aviso: "Voce deixara de ser avisado quando pacientes descreverem sintomas criticos..."</li>
+        <li>Footer: <span class="tag btn">Manter ligado</span> <span class="tag danger">Desativar mesmo assim</span></li>
+      </ul>
+    </div>
+
+    <div class="modal-card">
+      <div class="mh"><div><div class="mt">Sair da Conta</div><div class="mid">#pf-modalLogout</div></div><span class="tag modal">12</span></div>
+      <ul>
+        <li><strong>Trigger</strong>: botao "Sair da conta" em Perfil → Conta</li>
+        <li>Aviso: "Tem certeza que deseja sair? Voce precisara fazer login novamente."</li>
+        <li>Footer: <span class="tag btn">Cancelar</span> <span class="tag danger">Sair</span> (com icone)</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ 5 · ONBOARDING SLIDES ============ -->
+<div class="section">
+  <div class="sec-label">5 · Onboarding Templates</div>
+  <h2 class="sec-title">4 slides do primeiro acesso</h2>
+  <p class="sec-sub">Array <code>TPL_ONB_SLIDES</code> em <code>app.html:2720</code>. Renderizados em <code>tpl-onbOverlay</code>. Apos o ultimo slide, o botao dispara <code>tplOpenCreate()</code> → modo criar template.</p>
+
+  <div class="onb-grid">
+    <div class="onb-slide">
+      <div class="step">SLIDE 1</div>
+      <div class="illust"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></svg></div>
+      <div class="t">O que e um <em>template</em>?</div>
+      <div class="d">Um conjunto de perguntas personalizado para enviar ao paciente antes da consulta. Voce cria uma vez e reutiliza sempre.</div>
+      <div class="b">Proximo</div>
+    </div>
+
+    <div class="onb-slide">
+      <div class="step">SLIDE 2</div>
+      <div class="illust"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="t">Por que <em>criar</em> um?</div>
+      <div class="d">Economize ate 15 minutos por consulta. Perguntas certas significam respostas uteis e consultas mais produtivas.</div>
+      <div class="b">Proximo</div>
+    </div>
+
+    <div class="onb-slide">
+      <div class="step">SLIDE 3</div>
+      <div class="illust"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><line x1="9" y1="11" x2="15" y2="7"/><line x1="9" y1="13" x2="15" y2="17"/></svg></div>
+      <div class="t">Como <em>funciona</em>?</div>
+      <div class="d">Crie suas perguntas, envie o link pro paciente via WhatsApp, e receba as respostas organizadas antes da consulta.</div>
+      <div class="b">Proximo</div>
+    </div>
+
+    <div class="onb-slide">
+      <div class="step">SLIDE 4 · LAST</div>
+      <div class="illust"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+      <div class="t">Crie seu primeiro <em>template</em></div>
+      <div class="d">Voce vai para uma tela dedicada com 3 passos: escrever perguntas, conferir preview, e salvar.</div>
+      <div class="b">Criar template</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Regras do onboarding (sessao 16/04):</strong> Aparece automaticamente apenas na 1a visita em <code>#templates</code> (controlado por <code>tplState.onbShownThisSession</code> + localStorage <code>vitae_tpl_onboarding_visto_desktop</code>). Pode ser reaberto a qualquer momento pelo botao <span class="tag btn">Como funciona?</span> no header da lista. Glow sutil no FAB quando zero templates (etica: nao forcar tutorial repetido).
+  </div>
+</div>
+
+<!-- ============ 6 · 25-SUMMARY ============ -->
+<div class="section">
+  <div class="sec-label">6 · Tela embutida</div>
+  <h2 class="sec-title">25-summary.html (resumo 1 minuto)</h2>
+  <p class="sec-sub">Nao e tecnicamente uma tela desktop, mas e o que o medico ve quando clica numa PC respondida (abre em overlay/iframe no detalhe). Redesign S1/S2 da sessao 15/04.</p>
+
+  <div class="grid-2">
+    <div class="iframe-wrap" style="height:420px">
+      <div class="iframe-label">25-summary.html</div>
+      <button class="open-btn" onclick="window.open('25-summary.html','_blank')">Abrir</button>
+      <iframe src="25-summary.html" loading="lazy"></iframe>
+    </div>
+    <div>
+      <details open><summary>Componentes (8)</summary>
+        <div class="content"><ul class="tree">
+          <li><strong>Chip paciente</strong> topo (S1 — reconhecimento rapido)</li>
+          <li><strong>Dark player Apple Podcasts style</strong>
+            <ul>
+              <li>3 botoes centralizados: skip -5s · play 56px · skip +5s</li>
+              <li>Timer split: atual esquerda · duracao direita (abaixo da barra)</li>
+              <li>Velocidade cicla em 1 botao unico: <strong>1x → 1.5x → 2x → 1x</strong></li>
+            </ul>
+          </li>
+          <li><strong>Transcricao simetrica 220px</strong>
+            <ul>
+              <li>Fades gradiente topo/base (sinal de "ha mais texto")</li>
+              <li>Scrollbar 2px verde</li>
+              <li>Pulso verde ao clicar palavra antes do seek</li>
+              <li>Palavra atual trava na 3a linha (terco superior)</li>
+              <li>Scroll manual pausa auto-follow 4s</li>
+            </ul>
+          </li>
+          <li><strong>Referencia (v4 final)</strong> — APENAS:
+            <ul>
+              <li><span class="tag onb">Queixa principal</span> (insight-card azul)</li>
+              <li>Historico relevante (insight-card roxo)</li>
+              <li><em>Alergias / meds / familiar / exames REMOVIDOS — existem em telas dedicadas do medico</em></li>
+            </ul>
+          </li>
+          <li><strong>Pontos de atencao</strong> — insight cards <code>.ins-card</code> com borda lateral colorida (padrao sessao 15/04):
+            <ul>
+              <li>Vermelha (critico) · Amarela (atencao) · Verde (normal) · Azul (informativo)</li>
+            </ul>
+          </li>
+          <li><strong>Principio S1/S2</strong> (documentado em Obsidian/DESING.md): S1 = reconhecimento rapido (chip, player, alertas) · S2 = consulta analitica (transcricao, referencia) com saturacao recuada</li>
+          <li><strong>Estados</strong> <span class="tag state">stale warning</span> se >7 dias · <span class="tag state">audio-less</span> se sem audio</li>
+          <li><strong>Integracao com dashboard medico</strong>: badge "Incompleta" para PCs sem audio/summary</li>
+        </ul></div>
+      </details>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 7 · INDICE FINAL ============ -->
+<div class="section">
+  <div class="sec-label">7 · Indice</div>
+  <h2 class="sec-title">Tabela de rotas</h2>
+  <p class="sec-sub">Referencia rapida — tudo num grid scanneavel.</p>
+
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="t-index">
+        <thead>
+          <tr>
+            <th>Hash</th>
+            <th>View</th>
+            <th>Modais disparados</th>
+            <th>Pills</th>
+            <th>Botoes primarios</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>#dashboard</code></td>
+            <td>Dashboard</td>
+            <td><code>dash-modalQuick</code> · <code>dash-calcOverlay</code> · <code>dash-modalDelete</code></td>
+            <td>6</td>
+            <td>Ver resumo · stats clickaveis</td>
+          </tr>
+          <tr>
+            <td><code>#pre-consultas</code></td>
+            <td>Pre-Consultas (lista + detalhe)</td>
+            <td><code>pc-modalIcl</code> · <code>pc-modalDel</code></td>
+            <td>4</td>
+            <td>Nova Pre-Consulta · Iniciar consulta · iClinic</td>
+          </tr>
+          <tr>
+            <td><code>#pacientes</code></td>
+            <td>Pacientes (lista + detalhe)</td>
+            <td>—</td>
+            <td>5</td>
+            <td>Exportar CSV · Ver · Info</td>
+          </tr>
+          <tr>
+            <td><code>#crm</code></td>
+            <td>CRM & Retornos</td>
+            <td>—</td>
+            <td>5</td>
+            <td>Notificar atrasados · Reenviar · Copiar link</td>
+          </tr>
+          <tr>
+            <td><code>#templates</code></td>
+            <td>Templates (lista + criar 3 steps)</td>
+            <td><code>tpl-onbOverlay</code> · <code>tpl-actionsOverlay</code> · <code>tpl-previewOverlay</code> · <code>tpl-deleteOverlay</code></td>
+            <td>7</td>
+            <td>Como funciona? · Criar template · Salvar template</td>
+          </tr>
+          <tr>
+            <td><code>#perfil</code></td>
+            <td>Meu Perfil</td>
+            <td><code>pf-modalEdit</code> · <code>pf-modalConfirmUrg</code> · <code>pf-modalLogout</code></td>
+            <td>0</td>
+            <td>Editar campos · Sair da conta</td>
+          </tr>
+          <tr style="border-top:2px solid rgba(0,0,0,.1)">
+            <td colspan="2"><strong>Standalone</strong></td>
+            <td><strong>Observacoes</strong></td>
+            <td><strong>—</strong></td>
+            <td><strong>—</strong></td>
+          </tr>
+          <tr>
+            <td colspan="2"><code>desktop/login.html</code></td>
+            <td>Redirect automatico se medico logado</td>
+            <td>—</td>
+            <td>Entrar</td>
+          </tr>
+          <tr>
+            <td colspan="2"><code>desktop/pre-consulta.html</code></td>
+            <td>Bug documentado: <code>openWA()</code> sem validar telefone vazio</td>
+            <td>—</td>
+            <td>Gerar link e enviar · Abrir WhatsApp · Copiar link</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p style="font-size:11px;color:var(--t4);text-align:center;margin-top:40px">
+    Fim do mapa · 18 Abr 2026 · vita id medico desktop ·
+    <strong>Total: 8 telas · 12 modais · 4 slides onboarding · 27 filter pills · 1 audio player · 3 accordions de notificacao</strong>
+  </p>
+</div>
+
+</div><!-- /.page -->
+</body>
+</html>
