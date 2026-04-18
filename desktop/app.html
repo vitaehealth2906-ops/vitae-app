@@ -473,6 +473,21 @@
   </div>
 
   <!-- PRE-CONSULTAS: Confirmar exclusao -->
+  <!-- PACIENTES: Modal de exclusao -->
+  <div class="modal-overlay" id="pt-modalDel" onclick="if(event.target===this)ptCloseDelModal()">
+    <div class="modal" style="width:400px">
+      <div class="modal-title">Apagar paciente</div>
+      <div class="modal-sub" id="pt-delMsg">Tem certeza que deseja apagar este paciente?</div>
+      <div class="modal-footer">
+        <button class="btn btn-s" onclick="ptCloseDelModal()">Cancelar</button>
+        <button class="btn btn-danger" id="pt-delBtn" onclick="ptConfirmDel()">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/></svg>
+          Apagar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="pc-modalDel" onclick="if(event.target===this)pcCloseDelModal()">
     <div class="modal" style="width:380px">
       <div class="modal-title">Apagar pre-consulta</div>
@@ -2407,22 +2422,68 @@ function ptRenderPatients(){
       ? 'onclick="ptOpenPatient(\'' + p.pacienteId + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')"'
       : 'onclick="ptShowAnonimoMsg(\'' + sa(name) + '\')"';
 
-    return '<div class="tr" style="grid-template-columns:2fr 1.4fr 1fr 80px;cursor:pointer" ' + clickHandler + '>' +
+    var delBtn = '<div class="pc-act-btn del" onclick="event.stopPropagation();ptAskDel(\'' + sa(name) + '\',\'' + sa(tel) + '\',' + (temVinculo ? 'true' : 'false') + ')" title="Apagar paciente"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></div>';
+
+    return '<div class="tr" style="grid-template-columns:2fr 1.4fr 1fr 130px;cursor:pointer" ' + clickHandler + '>' +
       '<div style="display:flex;align-items:center;gap:10px;min-width:0">' +
         renderAvatar(p, initials, 32) +
         '<div style="min-width:0;flex:1"><div class="tc" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s(name) + '</div><div class="ts">' + s(tel) + '</div></div>' +
       '</div>' +
       '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">' + (badges.join('') || '<span class="ts" style="color:var(--t4)">--</span>') + '</div>' +
       '<span class="tc" style="color:var(--t3)">' + (lastDate ? ptFmtDateLong(lastDate) : '--') + '<div class="ts">' + pcCount + ' PC' + (pcCount !== 1 ? 's' : '') + '</div></span>' +
-      (temVinculo
-        ? '<button class="sbtn sbtn-g" onclick="event.stopPropagation();ptOpenPatient(\'' + p.pacienteId + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')">Ver</button>'
-        : '<button class="sbtn sbtn-d" onclick="event.stopPropagation();ptShowAnonimoMsg(\'' + sa(name) + '\')" title="Sem vinculo formal">Info</button>') +
+      '<div style="display:flex;gap:6px;align-items:center;justify-content:flex-end">' +
+        (temVinculo
+          ? '<button class="sbtn sbtn-g" onclick="event.stopPropagation();ptOpenPatient(\'' + p.pacienteId + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')">Ver</button>'
+          : '<button class="sbtn sbtn-d" onclick="event.stopPropagation();ptShowAnonimoMsg(\'' + sa(name) + '\')" title="Sem vinculo formal">Info</button>') +
+        delBtn +
+      '</div>' +
     '</div>';
   }).join('');
 }
 
 function ptShowAnonimoMsg(nome){
   toast(nome + ' respondeu sem fazer login. Sem vinculo, nao ha exames/alergias/meds salvos.', 'warn');
+}
+
+/* ---------- DELETE PACIENTE ---------- */
+function ptAskDel(nome, tel, temVinculo){
+  ptState.deleteTargetNome = nome;
+  ptState.deleteTargetTel = tel;
+  var msg = temVinculo
+    ? 'Remover ' + (nome || 'este paciente') + ' da sua lista? Todas as pre-consultas dele serao apagadas, mas a conta vita id do paciente permanece.'
+    : 'Apagar ' + (nome || 'este paciente') + ' e todas as pre-consultas dele? Esta acao nao pode ser desfeita.';
+  document.getElementById('pt-delMsg').textContent = msg;
+  document.getElementById('pt-modalDel').classList.add('show');
+}
+function ptCloseDelModal(){
+  var m = document.getElementById('pt-modalDel');
+  if(m) m.classList.remove('show');
+  ptState.deleteTargetNome = null;
+  ptState.deleteTargetTel = null;
+}
+async function ptConfirmDel(){
+  if(!ptState.deleteTargetNome) return;
+  var btn = document.getElementById('pt-delBtn');
+  var originalHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = 'Apagando...';
+  try{
+    var res = await vitaeAPI.deletarPaciente(ptState.deleteTargetNome, ptState.deleteTargetTel || undefined);
+    var count = (res && (res.deletedCount || res.deletadas)) || 0;
+    state.invalidate('allPacientes');
+    state.invalidate('allPC');
+    state.invalidate('dashStats');
+    updatePipBadge();
+    toast('Paciente apagado' + (count ? ' (' + count + ' PC' + (count > 1 ? 's' : '') + ')' : ''), 'ok');
+    ptCloseDelModal();
+    await loadPacientes();
+    ptRenderPatients();
+  }catch(err){
+    toast('Erro ao apagar: ' + (err.message || ''), 'err');
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+  }
 }
 
 async function ptOpenPatient(pacienteId, name, tel){
