@@ -173,7 +173,7 @@
 .ins-icon.gray{background:rgba(156,163,175,.08)}.ins-icon.gray svg{stroke:var(--t3)}
 .ins-content{flex:1;min-width:0}
 .ins-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:3px;line-height:1.3}
-.ins-msg{font-size:12px;color:var(--t3);line-height:1.5}
+.ins-msg{font-size:12px;color:var(--t2);line-height:1.5}
 
 /* Right column */
 .right-cards{display:flex;flex-direction:column;gap:10px}
@@ -373,6 +373,8 @@
 </style>
 <script src="../device-router.js"></script>
 <script>vitaeDevice.guardDesktop();</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 </head>
 <body>
 
@@ -2373,7 +2375,10 @@ async function pcOpenDetail(pcId){
     }
 
     var html = '';
-    html += '<button class="back-btn" onclick="navigate(\'pre-consultas\')"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Voltar</button>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px">';
+    html += '<button class="back-btn" style="margin-bottom:0" onclick="navigate(\'pre-consultas\')"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Voltar</button>';
+    html += '<button class="btn btn-s" onclick="pcOpenIclModal()" style="background:rgba(21,101,192,.08);border-color:rgba(21,101,192,.18);color:#1565C0;height:36px;font-size:12.5px;padding:0 14px"><svg viewBox="0 0 24 24" style="stroke:#1565C0"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar iClinic</button>';
+    html += '</div>';
     html += '<div class="detail-grid">';
     html += '<div class="left-col">';
 
@@ -2442,11 +2447,6 @@ async function pcOpenDetail(pcId){
       html += '</div></div>';
     }
 
-    html += '<div class="detail-actions">';
-    html += '<button class="btn btn-p" onclick="toast(\'Consulta iniciada\',\'ok\')" style="flex:1;justify-content:center"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.18 2a2 2 0 012-1.82h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Iniciar consulta</button>';
-    html += '<button class="btn btn-s" onclick="pcOpenIclModal()" style="background:rgba(21,101,192,.08);border-color:rgba(21,101,192,.18);color:#1565C0"><svg viewBox="0 0 24 24" style="stroke:#1565C0"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>iClinic</button>';
-    html += '</div>';
-
     var alertas = summary.alertas || [];
     if(alertas.length > 0){
       html += '<div class="section-lbl">Pontos de atencao</div>';
@@ -2513,7 +2513,7 @@ async function pcOpenDetail(pcId){
     html += '<div style="padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;background:#ECFDF5;color:#027A48;display:flex;align-items:center;gap:5px"><span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span>' + medsChip + '</div>';
     html += '</div>';
     html += '<div style="font-size:15px;font-weight:700;color:#0D0F14;margin-bottom:4px">Medicamentos em uso</div>';
-    html += '<div style="font-size:12px;color:#6B7280;line-height:1.5">' + medsDesc + '</div>';
+    html += '<div style="font-size:12px;color:#4B5563;line-height:1.5">' + medsDesc + '</div>';
     html += '</div>';
 
     var alergiasCount = pacAlergias.length;
@@ -2530,7 +2530,7 @@ async function pcOpenDetail(pcId){
     html += '<div style="padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;' + alergiasChipClass + ';display:flex;align-items:center;gap:5px"><span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span>' + alergiasChipText + '</div>';
     html += '</div>';
     html += '<div style="font-size:15px;font-weight:700;color:#0D0F14;margin-bottom:4px">Alergias</div>';
-    html += '<div style="font-size:12px;color:#6B7280;line-height:1.5">' + alergiasDesc + '</div>';
+    html += '<div style="font-size:12px;color:' + (alergiasCount > 0 ? '#4B5563' : '#9CA3AF') + ';line-height:1.5">' + alergiasDesc + '</div>';
     html += '</div>';
 
     html += '<div style="margin-top:4px">';
@@ -2543,8 +2543,13 @@ async function pcOpenDetail(pcId){
         var nome = escHtml(e.nomeArquivo || tipo);
         var meta = pcFmtDateLong(e.dataExame) + (e.laboratorio ? ' -- ' + escHtml(e.laboratorio) : '');
         var thumbHtml = '';
-        if(e.arquivoUrl){
-          thumbHtml = '<img src="'+e.arquivoUrl+'" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.parentElement.innerHTML=\'<div style=\\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f6f8\\\'><svg width=\\\'28\\\' height=\\\'28\\\' viewBox=\\\'0 0 24 24\\\' fill=\\\'none\\\' stroke=\\\'rgba(13,15,20,.12)\\\' stroke-width=\\\'1.5\\\'><path d=\\\'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z\\\'/><polyline points=\\\'14 2 14 8 20 8\\\'/></svg></div>\'">';
+        var isImg = e.arquivoUrl && /\.(jpg|jpeg|png|webp)/i.test(e.arquivoUrl);
+        var isPdf = e.arquivoUrl && /\.pdf/i.test(e.arquivoUrl);
+        var canvasId = 'pc-pdfthumb-' + Math.random().toString(36).slice(2,9);
+        if(isImg){
+          thumbHtml = '<img src="'+e.arquivoUrl+'" style="width:100%;height:100%;object-fit:cover" loading="lazy">';
+        } else if(isPdf){
+          thumbHtml = '<canvas id="'+canvasId+'" data-pdf-url="'+e.arquivoUrl+'" style="width:100%;height:100%;object-fit:cover;background:#f5f6f8"></canvas>';
         } else {
           thumbHtml = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f6f8"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,.12)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>';
         }
@@ -2554,9 +2559,9 @@ async function pcOpenDetail(pcId){
         html += '<div style="display:flex;gap:14px;align-items:stretch">';
         html += '<div style="width:90px;min-height:100px;border-radius:8px;background:#f0f2f5;overflow:hidden;flex-shrink:0">' + thumbHtml + '</div>';
         html += '<div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0">';
-        html += '<div style="font-size:11px;color:rgba(13,15,20,.4);text-transform:capitalize;line-height:1.3">' + tipo + '</div>';
+        html += '<div style="font-size:11px;color:#5A6070;text-transform:capitalize;line-height:1.3;font-weight:600">' + tipo + '</div>';
         html += '<div style="font-size:14px;font-weight:700;color:var(--green);line-height:1.35">' + nome + '</div>';
-        html += '<div style="font-size:11px;color:rgba(13,15,20,.35);margin-top:2px">' + meta + '</div>';
+        html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">' + meta + '</div>';
         html += '</div></div></div>';
       });
     } else {
@@ -2567,6 +2572,21 @@ async function pcOpenDetail(pcId){
     html += '</div>'; // detail-grid
 
     detailEl.innerHTML = html;
+
+    // Render PDF thumbnails for exames
+    if(window.pdfjsLib){
+      detailEl.querySelectorAll('canvas[data-pdf-url]').forEach(function(cv){
+        var url = cv.getAttribute('data-pdf-url');
+        pdfjsLib.getDocument(url).promise.then(function(pdf){
+          return pdf.getPage(1);
+        }).then(function(page){
+          var viewport = page.getViewport({scale:0.4});
+          cv.width = viewport.width;
+          cv.height = viewport.height;
+          page.render({canvasContext:cv.getContext('2d'),viewport:viewport});
+        }).catch(function(){});
+      });
+    }
 
     // Init canvas waveform
     requestAnimationFrame(function(){

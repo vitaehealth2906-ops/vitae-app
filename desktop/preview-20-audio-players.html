@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>20 Players de Áudio — Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--font:'Plus Jakarta Sans',system-ui,sans-serif;--green:#00C47A;--green-g:linear-gradient(120deg,#00E5A0,#00B4D8);--ink:#0D0F14;--ink2:#2E3338;--ink3:#6B7280;--bg:#F4F6FA}
+  body{font-family:var(--font);background:var(--bg);color:var(--ink);padding:32px;min-height:100vh}
+  h1{font-size:28px;letter-spacing:-.6px;margin-bottom:6px;font-weight:900}
+  .sub{color:var(--ink3);margin-bottom:28px;font-size:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:24px;max-width:1400px;margin:0 auto}
+  .cell{background:#fff;border-radius:16px;padding:20px;box-shadow:0 1px 12px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.05)}
+  .cell-lbl{font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .cell-lbl .num{background:var(--green-g);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px}
+  .cell-name{font-weight:700;color:var(--ink);font-size:13px;letter-spacing:0}
+
+  /* ============ PLAYER 1 — Minimalist (Apple Podcasts) ============ */
+  .p1{display:flex;align-items:center;gap:16px;padding:18px;background:#FAFBFC;border-radius:12px}
+  .p1-btn{width:52px;height:52px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;transition:.2s;border:none}
+  .p1-btn:hover{transform:scale(1.05)}
+  .p1-body{flex:1}
+  .p1-wave{height:28px;background:repeating-linear-gradient(90deg,var(--ink3) 0 2px,transparent 2px 5px);border-radius:3px;opacity:.35;margin-bottom:6px}
+  .p1-time{display:flex;justify-content:space-between;font-size:11px;color:var(--ink3);font-weight:600}
+
+  /* ============ PLAYER 2 — Gradient Card ============ */
+  .p2{background:var(--green-g);border-radius:14px;padding:20px;color:#fff;position:relative;overflow:hidden}
+  .p2::before{content:"";position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(255,255,255,.15);border-radius:50%}
+  .p2-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;position:relative}
+  .p2-label{font-size:11px;letter-spacing:1.2px;opacity:.85;text-transform:uppercase;font-weight:700}
+  .p2-dur{font-size:12px;font-weight:700;opacity:.95}
+  .p2-btns{display:flex;align-items:center;gap:16px;position:relative}
+  .p2-play{width:48px;height:48px;border-radius:50%;background:#fff;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+  .p2-bar{flex:1;height:4px;background:rgba(255,255,255,.3);border-radius:2px;position:relative}
+  .p2-fill{width:32%;height:100%;background:#fff;border-radius:2px}
+
+  /* ============ PLAYER 3 — Circular Progress ============ */
+  .p3{display:flex;align-items:center;gap:18px;padding:18px;background:#F7FAF9;border-radius:12px}
+  .p3-circle{width:60px;height:60px;border-radius:50%;position:relative;background:conic-gradient(var(--green) 0 32%,#E5E7EB 32%);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .p3-circle::before{content:"";position:absolute;inset:4px;background:#fff;border-radius:50%}
+  .p3-icon{position:relative;z-index:1;color:var(--green)}
+  .p3-info{flex:1}
+  .p3-title{font-weight:700;font-size:14px;margin-bottom:3px}
+  .p3-sub{font-size:12px;color:var(--ink3)}
+
+  /* ============ PLAYER 4 — Glass Soft ============ */
+  .p4{background:rgba(0,196,122,.08);backdrop-filter:blur(20px);border:1px solid rgba(0,196,122,.15);border-radius:14px;padding:18px;display:flex;align-items:center;gap:14px}
+  .p4-play{width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--green);box-shadow:0 2px 8px rgba(0,196,122,.15)}
+  .p4-body{flex:1}
+  .p4-wave{display:flex;gap:2px;align-items:center;height:24px;margin-bottom:4px}
+  .p4-wave span{flex:1;background:var(--green);border-radius:2px;opacity:.6;animation:p4wave 1.4s ease-in-out infinite}
+  .p4-wave span:nth-child(1){height:30%;animation-delay:0s}
+  .p4-wave span:nth-child(2){height:60%;animation-delay:.1s}
+  .p4-wave span:nth-child(3){height:40%;animation-delay:.2s}
+  .p4-wave span:nth-child(4){height:80%;animation-delay:.3s}
+  .p4-wave span:nth-child(5){height:50%;animation-delay:.4s}
+  .p4-wave span:nth-child(6){height:70%;animation-delay:.5s}
+  .p4-wave span:nth-child(7){height:45%;animation-delay:.6s}
+  .p4-wave span:nth-child(8){height:65%;animation-delay:.7s}
+  .p4-wave span:nth-child(9){height:35%;animation-delay:.8s}
+  .p4-wave span:nth-child(10){height:55%;animation-delay:.9s}
+  .p4-wave span:nth-child(11){height:75%;animation-delay:1s}
+  .p4-wave span:nth-child(12){height:40%;animation-delay:1.1s}
+  @keyframes p4wave{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1)}}
+  .p4-time{font-size:11px;color:var(--ink3);font-weight:600}
+
+  /* ============ PLAYER 5 — Voice Note Bubble ============ */
+  .p5{background:#EFF6FF;border-radius:18px;border-bottom-left-radius:4px;padding:12px 16px;max-width:320px;display:flex;align-items:center;gap:12px}
+  .p5-play{width:36px;height:36px;border-radius:50%;background:#3B82F6;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;border:none}
+  .p5-bars{display:flex;gap:2px;align-items:center;flex:1;height:22px}
+  .p5-bars span{flex:1;background:#3B82F6;opacity:.5;border-radius:1px}
+  .p5-bars span.active{opacity:1}
+  .p5-t{font-size:11px;color:#3B82F6;font-weight:700}
+
+  /* ============ PLAYER 6 — Minimal Line ============ */
+  .p6{padding:14px 18px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;display:flex;align-items:center;gap:14px}
+  .p6-btn{width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+  .p6-line{flex:1;height:2px;background:#E5E7EB;position:relative}
+  .p6-line::before{content:"";position:absolute;left:0;top:0;bottom:0;width:28%;background:var(--ink)}
+  .p6-line::after{content:"";position:absolute;left:28%;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;background:var(--ink);border-radius:50%}
+  .p6-t{font-size:12px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+
+  /* ============ PLAYER 7 — Vinyl Disc ============ */
+  .p7{display:flex;align-items:center;gap:18px;padding:20px;background:#FAFAFA;border-radius:14px}
+  .p7-disc{width:72px;height:72px;border-radius:50%;background:radial-gradient(#1a1d24 30%,#2E3338 32%,#1a1d24 34%,#2E3338 36%,#1a1d24 38%,#2E3338 40%,#1a1d24 42%);position:relative;box-shadow:0 2px 10px rgba(0,0,0,.25);animation:p7spin 8s linear infinite;animation-play-state:paused}
+  .p7.playing .p7-disc{animation-play-state:running}
+  .p7-disc::before{content:"";position:absolute;inset:38%;background:var(--green);border-radius:50%}
+  @keyframes p7spin{to{transform:rotate(360deg)}}
+  .p7-info{flex:1}
+  .p7-title{font-weight:800;font-size:14px;margin-bottom:2px}
+  .p7-meta{font-size:11px;color:var(--ink3);margin-bottom:10px}
+  .p7-controls{display:flex;gap:8px;align-items:center}
+  .p7-play{width:34px;height:34px;border-radius:50%;background:var(--green);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+  /* ============ PLAYER 8 — Progress Ring Big ============ */
+  .p8{display:flex;justify-content:center;padding:24px}
+  .p8-ring{width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--green) 0 40%,#E5E7EB 40%);position:relative;cursor:pointer;transition:.2s}
+  .p8-ring:hover{transform:scale(1.03)}
+  .p8-ring::before{content:"";position:absolute;inset:8px;background:#fff;border-radius:50%}
+  .p8-ring-inner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:1}
+  .p8-icon{color:var(--green);margin-bottom:2px}
+  .p8-ring-time{font-size:11px;color:var(--ink3);font-weight:700}
+
+  /* ============ PLAYER 9 — Sticky Bottom Bar ============ */
+  .p9{background:var(--ink);color:#fff;border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:14px}
+  .p9-play{width:38px;height:38px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+  .p9-info{flex:1;min-width:0}
+  .p9-title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p9-bar{height:3px;background:rgba(255,255,255,.15);border-radius:2px;margin-top:6px;position:relative}
+  .p9-fill{position:absolute;left:0;top:0;bottom:0;width:45%;background:var(--green);border-radius:2px}
+  .p9-t{font-size:11px;color:rgba(255,255,255,.6);font-weight:600}
+
+  /* ============ PLAYER 10 — Soft Blur Ambient ============ */
+  .p10{background:linear-gradient(135deg,#ECFDF5 0%,#E0F2FE 100%);border-radius:16px;padding:24px;position:relative;overflow:hidden}
+  .p10::before{content:"";position:absolute;top:-50px;left:-50px;width:150px;height:150px;background:radial-gradient(var(--green),transparent 70%);filter:blur(30px);opacity:.4}
+  .p10::after{content:"";position:absolute;bottom:-40px;right:-40px;width:140px;height:140px;background:radial-gradient(#00B4D8,transparent 70%);filter:blur(30px);opacity:.35}
+  .p10-inner{position:relative;display:flex;align-items:center;gap:16px}
+  .p10-play{width:54px;height:54px;border-radius:50%;background:#fff;color:var(--green);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(0,196,122,.25);border:none}
+  .p10-body{flex:1}
+  .p10-label{font-size:10px;letter-spacing:2px;font-weight:800;color:var(--green);text-transform:uppercase;margin-bottom:4px}
+  .p10-title{font-size:15px;font-weight:800;margin-bottom:8px}
+  .p10-bar{height:4px;background:rgba(255,255,255,.7);border-radius:2px;position:relative}
+  .p10-fill{position:absolute;inset:0;width:36%;background:var(--green-g);border-radius:2px}
+
+  /* ============ PLAYER 11 — Cassette Tape ============ */
+  .p11{background:#FEF3C7;border:2px solid var(--ink);border-radius:12px;padding:18px;position:relative}
+  .p11-reels{display:flex;justify-content:space-around;margin-bottom:14px}
+  .p11-reel{width:42px;height:42px;border-radius:50%;background:#fff;border:2px solid var(--ink);position:relative;animation:p11spin 4s linear infinite;animation-play-state:paused}
+  .p11.playing .p11-reel{animation-play-state:running}
+  .p11-reel::before{content:"";position:absolute;inset:30%;background:var(--ink);border-radius:50%}
+  .p11-reel::after{content:"";position:absolute;top:50%;left:50%;width:2px;height:100%;background:var(--ink);transform:translate(-50%,-50%)}
+  @keyframes p11spin{to{transform:rotate(360deg)}}
+  .p11-label{text-align:center;font-weight:800;letter-spacing:2px;font-size:11px;margin-bottom:10px}
+  .p11-ctrl{display:flex;justify-content:center;gap:8px}
+  .p11-btn{width:36px;height:28px;background:var(--ink);color:#FEF3C7;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+
+  /* ============ PLAYER 12 — Notion Inline ============ */
+  .p12{background:#F7F6F3;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;border-left:3px solid var(--ink)}
+  .p12-play{width:28px;height:28px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;flex-shrink:0}
+  .p12-info{flex:1;min-width:0}
+  .p12-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px}
+  .p12-meta{font-size:11px;color:var(--ink3)}
+
+  /* ============ PLAYER 13 — Chapter Timeline ============ */
+  .p13{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:18px}
+  .p13-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .p13-play{width:40px;height:40px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+  .p13-title{flex:1;font-size:13px;font-weight:700}
+  .p13-dur{font-size:11px;color:var(--ink3);font-weight:600}
+  .p13-track{position:relative;height:6px;background:#E5E7EB;border-radius:3px}
+  .p13-fill{position:absolute;left:0;top:0;bottom:0;width:35%;background:var(--green-g);border-radius:3px}
+  .p13-marker{position:absolute;top:-4px;width:2px;height:14px;background:var(--ink3)}
+  .p13-chapters{display:flex;justify-content:space-between;margin-top:10px;font-size:10px;color:var(--ink3);font-weight:600}
+
+  /* ============ PLAYER 14 — Floating Ball ============ */
+  .p14{background:linear-gradient(180deg,#FAFAFA,#fff);border-radius:20px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;border:1px solid rgba(0,0,0,.05)}
+  .p14-ball{width:84px;height:84px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#00E5A0,#00B4D8);cursor:pointer;position:relative;box-shadow:0 10px 30px rgba(0,180,216,.35);animation:p14float 3s ease-in-out infinite}
+  .p14-ball::after{content:"";position:absolute;inset:28%;background:rgba(255,255,255,.35);border-radius:50%;filter:blur(4px)}
+  .p14-ball-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff}
+  @keyframes p14float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .p14-label{font-size:12px;color:var(--ink3);font-weight:600}
+
+  /* ============ PLAYER 15 — Two-Tone Split ============ */
+  .p15{display:flex;border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+  .p15-left{width:96px;background:var(--green-g);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s}
+  .p15-left:hover{filter:brightness(1.05)}
+  .p15-right{flex:1;background:#fff;padding:16px 18px}
+  .p15-label{font-size:10px;color:var(--green);font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
+  .p15-title{font-size:14px;font-weight:700;margin-bottom:8px}
+  .p15-bar{height:3px;background:#E5E7EB;border-radius:2px;position:relative}
+  .p15-fill{position:absolute;inset:0;width:48%;background:var(--green);border-radius:2px}
+
+  /* ============ PLAYER 16 — Compact Pill ============ */
+  .p16{display:inline-flex;align-items:center;gap:10px;padding:8px 16px 8px 8px;background:var(--ink);color:#fff;border-radius:100px;cursor:pointer;transition:.2s}
+  .p16:hover{transform:scale(1.02)}
+  .p16-icon{width:30px;height:30px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center}
+  .p16-wave{display:flex;gap:2px;height:14px;align-items:center}
+  .p16-wave span{width:2px;background:#fff;border-radius:1px;opacity:.7}
+  .p16-wave span:nth-child(1){height:30%}
+  .p16-wave span:nth-child(2){height:80%}
+  .p16-wave span:nth-child(3){height:50%}
+  .p16-wave span:nth-child(4){height:100%}
+  .p16-wave span:nth-child(5){height:60%}
+  .p16-wave span:nth-child(6){height:40%}
+  .p16-wave span:nth-child(7){height:75%}
+  .p16-wave span:nth-child(8){height:55%}
+  .p16-t{font-size:11px;font-weight:700}
+
+  /* ============ PLAYER 17 — Soft Neumorphic ============ */
+  .p17{background:#EEF0F4;border-radius:20px;padding:22px;display:flex;align-items:center;gap:16px;box-shadow:8px 8px 20px rgba(174,184,206,.4),-8px -8px 20px rgba(255,255,255,.9)}
+  .p17-btn{width:52px;height:52px;border-radius:50%;background:#EEF0F4;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--green);box-shadow:4px 4px 10px rgba(174,184,206,.45),-4px -4px 10px rgba(255,255,255,.95);transition:.15s;border:none}
+  .p17-btn:active{box-shadow:inset 3px 3px 6px rgba(174,184,206,.45),inset -3px -3px 6px rgba(255,255,255,.9)}
+  .p17-info{flex:1}
+  .p17-title{font-weight:700;font-size:14px;margin-bottom:6px}
+  .p17-bar{height:6px;background:#EEF0F4;border-radius:3px;box-shadow:inset 2px 2px 4px rgba(174,184,206,.5),inset -2px -2px 4px rgba(255,255,255,.9);position:relative;overflow:hidden}
+  .p17-fill{position:absolute;inset:1px;width:40%;background:var(--green);border-radius:2px}
+
+  /* ============ PLAYER 18 — Editorial Card ============ */
+  .p18{background:#fff;border-radius:12px;padding:20px;border-top:4px solid var(--green)}
+  .p18-kicker{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:6px}
+  .p18-title{font-size:18px;font-weight:900;letter-spacing:-.4px;margin-bottom:3px}
+  .p18-meta{font-size:12px;color:var(--ink3);margin-bottom:16px}
+  .p18-row{display:flex;align-items:center;gap:12px}
+  .p18-play{width:40px;height:40px;border-radius:8px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+  .p18-times{font-size:12px;color:var(--ink2);font-weight:600;font-variant-numeric:tabular-nums;flex:1;display:flex;justify-content:space-between}
+
+  /* ============ PLAYER 19 — Organic Blob ============ */
+  .p19{background:#fff;border-radius:14px;padding:20px;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,.05)}
+  .p19::before{content:"";position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:rgba(0,196,122,.1);border-radius:47% 53% 60% 40%/50% 43% 57% 50%;animation:p19morph 6s ease-in-out infinite}
+  @keyframes p19morph{0%,100%{border-radius:47% 53% 60% 40%/50% 43% 57% 50%}50%{border-radius:60% 40% 40% 60%/55% 45% 55% 45%}}
+  .p19-content{position:relative;display:flex;align-items:center;gap:14px}
+  .p19-btn{width:48px;height:48px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+  .p19-info{flex:1}
+  .p19-title{font-weight:800;font-size:14px;margin-bottom:4px}
+  .p19-wave{display:flex;gap:2px;height:18px;align-items:flex-end}
+  .p19-wave span{flex:1;background:var(--green);opacity:.4;border-radius:2px 2px 0 0}
+  .p19-wave span.active{opacity:1}
+
+  /* ============ PLAYER 20 — Timestamp Large ============ */
+  .p20{background:var(--ink);color:#fff;border-radius:14px;padding:24px;text-align:center}
+  .p20-time{font-size:34px;font-weight:900;letter-spacing:-1px;font-variant-numeric:tabular-nums;margin-bottom:4px}
+  .p20-dur{font-size:12px;color:rgba(255,255,255,.5);margin-bottom:18px;font-weight:600}
+  .p20-ctrl{display:flex;justify-content:center;gap:14px;margin-bottom:14px}
+  .p20-btn-s{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+  .p20-btn-p{width:54px;height:54px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+  .p20-bar{height:3px;background:rgba(255,255,255,.15);border-radius:2px;position:relative}
+  .p20-fill{position:absolute;inset:0;width:42%;background:var(--green);border-radius:2px}
+
+  /* Icons shared */
+  .ico-play{width:18px;height:18px;fill:currentColor}
+</style>
+</head>
+<body>
+
+<div style="max-width:1400px;margin:0 auto 32px">
+  <h1>20 Players de Áudio</h1>
+  <div class="sub">Clique no botão play de cada um pra ver o efeito. Clean, com vida, sem neon/futurista.</div>
+</div>
+
+<div class="grid">
+
+  <!-- 1 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">1</span><span class="cell-name">Minimalista (Apple Podcasts)</span></div>
+    <div class="p1">
+      <button class="p1-btn" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg></button>
+      <div class="p1-body"><div class="p1-wave"></div><div class="p1-time"><span>0:24</span><span>1:02</span></div></div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">2</span><span class="cell-name">Gradient Card</span></div>
+    <div class="p2">
+      <div class="p2-head"><div class="p2-label">Briefing</div><div class="p2-dur">1:02</div></div>
+      <div class="p2-btns">
+        <button class="p2-play" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg></button>
+        <div class="p2-bar"><div class="p2-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">3</span><span class="cell-name">Progresso Circular</span></div>
+    <div class="p3">
+      <div class="p3-circle" onclick="togglePlay(this)"><svg class="p3-icon ico-play" viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg></div>
+      <div class="p3-info"><div class="p3-title">Resumo do paciente</div><div class="p3-sub">00:24 / 01:02</div></div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">4</span><span class="cell-name">Glass Suave</span></div>
+    <div class="p4">
+      <button class="p4-play" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg></button>
+      <div class="p4-body">
+        <div class="p4-wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="p4-time">00:24 / 01:02</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">5</span><span class="cell-name">Voice Note Bubble</span></div>
+    <div class="p5">
+      <button class="p5-play" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg></button>
+      <div class="p5-bars">
+        <span class="active" style="height:30%"></span><span class="active" style="height:60%"></span><span class="active" style="height:45%"></span><span class="active" style="height:80%"></span><span class="active" style="height:55%"></span>
+        <span style="height:70%"></span><span style="height:40%"></span><span style="height:60%"></span><span style="height:35%"></span><span style="height:50%"></span><span style="height:75%"></span><span style="height:45%"></span>
+      </div>
+      <div class="p5-t">1:02</div>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">6</span><span class="cell-name">Linha Minimalista</span></div>
+    <div class="p6">
+      <button class="p6-btn" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24" style="width:12px;height:12px"><polygon points="6,4 20,12 6,20"/></svg></button>
+      <div class="p6-line"></div>
+      <div class="p6-t">0:24 / 1:02</div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">7</span><span class="cell-name">Vinyl Disc</span></div>
+    <div class="p7" onclick="this.classList.toggle('playing')">
+      <div class="p7-disc"></div>
+      <div class="p7-info">
+        <div class="p7-title">Briefing do paciente</div>
+        <div class="p7-meta">1 minuto · Gerado em 19/04</div>
+        <div class="p7-controls">
+          <button class="p7-play"><svg class="ico-play" viewBox="0 0 24 24" style="width:14px;height:14px"><polygon points="6,4 20,12 6,20"/></svg></button>
+          <span style="font-size:11px;color:var(--ink3);font-weight:600">00:24 / 01:02</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">8</span><span class="cell-name">Ring Grande</span></div>
+    <div class="p8">
+      <div class="p8-ring" onclick="togglePlay(this)">
+        <div class="p8-ring-inner">
+          <svg class="p8-icon" viewBox="0 0 24 24" style="width:26px;height:26px;fill:currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+          <div class="p8-ring-time">00:24 / 01:02</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">9</span><span class="cell-name">Sticky Bottom Bar</span></div>
+    <div class="p9">
+      <button class="p9-play" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24" style="width:14px;height:14px"><polygon points="6,4 20,12 6,20"/></svg></button>
+      <div class="p9-info">
+        <div class="p9-title">Briefing · Lucas Borelli</div>
+        <div class="p9-bar"><div class="p9-fill"></div></div>
+      </div>
+      <div class="p9-t">0:24 / 1:02</div>
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">10</span><span class="cell-name">Ambient Blur</span></div>
+    <div class="p10">
+      <div class="p10-inner">
+        <button class="p10-play" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24" style="width:22px;height:22px"><polygon points="6,4 20,12 6,20"/></svg></button>
+        <div class="p10-body">
+          <div class="p10-label">Resumo · 1 minuto</div>
+          <div class="p10-title">Briefing do paciente</div>
+          <div class="p10-bar"><div class="p10-fill"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">11</span><span class="cell-name">Cassete (Tape Modern)</span></div>
+    <div class="p11" onclick="this.classList.toggle('playing')">
+      <div class="p11-label">CONSULTA · LADO A</div>
+      <div class="p11-reels"><div class="p11-reel"></div><div class="p11-reel"></div></div>
+      <div class="p11-ctrl">
+        <button class="p11-btn">◀◀</button>
+        <button class="p11-btn">▶</button>
+        <button class="p11-btn">▶▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">12</span><span class="cell-name">Notion Inline</span></div>
+    <div class="p12">
+      <button class="p12-play" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24" style="width:10px;height:10px"><polygon points="6,4 20,12 6,20"/></svg></button>
+      <div class="p12-info">
+        <div class="p12-title">Briefing do paciente</div>
+        <div class="p12-meta">Áudio · 1:02</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">13</span><span class="cell-name">Timeline com Capítulos</span></div>
+    <div class="p13">
+      <div class="p13-head">
+        <button class="p13-play" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24" style="width:14px;height:14px"><polygon points="6,4 20,12 6,20"/></svg></button>
+        <div class="p13-title">Briefing do paciente</div>
+        <div class="p13-dur">1:02</div>
+      </div>
+      <div class="p13-track">
+        <div class="p13-fill"></div>
+        <div class="p13-marker" style="left:25%"></div>
+        <div class="p13-marker" style="left:55%"></div>
+        <div class="p13-marker" style="left:80%"></div>
+      </div>
+      <div class="p13-chapters"><span>Queixa</span><span>Histórico</span><span>Meds</span><span>Conclusão</span></div>
+    </div>
+  </div>
+
+  <!-- 14 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">14</span><span class="cell-name">Floating Ball</span></div>
+    <div class="p14">
+      <div class="p14-ball" onclick="togglePlay(this)">
+        <div class="p14-ball-icon"><svg class="ico-play" viewBox="0 0 24 24" style="width:28px;height:28px"><polygon points="6,4 20,12 6,20"/></svg></div>
+      </div>
+      <div class="p14-label">Clique pra ouvir · 1:02</div>
+    </div>
+  </div>
+
+  <!-- 15 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">15</span><span class="cell-name">Two-Tone Split</span></div>
+    <div class="p15">
+      <div class="p15-left" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#fff"><polygon points="6,4 20,12 6,20"/></svg></div>
+      <div class="p15-right">
+        <div class="p15-label">Resumo 1 min</div>
+        <div class="p15-title">Briefing do paciente</div>
+        <div class="p15-bar"><div class="p15-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">16</span><span class="cell-name">Pill Compacto</span></div>
+    <div style="padding:8px 0">
+      <div class="p16" onclick="togglePlay(this)">
+        <div class="p16-icon"><svg class="ico-play" viewBox="0 0 24 24" style="width:12px;height:12px;fill:#fff"><polygon points="6,4 20,12 6,20"/></svg></div>
+        <div class="p16-wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="p16-t">1:02</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">17</span><span class="cell-name">Neumorphic Soft</span></div>
+    <div class="p17">
+      <button class="p17-btn" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24" style="width:20px;height:20px"><polygon points="6,4 20,12 6,20"/></svg></button>
+      <div class="p17-info">
+        <div class="p17-title">Briefing do paciente</div>
+        <div class="p17-bar"><div class="p17-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 18 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">18</span><span class="cell-name">Editorial</span></div>
+    <div class="p18">
+      <div class="p18-kicker">Pré-consulta respondida</div>
+      <div class="p18-title">Briefing do paciente</div>
+      <div class="p18-meta">19 de abril, 2026 · 1 minuto</div>
+      <div class="p18-row">
+        <button class="p18-play" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24" style="width:16px;height:16px"><polygon points="6,4 20,12 6,20"/></svg></button>
+        <div class="p18-times"><span>00:24</span><span>01:02</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 19 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">19</span><span class="cell-name">Organic Blob</span></div>
+    <div class="p19">
+      <div class="p19-content">
+        <button class="p19-btn" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24" style="width:18px;height:18px"><polygon points="6,4 20,12 6,20"/></svg></button>
+        <div class="p19-info">
+          <div class="p19-title">Briefing do paciente</div>
+          <div class="p19-wave">
+            <span class="active" style="height:40%"></span><span class="active" style="height:70%"></span><span class="active" style="height:50%"></span><span class="active" style="height:90%"></span><span class="active" style="height:60%"></span>
+            <span style="height:45%"></span><span style="height:75%"></span><span style="height:55%"></span><span style="height:40%"></span><span style="height:65%"></span><span style="height:50%"></span><span style="height:80%"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 20 -->
+  <div class="cell">
+    <div class="cell-lbl"><span class="num">20</span><span class="cell-name">Timestamp Grande</span></div>
+    <div class="p20">
+      <div class="p20-time">00:24</div>
+      <div class="p20-dur">de 01:02</div>
+      <div class="p20-ctrl">
+        <button class="p20-btn-s">⟲</button>
+        <button class="p20-btn-p" onclick="togglePlay(this)"><svg class="ico-play" viewBox="0 0 24 24" style="width:20px;height:20px"><polygon points="6,4 20,12 6,20"/></svg></button>
+        <button class="p20-btn-s">⟳</button>
+      </div>
+      <div class="p20-bar"><div class="p20-fill"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Toggle play/pause state visually (no real audio)
+  function togglePlay(el){
+    el.classList.toggle('playing');
+    var svg = el.querySelector('svg polygon');
+    if(svg){
+      if(el.classList.contains('playing')){
+        svg.setAttribute('points','6,4 10,4 10,20 6,20 14,4 18,4 18,20 14,20');
+      } else {
+        svg.setAttribute('points','6,4 20,12 6,20');
+      }
+    }
+  }
+</script>
+
+</body>
+</html>

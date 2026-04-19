@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Preview — Resumo do Paciente (redesign)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --bg: #F4F6FA;
+    --card: #FFFFFF;
+    --green: #00C47A;
+    --green-g: linear-gradient(120deg, #00E5A0, #00B4D8);
+    /* ==== TEXTO — 3 NIVEIS CORRIGIDOS ==== */
+    --t-title: #0D0F14;   /* titulo (preto) */
+    --t-body:  #2E3338;   /* CORPO (novo — era #9CA3AF antes, cinza-claro ilegivel) */
+    --t-meta:  #6B7280;   /* metadata (datas, labels pequenas) */
+    --t-placeholder: #9CA3AF; /* ausencia de info (ok continuar claro) */
+    --border: rgba(0,0,0,.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);background:var(--bg);padding:32px;color:var(--t-title)}
+  .wrap{max-width:1400px;margin:0 auto}
+
+  /* Banner explicativo do preview */
+  .preview-banner{
+    background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;padding:16px 24px;
+    border-radius:14px;margin-bottom:24px;font-weight:600;font-size:14px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .preview-banner svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;flex-shrink:0}
+
+  /* Header da tela */
+  .screen-header{
+    display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;
+  }
+  .breadcrumb{font-size:14px;color:var(--t-meta)}
+  .breadcrumb b{color:var(--t-title);font-weight:800}
+  .header-actions{display:flex;align-items:center;gap:12px}
+  .timestamp{
+    font-size:12px;color:var(--t-meta);padding:8px 14px;background:#fff;
+    border:1px solid var(--border);border-radius:10px;font-weight:600;
+  }
+  /* NOVO: iClinic realocado aqui */
+  .btn-iclinic{
+    display:inline-flex;align-items:center;gap:8px;padding:9px 16px;
+    background:rgba(21,101,192,.08);border:1px solid rgba(21,101,192,.18);
+    color:#1565C0;border-radius:10px;font-family:inherit;font-weight:700;
+    font-size:13px;cursor:pointer;transition:.15s;
+  }
+  .btn-iclinic:hover{background:rgba(21,101,192,.14)}
+  .btn-iclinic svg{width:16px;height:16px;stroke:#1565C0;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  /* Grid principal */
+  .grid{display:grid;grid-template-columns:1fr 380px;gap:24px}
+
+  /* Cards genericos */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 1px 12px rgba(0,0,0,.04)}
+
+  /* Resumo header com avatar */
+  .summary-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px}
+  .avatar{width:44px;height:44px;border-radius:50%;background:var(--green-g);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;flex-shrink:0}
+  .summary-text{flex:1}
+  .summary-date{font-size:12px;color:var(--t-meta);margin-bottom:4px}
+  .summary-quote{
+    font-size:14px;color:var(--t-body);line-height:1.55;font-style:italic;
+    /* ^^^ AGORA LEGIVEL — antes era cinza claro */
+  }
+
+  /* Player */
+  .player{background:#0D0F14;border-radius:12px;padding:24px;margin:16px 0;text-align:center;color:#9CA3AF;font-size:12px}
+  .player-btns{display:flex;justify-content:center;align-items:center;gap:16px;margin-bottom:14px}
+  .player-skip{width:36px;height:36px;border-radius:50%;background:#1a1d24;display:flex;align-items:center;justify-content:center;color:#9CA3AF}
+  .player-play{width:56px;height:56px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#0D0F14}
+  .waveform{height:34px;background:repeating-linear-gradient(90deg,#1a1d24 0 3px,transparent 3px 7px);border-radius:4px;margin:8px 0}
+  .player-time{display:flex;justify-content:space-between;font-size:11px;color:#6B7280}
+
+  .trans-toggle{text-align:center;color:var(--green);font-size:13px;font-weight:700;padding:10px;cursor:pointer}
+
+  /* REMOVIDO: botao Iniciar consulta (era aqui um verde gigante) */
+
+  /* Seções */
+  .section-lbl{font-size:11px;font-weight:700;color:var(--t-meta);text-transform:uppercase;letter-spacing:1.5px;margin:20px 0 12px}
+
+  /* Insight cards */
+  .ins-card{display:flex;gap:12px;background:#fff;border:1px solid var(--border);border-left:4px solid #F59E0B;border-radius:10px;padding:14px 16px;margin-bottom:10px}
+  .ins-card.queixa{border-left-color:#3B82F6}
+  .ins-card.historico{border-left-color:#8B5CF6}
+  .ins-icon{width:28px;height:28px;border-radius:50%;background:#FEF3C7;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ins-icon.blue{background:#DBEAFE}
+  .ins-icon.purple{background:#EDE9FE}
+  .ins-icon svg{width:14px;height:14px;stroke:#F59E0B;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .ins-icon.blue svg{stroke:#3B82F6}
+  .ins-icon.purple svg{stroke:#8B5CF6}
+  .ins-title{font-size:14px;font-weight:800;color:var(--t-title);margin-bottom:4px}
+  .ins-msg{font-size:13px;color:var(--t-body);line-height:1.55}
+  /* ^^^ ESSE E O PRINCIPAL FIX — antes era cor muito clara */
+
+  /* Coluna direita */
+  .right-col{display:flex;flex-direction:column;gap:16px}
+  .side-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px}
+  .side-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .side-icon{width:40px;height:40px;background:#ECFDF5;border-radius:10px;display:flex;align-items:center;justify-content:center}
+  .side-icon svg{width:20px;height:20px;stroke:#00C47A;fill:none;stroke-width:1.8}
+  .side-chip{padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;background:#ECFDF5;color:#027A48}
+  .side-title{font-size:15px;font-weight:700;color:var(--t-title);margin-bottom:4px}
+  .side-desc{font-size:13px;color:var(--t-body);line-height:1.5}
+  /* ^^^ corpo legivel — antes cinza claro */
+  .side-placeholder{font-size:13px;color:var(--t-placeholder);line-height:1.5}
+
+  /* Exames */
+  .exames-title{font-size:19px;font-weight:800;color:var(--green);letter-spacing:-.4px;margin-bottom:12px}
+  .exame-search{position:relative;margin-bottom:12px}
+  .exame-search input{width:100%;padding:10px 12px 10px 36px;background:#fff;border:1px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;outline:none}
+  .exame-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--t-meta);fill:none;stroke-width:2}
+
+  .exame-item{display:flex;gap:14px;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:10px;margin-bottom:10px;cursor:pointer}
+  /* NOVO: miniatura real do PDF (simulada) */
+  .exame-thumb{
+    width:90px;height:110px;border-radius:6px;overflow:hidden;flex-shrink:0;
+    background:#fff;border:1px solid #e5e7eb;position:relative;
+    /* simula primeira pagina de PDF */
+    background-image:
+      linear-gradient(#fff,#fff),
+      repeating-linear-gradient(#d1d5db 0 1px,transparent 1px 7px);
+    background-size:100% 12px, 100% 100%;
+    background-position:top, 0 14px;
+    background-repeat:no-repeat, repeat;
+  }
+  .exame-thumb::before{
+    content:"LAUDO";position:absolute;top:3px;left:6px;right:6px;
+    font-size:7px;font-weight:800;color:#00C47A;letter-spacing:1px
+  }
+  .exame-thumb::after{
+    content:"";position:absolute;top:14px;left:6px;right:6px;height:14px;
+    background:linear-gradient(#9ca3af 0 1px,transparent 1px 4px);background-size:100% 4px
+  }
+  .exame-info{flex:1;display:flex;flex-direction:column;justify-content:center;gap:3px}
+  .exame-tipo{font-size:11px;color:var(--t-meta);text-transform:capitalize}
+  /* ^^^ tipo "Exame" agora legivel */
+  .exame-nome{font-size:14px;font-weight:700;color:var(--green)}
+  .exame-data{font-size:11px;color:var(--t-meta);margin-top:2px}
+
+  /* Annotations laterais */
+  .note{
+    position:relative;
+  }
+  .note::after{
+    content:attr(data-note);
+    position:absolute;right:-14px;top:8px;transform:translateX(100%);
+    background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;
+    padding:4px 8px;border-radius:6px;white-space:nowrap;
+    border:1px solid #F59E0B;pointer-events:none;
+  }
+
+  .legend{
+    background:#fff;padding:20px;border-radius:14px;margin-top:32px;
+    border:1px solid var(--border);
+  }
+  .legend h3{font-size:16px;margin-bottom:12px}
+  .legend ul{list-style:none}
+  .legend li{font-size:13px;color:var(--t-body);padding:6px 0;display:flex;gap:10px}
+  .legend li::before{content:"✓";color:var(--green);font-weight:900}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="preview-banner">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    PREVIEW — Tela "Resumo do Paciente" redesenhada. Sem integração real. Só pra você aprovar o visual antes de aplicar no app.
+  </div>
+
+  <!-- Screen header -->
+  <div class="screen-header">
+    <div class="breadcrumb"><b>Resumo do Paciente</b> › Pré-consulta respondida</div>
+    <div class="header-actions">
+      <button class="btn-iclinic">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar iClinic
+      </button>
+      <div class="timestamp">19:13 · Dom, 19 Abr</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- COL ESQUERDA -->
+    <div>
+      <div class="card">
+        <div class="summary-head">
+          <div class="avatar">V</div>
+          <div class="summary-text">
+            <div class="summary-date">Respondida em 19/04/2026</div>
+            <div class="summary-quote">"Paciente de 19 anos relata mal-estar generalizado, incluindo palpitações e insônia, há cerca de três semanas, associado a um período de alta demanda no trabalho."</div>
+          </div>
+        </div>
+
+        <div class="player">
+          <div class="player-btns">
+            <div class="player-skip">⟲</div>
+            <div class="player-play">▶</div>
+            <div class="player-skip">⟳</div>
+          </div>
+          <div class="waveform"></div>
+          <div class="player-time"><span>0:00</span><span>1:02</span></div>
+        </div>
+
+        <div class="trans-toggle">Ver transcrição ⌄</div>
+
+        <!-- REMOVIDO: Botão gigante "Iniciar consulta" -->
+
+        <div class="section-lbl">Pontos de atenção</div>
+
+        <div class="ins-card">
+          <div class="ins-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div>
+            <div class="ins-title">Fatores de Estresse e Sono</div>
+            <div class="ins-msg">O paciente relata trabalhar 12 horas/dia nos últimos dois meses, o que coincide com o início dos sintomas de mal-estar, insônia, irritabilidade e perda de peso. Vale considerar o impacto do estresse crônico.</div>
+          </div>
+        </div>
+
+        <div class="ins-card">
+          <div class="ins-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div>
+            <div class="ins-title">Medicamentos e Sintomas</div>
+            <div class="ins-msg">O uso de Prednisolona pode contribuir para insônia, irritabilidade e taquicardia, sintomas relatados pelo paciente.</div>
+          </div>
+        </div>
+
+        <div class="ins-card">
+          <div class="ins-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div>
+            <div class="ins-title">Histórico Familiar e Sintomas</div>
+            <div class="ins-msg">O histórico familiar de depressão, combinado com insônia, irritabilidade e sintomas de ansiedade como palpitações e dor torácica, merece avaliação de um possível componente de humor/ansiedade.</div>
+          </div>
+        </div>
+
+        <div class="section-lbl">Referência</div>
+
+        <div class="ins-card queixa">
+          <div class="ins-icon blue"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div>
+            <div class="ins-title">Queixa principal</div>
+            <div class="ins-msg">Mal-estar generalizado há 3 semanas, incluindo aceleração cardíaca, sensação de pré-síncope, insônia (acorda às 4h e não volta a dormir), dor de cabeça refratária a dipirona/paracetamol, irritabilidade, dor no peito intermitente, inapetência e perda de 3kg no último mês.</div>
+          </div>
+        </div>
+
+        <div class="ins-card historico">
+          <div class="ins-icon purple"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+          <div>
+            <div class="ins-title">Histórico relevante</div>
+            <div class="ins-msg">Amigdalectomia.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COL DIREITA -->
+    <div class="right-col">
+      <div class="side-card">
+        <div class="side-head">
+          <div class="side-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></div>
+          <div class="side-chip">● 4 ativos</div>
+        </div>
+        <div class="side-title">Medicamentos em uso</div>
+        <div class="side-desc">Cetirizina 10mg, Soro Fisiológico, Prednisolona 20mg, Loratadina 10mg</div>
+      </div>
+
+      <div class="side-card">
+        <div class="side-head">
+          <div class="side-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg></div>
+          <div class="side-chip">● Nenhuma</div>
+        </div>
+        <div class="side-title">Alergias</div>
+        <div class="side-placeholder">Nenhuma alergia registrada</div>
+      </div>
+
+      <div style="margin-top:4px">
+        <div class="exames-title">Exames de Lucas</div>
+        <div class="exame-search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar exame...">
+        </div>
+
+        <div class="exame-item">
+          <div class="exame-thumb"></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Exame</div>
+            <div class="exame-nome">laudo.pdf</div>
+            <div class="exame-data">04/04/2026, 21:00</div>
+          </div>
+        </div>
+
+        <div class="exame-item">
+          <div class="exame-thumb"></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Exame</div>
+            <div class="exame-nome">laudo.pdf</div>
+            <div class="exame-data">04/04/2026, 21:00</div>
+          </div>
+        </div>
+
+        <div class="exame-item">
+          <div class="exame-thumb"></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Exame</div>
+            <div class="exame-nome">laudo.pdf</div>
+            <div class="exame-data">04/04/2026, 21:00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <h3>O que mudou nesse preview</h3>
+    <ul>
+      <li><b>Contraste:</b> todo texto de corpo passou de cinza-claro (#9CA3AF) para cinza-escuro (#2E3338). Legibilidade restaurada.</li>
+      <li><b>iClinic:</b> realocado pro topo direito, ao lado do timestamp, como ação secundária discreta.</li>
+      <li><b>Iniciar consulta:</b> removido completamente.</li>
+      <li><b>Miniatura de exame:</b> placeholder simulando primeira página de PDF (implementação real extrai a página 1 do arquivo).</li>
+      <li><b>Espaçamentos:</b> buraco deixado pelos botões removidos foi fechado — "Ver transcrição" agora flui direto em "Pontos de atenção".</li>
+      <li><b>Hierarquia visual:</b> 3 níveis de cinza em vez de 2 — título preto, corpo escuro, metadata médio, placeholder claro.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
