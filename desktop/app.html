@@ -2370,6 +2370,30 @@ async function pcOpenDetail(pcId){
       html += '<div class="stale-warn"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Pre-consulta com mais de 7 dias. Dados podem estar desatualizados.</div>';
     }
 
+    // ═══ Banner "audio em processamento" — resumo/transcricao ainda nao chegaram ═══
+    var rawAudio = pc.audioUrl || null;
+    var processando = !summaryText && !!rawAudio;
+    if(processando){
+      html += '<div style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;margin-bottom:14px">';
+      html += '<div style="width:34px;height:34px;border-radius:50%;background:#F59E0B;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>';
+      html += '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:#92400E;margin-bottom:2px">Áudio sendo processado</div>';
+      html += '<div style="font-size:12px;color:#92400E;opacity:.85;line-height:1.45;margin-bottom:8px">O resumo em 1 minuto fica pronto em instantes. O áudio original já está disponível abaixo.</div>';
+      html += '<button onclick="pcOpenDetail(\'' + pc.id + '\')" style="padding:6px 12px;border-radius:8px;border:1px solid #F59E0B;background:#fff;font:inherit;font-size:12px;font-weight:700;color:#92400E;cursor:pointer">Atualizar</button></div></div>';
+      if(rawAudio){
+        html += '<div style="padding:12px 14px;background:#fff;border:1px solid #EAECF0;border-radius:12px;margin-bottom:14px">';
+        html += '<div style="font-size:12px;font-weight:700;color:#6B7280;margin-bottom:8px;letter-spacing:.5px;text-transform:uppercase">Áudio original do paciente</div>';
+        html += '<audio controls src="' + rawAudio + '" style="width:100%"></audio></div>';
+      }
+      // Auto-refresh a cada 15s ate resumo chegar (cancela se usuario sair da tela)
+      if(pcState._pollTimer) clearTimeout(pcState._pollTimer);
+      pcState._pollTimer = setTimeout(function(){
+        if(pcState.currentPC && pcState.currentPC.id === pc.id) pcOpenDetail(pc.id);
+      }, 15000);
+    } else if(pcState._pollTimer){
+      clearTimeout(pcState._pollTimer);
+      pcState._pollTimer = null;
+    }
+
     if(summaryText){
       html += '<div class="dk-player idle" id="pc-audioPlayer" data-summary-text="' + escAttr(summaryText) + '"' + (audioUrl ? ' data-audio-url="' + audioUrl + '"' : '') + '>';
       html += '<div class="dk-top">';
@@ -2429,6 +2453,8 @@ async function pcOpenDetail(pcId){
       return null;
     }
     var queixaRaw = findBloco(['queixa','motivo']) || r.queixaPrincipal || r.queixa || '';
+    // Oculta placeholder cru enquanto transcricao/resumo ainda estao sendo gerados
+    if(queixaRaw === '(áudio sem transcrição)' || queixaRaw === '(audio sem transcricao)') queixaRaw = '';
     if(r.duracaoSintomas && queixaRaw && queixaRaw.indexOf(r.duracaoSintomas) === -1) queixaRaw += ' (' + r.duracaoSintomas + ')';
     var historicoRaw = findBloco(['historico relevante','doenca','cirurgi','internac']) || [r.doencasAtuais, r.cirurgias, r.historicoInternacoes].filter(Boolean).join('. ');
 
