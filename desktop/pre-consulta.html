@@ -6,12 +6,74 @@
 <title>vitaid — Nova Pre-Consulta</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="desktop-core.css" rel="stylesheet">
+<style>
+  .lk-modal{background:#fff;border-radius:20px;padding:32px;width:440px;max-width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(0,0,0,.18);position:relative;animation:mIn .28s cubic-bezier(.2,.9,.3,1.2)}
+  .lk-x{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:10px;border:0;background:#F4F6FA;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6B7280;transition:.15s}
+  .lk-x:hover{background:rgba(0,0,0,.06);color:#0D0F14}
+  .lk-x svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
+  .lk-check{width:56px;height:56px;border-radius:50%;background:linear-gradient(120deg,#00E5A0,#00B4D8);margin:0 auto 18px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 24px rgba(0,229,160,.35);animation:lkPop .4s cubic-bezier(.2,.9,.3,1.4)}
+  .lk-check svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:30;stroke-dashoffset:30;animation:lkDraw .4s .2s forwards ease}
+  .lk-h{font-size:22px;font-weight:900;letter-spacing:-.6px;text-align:center;margin-bottom:6px;color:#0D0F14}
+  .lk-h em{font-style:italic;background:linear-gradient(120deg,#00E5A0,#00B4D8);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lk-sub{text-align:center;color:#6B7280;font-size:14px;line-height:1.5;margin-bottom:22px}
+  .lk-pat{background:#F4F6FA;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:22px}
+  .lk-av{width:40px;height:40px;border-radius:12px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .lk-meta{flex:1;min-width:0}
+  .lk-n{font-size:14px;font-weight:800;color:#0D0F14;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lk-t{font-size:12px;color:#6B7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lk-lock{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#00B48C;flex-shrink:0}
+  .lk-lock svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .lk-send{width:100%;padding:15px;border:0;border-radius:14px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;font:inherit;font-weight:800;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 24px rgba(0,229,160,.28);transition:.18s;margin-bottom:14px}
+  .lk-send:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(0,229,160,.38)}
+  .lk-send:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .lk-send svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .lk-alt{display:flex;gap:8px;margin-bottom:18px}
+  .lk-alt button{flex:1;padding:11px;border:1.5px solid rgba(0,0,0,.07);border-radius:12px;background:#fff;font:inherit;font-weight:700;font-size:13px;cursor:pointer;color:#4B5563;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
+  .lk-alt button:hover{border-color:rgba(0,0,0,.15);color:#0D0F14}
+  .lk-alt svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .lk-reveal{text-align:center}
+  .lk-reveal button{border:0;background:transparent;color:#9CA3AF;font:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:4px 8px}
+  .lk-reveal button:hover{color:#6B7280}
+  .lk-url{margin-top:10px;background:#F4F6FA;border-radius:10px;padding:10px 12px;font-family:'Courier New',monospace;font-size:10px;color:#6B7280;word-break:break-all;line-height:1.5;text-align:left;display:none}
+  .lk-url.show{display:block}
+  @keyframes lkPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes lkDraw{to{stroke-dashoffset:0}}
+</style>
 <script src="../device-router.js"></script>
 <script>vitaeDevice.guardDesktop();</script>
 </head>
 <body>
 
 <div class="toast-stack" id="toastStack"></div>
+
+<div class="modal-overlay" id="lkOverlay">
+  <div class="lk-modal">
+    <button class="lk-x" onclick="closeLkModal()" aria-label="Fechar"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div class="lk-check"><svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 8"/></svg></div>
+    <h2 class="lk-h">Link pronto pra <em id="lkFirstName">o paciente</em></h2>
+    <p class="lk-sub">Agora e so enviar pelo WhatsApp. O paciente recebe o formulario e voce o resumo em audio.</p>
+    <div class="lk-pat">
+      <div class="lk-av" id="lkAv">--</div>
+      <div class="lk-meta">
+        <div class="lk-n" id="lkName">--</div>
+        <div class="lk-t" id="lkTpl">Padrao VitaID</div>
+      </div>
+      <div class="lk-lock" title="Link seguro"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+    </div>
+    <button class="lk-send" id="lkSend" onclick="openWA()">
+      <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+      <span id="lkSendTxt">Abrir WhatsApp</span>
+    </button>
+    <div class="lk-alt">
+      <button onclick="copyLinkFn()"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg><span id="copyTxt">Copiar link</span></button>
+      <button onclick="sendEmailFn()" id="lkEmailBtn"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg>Enviar por email</button>
+    </div>
+    <div class="lk-reveal">
+      <button onclick="toggleLkUrl(this)">ver link tecnico</button>
+      <div class="lk-url" id="lkUrlBox"></div>
+    </div>
+  </div>
+</div>
 
 <div class="app">
 
@@ -43,6 +105,7 @@
   </div>
 
   <div class="content">
+   <div id="view-nova-pc">
     <div class="ph"><div><h1>Nova Pre-Consulta</h1><p>Envie o formulario antes da consulta e economize ate 15 minutos</p></div></div>
     <div class="fg">
       <div>
@@ -64,14 +127,6 @@
         </div>
       </div>
       <div>
-        <div class="lg" id="lgCard" style="margin-bottom:14px">
-          <div class="lgl">Link gerado com sucesso</div>
-          <div class="lgu" id="lgUrl"></div>
-          <div class="lgbs">
-            <button class="lgb lgb-p" id="lgWa" onclick="openWA()"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Abrir WhatsApp</button>
-            <button class="lgb lgb-s" onclick="copyLinkFn()"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg><span id="copyTxt">Copiar link</span></button>
-          </div>
-        </div>
         <div class="tips-box">
           <div class="slabel" style="margin-bottom:12px">Como funciona</div>
           <div class="tip"><div class="tipn">1</div><p><strong>Envie o link</strong> para o paciente via WhatsApp antes da consulta.</p></div>
@@ -81,6 +136,7 @@
         </div>
       </div>
     </div>
+   </div>
   </div>
 </div>
 </div>
@@ -89,6 +145,7 @@
 <script>
 var generatedUrl = '';
 var generatedPhone = '';
+var generatedEmail = '';
 
 async function init() {
   var u = JSON.parse(localStorage.getItem('vitae_usuario') || '{}');
@@ -138,15 +195,22 @@ async function sendPreConsulta() {
     var token = pc.linkToken || '';
     generatedUrl = window.location.origin + '/pre-consulta.html?token=' + token;
     generatedPhone = tel;
+    generatedEmail = email;
 
-    document.getElementById('lgUrl').textContent = generatedUrl;
-    document.getElementById('lgCard').classList.add('show');
-    document.getElementById('lgCard').scrollIntoView({behavior:'smooth',block:'nearest'});
-
-    toast('Pre-consulta criada para ' + nome + '.', 'ok');
-
-    // Abrir WhatsApp automaticamente se tem telefone
-    if (tel) openWA();
+    var firstName = nome.split(/\s+/)[0];
+    var tplSel = document.getElementById('fTemplate');
+    var tplName = tplSel.options[tplSel.selectedIndex] ? tplSel.options[tplSel.selectedIndex].text : 'Padrao VitaID';
+    document.getElementById('lkFirstName').textContent = firstName;
+    document.getElementById('lkName').textContent = nome;
+    document.getElementById('lkTpl').textContent = 'Template: ' + tplName;
+    document.getElementById('lkAv').textContent = getInitials(nome);
+    document.getElementById('lkUrlBox').textContent = generatedUrl;
+    document.getElementById('lkUrlBox').classList.remove('show');
+    document.querySelector('.lk-reveal button').textContent = 'ver link tecnico';
+    document.getElementById('lkSend').disabled = !tel;
+    document.getElementById('lkSendTxt').textContent = tel ? ('Abrir WhatsApp de ' + firstName) : 'Sem WhatsApp cadastrado';
+    document.getElementById('lkEmailBtn').style.display = email ? '' : 'none';
+    document.getElementById('lkOverlay').classList.add('show');
   } catch (err) {
     toast(err.message || 'Erro ao criar pre-consulta.', 'err');
   }
@@ -171,6 +235,36 @@ function copyLinkFn() {
     toast('Link copiado.', 'ok');
   });
 }
+
+function sendEmailFn() {
+  if (!generatedUrl) return;
+  var nome = document.getElementById('fNome').value.trim();
+  var firstName = nome.split(/\s+/)[0];
+  var subj = encodeURIComponent('Pre-consulta com Dr. — ' + nome);
+  var body = encodeURIComponent('Ola ' + firstName + ',\n\nAntes da sua consulta, preencha este formulario rapido:\n\n' + generatedUrl + '\n\nLeva menos de 5 minutos.');
+  var to = generatedEmail ? encodeURIComponent(generatedEmail) : '';
+  window.open('mailto:' + to + '?subject=' + subj + '&body=' + body, '_self');
+}
+
+function closeLkModal() {
+  document.getElementById('lkOverlay').classList.remove('show');
+  var nome = document.getElementById('fNome').value.trim();
+  if (nome) toast('Link pronto para ' + nome.split(/\s+/)[0] + '. aguardando resposta.', 'ok');
+}
+
+function toggleLkUrl(btn) {
+  var box = document.getElementById('lkUrlBox');
+  box.classList.toggle('show');
+  btn.textContent = box.classList.contains('show') ? 'esconder link' : 'ver link tecnico';
+}
+
+document.addEventListener('click', function(e) {
+  var ov = document.getElementById('lkOverlay');
+  if (e.target === ov) closeLkModal();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('lkOverlay').classList.contains('show')) closeLkModal();
+});
 
 function getInitials(n) { if(!n)return'--'; var p=n.replace(/^(Dr\.?\s*|Dra\.?\s*)/i,'').trim().split(/\s+/); return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():p[0]?p[0].substring(0,2).toUpperCase():'--'; }
 function fmtPhone(el) { var v=el.value.replace(/\D/g,'').slice(0,11); if(v.length>=11)el.value='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7,11); else if(v.length>=7)el.value='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7); else if(v.length>=3)el.value='('+v.slice(0,2)+') '+v.slice(2); else if(v.length>=1)el.value='('+v; }
