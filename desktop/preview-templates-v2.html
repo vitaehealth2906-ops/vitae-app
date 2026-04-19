@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Preview V2 — Templates (3 telas centralizadas)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  :root{
+    --font:'Plus Jakarta Sans',system-ui,sans-serif;
+    --bg:#F4F6FA;
+    --card:#FFFFFF;
+    --green:#00C47A;--green-l:#00E5A0;--cyan:#00B4D8;
+    --grad:linear-gradient(120deg,#00E5A0,#00B4D8);
+    --t1:#0D0F14;--t2:#2E3338;--t3:#5A6070;--t4:#9CA3AF;
+    --border:rgba(0,0,0,.06);
+    --shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03);
+    --shadow-hover:0 2px 6px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.05);
+  }
+  html,body{background:var(--bg);font-family:var(--font);color:var(--t1)}
+  body{min-height:100vh;padding:32px 0 80px}
+
+  /* Banner preview */
+  .preview-ban{max-width:1320px;margin:0 auto 28px;padding:0 24px}
+  .preview-ban-inner{background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;padding:14px 20px;border-radius:12px;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600;box-shadow:var(--shadow)}
+  .preview-ban svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;flex-shrink:0}
+
+  /* Wrapper centralizado */
+  .wrap{max-width:1320px;margin:0 auto;padding:0 24px}
+
+  /* Separador entre telas */
+  .screen-tag{max-width:1320px;margin:48px auto 18px;padding:0 24px;display:flex;align-items:center;gap:14px}
+  .screen-tag-badge{background:#0D0F14;color:#fff;padding:6px 14px;border-radius:100px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+  .screen-tag-line{flex:1;height:1px;background:rgba(0,0,0,.08)}
+  .screen-tag-name{font-size:14px;font-weight:700;color:var(--t3)}
+
+  /* Top row — breadcrumb + ações */
+  .top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--t3);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:8px 10px;border-radius:8px;transition:.15s}
+  .back-btn:hover{background:rgba(0,0,0,.04);color:var(--t1)}
+  .back-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  /* Page head */
+  .page-head{margin-bottom:22px}
+  .page-head h1{font-size:26px;font-weight:900;letter-spacing:-.6px;color:var(--t1)}
+  .page-head h1 em{font-style:italic;font-weight:900;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .page-head .sub{font-size:13px;color:var(--t3);margin-top:4px}
+
+  /* Stepper */
+  .stepper{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding:18px 22px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+  .step{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+  .step-num{width:30px;height:30px;border-radius:50%;background:#F4F6FA;color:var(--t4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;transition:.2s;border:2px solid transparent}
+  .step-label{font-size:13px;font-weight:700;color:var(--t4);transition:.2s}
+  .step.active .step-num{background:var(--grad);color:#fff;box-shadow:0 4px 12px rgba(0,229,160,.3)}
+  .step.active .step-label{color:var(--t1)}
+  .step.done .step-num{background:#ECFDF5;color:var(--green);border-color:#A7F3D0}
+  .step.done .step-num svg{width:14px;height:14px;stroke:var(--green);fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+  .step.done .step-label{color:var(--t2)}
+  .step-sep{flex:0 0 32px;height:2px;background:#E5E7EB;border-radius:2px;position:relative;overflow:hidden}
+  .step-sep.done{background:var(--green)}
+
+  /* Grid de 2 colunas */
+  .form-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:28px;align-items:start}
+  @media(max-width:1024px){.form-grid{grid-template-columns:1fr}}
+
+  /* Cards */
+  .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:26px;box-shadow:var(--shadow)}
+
+  /* Campos de form */
+  .fld{margin-bottom:20px}
+  .fld:last-child{margin-bottom:0}
+  .fld label{display:block;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+  .fld input,.fld textarea{width:100%;padding:12px 14px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;color:var(--t1);outline:none;transition:.15s}
+  .fld input:focus,.fld textarea:focus{border-color:rgba(0,229,160,.45);box-shadow:0 0 0 3px rgba(0,229,160,.08)}
+  .fld textarea{resize:vertical;min-height:180px;line-height:1.7;font-family:inherit}
+  .fld-hint{font-size:11.5px;color:var(--t4);margin-top:6px}
+
+  /* Toggle row */
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#F9FAFB;border:1px solid var(--border);border-radius:12px;margin-bottom:18px}
+  .toggle-label{flex:1}
+  .toggle-label .t{font-size:13.5px;font-weight:700;color:var(--t1)}
+  .toggle-label .s{font-size:11.5px;color:var(--t3);margin-top:2px}
+  .toggle{width:42px;height:24px;background:#E5E7EB;border-radius:100px;position:relative;cursor:pointer;transition:.2s;flex-shrink:0}
+  .toggle::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .toggle.on{background:var(--green)}
+  .toggle.on::after{left:20px}
+
+  /* Hint bloco */
+  .hint-block{display:flex;gap:12px;padding:14px 16px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;margin-bottom:18px}
+  .hint-block svg{width:18px;height:18px;stroke:#3B82F6;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;margin-top:1px}
+  .hint-block .h-text{font-size:12.5px;color:#1E3A8A;line-height:1.5}
+
+  /* Preview lateral (mini phone) */
+  .phone-preview{position:sticky;top:32px}
+  .phone-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+  .phone-title{font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-bottom:4px;text-align:center}
+  .phone-subtitle{font-size:12px;color:var(--t4);text-align:center;margin-bottom:16px;font-style:italic}
+  .phone-frame{background:linear-gradient(180deg,#F9FAFB,#fff);border:1px solid var(--border);border-radius:22px;padding:18px;max-height:460px;overflow-y:auto}
+  .phone-frame::-webkit-scrollbar{width:4px}
+  .phone-frame::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+  .phone-q{display:flex;gap:12px;padding:14px;background:#fff;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;transition:.15s}
+  .phone-q:hover{border-color:rgba(0,196,122,.25)}
+  .phone-q-num{width:26px;height:26px;border-radius:50%;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+  .phone-q-body{flex:1;min-width:0}
+  .phone-q-text{font-size:13px;font-weight:700;color:var(--t1);line-height:1.35}
+  .phone-q-type{font-size:11px;color:var(--t3);margin-top:3px}
+
+  /* Footer de ações */
+  .actions{display:flex;gap:10px;margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
+  .btn{padding:0 18px;height:42px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;transition:.15s}
+  .btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .btn-p{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(0,229,160,.3);flex:1}
+  .btn-p:hover{box-shadow:0 6px 20px rgba(0,229,160,.4);transform:translateY(-1px)}
+  .btn-s{background:#fff;color:var(--t1);border:1px solid var(--border)}
+  .btn-s:hover{background:#F9FAFB}
+
+  /* Stat mini */
+  .summary-card{padding:18px;background:linear-gradient(135deg,#ECFDF5,#F0F9FF);border:1px solid rgba(0,229,160,.15);border-radius:14px;margin-bottom:18px}
+  .summary-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .summary-head svg{width:18px;height:18px;stroke:var(--green);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .summary-title{font-size:13px;font-weight:800;color:var(--t1)}
+  .summary-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .sstat{text-align:center}
+  .sstat-val{font-size:20px;font-weight:900;color:var(--t1);letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+  .sstat-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-top:2px}
+
+  /* Tela 2 — preview full */
+  .preview-full{display:grid;grid-template-columns:1fr 380px;gap:28px;align-items:start}
+  @media(max-width:1024px){.preview-full{grid-template-columns:1fr}}
+
+  .pv-intro{padding:20px 22px;background:linear-gradient(135deg,#FEF3C7,#FDE68A);border:1px solid rgba(245,158,11,.2);border-radius:14px;margin-bottom:20px;display:flex;gap:14px;align-items:center}
+  .pv-intro svg{width:22px;height:22px;stroke:#92400E;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .pv-intro-t{font-size:13.5px;font-weight:800;color:#92400E}
+  .pv-intro-s{font-size:12px;color:#92400E;opacity:.8;margin-top:2px}
+
+  .pv-q{display:flex;gap:14px;padding:16px 18px;background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;box-shadow:var(--shadow)}
+  .pv-q-num{width:32px;height:32px;border-radius:50%;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+  .pv-q-body{flex:1}
+  .pv-q-text{font-size:14px;font-weight:700;color:var(--t1);line-height:1.4}
+  .pv-q-type{font-size:11.5px;color:var(--t3);margin-top:4px;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#F4F6FA;border-radius:100px}
+  .pv-q.mand .pv-q-num{background:#F4F6FA;color:var(--t3);border:1px solid var(--border)}
+
+  .pv-mand-label{display:flex;align-items:center;gap:8px;margin:24px 0 12px;font-size:11px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:1px}
+  .pv-mand-label svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  /* Tela 3 — Sucesso */
+  .success-wrap{max-width:560px;margin:0 auto;padding:60px 28px;text-align:center;background:#fff;border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .success-wrap::before{content:"";position:absolute;top:-100px;left:-100px;right:-100px;height:200px;background:radial-gradient(circle,rgba(0,229,160,.15),transparent 70%);filter:blur(40px)}
+  .success-check{width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,#ECFDF5,#D1FAE5);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;animation:pop .6s cubic-bezier(.34,1.56,.64,1);position:relative;border:3px solid #A7F3D0}
+  .success-check svg{width:40px;height:40px;stroke:var(--green);fill:none;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+  @keyframes pop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+  .success-title{font-size:22px;font-weight:900;color:var(--t1);letter-spacing:-.4px;margin-bottom:8px;position:relative}
+  .success-sub{font-size:14px;color:var(--t3);line-height:1.55;margin-bottom:28px;position:relative}
+  .success-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:20px;background:#F9FAFB;border-radius:12px;margin-bottom:24px;position:relative}
+  .success-stat{text-align:center}
+  .success-stat-val{font-size:20px;font-weight:900;letter-spacing:-.3px}
+  .success-stat-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-top:3px}
+  .success-actions{display:flex;gap:10px;position:relative}
+  .success-actions .btn{flex:1}
+
+  /* Legenda */
+  .legend{max-width:1320px;margin:48px auto 0;padding:28px;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+  .legend h3{font-size:15px;font-weight:900;margin-bottom:14px;letter-spacing:-.3px}
+  .legend ul{list-style:none;columns:2;column-gap:32px}
+  .legend li{font-size:12.5px;color:var(--t2);padding:5px 0;break-inside:avoid;line-height:1.5}
+  .legend li b{color:var(--t1);font-weight:800}
+  .legend li::before{content:"✓ ";color:var(--green);font-weight:900}
+</style>
+</head>
+<body>
+
+<!-- Banner -->
+<div class="preview-ban">
+  <div class="preview-ban-inner">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    PREVIEW V2 — 3 telas do fluxo "Novo Template" centralizadas (max-width 1320px) igual aba Pacientes. Reorganizadas com mini-preview ao vivo.
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- TELA 1 — PERGUNTAS -->
+<!-- ============================================================= -->
+<div class="screen-tag">
+  <div class="screen-tag-badge">Tela 1 de 3</div>
+  <div class="screen-tag-line"></div>
+  <div class="screen-tag-name">Perguntas</div>
+</div>
+
+<div class="wrap">
+
+  <div class="top-row">
+    <button class="back-btn"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Voltar pra lista</button>
+  </div>
+
+  <div class="page-head">
+    <h1>Novo <em>template</em></h1>
+    <div class="sub">Crie um formulário de pré-consulta reutilizável pros seus pacientes</div>
+  </div>
+
+  <!-- Stepper -->
+  <div class="stepper">
+    <div class="step active">
+      <div class="step-num">1</div>
+      <div class="step-label">Perguntas</div>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-label">Preview</div>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-label">Pronto</div>
+    </div>
+  </div>
+
+  <div class="form-grid">
+
+    <!-- Form -->
+    <div class="card">
+      <div class="fld">
+        <label>Nome do template</label>
+        <input type="text" placeholder="Ex: Cardiologia geral" value="Cardiologia geral">
+        <div class="fld-hint">Esse nome aparece só pra você, não pro paciente.</div>
+      </div>
+
+      <div class="fld">
+        <label>Perguntas</label>
+        <textarea placeholder="Escreva uma pergunta por linha">O que você está sentindo?
+Há quanto tempo sente isso?
+Toma algum medicamento?
+Já teve alergia a algum medicamento?
+Tem histórico de doença cardíaca na família?</textarea>
+        <div class="fld-hint">Escreva uma pergunta por linha. O sistema organiza o tipo de resposta automaticamente.</div>
+      </div>
+
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <div class="t">Permitir áudio do paciente</div>
+          <div class="s">Paciente pode gravar um áudio de até 5 min contando o que está sentindo</div>
+        </div>
+        <div class="toggle on"></div>
+      </div>
+
+      <div class="hint-block">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <div class="h-text">Perguntas bem formuladas geram resumos mais precisos. Prefira perguntas abertas terminadas com "?"</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-s">Cancelar</button>
+        <button class="btn btn-p">
+          Ver preview
+          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mini preview ao vivo -->
+    <div class="phone-preview">
+      <div class="phone-card">
+        <div class="phone-title">Preview ao vivo</div>
+        <div class="phone-subtitle">Como o paciente vai ver</div>
+        <div class="phone-frame">
+          <div class="phone-q"><div class="phone-q-num">1</div><div class="phone-q-body"><div class="phone-q-text">O que você está sentindo?</div><div class="phone-q-type">Resposta aberta</div></div></div>
+          <div class="phone-q"><div class="phone-q-num">2</div><div class="phone-q-body"><div class="phone-q-text">Há quanto tempo sente isso?</div><div class="phone-q-type">Duração</div></div></div>
+          <div class="phone-q"><div class="phone-q-num">3</div><div class="phone-q-body"><div class="phone-q-text">Toma algum medicamento?</div><div class="phone-q-type">Sim/Não</div></div></div>
+          <div class="phone-q"><div class="phone-q-num">4</div><div class="phone-q-body"><div class="phone-q-text">Já teve alergia a algum medicamento?</div><div class="phone-q-type">Sim/Não</div></div></div>
+          <div class="phone-q"><div class="phone-q-num">5</div><div class="phone-q-body"><div class="phone-q-text">Tem histórico de doença cardíaca na família?</div><div class="phone-q-type">Sim/Não</div></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- TELA 2 — PREVIEW -->
+<!-- ============================================================= -->
+<div class="screen-tag">
+  <div class="screen-tag-badge">Tela 2 de 3</div>
+  <div class="screen-tag-line"></div>
+  <div class="screen-tag-name">Preview</div>
+</div>
+
+<div class="wrap">
+
+  <div class="top-row">
+    <button class="back-btn"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Voltar pra edição</button>
+  </div>
+
+  <div class="page-head">
+    <h1>Preview do <em>template</em></h1>
+    <div class="sub">Assim o paciente vai ver o formulário · Cardiologia geral</div>
+  </div>
+
+  <div class="stepper">
+    <div class="step done"><div class="step-num"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="step-label">Perguntas</div></div>
+    <div class="step-sep done"></div>
+    <div class="step active"><div class="step-num">2</div><div class="step-label">Preview</div></div>
+    <div class="step-sep"></div>
+    <div class="step"><div class="step-num">3</div><div class="step-label">Pronto</div></div>
+  </div>
+
+  <div class="preview-full">
+
+    <!-- Preview principal -->
+    <div class="card">
+      <div class="pv-intro">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <div class="pv-intro-t">Como o paciente vai ver</div>
+          <div class="pv-intro-s">Revise antes de salvar. Você poderá editar depois.</div>
+        </div>
+      </div>
+
+      <div class="pv-q"><div class="pv-q-num">1</div><div class="pv-q-body"><div class="pv-q-text">O que você está sentindo?</div><div class="pv-q-type">Resposta aberta</div></div></div>
+      <div class="pv-q"><div class="pv-q-num">2</div><div class="pv-q-body"><div class="pv-q-text">Há quanto tempo sente isso?</div><div class="pv-q-type">Duração</div></div></div>
+      <div class="pv-q"><div class="pv-q-num">3</div><div class="pv-q-body"><div class="pv-q-text">Toma algum medicamento?</div><div class="pv-q-type">Sim/Não</div></div></div>
+      <div class="pv-q"><div class="pv-q-num">4</div><div class="pv-q-body"><div class="pv-q-text">Já teve alergia a algum medicamento?</div><div class="pv-q-type">Sim/Não</div></div></div>
+      <div class="pv-q"><div class="pv-q-num">5</div><div class="pv-q-body"><div class="pv-q-text">Tem histórico de doença cardíaca na família?</div><div class="pv-q-type">Sim/Não</div></div></div>
+
+      <div class="pv-mand-label">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Perguntas obrigatórias (fixas)
+      </div>
+      <div class="pv-q mand"><div class="pv-q-num">6</div><div class="pv-q-body"><div class="pv-q-text">Nome completo</div><div class="pv-q-type">Texto</div></div></div>
+      <div class="pv-q mand"><div class="pv-q-num">7</div><div class="pv-q-body"><div class="pv-q-text">Data de nascimento</div><div class="pv-q-type">Data</div></div></div>
+      <div class="pv-q mand"><div class="pv-q-num">8</div><div class="pv-q-body"><div class="pv-q-text">Foto do paciente</div><div class="pv-q-type">Imagem</div></div></div>
+
+      <div class="actions">
+        <button class="btn btn-s">Voltar pra editar</button>
+        <button class="btn btn-p">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Salvar template
+        </button>
+      </div>
+    </div>
+
+    <!-- Sidebar com info -->
+    <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:32px">
+      <div class="summary-card">
+        <div class="summary-head">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <div class="summary-title">Resumo do template</div>
+        </div>
+        <div class="summary-stats">
+          <div class="sstat"><div class="sstat-val">5</div><div class="sstat-lbl">Suas</div></div>
+          <div class="sstat"><div class="sstat-val">3</div><div class="sstat-lbl">Fixas</div></div>
+          <div class="sstat"><div class="sstat-val">~3min</div><div class="sstat-lbl">Tempo</div></div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:20px">
+        <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:10px">Configurações</div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:12.5px">
+          <span style="color:var(--t3)">Áudio do paciente</span>
+          <span style="color:var(--green);font-weight:700">Permitido</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:12.5px">
+          <span style="color:var(--t3)">Foto obrigatória</span>
+          <span style="color:var(--green);font-weight:700">Sim</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:12.5px">
+          <span style="color:var(--t3)">Dados pessoais</span>
+          <span style="color:var(--green);font-weight:700">Sim</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- TELA 3 — PRONTO -->
+<!-- ============================================================= -->
+<div class="screen-tag">
+  <div class="screen-tag-badge">Tela 3 de 3</div>
+  <div class="screen-tag-line"></div>
+  <div class="screen-tag-name">Pronto</div>
+</div>
+
+<div class="wrap">
+
+  <div class="stepper">
+    <div class="step done"><div class="step-num"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="step-label">Perguntas</div></div>
+    <div class="step-sep done"></div>
+    <div class="step done"><div class="step-num"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="step-label">Preview</div></div>
+    <div class="step-sep done"></div>
+    <div class="step active"><div class="step-num">3</div><div class="step-label">Pronto</div></div>
+  </div>
+
+  <div class="success-wrap">
+    <div class="success-check">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="success-title">Template criado com sucesso</div>
+    <div class="success-sub">"Cardiologia geral" já está disponível na sua lista.<br>Você pode usar em qualquer pré-consulta nova.</div>
+
+    <div class="success-stats">
+      <div class="success-stat"><div class="success-stat-val">5</div><div class="success-stat-lbl">Perguntas</div></div>
+      <div class="success-stat"><div class="success-stat-val">3</div><div class="success-stat-lbl">Fixas</div></div>
+      <div class="success-stat"><div class="success-stat-val">~3min</div><div class="success-stat-lbl">Tempo est.</div></div>
+    </div>
+
+    <div class="success-actions">
+      <button class="btn btn-s">Ver templates</button>
+      <button class="btn btn-p">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Usar em nova pré-consulta
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Legenda -->
+<div class="legend">
+  <h3>O que mudou nessa versão</h3>
+  <ul>
+    <li><b>Wrapper centralizado</b> max-width 1320px igual Pacientes/Dashboard</li>
+    <li><b>Stepper redesenhado</b> — numerado, com check verde nos concluídos e separador que preenche conforme avança</li>
+    <li><b>Tela 1:</b> form à esquerda + <b>mini-preview ao vivo</b> à direita (sticky) mostrando como o paciente vai ver, em tempo real</li>
+    <li><b>Toggle de áudio</b> agora tem descrição explicativa embaixo do label</li>
+    <li><b>Hint em bloco azul</b> com ícone — melhor que texto solto</li>
+    <li><b>Tela 2:</b> preview principal + <b>sidebar com resumo</b> (perguntas suas, fixas, tempo estimado) e configurações</li>
+    <li><b>Perguntas obrigatórias</b> com numeração cinza e border, diferenciadas visualmente</li>
+    <li><b>Tela 3:</b> card de sucesso centralizado com glow verde de fundo, <b>estatísticas do template</b> criado e 2 CTAs (ver lista ou usar na hora)</li>
+    <li><b>Responsivo</b> — vira stack vertical abaixo de 1024px</li>
+    <li><b>Sombras, bordas, tipografia</b> — mesmo sistema do redesign do Resumo</li>
+  </ul>
+</div>
+
+</body>
+</html>
