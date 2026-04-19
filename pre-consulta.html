@@ -2078,6 +2078,29 @@ async function prefillFromProfile() {
             if (u.celular) document.getElementById('telefone').value = u.celular;
             if (u.email) document.getElementById('emailId').value = u.email;
             if (p.genero) document.getElementById('sexo').value = p.genero.toLowerCase();
+
+            // Se paciente ja tem foto no perfil (tirada no quiz ou upload anterior),
+            // reaproveitar automaticamente — nao precisa tirar outra.
+            if (u.fotoUrl && !fotoBlob) {
+                try {
+                    const resp = await fetch(u.fotoUrl, { cache: 'no-store' });
+                    if (resp.ok) {
+                        const blob = await resp.blob();
+                        fotoBlob = blob;
+                        const circle = document.getElementById('photoCircle');
+                        if (circle) {
+                            circle.innerHTML = '<img src="' + u.fotoUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+                            circle.style.border = '2px solid #00E5A0';
+                        }
+                        const lbl = document.getElementById('photoLabel');
+                        if (lbl) lbl.textContent = 'Foto do seu perfil';
+                        const sub = document.getElementById('photoSub');
+                        if (sub) sub.textContent = 'Toque para trocar, se quiser';
+                    }
+                } catch (err) {
+                    console.warn('Nao foi possivel carregar foto do perfil:', err && err.message);
+                }
+            }
         }
 
         // Pre-fill medications
