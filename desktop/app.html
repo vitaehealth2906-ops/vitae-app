@@ -802,22 +802,31 @@
     <!-- VIEW: PACIENTES -->
     <div id="view-pacientes" class="view" style="display:none">
       <div id="pt-listView">
-        <div class="ph">
-          <div><h1>Pacientes</h1><p id="pt-ptCount">Carregando...</p></div>
+        <div class="pct-header">
+          <div>
+            <h1 class="pct-title">Seus <em>pacientes</em></h1>
+            <p class="pct-sub" id="pt-ptCount">Carregando...</p>
+          </div>
           <button class="btn btn-s" onclick="ptExportCSV()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button>
         </div>
-        <div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="pt-ptSearch" placeholder="Buscar paciente..." oninput="ptFilterPatients()" style="width:100%;padding:11px 14px 11px 40px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;transition:border-color .15s,box-shadow .15s" onfocus="this.style.borderColor='rgba(0,229,160,.45)';this.style.boxShadow='0 0 0 3px rgba(0,229,160,.07)'" onblur="this.style.borderColor='';this.style.boxShadow=''"></div>
-        <div class="filters" id="pt-ptFilters">
-          <div class="filter on" data-status="all" onclick="ptSetFilter(this)">Todos</div>
-          <div class="filter" data-status="with-pending" onclick="ptSetFilter(this)">Com PC pendente</div>
-          <div class="filter" data-status="attention" onclick="ptSetFilter(this)">Atencao</div>
-          <div class="filter" data-status="with-pc" onclick="ptSetFilter(this)">Ja respondeu</div>
-          <div class="filter" data-status="no-vinculo" onclick="ptSetFilter(this)">Sem vinculo</div>
+        <div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="pt-ptSearch" placeholder="Buscar paciente..." oninput="ptFilterPatients()" style="width:100%;padding:11px 14px 11px 40px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;transition:all .15s;box-shadow:0 1px 3px rgba(13,15,20,.04)" onfocus="this.style.borderColor='rgba(0,229,160,.45)';this.style.boxShadow='0 0 0 3px rgba(0,229,160,.12)'" onblur="this.style.borderColor='';this.style.boxShadow='0 1px 3px rgba(13,15,20,.04)'"></div>
+        <div class="pct-pills" id="pt-ptFilters">
+          <button class="pct-pill on" data-status="all" onclick="ptSetFilter(this)">Todos <span class="pct-ct" id="pt-ctAll">0</span></button>
+          <button class="pct-pill" data-status="with-pending" onclick="ptSetFilter(this)">Com PC pendente <span class="pct-ct" id="pt-ctPend">0</span></button>
+          <button class="pct-pill" data-status="attention" onclick="ptSetFilter(this)">Atencao <span class="pct-ct" id="pt-ctAtt">0</span></button>
+          <button class="pct-pill" data-status="with-pc" onclick="ptSetFilter(this)">Ja respondeu <span class="pct-ct" id="pt-ctResp">0</span></button>
+          <button class="pct-pill" data-status="no-vinculo" onclick="ptSetFilter(this)">Sem vinculo <span class="pct-ct" id="pt-ctSv">0</span></button>
         </div>
-        <div class="tw">
-          <div class="th2" style="grid-template-columns:2fr 1.4fr 1fr 80px"><span>Paciente</span><span>Status</span><span>Ultima atividade</span><span></span></div>
+        <div class="pct-card">
+          <div class="pct-thead">
+            <div>Paciente</div>
+            <div>Status / Alertas</div>
+            <div>Ultima atividade</div>
+            <div>Pre-consultas</div>
+            <div></div>
+          </div>
           <div id="pt-ptTableBody"></div>
-          <div class="no-result" id="pt-ptEmpty" style="display:none">Nenhum paciente encontrado.</div>
+          <div class="no-result" id="pt-ptEmpty" style="display:none;padding:48px 20px">Nenhum paciente encontrado.</div>
         </div>
       </div>
 
@@ -876,36 +885,68 @@
 
     <!-- VIEW: CRM -->
     <div id="view-crm" class="view" style="display:none">
-      <div class="ph">
-        <div><h1>CRM & Retornos</h1><p>Acompanhe seus pacientes e aumente a retencao</p></div>
-        <button class="btn btn-p" onclick="crmNotifyAllOverdue()" style="height:40px;padding:0 18px"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Notificar atrasados</button>
+      <div class="crmn-header">
+        <div>
+          <h1 class="crmn-title">CRM & <em>Retornos</em></h1>
+          <p class="crmn-sub">Mantenha seus pacientes ativos com lembretes inteligentes.</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-soon" title="Disponivel em breve: crie regras automaticas de retorno">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nova régua
+            <span class="soon">Em breve</span>
+          </button>
+          <button class="btn btn-p" onclick="crmNotifyAllOverdue()" style="height:40px;padding:0 18px">
+            <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            Notificar atrasados
+          </button>
+        </div>
       </div>
 
-      <div class="crmg">
-        <div>
-          <div class="filters" id="crm-crmFilters">
-            <div class="filter on" data-crm="all" onclick="crmSetFilter(this)">Todos</div>
-            <div class="filter" data-crm="overdue" onclick="crmSetFilter(this)">Atrasados</div>
-            <div class="filter" data-crm="recent" onclick="crmSetFilter(this)">Ultimos 30 dias</div>
-            <div class="filter" data-crm="pending" onclick="crmSetFilter(this)">Pendentes</div>
-            <div class="filter" data-crm="responded" onclick="crmSetFilter(this)">Respondidas</div>
+      <div class="crmn-pills" id="crm-crmFilters">
+        <button class="crmn-pill on" data-crm="all" onclick="crmSetFilter(this)">Todos <span class="crmn-ct" id="crm-ctAll">0</span></button>
+        <button class="crmn-pill" data-crm="overdue" onclick="crmSetFilter(this)">Atrasados <span class="crmn-ct" id="crm-ctOver">0</span></button>
+        <button class="crmn-pill" data-crm="recent" onclick="crmSetFilter(this)">Ultimos 30 dias <span class="crmn-ct" id="crm-ctRec">0</span></button>
+        <button class="crmn-pill" data-crm="pending" onclick="crmSetFilter(this)">Pendentes <span class="crmn-ct" id="crm-ctPend">0</span></button>
+        <button class="crmn-pill" data-crm="responded" onclick="crmSetFilter(this)">Respondidas <span class="crmn-ct" id="crm-ctResp">0</span></button>
+      </div>
+
+      <div class="crmn-grid">
+        <div class="crmn-card">
+          <div class="crmn-chd">
+            <div class="crmn-ctt">Pacientes para retorno</div>
+            <div class="crmn-cmeta" id="crm-crmListMeta">0 registros</div>
           </div>
-          <div class="tw">
-            <div class="th2" style="grid-template-columns:2fr 1fr 1.2fr 90px 110px"><span>Paciente</span><span>Status</span><span>Data</span><span>Dias</span><span></span></div>
-            <div id="crm-crmBody"></div>
-            <div class="no-result" id="crm-crmEmpty" style="display:none">Nenhum registro encontrado.</div>
-          </div>
+          <div id="crm-crmBody"></div>
+          <div class="no-result" id="crm-crmEmpty" style="display:none;padding:48px 20px">Nenhum registro encontrado.</div>
         </div>
+
         <div>
-          <div class="cms"><div class="cmsn" style="color:#0D0F14" id="crm-crmTotal">--</div><div class="cmsl">Total de pre-consultas</div></div>
-          <div class="cms"><div class="cmsn" style="color:#0D0F14" id="crm-crmRespondidas">--</div><div class="cmsl">Respondidas</div></div>
-          <div class="cms"><div class="cmsn" style="color:#0D0F14" id="crm-crmPendentes">--</div><div class="cmsl">Aguardando resposta</div></div>
-          <div class="cms"><div class="cmsn" style="color:#0D0F14" id="crm-crmOverdue">--</div><div class="cmsl">Sem resposta ha mais de 7 dias</div></div>
-          <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-top:8px">
-            <div class="slabel" style="margin-bottom:11px">Como funciona</div>
-            <div class="tip"><div class="tipn">1</div><p>Crie uma pre-consulta e envie o link via WhatsApp.</p></div>
-            <div class="tip"><div class="tipn">2</div><p>Acompanhe aqui quem respondeu e quem esta pendente.</p></div>
-            <div class="tip"><div class="tipn">3</div><p>Reenvie o link para pacientes que nao responderam.</p></div>
+          <div class="crmn-stat"><div class="crmn-stat-l">Total pre-consultas</div><div class="crmn-stat-v" id="crm-crmTotal">--</div><div class="crmn-stat-sub">nos ultimos 6 meses</div></div>
+          <div class="crmn-stat"><div class="crmn-stat-l">Respondidas</div><div class="crmn-stat-v ok" id="crm-crmRespondidas">--</div><div class="crmn-stat-sub" id="crm-crmRespondidasSub">taxa de resposta</div></div>
+          <div class="crmn-stat"><div class="crmn-stat-l">Pendentes</div><div class="crmn-stat-v warn" id="crm-crmPendentes">--</div><div class="crmn-stat-sub">aguardando resposta</div></div>
+          <div class="crmn-stat"><div class="crmn-stat-l">Sem resposta &gt;7d</div><div class="crmn-stat-v bad" id="crm-crmOverdue">--</div><div class="crmn-stat-sub">precisam de lembrete</div></div>
+
+          <div class="crmn-meta" id="crm-metaCard">
+            <div class="crmn-meta-hd">
+              <div class="crmn-meta-l">
+                <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                Meta do mes
+              </div>
+              <button class="crmn-meta-edit" onclick="crmEditMeta()">Editar</button>
+            </div>
+            <div class="crmn-meta-v"><span id="crm-metaAtual">0</span><span class="goal">de <span id="crm-metaTotal">0</span> respondidas</span></div>
+            <div class="crmn-meta-bar"><div class="crmn-meta-fill" id="crm-metaFill" style="width:0%"></div></div>
+            <div class="crmn-meta-sub" id="crm-metaSub">Voce define a meta. Ajuste quando quiser.</div>
+          </div>
+
+          <div class="crmn-tips">
+            <div class="crmn-tips-l">Como funciona</div>
+            <ol>
+              <li>Crie uma pre-consulta e envie o <b>link via WhatsApp</b>.</li>
+              <li>Acompanhe aqui quem <b>respondeu e quem esta pendente</b>.</li>
+              <li><b>Reenvie o link</b> para quem nao respondeu em 7 dias.</li>
+            </ol>
           </div>
         </div>
       </div>
@@ -974,113 +1015,139 @@
 
     <!-- VIEW: PERFIL -->
     <div id="view-perfil" class="view" style="display:none">
-      <div class="ph"><div><h1>Meu Perfil</h1><p>Gerencie seus dados e configuracoes</p></div></div>
-      <div class="profile-layout">
+      <div class="pfn-header">
         <div>
-          <div class="profile-card">
-            <div class="prof-av" id="pf-profAvatar">--</div>
-            <div class="prof-name" id="pf-profName">Carregando...</div>
-            <div class="prof-crm" id="pf-profCrm">--</div>
-            <div class="prof-stats">
-              <div class="ps"><div class="psn" style="color:#fff" id="pf-pfStat1">--</div><div class="psl">Pre-consultas</div></div>
-              <div class="ps"><div class="psn" style="color:#fff" id="pf-pfStat2">--</div><div class="psl">Respondidas</div></div>
-              <div class="ps"><div class="psn" style="color:#fff" id="pf-pfStat3">--</div><div class="psl">Pendentes</div></div>
-              <div class="ps"><div class="psn" style="color:#fff" id="pf-pfStat4">--</div><div class="psl">Pacientes</div></div>
+          <h1 class="pfn-title">Meu <em>perfil</em></h1>
+          <p class="pfn-sub">Seus dados profissionais e preferencias de notificacao.</p>
+        </div>
+      </div>
+      <div class="pfn-grid">
+        <div>
+          <div class="pfn-prof">
+            <div class="pfn-prof-head">
+              <div class="pfn-prof-av" id="pf-profAvatar">--</div>
+              <div class="pfn-prof-name" id="pf-profName">Carregando...</div>
+              <div class="pfn-prof-meta" id="pf-profCrm">--</div>
+            </div>
+            <div class="pfn-prof-stats">
+              <div class="pfn-prof-stat"><div class="pfn-prof-stat-l">Pre-consultas</div><div class="pfn-prof-stat-v" id="pf-pfStat1">--</div></div>
+              <div class="pfn-prof-stat"><div class="pfn-prof-stat-l">Respondidas</div><div class="pfn-prof-stat-v" id="pf-pfStat2">--</div></div>
+              <div class="pfn-prof-stat"><div class="pfn-prof-stat-l">Pendentes</div><div class="pfn-prof-stat-v" id="pf-pfStat3">--</div></div>
+              <div class="pfn-prof-stat"><div class="pfn-prof-stat-l">Pacientes</div><div class="pfn-prof-stat-v" id="pf-pfStat4">--</div></div>
             </div>
           </div>
 
-          <div class="clinic-map-card" id="pf-clinicMap">
-            <div class="clinic-map-inner" id="pf-clinicMapInner"></div>
-            <div class="clinic-map-footer" id="pf-clinicMapFooter" style="display:none">
-              <div class="clinic-map-name" id="pf-clinicName">--</div>
-              <div class="clinic-map-addr" id="pf-clinicAddr">--</div>
+          <div class="pfn-map-card" id="pf-clinicMap">
+            <div class="pfn-map-inner" id="pf-clinicMapInner"></div>
+            <div class="pfn-map-foot" id="pf-clinicMapFooter" style="display:none">
+              <div class="pfn-map-l">Clinica</div>
+              <div class="pfn-map-title" id="pf-clinicName">--</div>
+              <div class="pfn-map-sub" id="pf-clinicAddr">--</div>
             </div>
           </div>
         </div>
         <div>
-          <div class="setting-group">
-            <div class="sg-title">Dados Profissionais</div>
-            <div class="sg-row clickable" onclick="pfOpenEdit('crm','CRM','Numero do CRM','crm')"><div style="flex:1"><div class="sg-label">CRM / UF</div><div class="sg-sub" id="pf-fieldCrm">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
-            <div class="sg-row clickable" onclick="pfOpenEdit('especialidade','Especialidade','Sua especialidade medica','especialidade')"><div style="flex:1"><div class="sg-label">Especialidade</div><div class="sg-sub" id="pf-fieldEspecialidade">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
-            <div class="sg-row clickable" onclick="pfOpenEdit('clinica','Nome da clinica','Nome da sua clinica ou consultorio','clinica')"><div style="flex:1"><div class="sg-label">Nome da clinica</div><div class="sg-sub" id="pf-fieldClinica">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
-            <div class="sg-row clickable" onclick="pfOpenEdit('enderecoClinica','Endereco','Endereco da clinica','enderecoClinica')"><div style="flex:1"><div class="sg-label">Endereco</div><div class="sg-sub" id="pf-fieldEndereco">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
-            <div class="sg-row clickable" onclick="pfOpenEdit('telefoneClinica','Telefone da clinica','Telefone de contato','telefoneClinica')"><div style="flex:1"><div class="sg-label">Telefone da clinica</div><div class="sg-sub" id="pf-fieldTelefone">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
-            <div class="sg-row clickable" onclick="pfOpenEdit('valorConsulta','Valor da consulta','Valor medio em reais (ex: 250)','valorConsulta')"><div style="flex:1"><div class="sg-label">Valor medio da consulta</div><div class="sg-sub" id="pf-fieldValor">--</div></div><svg class="sg-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+          <div class="pfn-sg">
+            <div class="pfn-sg-hd">
+              <div class="pfn-sg-title">Dados profissionais</div>
+              <div class="pfn-sg-meta">Clique pra editar</div>
+            </div>
+            <div class="pfn-sg-row" onclick="pfOpenEdit('crm','CRM','Numero do CRM','crm')">
+              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">CRM / UF</div><div class="pfn-sg-row-val" id="pf-fieldCrm">--</div></div>
+              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
+            <div class="pfn-sg-row" onclick="pfOpenEdit('especialidade','Especialidade','Sua especialidade medica','especialidade')">
+              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Especialidade</div><div class="pfn-sg-row-val" id="pf-fieldEspecialidade">--</div></div>
+              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
+            <div class="pfn-sg-row" onclick="pfOpenEdit('clinica','Nome da clinica','Nome da sua clinica ou consultorio','clinica')">
+              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Nome da clinica</div><div class="pfn-sg-row-val" id="pf-fieldClinica">--</div></div>
+              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
+            <div class="pfn-sg-row" onclick="pfOpenEdit('enderecoClinica','Endereco','Endereco da clinica','enderecoClinica')">
+              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Endereco</div><div class="pfn-sg-row-val" id="pf-fieldEndereco">--</div></div>
+              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
+            <div class="pfn-sg-row" onclick="pfOpenEdit('telefoneClinica','Telefone da clinica','Telefone de contato','telefoneClinica')">
+              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Telefone da clinica</div><div class="pfn-sg-row-val" id="pf-fieldTelefone">--</div></div>
+              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
+            <div class="pfn-sg-row" onclick="pfOpenEdit('valorConsulta','Valor da consulta','Valor medio em reais (ex: 250)','valorConsulta')">
+              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Valor medio da consulta</div><div class="pfn-sg-row-val" id="pf-fieldValor">--</div></div>
+              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
           </div>
 
-          <div class="setting-group">
-            <div class="sg-title">Notificacoes</div>
-            <div class="notif-banner hide" id="pf-notifWarn">
+          <div class="pfn-sg">
+            <div class="pfn-sg-hd">
+              <div class="pfn-sg-title">Notificacoes</div>
+              <div class="pfn-sg-meta">Escolha o que quer receber</div>
+            </div>
+            <div class="pfn-notif-grid">
+              <div class="pfn-notif-card urg">
+                <div class="pfn-notif-hd">
+                  <div class="pfn-notif-title"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Urgentes</div>
+                  <div class="pfn-toggle on" id="pf-togUrg" onclick="pfToggleNotifSwitch(event, 'urgente')"></div>
+                </div>
+                <div class="pfn-notif-desc">Aviso quando paciente descreve sintoma grave (dor torax, falta de ar).</div>
+                <div class="pfn-notif-foot"><span class="pfn-notif-when">Imediato · push + SMS</span></div>
+              </div>
+              <div class="pfn-notif-card ret">
+                <div class="pfn-notif-hd">
+                  <div class="pfn-notif-title"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Retorno</div>
+                  <div class="pfn-toggle on" id="pf-togRet" onclick="pfToggleNotifSwitch(event, 'retorno')"></div>
+                </div>
+                <div class="pfn-notif-desc">1 dia antes do retorno sugerido do paciente, aviso por push.</div>
+                <div class="pfn-notif-foot"><span class="pfn-notif-when">Diario · 9h</span></div>
+              </div>
+              <div class="pfn-notif-card res">
+                <div class="pfn-notif-hd">
+                  <div class="pfn-notif-title"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>Resumo diario</div>
+                  <div class="pfn-toggle" id="pf-togRes" onclick="pfToggleNotifSwitch(event, 'resumo')"></div>
+                </div>
+                <div class="pfn-notif-desc">E-mail com tudo que aconteceu no seu dia (atendimentos, respostas).</div>
+                <div class="pfn-notif-foot"><span class="pfn-notif-when">19h · e-mail</span></div>
+              </div>
+            </div>
+            <div class="notif-banner hide" id="pf-notifWarn" style="margin:0 16px 16px">
               <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               <span>Alertas urgentes desativados. Casos criticos podem nao chegar ate voce.</span>
             </div>
+          </div>
 
-            <div class="notif-item" id="pf-notifUrg">
-              <div class="sg-row notif-head" onclick="pfToggleNotifOpen('pf-notifUrg', event)">
-                <div style="flex:1"><div class="sg-label">Alertas urgentes</div><div class="sg-sub">Avisamos quando um paciente descreve algo grave</div></div>
-                <svg class="notif-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-                <div class="toggle on" id="pf-togUrg" onclick="pfToggleNotifSwitch(event, 'urgente')"></div>
-              </div>
-              <div class="notif-body"><div class="notif-inner">
-                <div class="notif-preview urg">
-                  <div class="notif-preview-head"><div class="notif-preview-dot"></div><span class="notif-preview-tag">Urgente</span><span class="notif-preview-time">Ha 2 min</span></div>
-                  <div class="notif-preview-name">Maria S., 45a</div>
-                  <div class="notif-preview-body">"Dor no peito forte, irradia pro braco esquerdo ha 2 horas"</div>
-                </div>
-                <div class="notif-rules">
-                  <div class="notif-rule"><div class="notif-rule-label ok">Voce recebe quando</div><ul><li>Paciente menciona sintomas criticos no relato</li><li>Identificamos 3 ou mais sinais de urgencia</li><li>Consulta marcada para as proximas 24h</li></ul></div>
-                  <div class="notif-rule"><div class="notif-rule-label off">Voce NAO recebe quando</div><ul><li>O caso ja foi marcado como resolvido</li><li>Paciente em acompanhamento ativo da mesma queixa</li></ul></div>
-                </div>
-                <div class="notif-foot"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Chega por push no celular e destaca no topo do dashboard.</span></div>
-              </div></div>
+          <div class="pfn-sg soon">
+            <span class="pfn-soon-badge">Em breve</span>
+            <div class="pfn-sg-hd">
+              <div class="pfn-sg-title">Seguranca</div>
+              <div class="pfn-sg-meta">Protecao adicional da sua conta</div>
             </div>
-
-            <div class="notif-item" id="pf-notifRet">
-              <div class="sg-row notif-head" onclick="pfToggleNotifOpen('pf-notifRet', event)">
-                <div style="flex:1"><div class="sg-label">Lembretes de retorno</div><div class="sg-sub">Avisamos 1 dia antes do retorno sugerido</div></div>
-                <svg class="notif-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-                <div class="toggle on" id="pf-togRet" onclick="pfToggleNotifSwitch(event, 'retorno')"></div>
-              </div>
-              <div class="notif-body"><div class="notif-inner">
-                <div class="notif-preview ret">
-                  <div class="notif-preview-head"><div class="notif-preview-dot"></div><span class="notif-preview-tag">Retorno amanha</span><span class="notif-preview-time">Hoje, 18:00</span></div>
-                  <div class="notif-preview-name">Joao P., 14 dias apos consulta</div>
-                  <div class="notif-preview-body">Conduta: reavaliar lesao e ajustar dose se necessario</div>
-                </div>
-                <div class="notif-rules">
-                  <div class="notif-rule"><div class="notif-rule-label ok">Voce recebe quando</div><ul><li>A conduta previu retorno em data definida</li><li>Falta 1 dia util para a data sugerida</li><li>Dentro do horario comercial (9h-18h)</li></ul></div>
-                  <div class="notif-rule"><div class="notif-rule-label off">Voce NAO recebe quando</div><ul><li>Marcou o paciente como "ja retornou"</li><li>Retorno foi remarcado pelo app</li></ul></div>
-                </div>
-                <div class="notif-foot"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Chega por push no celular e como card no dashboard do dia.</span></div>
-              </div></div>
+            <div class="pfn-sg-row">
+              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Autenticacao em 2 fatores</div><div class="pfn-sg-row-val">Recomendado — codigo por SMS ao fazer login</div></div>
+              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
             </div>
-
-            <div class="notif-item" id="pf-notifRes">
-              <div class="sg-row notif-head" onclick="pfToggleNotifOpen('pf-notifRes', event)">
-                <div style="flex:1"><div class="sg-label">Resumo diario</div><div class="sg-sub">E-mail com tudo que aconteceu no dia</div></div>
-                <svg class="notif-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-                <div class="toggle" id="pf-togRes" onclick="pfToggleNotifSwitch(event, 'resumo')"></div>
-              </div>
-              <div class="notif-body"><div class="notif-inner">
-                <div class="notif-preview res">
-                  <div class="notif-preview-head"><div class="notif-preview-dot"></div><span class="notif-preview-tag">Seu dia no vita id</span><span class="notif-preview-time">19:00</span></div>
-                  <div class="notif-preview-name">17 de abril &middot; 8 pacientes atendidos</div>
-                  <div class="notif-preview-body">2 alertas urgentes resolvidos &middot; 3 retornos marcados para amanha</div>
-                </div>
-                <div class="notif-rules">
-                  <div class="notif-rule"><div class="notif-rule-label ok">Voce recebe quando</div><ul><li>Atendeu pelo menos 1 paciente no dia</li><li>Todo dia as 19h no seu fuso horario</li></ul></div>
-                  <div class="notif-rule"><div class="notif-rule-label off">Voce NAO recebe quando</div><ul><li>Dia sem atendimentos</li><li>Desativou esta opcao</li></ul></div>
-                </div>
-                <div class="notif-foot"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg><span>Chega no e-mail cadastrado na sua conta.</span></div>
-              </div></div>
+            <div class="pfn-sg-row">
+              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Sessoes ativas</div><div class="pfn-sg-row-val">1 dispositivo — este navegador</div></div>
+              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
+            <div class="pfn-sg-row">
+              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Sair de todas as sessoes</div><div class="pfn-sg-row-val">Encerra acesso em qualquer outro dispositivo</div></div>
+              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
             </div>
           </div>
 
-          <div class="setting-group">
-            <div class="sg-title">Conta</div>
-            <div class="sg-row"><div style="flex:1"><div class="sg-label">E-mail</div><div class="sg-sub" id="pf-fieldEmail">--</div></div></div>
-            <div class="sg-row"><div style="flex:1"><div class="sg-label">Celular</div><div class="sg-sub" id="pf-fieldCelular">--</div></div></div>
-            <div class="sg-row"><div><button class="btn btn-danger" onclick="pfOpenLogout()" style="height:30px;font-size:12px"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sair da conta</button></div></div>
+          <div class="pfn-sg">
+            <div class="pfn-sg-hd">
+              <div class="pfn-sg-title">Conta</div>
+            </div>
+            <div class="pfn-sg-row">
+              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">E-mail</div><div class="pfn-sg-row-val" id="pf-fieldEmail">--</div></div>
+            </div>
+            <div class="pfn-sg-row">
+              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Celular</div><div class="pfn-sg-row-val" id="pf-fieldCelular">--</div></div>
+            </div>
+            <div class="pfn-logout-row">
+              <button class="btn-danger-s" onclick="pfOpenLogout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sair da conta</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2765,7 +2832,27 @@ function renderPacientes(param){
 
 function ptRenderPatients(){
   var search = (document.getElementById('pt-ptSearch').value || '').toLowerCase();
-  var list = (state.allPacientes || []).filter(function(p){
+  var all = state.allPacientes || [];
+
+  // Contadores nas pills
+  var totAll = all.length;
+  var totPend = 0, totAtt = 0, totResp = 0, totSv = 0;
+  all.forEach(function(p){
+    if((p.preConsultasPendentes || 0) > 0) totPend++;
+    if((p.alergiasGraves || 0) > 0) totAtt++;
+    if((p.preConsultasCount || 0) > 0) totResp++;
+    if(!p.pacienteId) totSv++;
+  });
+  var ctAll = document.getElementById('pt-ctAll');
+  if(ctAll){
+    ctAll.textContent = totAll;
+    document.getElementById('pt-ctPend').textContent = totPend;
+    document.getElementById('pt-ctAtt').textContent = totAtt;
+    document.getElementById('pt-ctResp').textContent = totResp;
+    document.getElementById('pt-ctSv').textContent = totSv;
+  }
+
+  var list = all.filter(function(p){
     var name = (p.pacienteNome || p.nome || '').toLowerCase();
     var matchSearch = !search || name.includes(search);
     var hasPC = (p.preConsultasCount || 0) > 0;
@@ -2780,18 +2867,20 @@ function ptRenderPatients(){
   });
 
   var tbody = document.getElementById('pt-ptTableBody');
+  var countEl = document.getElementById('pt-ptCount');
   if(!list.length){
     tbody.innerHTML = '';
     document.getElementById('pt-ptEmpty').style.display = 'block';
-    document.getElementById('pt-ptCount').textContent = '0 pacientes';
+    if(countEl) countEl.textContent = totAll + ' paciente' + (totAll !== 1 ? 's' : '') + ' · filtro sem resultado';
     return;
   }
   document.getElementById('pt-ptEmpty').style.display = 'none';
-  document.getElementById('pt-ptCount').textContent = list.length + ' paciente' + (list.length !== 1 ? 's' : '');
+  if(countEl) countEl.textContent = totAll + ' paciente' + (totAll !== 1 ? 's' : '');
 
   tbody.innerHTML = list.map(function(p){
     var name = p.pacienteNome || p.nome || 'Paciente';
     var tel = p.pacienteTel || '';
+    var telFmt = tel ? (typeof pcFmtPhoneShort === 'function' ? pcFmtPhoneShort(tel) : tel) : '—';
     var pcCount = p.preConsultasCount || 0;
     var pcRespondidas = p.preConsultasRespondidas || 0;
     var pcPendentes = p.preConsultasPendentes || 0;
@@ -2801,33 +2890,47 @@ function ptRenderPatients(){
     var alergiasGraves = p.alergiasGraves || 0;
     var medsAtivos = p.medicamentosAtivos || 0;
 
+    // Avatar com foto ou iniciais
+    var fotoUrl = pickFoto(p);
+    var avHtml = fotoUrl
+      ? '<div class="pct-av"><img src="' + fotoUrl + '" alt="" onerror="this.parentNode.innerHTML=\'' + sa(initials) + '\'"></div>'
+      : '<div class="pct-av">' + sa(initials) + '</div>';
+
+    // Badges
     var badges = [];
-    if(!temVinculo) badges.push('<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(156,163,175,.12);color:#6B7280">Sem vinculo</span>');
-    if(alergiasGraves > 0) badges.push('<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(239,68,68,.10);color:#EF4444">' + alergiasGraves + ' alergia' + (alergiasGraves > 1 ? 's' : '') + ' grave' + (alergiasGraves > 1 ? 's' : '') + '</span>');
-    if(pcPendentes > 0) badges.push('<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(245,158,11,.10);color:#F59E0B">' + pcPendentes + ' pendente' + (pcPendentes > 1 ? 's' : '') + '</span>');
-    if(medsAtivos > 0 && temVinculo) badges.push('<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(0,196,122,.10);color:#00C47A">' + medsAtivos + ' med' + (medsAtivos > 1 ? 's' : '') + '</span>');
+    if(!temVinculo) badges.push('<span class="pct-badge gray"><span class="dot"></span>Sem vinculo</span>');
+    if(alergiasGraves > 0) badges.push('<span class="pct-badge bad"><span class="dot"></span>' + alergiasGraves + ' alergia' + (alergiasGraves > 1 ? 's' : '') + ' grave' + (alergiasGraves > 1 ? 's' : '') + '</span>');
+    if(pcPendentes > 0) badges.push('<span class="pct-badge warn"><span class="dot"></span>' + pcPendentes + ' pendente' + (pcPendentes > 1 ? 's' : '') + '</span>');
+    if(medsAtivos > 0 && temVinculo) badges.push('<span class="pct-badge ok"><span class="dot"></span>' + medsAtivos + ' med' + (medsAtivos > 1 ? 's' : '') + '</span>');
+    if(!badges.length) badges.push('<span style="font-size:11px;color:var(--t4)">—</span>');
 
     var clickHandler = temVinculo
       ? 'onclick="ptOpenPatient(\'' + p.pacienteId + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')"'
       : 'onclick="ptShowAnonimoMsg(\'' + sa(name) + '\')"';
 
-    var delBtn = '<div class="pc-act-btn del" onclick="event.stopPropagation();ptAskDel(\'' + sa(name) + '\',\'' + sa(tel) + '\',' + (temVinculo ? 'true' : 'false') + ')" title="Apagar paciente"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></div>';
+    var dateStr = lastDate ? ptFmtDateLong(lastDate) : '—';
+    var verBtnLabel = temVinculo ? 'Ver' : 'Info';
+    var verBtnClick = temVinculo
+      ? 'ptOpenPatient(\'' + p.pacienteId + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')'
+      : 'ptShowAnonimoMsg(\'' + sa(name) + '\')';
 
-    return '<div class="tr" style="grid-template-columns:2fr 1.4fr 1fr 130px;cursor:pointer" ' + clickHandler + '>' +
-      '<div style="display:flex;align-items:center;gap:10px;min-width:0">' +
-        renderAvatar(p, initials, 32) +
-        '<div style="min-width:0;flex:1"><div class="tc" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s(name) + '</div><div class="ts">' + s(tel) + '</div></div>' +
-      '</div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">' + (badges.join('') || '<span class="ts" style="color:var(--t4)">--</span>') + '</div>' +
-      '<span class="tc" style="color:var(--t3)">' + (lastDate ? ptFmtDateLong(lastDate) : '--') + '<div class="ts">' + pcCount + ' PC' + (pcCount !== 1 ? 's' : '') + '</div></span>' +
-      '<div style="display:flex;gap:6px;align-items:center;justify-content:flex-end">' +
-        (temVinculo
-          ? '<button class="sbtn sbtn-g" onclick="event.stopPropagation();ptOpenPatient(\'' + p.pacienteId + '\',\'' + sa(name) + '\',\'' + sa(tel) + '\')">Ver</button>'
-          : '<button class="sbtn sbtn-d" onclick="event.stopPropagation();ptShowAnonimoMsg(\'' + sa(name) + '\')" title="Sem vinculo formal">Info</button>') +
-        delBtn +
+    return '<div class="pct-trow" ' + clickHandler + '>' +
+      '<div class="pct-pat">' + avHtml + '<div style="min-width:0;flex:1"><div class="pct-name">' + s(name) + '</div><div class="pct-sub-ln">' + s(telFmt) + '</div></div></div>' +
+      '<div class="pct-badges">' + badges.join('') + '</div>' +
+      '<div class="pct-date">' + dateStr + '</div>' +
+      '<div class="pct-date">' + pcCount + ' PC' + (pcCount !== 1 ? 's' : '') + '<div class="when">' + pcRespondidas + ' respondidas</div></div>' +
+      '<div class="pct-act">' +
+        '<button class="pct-btn-lg" onclick="event.stopPropagation();' + verBtnClick + '">' + verBtnLabel + '</button>' +
+        '<button class="pct-btn del" onclick="event.stopPropagation();ptAskDel(\'' + sa(name) + '\',\'' + sa(tel) + '\',' + (temVinculo ? 'true' : 'false') + ')" title="Apagar paciente"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>' +
       '</div>' +
     '</div>';
   }).join('');
+}
+
+// Adapta ptSetFilter pra atualizar visual .pct-pill
+function ptSetFilterPill(el){
+  document.querySelectorAll('#pt-ptFilters .pct-pill').forEach(function(p){ p.classList.remove('on'); });
+  if(el) el.classList.add('on');
 }
 
 function ptShowAnonimoMsg(nome){
@@ -2993,7 +3096,7 @@ function ptToggleCard(titleEl){
   body.style.display = body.style.display === 'none' ? 'block' : 'none';
 }
 function ptSetFilter(el){
-  document.querySelectorAll('#pt-ptFilters .filter').forEach(function(f){ f.classList.remove('on'); });
+  document.querySelectorAll('#pt-ptFilters .pct-pill, #pt-ptFilters .filter').forEach(function(f){ f.classList.remove('on'); });
   el.classList.add('on');
   ptState.filter = el.dataset.status;
   ptRenderPatients();
@@ -3043,15 +3146,70 @@ function crmUpdateStats(){
   var respondidas = pcs.filter(function(pc){ return pc.status === 'RESPONDIDA'; }).length;
   var pendentes = pcs.filter(function(pc){ return pc.status === 'PENDENTE' || pc.status === 'ABERTO'; }).length;
   var now = new Date();
+  var thirtyAgo = new Date(now); thirtyAgo.setDate(thirtyAgo.getDate() - 30);
   var overdue = pcs.filter(function(pc){
     if(pc.status !== 'PENDENTE' && pc.status !== 'ABERTO') return false;
     var created = new Date(pc.criadoEm);
     return (now - created) / 86400000 > 7;
   }).length;
+  var recent = pcs.filter(function(pc){ var d = new Date(pc.respondidaEm || pc.criadoEm); return d >= thirtyAgo; }).length;
+
   document.getElementById('crm-crmTotal').textContent = total;
   document.getElementById('crm-crmRespondidas').textContent = respondidas;
   document.getElementById('crm-crmPendentes').textContent = pendentes;
   document.getElementById('crm-crmOverdue').textContent = overdue;
+
+  // Stat-sub dinamico: taxa de resposta
+  var taxaResp = total > 0 ? Math.round((respondidas / total) * 100) : 0;
+  var respSub = document.getElementById('crm-crmRespondidasSub');
+  if(respSub) respSub.textContent = taxaResp + '% de taxa de resposta';
+
+  // Contadores das pills
+  var ctAll = document.getElementById('crm-ctAll');
+  if(ctAll){
+    ctAll.textContent = total;
+    document.getElementById('crm-ctOver').textContent = overdue;
+    document.getElementById('crm-ctRec').textContent = recent;
+    document.getElementById('crm-ctPend').textContent = pendentes;
+    document.getElementById('crm-ctResp').textContent = respondidas;
+  }
+
+  // Meta do mes
+  crmUpdateMeta(respondidas);
+}
+
+// Meta do mes — medico define o numero, salva em localStorage
+var CRM_META_KEY = 'vitae_crm_meta_mes';
+function crmGetMeta(){
+  try{ var v = parseInt(localStorage.getItem(CRM_META_KEY), 10); return v > 0 ? v : 25; }catch(e){ return 25; }
+}
+function crmSetMeta(v){
+  try{ localStorage.setItem(CRM_META_KEY, String(v)); }catch(e){}
+}
+function crmUpdateMeta(respondidasTotal){
+  var meta = crmGetMeta();
+  var atual = respondidasTotal || 0;
+  var pct = Math.min(100, Math.round((atual / meta) * 100));
+  var atualEl = document.getElementById('crm-metaAtual');
+  var totalEl = document.getElementById('crm-metaTotal');
+  var fillEl = document.getElementById('crm-metaFill');
+  var subEl = document.getElementById('crm-metaSub');
+  if(atualEl) atualEl.textContent = atual;
+  if(totalEl) totalEl.textContent = meta;
+  if(fillEl) fillEl.style.width = pct + '%';
+  if(subEl) subEl.textContent = pct >= 100 ? 'Meta batida! Voce define o valor, ajuste quando quiser.' : 'Voce define a meta. Ajuste quando quiser.';
+}
+function crmEditMeta(){
+  var atual = crmGetMeta();
+  var nova = prompt('Qual a sua meta de pre-consultas respondidas este mes?', atual);
+  if(nova === null) return;
+  var n = parseInt(nova, 10);
+  if(!n || n <= 0){ toast('Numero invalido.', 'warn'); return; }
+  crmSetMeta(n);
+  var pcs = state.allPC || [];
+  var respondidas = pcs.filter(function(pc){ return pc.status === 'RESPONDIDA'; }).length;
+  crmUpdateMeta(respondidas);
+  toast('Meta atualizada: ' + n + ' respondidas.', 'ok');
 }
 
 function crmRenderList(){
@@ -3073,6 +3231,8 @@ function crmRenderList(){
   });
 
   var body = document.getElementById('crm-crmBody');
+  var meta = document.getElementById('crm-crmListMeta');
+  if(meta) meta.textContent = list.length + ' registro' + (list.length !== 1 ? 's' : '');
   if(!list.length){
     body.innerHTML = '';
     document.getElementById('crm-crmEmpty').style.display = 'block';
@@ -3086,38 +3246,38 @@ function crmRenderList(){
     var isOverdue = (pc.status === 'PENDENTE' || pc.status === 'ABERTO') && (now - new Date(pc.criadoEm)) / 86400000 > 7;
     var isPending = pc.status === 'PENDENTE' || pc.status === 'ABERTO';
     var isResponded = pc.status === 'RESPONDIDA';
-    var statusBadge = isOverdue ? '<span class="badge b-bad">Atrasado</span>' :
-                      isPending ? '<span class="badge b-warn">Pendente</span>' :
-                      isResponded ? '<span class="badge b-ok">Respondida</span>' :
-                      '<span class="badge b-info">Expirada</span>';
+    var badgeCls = isOverdue ? 'bad' : isPending ? 'warn' : isResponded ? 'ok' : 'warn';
+    var badgeTxt = isOverdue ? 'Atrasado' : isPending ? 'Pendente' : isResponded ? 'Respondida' : 'Expirada';
     var dateStr = fmtDate(pc.respondidaEm || pc.criadoEm || '');
     var daysAgo = Math.floor((now - new Date(pc.criadoEm)) / 86400000);
-    var daysText = daysAgo === 0 ? 'hoje' : daysAgo === 1 ? 'ontem' : daysAgo + ' dias';
+    var daysCls = daysAgo > 60 ? 'bad' : daysAgo > 30 ? 'warn' : '';
+    var daysText = daysAgo === 0 ? 'hoje' : daysAgo === 1 ? '1d' : daysAgo + 'd';
 
+    var meta = pc.templateNome ? (pc.templateNome + ' · ' + dateStr) : dateStr;
     var actionBtn = '';
     if(isPending && pc.pacienteTel){
-      actionBtn = '<button class="sbtn sbtn-g" onclick="event.stopPropagation();crmReenviarWA(\'' + sa(name) + '\',\'' + (pc.pacienteTel || '') + '\',\'' + (pc.linkToken || '') + '\')">Reenviar</button>';
+      actionBtn = '<button class="crmn-btn-sm wa" onclick="event.stopPropagation();crmReenviarWA(\'' + sa(name) + '\',\'' + (pc.pacienteTel || '') + '\',\'' + (pc.linkToken || '') + '\')"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Reenviar</button>';
     } else if(isPending && pc.linkToken){
-      actionBtn = '<button class="sbtn sbtn-g" onclick="event.stopPropagation();crmCopyLink(\'' + pc.linkToken + '\')">Copiar link</button>';
+      actionBtn = '<button class="crmn-btn-sm" onclick="event.stopPropagation();crmCopyLink(\'' + pc.linkToken + '\')"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/></svg>Copiar</button>';
     } else if(isResponded){
-      actionBtn = '<button class="sbtn sbtn-d" onclick="event.stopPropagation();navigate(\'pre-consultas\',\'' + pc.id + '\')">Ver resumo</button>';
+      actionBtn = '<button class="crmn-btn-sm" onclick="event.stopPropagation();navigate(\'pre-consultas\',\'' + pc.id + '\')">Ver resumo</button>';
     }
-    var rowClass = isOverdue ? 'tr urg-row' : 'tr';
-    return '<div class="' + rowClass + '" style="grid-template-columns:2fr 1fr 1.2fr 90px 110px">' +
-      '<div style="display:flex;align-items:center;gap:10px">' +
-        '<div class="av" style="width:30px;height:30px;font-size:10px;flex-shrink:0">' + ini + '</div>' +
-        '<div><div class="tc">' + s(name) + '</div><div class="ts">' + s(pc.pacienteTel || '') + '</div></div>' +
+    var rowClass = isOverdue ? 'crmn-trow urg' : 'crmn-trow';
+    return '<div class="' + rowClass + '">' +
+      '<div class="crmn-pat">' +
+        '<div class="crmn-av">' + ini + '</div>' +
+        '<div style="min-width:0"><div class="crmn-name">' + s(name) + '</div><div class="crmn-sub-ln">' + s(pc.pacienteTel || '—') + '</div></div>' +
       '</div>' +
-      '<span>' + statusBadge + '</span>' +
-      '<span class="tc" style="color:' + (isOverdue ? 'var(--bad)' : 'var(--t3)') + ';font-weight:' + (isOverdue ? '600' : '400') + '">' + dateStr + '</span>' +
-      '<span class="tc" style="color:var(--t3)">' + daysText + '</span>' +
-      '<span>' + actionBtn + '</span>' +
+      '<div><span class="crmn-badge ' + badgeCls + '"><span class="dot"></span>' + badgeTxt + '</span></div>' +
+      '<div class="crmn-date">' + dateStr + '</div>' +
+      '<div class="crmn-days ' + daysCls + '">' + daysText + '</div>' +
+      '<div class="crmn-act">' + actionBtn + '</div>' +
     '</div>';
   }).join('');
 }
 
 function crmSetFilter(el){
-  document.querySelectorAll('#crm-crmFilters .filter').forEach(function(f){ f.classList.remove('on'); });
+  document.querySelectorAll('#crm-crmFilters .crmn-pill, #crm-crmFilters .filter').forEach(function(f){ f.classList.remove('on'); });
   el.classList.add('on');
   crmState.filter = el.dataset.crm;
   crmRenderList();
@@ -3237,20 +3397,21 @@ function tplRenderGrid(){
   else if(tplState.sort === 'az') tpls.sort(function(a, b){ return (a.nome || '').localeCompare(b.nome || '', 'pt-BR'); });
 
   if((state.allTemplates || []).length === 0){
-    grid.innerHTML = '<div class="tpl-empty" style="grid-column:1/-1">' +
-      '<div class="tpl-empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 3v18"/></svg></div>' +
-      '<div class="tpl-empty-title">Nenhum template ainda</div>' +
-      '<div class="tpl-empty-desc">Crie formularios personalizados para agilizar suas pre-consultas. Clique em "Criar template" para comecar.</div>' +
+    grid.innerHTML = '<div class="tpln-empty" style="grid-column:1/-1">' +
+      '<div class="tpln-empty-ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>' +
+      '<div class="tpln-empty-t">Voce ainda nao tem templates</div>' +
+      '<div class="tpln-empty-d">Templates aceleram seu dia a dia. Crie um uma vez, use para sempre — com perguntas diferentes para cada tipo de consulta.</div>' +
+      '<button class="btn btn-p" style="margin-top:6px" onclick="tplOnbShow()"><svg viewBox="0 0 24 24"><path d="M12 2l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>Ver tour guiado</button>' +
       '</div>';
     return;
   }
 
   if(tpls.length === 0){
     var msg = tplState.search ? 'Nenhum template encontrado para "' + s(tplState.search) + '"' : 'Nenhum template encontrado neste filtro.';
-    grid.innerHTML = '<div class="tpl-empty" style="grid-column:1/-1">' +
-      '<div class="tpl-empty-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>' +
-      '<div class="tpl-empty-title">Nenhum template encontrado</div>' +
-      '<div class="tpl-empty-desc">' + msg + '</div></div>';
+    grid.innerHTML = '<div class="tpln-empty" style="grid-column:1/-1">' +
+      '<div class="tpln-empty-ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>' +
+      '<div class="tpln-empty-t">Nenhum template encontrado</div>' +
+      '<div class="tpln-empty-d">' + msg + '</div></div>';
     return;
   }
 
@@ -3258,15 +3419,23 @@ function tplRenderGrid(){
     var numQ = (t.perguntas || []).filter(function(p){ return !p.obrigatoria; }).length;
     var totalQ = numQ + 3;
     var safeName = (t.nome || '').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-    return '<div class="tpl-card" onclick="tplOpenEditTemplate(\'' + t.id + '\')">' +
-      '<div class="tpl-card-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>' +
-      '<div class="tpl-card-body">' +
-        '<div class="tpl-card-name">' + s(t.nome) + '</div>' +
-        '<div class="tpl-card-meta"><span>' + totalQ + ' perguntas</span><span style="color:var(--t4)">&#183;</span><span>' + (t.vezesUsado || 0) + ' vezes usado</span></div>' +
+    var flags = [];
+    if((t.vezesUsado || 0) > 0) flags.push('<span class="tpln-flag popular">' + t.vezesUsado + ' usos</span>');
+    else flags.push('<span class="tpln-flag">Nao usado</span>');
+    if(t.permitirAudio === true) flags.push('<span class="tpln-flag audio">Com audio</span>');
+
+    return '<div class="tpln-card" onclick="tplOpenEditTemplate(\'' + t.id + '\')">' +
+      '<div class="tpln-chd">' +
+        '<div class="tpln-cic"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></svg></div>' +
+        '<div class="tpln-cbody">' +
+          '<div class="tpln-cname">' + s(t.nome) + '</div>' +
+          '<div class="tpln-cmeta">' + totalQ + ' perguntas</div>' +
+        '</div>' +
+        '<button class="tpln-cmenu" onclick="event.stopPropagation();tplOpenActionsMenu(\'' + t.id + '\',\'' + safeName + '\')" title="Opcoes">' +
+          '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>' +
+        '</button>' +
       '</div>' +
-      '<button class="tpl-card-menu" onclick="event.stopPropagation();tplOpenActionsMenu(\'' + t.id + '\',\'' + safeName + '\')" title="Opcoes">' +
-        '<svg width="18" height="18" viewBox="0 0 24 24" fill="var(--t3)"><circle cx="12" cy="6" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="18" r="1.5"/></svg>' +
-      '</button>' +
+      '<div class="tpln-flags">' + flags.join('') + '</div>' +
     '</div>';
   }).join('');
 }
@@ -3611,9 +3780,15 @@ function renderPerfil(){
   var dash = state.dashStats || {};
   var initials = getInitials(u.nome || '');
 
-  document.getElementById('pf-profAvatar').textContent = initials;
+  var pfAv = document.getElementById('pf-profAvatar');
+  var pfFoto = pickFoto(u);
+  if(pfFoto){
+    pfAv.innerHTML = '<img src="' + pfFoto + '" alt="" onerror="this.parentNode.textContent=\'' + sa(initials) + '\'">';
+  } else {
+    pfAv.textContent = initials;
+  }
   document.getElementById('pf-profName').textContent = formatDr(u.nome || 'Medico');
-  document.getElementById('pf-profCrm').textContent = 'CRM ' + (m.crm || '--') + ' . ' + (m.ufCrm || '--') + ' . ' + (m.especialidade || '--');
+  document.getElementById('pf-profCrm').textContent = 'CRM ' + (m.crm || '--') + ' · ' + (m.ufCrm || '--') + ' · ' + (m.especialidade || '--');
 
   document.getElementById('pf-fieldCrm').textContent = (m.crm || '--') + ' / ' + (m.ufCrm || '--');
   document.getElementById('pf-fieldEspecialidade').textContent = m.especialidade || 'Nao informada';
