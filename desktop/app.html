@@ -2686,14 +2686,18 @@ function pcDrawIdleWaveform(){
   var dpr = window.devicePixelRatio || 1;
   var W = pcState.canvasEl.width / dpr, H = pcState.canvasEl.height / dpr;
   pcState.canvasCtx.clearRect(0,0,W,H);
-  var barCount = 40, gap = 3, barW = (W - (barCount-1)*gap)/barCount;
+  var barCount = 56, gap = 3, barW = (W - (barCount-1)*gap)/barCount;
+  // pseudo-random pattern deterministico (parece audio real, mas consistente)
+  var seed = [0.35,0.55,0.75,0.45,0.85,0.6,0.9,0.5,0.7,0.4,0.95,0.55,0.8,0.65,0.35,0.5,0.75,0.6,0.45,0.7,
+              0.85,0.55,0.4,0.6,0.75,0.5,0.65,0.45,0.3,0.55,0.7,0.9,0.6,0.4,0.75,0.55,0.85,0.5,0.65,0.45,
+              0.6,0.8,0.55,0.4,0.7,0.5,0.65,0.35,0.55,0.75,0.5,0.45,0.7,0.55,0.4,0.6];
   for(var i=0;i<barCount;i++){
-    var val = 0.15 + 0.12*Math.sin(i*0.3);
-    var barH = Math.max(3, val*H);
+    var val = seed[i] || 0.5;
+    var barH = Math.max(4, val*H*0.85);
     var x = i*(barW+gap), y = (H-barH)/2;
     var ratio = i/barCount;
     var g = Math.round(229 - ratio*40), b = Math.round(160 + ratio*56);
-    pcState.canvasCtx.fillStyle = 'rgba(0,'+g+','+b+',0.2)';
+    pcState.canvasCtx.fillStyle = 'rgba(0,'+g+','+b+',0.55)';
     pcState.canvasCtx.beginPath(); pcState.canvasCtx.roundRect(x,y,barW,barH,barW/2); pcState.canvasCtx.fill();
   }
 }
