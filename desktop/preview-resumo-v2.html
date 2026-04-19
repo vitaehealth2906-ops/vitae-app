@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Preview V2 — Resumo do Paciente (centralizado)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  :root{
+    --font:'Plus Jakarta Sans',system-ui,sans-serif;
+    --bg:#F4F6FA;
+    --card:#FFFFFF;
+    --green:#00C47A;--green-l:#00E5A0;--cyan:#00B4D8;
+    --grad:linear-gradient(120deg,#00E5A0,#00B4D8);
+    --t1:#0D0F14;--t2:#2E3338;--t3:#5A6070;--t4:#9CA3AF;
+    --border:rgba(0,0,0,.06);
+    --shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03);
+    --shadow-hover:0 2px 6px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.05);
+  }
+  html,body{background:var(--bg);font-family:var(--font);color:var(--t1)}
+  body{min-height:100vh;padding:32px 0}
+
+  /* ==== Top banner preview ==== */
+  .preview-ban{max-width:1320px;margin:0 auto 24px;padding:0 24px}
+  .preview-ban-inner{background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;padding:14px 20px;border-radius:12px;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600;box-shadow:var(--shadow)}
+  .preview-ban svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;flex-shrink:0}
+
+  /* ==== Wrapper centralizado (igual Dashboard) ==== */
+  .resumo-wrap{max-width:1320px;margin:0 auto;padding:0 24px}
+
+  /* ==== Top row — breadcrumb + ações ==== */
+  .top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--t3);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:8px 10px;border-radius:8px;transition:.15s}
+  .back-btn:hover{background:rgba(0,0,0,.04);color:var(--t1)}
+  .back-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .top-actions{display:flex;align-items:center;gap:10px}
+  .btn-iclinic{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(21,101,192,.08);border:1px solid rgba(21,101,192,.18);color:#1565C0;border-radius:10px;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer;transition:.15s}
+  .btn-iclinic:hover{background:rgba(21,101,192,.14)}
+  .btn-iclinic svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .timestamp{font-size:11.5px;color:var(--t3);font-weight:600;padding:8px 12px;background:#fff;border:1px solid var(--border);border-radius:10px;font-variant-numeric:tabular-nums}
+
+  /* ==== Page header ==== */
+  .page-head{margin-bottom:24px}
+  .page-head h1{font-size:26px;font-weight:900;letter-spacing:-.6px;color:var(--t1)}
+  .page-head h1 em{font-style:italic;font-weight:900;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .page-head .sub{font-size:13px;color:var(--t3);margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .page-head .dot{width:3px;height:3px;border-radius:50%;background:var(--t4)}
+
+  /* ==== Grid principal ==== */
+  .resumo-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:28px;align-items:start}
+  @media(max-width:1024px){.resumo-grid{grid-template-columns:1fr}}
+
+  .col-left{display:flex;flex-direction:column;gap:16px}
+  .col-right{display:flex;flex-direction:column;gap:16px}
+
+  /* ==== Cards gerais ==== */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+
+  /* ==== Card Paciente unificado ==== */
+  .pac-card{padding:0;overflow:hidden}
+  .pac-head{padding:22px 22px 18px;display:flex;gap:14px;align-items:flex-start;border-bottom:1px solid var(--border)}
+  .pac-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0;box-shadow:0 4px 12px rgba(0,229,160,.25)}
+  .pac-info{flex:1;min-width:0}
+  .pac-name{font-size:18px;font-weight:800;letter-spacing:-.3px;color:var(--t1)}
+  .pac-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .pac-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:#F4F6FA;border-radius:100px;font-size:11px;font-weight:700;color:var(--t3)}
+  .pac-chip.ok{background:#ECFDF5;color:#027A48}
+  .pac-chip.ok::before{content:"";width:5px;height:5px;border-radius:50%;background:#00C47A}
+  .pac-quote{padding:18px 22px 22px;font-size:14.5px;color:var(--t2);line-height:1.55;font-style:italic;position:relative}
+  .pac-quote::before{content:'"';position:absolute;top:10px;left:14px;font-size:32px;color:var(--t4);opacity:.4;font-style:normal;font-weight:900;line-height:1}
+
+  /* ==== Player Voice Memo ==== */
+  .player{background:#1c1c1e;border-radius:16px;padding:20px 22px;box-shadow:var(--shadow);color:#fff}
+  .player-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .player-dot{width:10px;height:10px;border-radius:50%;background:#00E5A0;box-shadow:0 0 10px rgba(0,229,160,.6);opacity:.6;flex-shrink:0;animation:pDot 2.5s ease-in-out infinite}
+  @keyframes pDot{0%,100%{opacity:.4}50%{opacity:1}}
+  .player-meta{flex:1;min-width:0}
+  .player-title{font-size:14px;font-weight:700;color:#fff;letter-spacing:-.2px}
+  .player-date{font-size:11.5px;color:#8e8e93;margin-top:2px}
+  .player-speed{padding:5px 11px;border-radius:100px;background:rgba(0,229,160,.12);border:1px solid rgba(0,229,160,.25);font:inherit;font-size:11px;font-weight:800;color:#5AFFBA;cursor:pointer;transition:.15s;flex-shrink:0;font-variant-numeric:tabular-nums}
+  .player-speed:hover{background:rgba(0,229,160,.18)}
+  .player-wave{width:100%;height:46px;display:flex;gap:3px;align-items:center;margin-bottom:4px;cursor:pointer}
+  .player-wave span{flex:1;background:linear-gradient(180deg,#00E5A0,#00C47A);border-radius:99px;min-height:4px;opacity:.55;transition:opacity .2s}
+  .player-wave span.played{opacity:1}
+  .player-foot{display:flex;align-items:center;gap:14px;margin-top:10px}
+  .player-t{font-size:11.5px;color:#8e8e93;font-weight:700;font-variant-numeric:tabular-nums;min-width:38px;flex-shrink:0}
+  .player-t.right{text-align:right}
+  .player-ctrl{display:flex;align-items:center;justify-content:center;gap:16px;flex:1}
+  .player-skip{width:30px;height:30px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;color:#8e8e93;cursor:pointer;transition:.15s}
+  .player-skip:hover{color:#fff}
+  .player-skip svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .player-play{width:42px;height:42px;border-radius:50%;background:#fff;color:#000;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+  .player-play:hover{transform:scale(1.06)}
+  .player-play svg{width:15px;height:15px;fill:currentColor}
+  .player-trans{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06);text-align:right}
+  .player-trans button{background:none;border:none;color:#00E5A0;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:6px;transition:.15s}
+  .player-trans button:hover{background:rgba(0,229,160,.08)}
+  .player-trans svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ==== Section label ==== */
+  .sec-lbl{display:flex;align-items:center;gap:8px;margin:4px 0 2px;font-size:13px;font-weight:800;color:var(--t1);letter-spacing:-.2px}
+  .sec-lbl .count{padding:2px 8px;border-radius:100px;background:#F4F6FA;color:var(--t3);font-size:10.5px;font-weight:700}
+
+  /* ==== Insight cards ==== */
+  .ins{display:flex;gap:12px;background:#fff;border:1px solid var(--border);border-left:4px solid #F59E0B;border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);transition:.15s}
+  .ins:hover{box-shadow:var(--shadow-hover)}
+  .ins.queixa{border-left-color:#3B82F6}
+  .ins.historico{border-left-color:#8B5CF6}
+  .ins-icon{width:28px;height:28px;border-radius:8px;background:#FEF3C7;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ins.queixa .ins-icon{background:#DBEAFE}
+  .ins.historico .ins-icon{background:#EDE9FE}
+  .ins-icon svg{width:14px;height:14px;stroke:#F59E0B;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .ins.queixa .ins-icon svg{stroke:#3B82F6}
+  .ins.historico .ins-icon svg{stroke:#8B5CF6}
+  .ins-title{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:5px;letter-spacing:-.2px}
+  .ins-msg{font-size:13px;color:var(--t2);line-height:1.55}
+
+  .ins-list{display:flex;flex-direction:column;gap:10px}
+
+  /* ==== Referência grid ==== */
+  .ref-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px}
+  @media(max-width:880px){.ref-grid{grid-template-columns:1fr}}
+
+  /* ==== Right col cards ==== */
+  .side{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+  .side-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .side-icon{width:36px;height:36px;background:#ECFDF5;border-radius:10px;display:flex;align-items:center;justify-content:center}
+  .side-icon svg{width:18px;height:18px;stroke:#00C47A;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .side-icon.warn{background:#FEF3F2}
+  .side-icon.warn svg{stroke:#EF4444}
+  .side-chip{padding:3px 10px;border-radius:100px;font-size:10.5px;font-weight:700;background:#ECFDF5;color:#027A48;display:flex;align-items:center;gap:5px}
+  .side-chip::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+  .side-title{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:10px;letter-spacing:-.2px}
+
+  /* Meds chips */
+  .meds-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .med-chip{padding:6px 11px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:100px;font-size:11.5px;font-weight:700;color:#027A48;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+  .med-chip:hover{background:#D1FAE5;transform:translateY(-1px)}
+  .med-chip .dose{color:#065F46;font-weight:600;opacity:.75}
+
+  /* Empty state alergias */
+  .empty-line{font-size:12.5px;color:var(--t4);line-height:1.5}
+
+  /* ==== Exames ==== */
+  .ex-wrap{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+  .ex-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .ex-title{font-size:15px;font-weight:800;color:var(--t1);letter-spacing:-.2px}
+  .ex-title em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .ex-badge{font-size:10.5px;font-weight:700;color:var(--t3);background:#F4F6FA;padding:3px 9px;border-radius:100px}
+  .ex-search{position:relative;margin-bottom:12px}
+  .ex-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--t4);fill:none;stroke-width:2}
+  .ex-search input{width:100%;padding:10px 12px 10px 36px;background:#F9FAFB;border:1px solid var(--border);border-radius:10px;font-family:inherit;font-size:12.5px;color:var(--t1);outline:none;transition:.15s}
+  .ex-search input:focus{background:#fff;border-color:rgba(0,196,122,.4);box-shadow:0 0 0 3px rgba(0,196,122,.1)}
+  .ex-list{display:flex;flex-direction:column;gap:8px;max-height:500px;overflow-y:auto;padding-right:4px}
+  .ex-list::-webkit-scrollbar{width:4px}
+  .ex-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+  .ex-item{display:flex;gap:12px;padding:10px;background:#fff;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:.15s}
+  .ex-item:hover{transform:scale(1.01);border-color:rgba(0,196,122,.25);background:#FAFBFC}
+  .ex-thumb{width:64px;height:82px;border-radius:6px;background:#fff;border:1px solid #E5E7EB;flex-shrink:0;overflow:hidden;position:relative;background-image:repeating-linear-gradient(#d1d5db 0 1px,transparent 1px 6px);background-size:100% 100%;background-position:0 12px;background-repeat:no-repeat,repeat}
+  .ex-thumb::before{content:"LAUDO";position:absolute;top:4px;left:6px;right:6px;font-size:6.5px;font-weight:800;color:var(--green);letter-spacing:.8px}
+  .ex-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:2px 0}
+  .ex-tipo{font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+  .ex-nome{font-size:13px;font-weight:800;color:var(--green);line-height:1.3;letter-spacing:-.2px}
+  .ex-meta{font-size:10.5px;color:var(--t3);margin-top:1px;font-variant-numeric:tabular-nums}
+
+  /* Legenda */
+  .legend{max-width:1320px;margin:40px auto 0;padding:28px;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+  .legend h3{font-size:15px;font-weight:900;margin-bottom:14px;letter-spacing:-.3px}
+  .legend ul{list-style:none;columns:2;column-gap:32px}
+  .legend li{font-size:12.5px;color:var(--t2);padding:5px 0;break-inside:avoid;line-height:1.5}
+  .legend li b{color:var(--t1);font-weight:800}
+  .legend li::before{content:"✓ ";color:var(--green);font-weight:900}
+</style>
+</head>
+<body>
+
+<!-- Banner preview -->
+<div class="preview-ban">
+  <div class="preview-ban-inner">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    PREVIEW V2 — Tela Resumo do Paciente com wrapper centralizado (max-width 1320px), mesma faixa do Dashboard. Tudo reorganizado.
+  </div>
+</div>
+
+<!-- Wrapper centralizado -->
+<div class="resumo-wrap">
+
+  <!-- Top row -->
+  <div class="top-row">
+    <button class="back-btn">
+      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      Voltar
+    </button>
+    <div class="top-actions">
+      <button class="btn-iclinic">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar iClinic
+      </button>
+      <div class="timestamp">20:43 · Dom, 19 Abr</div>
+    </div>
+  </div>
+
+  <!-- Page header -->
+  <div class="page-head">
+    <h1>Resumo do <em>paciente</em></h1>
+    <div class="sub">
+      <span>Lucas Silva</span>
+      <span class="dot"></span>
+      <span>19 anos</span>
+      <span class="dot"></span>
+      <span>Respondida em 19/04/2026 · há 5 min</span>
+    </div>
+  </div>
+
+  <!-- Grid principal -->
+  <div class="resumo-grid">
+
+    <!-- COLUNA ESQUERDA -->
+    <div class="col-left">
+
+      <!-- Card paciente unificado -->
+      <div class="card pac-card">
+        <div class="pac-head">
+          <div class="pac-avatar">L</div>
+          <div class="pac-info">
+            <div class="pac-name">Lucas Silva</div>
+            <div class="pac-chips">
+              <span class="pac-chip">19 anos</span>
+              <span class="pac-chip">O+</span>
+              <span class="pac-chip ok">Respondida</span>
+            </div>
+          </div>
+        </div>
+        <div class="pac-quote">
+          Paciente de 19 anos relata mal-estar generalizado, incluindo palpitações e insônia, há cerca de três semanas, associado a um período de alta demanda no trabalho.
+        </div>
+      </div>
+
+      <!-- Player Voice Memo -->
+      <div class="player">
+        <div class="player-head">
+          <div class="player-dot"></div>
+          <div class="player-meta">
+            <div class="player-title">Resumo em áudio</div>
+            <div class="player-date">19/04/2026 · 1 min</div>
+          </div>
+          <button class="player-speed">1×</button>
+        </div>
+        <div class="player-wave" id="pwave"></div>
+        <div class="player-foot">
+          <span class="player-t">0:02</span>
+          <div class="player-ctrl">
+            <button class="player-skip" title="Voltar 5s"><svg viewBox="0 0 24 24"><path d="M9 14l-4-4 4-4"/><path d="M5 10h9a6 6 0 010 12H11"/></svg></button>
+            <button class="player-play"><svg viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg></button>
+            <button class="player-skip" title="Avançar 5s"><svg viewBox="0 0 24 24"><path d="M15 14l4-4-4-4"/><path d="M19 10h-9a6 6 0 000 12h3"/></svg></button>
+          </div>
+          <span class="player-t right">-0:58</span>
+        </div>
+        <div class="player-trans">
+          <button>Ver transcrição <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+        </div>
+      </div>
+
+      <!-- Pontos de atenção -->
+      <div class="sec-lbl">Pontos de atenção <span class="count">3</span></div>
+      <div class="ins-list">
+        <div class="ins">
+          <div class="ins-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div>
+            <div class="ins-title">Fatores de Estresse e Sono</div>
+            <div class="ins-msg">O paciente relata trabalhar 12 horas/dia nos últimos dois meses, o que coincide com o início dos sintomas de mal-estar, insônia, irritabilidade e perda de peso. Vale considerar o impacto do estresse crônico.</div>
+          </div>
+        </div>
+        <div class="ins">
+          <div class="ins-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div>
+            <div class="ins-title">Medicamentos e Sintomas</div>
+            <div class="ins-msg">O uso de Prednisolona pode contribuir para insônia, irritabilidade e taquicardia, sintomas relatados pelo paciente.</div>
+          </div>
+        </div>
+        <div class="ins">
+          <div class="ins-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div>
+            <div class="ins-title">Histórico Familiar e Sintomas</div>
+            <div class="ins-msg">O histórico familiar de depressão, combinado com insônia, irritabilidade e sintomas de ansiedade como palpitações e dor torácica, merece avaliação de um possível componente de humor/ansiedade.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Referência (grid 2 colunas) -->
+      <div class="sec-lbl" style="margin-top:12px">Referência</div>
+      <div class="ref-grid">
+        <div class="ins queixa">
+          <div class="ins-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div>
+            <div class="ins-title">Queixa principal</div>
+            <div class="ins-msg">Mal-estar generalizado há 3 semanas, incluindo aceleração cardíaca, sensação de pré-síncope, insônia (acorda às 4h e não volta a dormir), dor de cabeça refratária a dipirona/paracetamol, irritabilidade, dor no peito intermitente, inapetência e perda de 3kg no último mês.</div>
+          </div>
+        </div>
+        <div class="ins historico">
+          <div class="ins-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+          <div>
+            <div class="ins-title">Histórico relevante</div>
+            <div class="ins-msg">Amigdalectomia.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUNA DIREITA -->
+    <div class="col-right">
+
+      <!-- Medicamentos -->
+      <div class="side">
+        <div class="side-head">
+          <div class="side-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></div>
+          <div class="side-chip">4 ativos</div>
+        </div>
+        <div class="side-title">Medicamentos em uso</div>
+        <div class="meds-chips">
+          <span class="med-chip">Cetirizina <span class="dose">10mg</span></span>
+          <span class="med-chip">Soro Fisiológico</span>
+          <span class="med-chip">Prednisolona <span class="dose">20mg</span></span>
+          <span class="med-chip">Loratadina <span class="dose">10mg</span></span>
+        </div>
+      </div>
+
+      <!-- Alergias -->
+      <div class="side">
+        <div class="side-head">
+          <div class="side-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg></div>
+          <div class="side-chip">Nenhuma</div>
+        </div>
+        <div class="side-title">Alergias</div>
+        <div class="empty-line">Nenhuma alergia registrada</div>
+      </div>
+
+      <!-- Exames -->
+      <div class="ex-wrap">
+        <div class="ex-head">
+          <div class="ex-title">Exames de <em>Lucas</em></div>
+          <div class="ex-badge">3 arquivos</div>
+        </div>
+        <div class="ex-search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar exame...">
+        </div>
+        <div class="ex-list">
+          <div class="ex-item">
+            <div class="ex-thumb"></div>
+            <div class="ex-info">
+              <div class="ex-tipo">Exame</div>
+              <div class="ex-nome">laudo.pdf</div>
+              <div class="ex-meta">04/04/2026 · 21:00</div>
+            </div>
+          </div>
+          <div class="ex-item">
+            <div class="ex-thumb"></div>
+            <div class="ex-info">
+              <div class="ex-tipo">Exame</div>
+              <div class="ex-nome">laudo.pdf</div>
+              <div class="ex-meta">04/04/2026 · 21:00</div>
+            </div>
+          </div>
+          <div class="ex-item">
+            <div class="ex-thumb"></div>
+            <div class="ex-info">
+              <div class="ex-tipo">Exame</div>
+              <div class="ex-nome">laudo.pdf</div>
+              <div class="ex-meta">04/04/2026 · 21:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Legenda -->
+<div class="legend">
+  <h3>O que mudou nessa versão</h3>
+  <ul>
+    <li><b>Wrapper centralizado</b> max-width 1320px igual Dashboard/Pacientes — margens simétricas</li>
+    <li><b>Page header</b> com título grande "Resumo do <em>paciente</em>" + subtítulo em linha única</li>
+    <li><b>Voltar + iClinic + timestamp</b> na mesma linha superior, compactos</li>
+    <li><b>Card do paciente unificado</b> — avatar + nome + chips + citação num bloco único</li>
+    <li><b>Player Voice Memo refinado</b> — chip de velocidade com fundo verde sutil, "Ver transcrição" virou botão discreto no rodapé</li>
+    <li><b>Pontos de atenção</b> com contador inline e padding maior nos cards</li>
+    <li><b>Queixa + Histórico lado a lado</b> num grid interno — aproveita largura contida</li>
+    <li><b>Medicamentos viraram chips</b> verdes individuais em vez de texto corrido</li>
+    <li><b>Exames com badge de contador</b> + scroll interno até 500px + hover mais sutil</li>
+    <li><b>Sombras unificadas</b> suaves em todos os cards — hierarquia limpa</li>
+    <li><b>Respiro maior</b> — padding interno dos cards de 18-20px → 22px</li>
+    <li><b>Responsivo</b> — vira stack vertical abaixo de 1024px</li>
+  </ul>
+</div>
+
+<script>
+  // Gera waveform com padrão orgânico
+  (function(){
+    const wave=document.getElementById('pwave');
+    const heights=[35,55,75,45,85,60,90,50,70,40,95,55,80,65,35,50,75,60,45,70,85,55,40,60,75,50,65,45,30,55,70,90,60,40,75,55,85,50,65,45,60,80,55,40,70,50,65,35,55,75,50,45,70,55,40,60,75,50,65,45,30,55,70,80];
+    heights.forEach((h,i)=>{
+      const s=document.createElement('span');
+      s.style.height=h+'%';
+      if(i<10)s.classList.add('played');
+      wave.appendChild(s);
+    });
+  })();
+</script>
+
+</body>
+</html>
