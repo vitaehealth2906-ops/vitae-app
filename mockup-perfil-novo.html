@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup · Meu Perfil Novo — vita id</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--green:#00E5A0;--green-2:#00C47A;--cyan:#00B4D8;--grad:linear-gradient(120deg,#00E5A0,#00B4D8);--dark:#0A0D12;--bg:#F7F8FA;--surface:#fff;--s2:#F2F4F7;--border:rgba(13,15,20,.07);--border-2:rgba(13,15,20,.12);--t1:#0D0F14;--t2:#4B5563;--t3:#6B7280;--t4:#9CA3AF;--t5:#C4C9D4;--db:rgba(255,255,255,.06);--db-2:rgba(255,255,255,.10);--dt:rgba(255,255,255,.95);--dt-2:rgba(255,255,255,.70);--dt-3:rgba(255,255,255,.45);--dt-4:rgba(255,255,255,.28);--ok:#00C47A;--warn:#F59E0B;--bad:#EF4444;--info:#3B82F6;--font:'Plus Jakarta Sans',sans-serif;--mono:'JetBrains Mono',monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t1);overflow:hidden}
+.app{display:flex;height:100vh}
+.sidebar{width:240px;flex-shrink:0;background:var(--dark);display:flex;flex-direction:column;overflow:hidden;padding:18px 14px 14px;border-right:1px solid var(--db)}
+.sb-logo{padding:6px 10px 20px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:inline-flex;align-items:baseline;gap:2px;font-size:22px;font-weight:900;letter-spacing:-.04em;color:#fff;line-height:1}
+.logo .ib{background:var(--grad);color:var(--dark);padding:2px 7px;border-radius:6px;font-weight:900;letter-spacing:-.02em}
+.sb-tag{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dt-3);padding:3px 7px;border:1px solid var(--db-2);border-radius:999px}
+.sb-g{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--dt-4);padding:0 12px 8px;margin:18px 0 0}
+.sb-g:first-child{margin-top:4px}
+.nl{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;cursor:pointer;text-decoration:none;color:inherit;border:1px solid transparent;position:relative;margin-bottom:1px;transition:all .15s}
+.nl:hover{background:rgba(255,255,255,.05)}
+.nl.on{background:rgba(0,229,160,.10);border-color:rgba(0,229,160,.22)}
+.nl.on::before{content:'';position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--grad);border-radius:0 2px 2px 0}
+.nl svg{width:16px;height:16px;stroke:var(--dt-3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+.nl.on svg{stroke:var(--green);opacity:1}
+.nl span{font-size:13px;font-weight:600;color:var(--dt-3);flex:1}
+.nl.on span{color:#fff}
+.pip{margin-left:auto;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(0,196,122,.14);color:var(--green);font-variant-numeric:tabular-nums}
+.sb-user{margin-top:8px;padding:10px;border-radius:12px;border:1px solid var(--db);background:rgba(255,255,255,.02);display:flex;align-items:center;gap:10px}
+.sb-av{width:32px;height:32px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--dark)}
+.sb-info{flex:1;min-width:0}
+.sb-name{font-size:12.5px;font-weight:700;color:var(--dt)}
+.sb-crm{font-size:10px;color:var(--dt-3);margin-top:1px}
+.sb-logout{color:var(--dt-3);width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center}
+.sb-logout svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.topbar{height:56px;background:rgba(255,255,255,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;flex-shrink:0}
+.tb-crumb{display:flex;align-items:center;gap:10px}
+.tb-title{font-size:14px;font-weight:800;color:var(--t1);letter-spacing:-.01em}
+.tb-arrow{color:var(--t5);font-size:12px}
+.tb-sub{font-size:13px;color:var(--t3);font-weight:500}
+.tb-space{flex:1}
+.tb-clock{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--t3);padding:6px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;letter-spacing:.02em}
+.content{flex:1;padding:28px 32px 48px;overflow-y:auto;max-width:1320px;width:100%;margin:0 auto}
+.page-hd{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;gap:16px;flex-wrap:wrap}
+.page-h1{font-size:26px;font-weight:800;letter-spacing:-.025em;color:var(--t1);margin:0}
+.page-h1 em{font-style:italic;color:var(--green-2);font-weight:800}
+.page-sub{font-size:13px;color:var(--t3);margin-top:4px;font-weight:500}
+
+.grid{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
+
+/* PROFILE CARD (escuro, destaque) */
+.prof{background:#0F1319;border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:22px;position:relative;overflow:hidden}
+.prof::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad)}
+.prof::after{content:'';position:absolute;bottom:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(0,229,160,.08) 0%,transparent 70%);pointer-events:none}
+.prof-head{display:flex;flex-direction:column;align-items:center;position:relative;z-index:1}
+.prof-av{width:72px;height:72px;border-radius:50%;background:var(--grad);color:var(--dark);font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px rgba(0,229,160,.18);margin-bottom:12px}
+.prof-name{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.015em}
+.prof-meta{font-size:11.5px;color:rgba(255,255,255,.5);margin-top:4px;font-family:var(--mono);letter-spacing:.02em}
+.prof-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px;position:relative;z-index:1}
+.prof-stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px 12px}
+.prof-stat-l{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.4)}
+.prof-stat-v{font-size:20px;font-weight:800;color:#fff;margin-top:2px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+/* MAPA */
+.map-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-top:14px;box-shadow:0 1px 3px rgba(13,15,20,.04)}
+.map-inner{height:200px}
+.map-foot{padding:14px 18px;border-top:1px solid var(--border)}
+.map-l{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t4);margin-bottom:4px}
+.map-title{font-size:13px;font-weight:700;color:var(--t1)}
+.map-sub{font-size:11.5px;color:var(--t3);margin-top:2px;font-weight:500;line-height:1.45}
+
+/* SETTING GROUPS */
+.sg{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(13,15,20,.04);margin-bottom:16px}
+.sg-hd{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.sg-title{font-size:14px;font-weight:800;color:var(--t1);letter-spacing:-.01em}
+.sg-meta{font-size:11.5px;color:var(--t3);font-weight:500}
+.sg-row{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.sg-row:last-child{border-bottom:none}
+.sg-row:hover{background:var(--s2)}
+.sg-row-l{flex:1;min-width:0}
+.sg-row-title{font-size:13px;font-weight:700;color:var(--t1)}
+.sg-row-val{font-size:12.5px;color:var(--t3);margin-top:2px;font-weight:500}
+.sg-row-val.empty{color:var(--warn);font-style:italic}
+.sg-chev{color:var(--t5)}
+.sg-chev svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+.sg-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(0,196,122,.10);color:var(--green-2)}
+.sg-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--green-2)}
+
+/* NOTIFICACOES (3 cards simplificados) */
+.notif-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:16px}
+.notif-card{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;position:relative}
+.notif-card.urg{background:rgba(239,68,68,.04);border-color:rgba(239,68,68,.14)}
+.notif-card.ret{background:rgba(59,130,246,.04);border-color:rgba(59,130,246,.14)}
+.notif-card.res{background:rgba(0,196,122,.04);border-color:rgba(0,196,122,.14)}
+.notif-hd{display:flex;align-items:center;justify-content:space-between}
+.notif-title{font-size:12px;font-weight:800;color:var(--t1);display:flex;align-items:center;gap:6px}
+.notif-title svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.notif-card.urg .notif-title svg{stroke:var(--bad)}
+.notif-card.ret .notif-title svg{stroke:var(--info)}
+.notif-card.res .notif-title svg{stroke:var(--green-2)}
+.notif-desc{font-size:11.5px;color:var(--t3);line-height:1.45;font-weight:500;flex:1}
+.notif-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.notif-when{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t4)}
+.toggle{position:relative;width:36px;height:20px;background:var(--t5);border-radius:999px;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
+.toggle.on{background:var(--grad)}
+.toggle.on::after{transform:translateX(16px)}
+
+/* SECURITY EM BREVE */
+.soon-badge{position:absolute;top:10px;right:10px;background:var(--grad);color:var(--dark);font-size:8.5px;font-weight:800;padding:3px 8px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase}
+.sg.soon{position:relative;opacity:.78}
+.sg.soon .sg-row{cursor:not-allowed}
+
+.mock-label{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--grad);color:var(--dark);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;border-radius:999px;box-shadow:0 4px 16px rgba(0,229,160,.3)}
+.legend{position:fixed;bottom:18px;right:18px;z-index:1000;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;max-width:340px;font-size:11px;color:var(--t2);line-height:1.5;box-shadow:0 4px 20px rgba(13,15,20,.1)}
+.legend b{color:var(--green-2);display:block;margin-bottom:6px;font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.new{color:var(--green-2)}
+.same{color:var(--t3)}
+
+.btn-danger{background:transparent;color:var(--bad);border:1px solid rgba(239,68,68,.22);padding:8px 14px;border-radius:10px;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn-danger svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+.btn-danger:hover{background:rgba(239,68,68,.06)}
+</style>
+</head>
+<body>
+<div class="mock-label">MOCKUP · MEU PERFIL NOVO · AGUARDANDO APROVACAO</div>
+
+<div class="app">
+<aside class="sidebar">
+  <div class="sb-logo"><div class="logo">vita<span class="ib">id</span></div><span class="sb-tag">PRO</span></div>
+  <nav style="flex:1">
+    <div class="sb-g">Principal</div>
+    <a class="nl"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2z"/></svg><span>Dashboard</span></a>
+    <a class="nl"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg><span>Pre-Consultas</span><span class="pip">12</span></a>
+    <div class="sb-g">Pacientes</div>
+    <a class="nl"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Pacientes</span><span class="pip">248</span></a>
+    <a class="nl"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>CRM & Retornos</span></a>
+    <div class="sb-g">Workspace</div>
+    <a class="nl"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><span>Templates</span></a>
+    <a class="nl on"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Meu Perfil</span></a>
+  </nav>
+  <div class="sb-user">
+    <div class="sb-av">LB</div>
+    <div class="sb-info"><div class="sb-name">Dr. lucas borelli</div><div class="sb-crm">CRM 09876543 · SP</div></div>
+    <div class="sb-logout"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="tb-crumb">
+      <span class="tb-title">Meu Perfil</span>
+      <span class="tb-arrow">›</span>
+      <span class="tb-sub">Dados & preferencias</span>
+    </div>
+    <div class="tb-space"></div>
+    <span class="tb-clock" id="clock">17:33 · Sáb, 18 Abr</span>
+  </div>
+
+  <div class="content">
+    <div class="page-hd">
+      <div>
+        <h1 class="page-h1">Meu <em>perfil</em></h1>
+        <p class="page-sub">Seus dados profissionais e preferencias de notificacao.</p>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- COLUNA ESQUERDA: Profile + Mapa Leaflet real -->
+      <div>
+        <div class="prof">
+          <div class="prof-head">
+            <div class="prof-av">LB</div>
+            <div class="prof-name">Dr. Lucas Borelli</div>
+            <div class="prof-meta">CRM 09876543 · SP · Dermatologia</div>
+          </div>
+          <div class="prof-stats">
+            <div class="prof-stat"><div class="prof-stat-l">Pre-consultas</div><div class="prof-stat-v">47</div></div>
+            <div class="prof-stat"><div class="prof-stat-l">Respondidas</div><div class="prof-stat-v">28</div></div>
+            <div class="prof-stat"><div class="prof-stat-l">Pendentes</div><div class="prof-stat-v">12</div></div>
+            <div class="prof-stat"><div class="prof-stat-l">Pacientes</div><div class="prof-stat-v">248</div></div>
+          </div>
+        </div>
+
+        <div class="map-card">
+          <div class="map-inner" id="mapa"></div>
+          <div class="map-foot">
+            <div class="map-l">Clinica</div>
+            <div class="map-title">Clinica Vida Plena</div>
+            <div class="map-sub">Av. Paulista, 1578 · sala 404<br>Sao Paulo · SP · 01310-200</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUNA DIREITA: Settings -->
+      <div>
+        <!-- Dados profissionais -->
+        <div class="sg">
+          <div class="sg-hd">
+            <div class="sg-title">Dados profissionais</div>
+            <div class="sg-meta">Clique pra editar</div>
+          </div>
+          <div class="sg-row">
+            <div class="sg-row-l">
+              <div class="sg-row-title">CRM / UF</div>
+              <div class="sg-row-val">09876543 / SP</div>
+            </div>
+            <span class="sg-badge"><span class="dot"></span>Verificado</span>
+          </div>
+          <div class="sg-row">
+            <div class="sg-row-l">
+              <div class="sg-row-title">Especialidade</div>
+              <div class="sg-row-val">Dermatologia</div>
+            </div>
+            <span class="sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="sg-row">
+            <div class="sg-row-l">
+              <div class="sg-row-title">Nome da clinica</div>
+              <div class="sg-row-val">Clinica Vida Plena</div>
+            </div>
+            <span class="sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="sg-row">
+            <div class="sg-row-l">
+              <div class="sg-row-title">Endereco</div>
+              <div class="sg-row-val">Av. Paulista, 1578 · sala 404 · Sao Paulo</div>
+            </div>
+            <span class="sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="sg-row">
+            <div class="sg-row-l">
+              <div class="sg-row-title">Telefone da clinica</div>
+              <div class="sg-row-val">(11) 3456-7890</div>
+            </div>
+            <span class="sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="sg-row">
+            <div class="sg-row-l">
+              <div class="sg-row-title">Valor medio da consulta</div>
+              <div class="sg-row-val">R$ 520,00</div>
+            </div>
+            <span class="sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+        </div>
+
+        <!-- Notificacoes simplificadas (3 cards lado a lado) -->
+        <div class="sg">
+          <div class="sg-hd">
+            <div class="sg-title">Notificacoes</div>
+            <div class="sg-meta">Escolha o que quer receber</div>
+          </div>
+          <div class="notif-grid">
+            <div class="notif-card urg">
+              <div class="notif-hd">
+                <div class="notif-title"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Urgentes</div>
+                <div class="toggle on"></div>
+              </div>
+              <div class="notif-desc">Aviso quando paciente descreve sintoma grave (dor torax, falta de ar).</div>
+              <div class="notif-foot"><span class="notif-when">Imediato · push + SMS</span></div>
+            </div>
+            <div class="notif-card ret">
+              <div class="notif-hd">
+                <div class="notif-title"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Retorno</div>
+                <div class="toggle on"></div>
+              </div>
+              <div class="notif-desc">1 dia antes do retorno sugerido do paciente, aviso por push.</div>
+              <div class="notif-foot"><span class="notif-when">Diario · 9h</span></div>
+            </div>
+            <div class="notif-card res">
+              <div class="notif-hd">
+                <div class="notif-title"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>Resumo diario</div>
+                <div class="toggle"></div>
+              </div>
+              <div class="notif-desc">E-mail com tudo que aconteceu no seu dia (atendimentos, respostas).</div>
+              <div class="notif-foot"><span class="notif-when">19h · e-mail</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seguranca (em breve) -->
+        <div class="sg soon">
+          <span class="soon-badge">Em breve</span>
+          <div class="sg-hd">
+            <div class="sg-title">Seguranca</div>
+            <div class="sg-meta">Protecao adicional da sua conta</div>
+          </div>
+          <div class="sg-row">
+            <div class="sg-row-l">
+              <div class="sg-row-title">Autenticacao em 2 fatores</div>
+              <div class="sg-row-val">Recomendado — codigo por SMS ao fazer login</div>
+            </div>
+            <span class="sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="sg-row">
+            <div class="sg-row-l">
+              <div class="sg-row-title">Sessoes ativas</div>
+              <div class="sg-row-val">1 dispositivo — MacBook Pro, Sao Paulo</div>
+            </div>
+            <span class="sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="sg-row">
+            <div class="sg-row-l">
+              <div class="sg-row-title">Sair de todas as sessoes</div>
+              <div class="sg-row-val">Encerra acesso em qualquer outro dispositivo</div>
+            </div>
+            <span class="sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+        </div>
+
+        <!-- Conta -->
+        <div class="sg">
+          <div class="sg-hd">
+            <div class="sg-title">Conta</div>
+          </div>
+          <div class="sg-row">
+            <div class="sg-row-l">
+              <div class="sg-row-title">E-mail</div>
+              <div class="sg-row-val">lucas@clinicavidaplena.com.br</div>
+            </div>
+          </div>
+          <div class="sg-row">
+            <div class="sg-row-l">
+              <div class="sg-row-title">Celular</div>
+              <div class="sg-row-val">(11) 98765-4321</div>
+            </div>
+          </div>
+          <div style="padding:14px 20px;display:flex;justify-content:flex-end;border-top:1px solid var(--border)">
+            <button class="btn-danger"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sair da conta</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<div class="legend">
+  <b>Mudancas</b>
+  <div><span class="new">+ H1 italic verde + descricao</span></div>
+  <div><span class="new">+ Profile card escuro com 4 stats 2x2</span></div>
+  <div><span class="new">+ Notificacoes em 3 cards lado-a-lado</span></div>
+  <div><span class="new">+ Seguranca (2FA + Sessoes) marcada "Em breve"</span></div>
+  <div><span class="new">+ Badge "Verificado" no CRM</span></div>
+  <div><span class="same">= Mapa Leaflet REAL mantido (geolocalizacao)</span></div>
+  <div><span class="same">= 6 campos clicaveis em Dados Profissionais</span></div>
+  <div><span class="same">= Valor medio consulta mantido (Dashboard depende)</span></div>
+  <div><span class="same">= Conta + Sair da conta mantidos</span></div>
+</div>
+
+<script>
+function updateClock(){var d=new Date(),hh=String(d.getHours()).padStart(2,'0'),mm=String(d.getMinutes()).padStart(2,'0'),dias=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];document.getElementById('clock').textContent=hh+':'+mm+' · '+dias[d.getDay()]+', '+d.getDate()+' '+meses[d.getMonth()]}updateClock();setInterval(updateClock,30000);
+
+// Toggle notificacao
+document.querySelectorAll('.toggle').forEach(function(t){t.addEventListener('click',function(){t.classList.toggle('on')});});
+
+// Mapa Leaflet real
+var mapEl=document.getElementById('mapa');
+if(mapEl&&typeof L!=='undefined'){
+  var m=L.map('mapa',{zoomControl:false,attributionControl:false,dragging:true,scrollWheelZoom:false}).setView([-23.5613,-46.6563],16);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{maxZoom:19}).addTo(m);
+  var icon=L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50%;background:'+getComputedStyle(document.documentElement).getPropertyValue('--green')+';border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.25)"></div>',iconSize:[22,22],iconAnchor:[11,11]});
+  L.marker([-23.5613,-46.6563],{icon:icon}).addTo(m).bindPopup('<b>Clinica Vida Plena</b><br>Av. Paulista, 1578 · sala 404');
+}
+</script>
+</body>
+</html>
