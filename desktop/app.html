@@ -486,6 +486,56 @@
     </div>
   </div>
 
+  <!-- CRM: Notificar Atrasados -->
+  <div class="modal-overlay" id="nat-modal" onclick="if(event.target===this)crmCloseNotify()">
+    <div class="modal nat-modal">
+      <div class="nat-hd">
+        <div class="nat-hd-ic">
+          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="nat-hd-t">
+          <div class="nat-hd-name" id="nat-title">Pacientes atrasados</div>
+          <div class="nat-hd-sub" id="nat-sub">Selecione quem voce quer notificar e escolha o tom da mensagem.</div>
+        </div>
+        <button class="nat-close" onclick="crmCloseNotify()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="nat-body" id="nat-body"></div>
+      <div class="nat-foot">
+        <div class="nat-foot-info" id="nat-footInfo">0 selecionados</div>
+        <div style="display:flex;gap:9px">
+          <button class="btn btn-s" id="nat-btnBack" onclick="crmNotifyBack()" style="display:none">Voltar</button>
+          <button class="btn btn-p" id="nat-btnNext" onclick="crmNotifyNext()" style="height:40px;padding:0 18px">Avancar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRM: Minhas Metricas -->
+  <div class="modal-overlay" id="mm-modal" onclick="if(event.target===this)mmClose()">
+    <div class="modal mm-modal">
+      <div class="mm-hd">
+        <div class="mm-hd-ic">
+          <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        </div>
+        <div class="mm-hd-t">
+          <div class="mm-hd-name">Minhas metricas</div>
+          <div class="mm-hd-sub">Escolha o que acompanhar. As metricas ativas aparecem no topo do dashboard.</div>
+        </div>
+        <button class="nat-close" onclick="mmClose()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="mm-body">
+        <div class="mm-grid" id="mm-grid"></div>
+      </div>
+      <div class="mm-foot">
+        <div class="mm-foot-info"><b id="mm-activeCt">0</b> de 5 metricas ativas</div>
+        <button class="btn btn-p" onclick="mmSave()" style="height:40px;padding:0 18px">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- PACIENTES: Modal de exclusao -->
   <div class="modal-overlay" id="pt-modalDel" onclick="if(event.target===this)ptCloseDelModal()">
     <div class="modal" style="width:400px">
@@ -702,6 +752,9 @@
         <span>Configure o valor da sua consulta para ver quanto ganha em R$ com pre-consultas.</span>
       </div>
 
+      <!-- Metricas extras (Minhas Metricas) -->
+      <div class="dn-stat-ext" id="dash-statExt"></div>
+
       <!-- Stats com dot colorido -->
       <div class="dn-stats">
         <div class="dn-stat" onclick="dashFilterByStatus('all')">
@@ -891,12 +944,11 @@
           <p class="crmn-sub">Mantenha seus pacientes ativos com lembretes inteligentes.</p>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn-soon" title="Disponivel em breve: crie regras automaticas de retorno">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Nova régua
-            <span class="soon">Em breve</span>
+          <button class="btn btn-s" onclick="mmOpen()" style="height:40px;padding:0 16px">
+            <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            Minhas métricas
           </button>
-          <button class="btn btn-p" onclick="crmNotifyAllOverdue()" style="height:40px;padding:0 18px">
+          <button class="btn btn-p" onclick="crmOpenNotify()" style="height:40px;padding:0 18px">
             <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
             Notificar atrasados
           </button>
@@ -1476,6 +1528,7 @@ function renderDashboard(){
   dashRenderPC();
   dashCalcBriefing();
   dashLoadTemplatesForModal();
+  if(typeof mmRenderDashboard === 'function') mmRenderDashboard();
 }
 
 function dashUpdateImpact(){
@@ -3296,14 +3349,377 @@ function crmCopyLink(token){
   navigator.clipboard.writeText(url).then(function(){ toast('Link copiado.', 'ok'); });
 }
 
-function crmNotifyAllOverdue(){
+/* ============================================================
+   CRM: NOTIFICAR ATRASADOS — Modal em 3 etapas
+   ============================================================ */
+var NAT_LOG_KEY = 'vitae_notif_log';
+
+var NAT_TEMPLATES = [
+  { id:'educ', grp:'g1', icon:'<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    nome:'Educado', desc:'Lembrete gentil. Ideal pra atrasos pequenos (ate 14 dias).',
+    msg:function(n){ return 'Ola '+n+'! So passando pra lembrar de preencher o formulario antes da consulta. Leva menos de 5 minutos:'; } },
+  { id:'insist', grp:'g2', icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    nome:'Insistencia', desc:'Tom firme com urgencia. Pra atrasos medios (15 a 30 dias).',
+    msg:function(n){ return 'Oi '+n+'! Estamos aguardando suas respostas ha algumas semanas. Sem o formulario preenchido, a consulta fica menos produtiva. Pode concluir agora?'; } },
+  { id:'valor', grp:'g3', icon:'<svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',
+    nome:'Foco no valor', desc:'Reforca o beneficio pra paciente. Pra quem nunca respondeu.',
+    msg:function(n){ return 'Ola '+n+'! Quanto mais eu souber do seu contexto antes da consulta, mais tempo sobra pra cuidar de voce. Bastam 5 minutos:'; } }
+];
+
+var natState = { step:1, items:[], selected:{}, template:null, sentLog:[] };
+
+function natLoadLog(){
+  try{ natState.sentLog = JSON.parse(localStorage.getItem(NAT_LOG_KEY) || '[]'); }
+  catch(e){ natState.sentLog = []; }
+}
+function natSaveLog(){
+  try{ localStorage.setItem(NAT_LOG_KEY, JSON.stringify(natState.sentLog.slice(-500))); }catch(e){}
+}
+function natLastSent(pcId){
+  for(var i=natState.sentLog.length-1;i>=0;i--){ if(natState.sentLog[i].pcId === pcId) return natState.sentLog[i].at; }
+  return null;
+}
+function natDaysSince(iso){ if(!iso) return null; return Math.floor((Date.now()-new Date(iso))/86400000); }
+
+function crmOpenNotify(){
+  natLoadLog();
   var now = new Date();
   var overdue = (state.allPC || []).filter(function(pc){
-    return (pc.status === 'PENDENTE' || pc.status === 'ABERTO') && (now - new Date(pc.criadoEm)) / 86400000 > 7 && pc.pacienteTel;
+    return (pc.status === 'PENDENTE' || pc.status === 'ABERTO') && (now - new Date(pc.criadoEm)) / 86400000 > 7;
+  }).map(function(pc){
+    var days = Math.floor((now - new Date(pc.criadoEm)) / 86400000);
+    var last = natLastSent(pc.id);
+    return { pc:pc, days:days, lastSent:last, lastDays:natDaysSince(last) };
+  }).sort(function(a,b){ return b.days - a.days; });
+
+  if(!overdue.length){
+    toast('Nenhum paciente atrasado no momento.', 'info');
+    return;
+  }
+  natState.step = 1;
+  natState.items = overdue;
+  natState.selected = {};
+  overdue.forEach(function(it){ if(it.pc.pacienteTel) natState.selected[it.pc.id] = true; });
+  natState.template = null;
+  document.getElementById('nat-modal').classList.add('show');
+  natRender();
+}
+
+function crmCloseNotify(){
+  document.getElementById('nat-modal').classList.remove('show');
+}
+
+function crmNotifyBack(){
+  if(natState.step === 2){ natState.step = 1; natRender(); }
+}
+
+function crmNotifyNext(){
+  if(natState.step === 1){
+    var sel = Object.keys(natState.selected).filter(function(k){ return natState.selected[k]; });
+    if(!sel.length){ toast('Selecione ao menos um paciente.', 'warn'); return; }
+    natState.step = 2;
+    natRender();
+  } else if(natState.step === 2){
+    if(!natState.template){ toast('Escolha um template.', 'warn'); return; }
+    natDoSend();
+  } else if(natState.step === 3){
+    crmCloseNotify();
+  }
+}
+
+function natToggleSel(id){
+  natState.selected[id] = !natState.selected[id];
+  natRender();
+}
+
+function natToggleAll(){
+  var items = natState.items.filter(function(i){ return i.pc.pacienteTel; });
+  var allOn = items.every(function(i){ return natState.selected[i.pc.id]; });
+  items.forEach(function(i){ natState.selected[i.pc.id] = !allOn; });
+  natRender();
+}
+
+function natPickTpl(id){
+  natState.template = id;
+  natRender();
+}
+
+function natInitials(nome){
+  var p = (nome||'').trim().split(/\s+/);
+  return ((p[0]||'?')[0] + (p[p.length-1]||'')[0]||'').toUpperCase();
+}
+
+function natFmtPhone(t){
+  if(!t) return 'Sem telefone';
+  var d = t.replace(/\D/g,'');
+  if(d.length === 11) return '('+d.substr(0,2)+') '+d.substr(2,5)+'-'+d.substr(7);
+  if(d.length === 10) return '('+d.substr(0,2)+') '+d.substr(2,4)+'-'+d.substr(6);
+  return t;
+}
+
+function natRender(){
+  var body = document.getElementById('nat-body');
+  var foot = document.getElementById('nat-footInfo');
+  var btnNext = document.getElementById('nat-btnNext');
+  var btnBack = document.getElementById('nat-btnBack');
+
+  if(natState.step === 1){
+    var html = '<div class="nat-step-label">1 · Selecionar pacientes</div>';
+    html += '<div class="nat-tbl">';
+    var items = natState.items;
+    var allOn = items.filter(function(i){ return i.pc.pacienteTel; }).every(function(i){ return natState.selected[i.pc.id]; });
+    html += '<div class="nat-row" onclick="natToggleAll()" style="background:#FAFBFC;font-weight:700">';
+    html += '<div class="nat-cb '+(allOn?'on':'')+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>';
+    html += '<div style="font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);font-weight:800">Paciente</div>';
+    html += '<div style="font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);font-weight:800">Notificado</div>';
+    html += '<div style="font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);font-weight:800;text-align:right">Atraso</div>';
+    html += '</div>';
+    items.forEach(function(it){
+      var pc = it.pc;
+      var sel = !!natState.selected[pc.id];
+      var hasTel = !!pc.pacienteTel;
+      var nome = pc.pacienteNome || 'Paciente';
+      var daysClass = it.days > 30 ? 'bad' : it.days > 14 ? 'warn' : '';
+      var ctxTxt = hasTel ? (it.lastSent ? 'Ha '+it.lastDays+' dia'+(it.lastDays!==1?'s':'') : 'Nunca') : 'Sem telefone';
+      html += '<div class="nat-row '+(sel?'sel':'')+'" '+(hasTel?'onclick="natToggleSel(\''+pc.id+'\')"':'style="opacity:.45;cursor:not-allowed"')+'>';
+      html += '<div class="nat-cb '+(sel?'on':'')+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>';
+      html += '<div class="nat-pat"><div class="nat-av">'+escHtml(natInitials(nome))+'</div><div style="min-width:0"><div class="nat-name">'+escHtml(nome)+'</div><div class="nat-sub">'+escHtml(natFmtPhone(pc.pacienteTel))+'</div></div></div>';
+      html += '<div class="nat-ctx">'+escHtml(ctxTxt)+'</div>';
+      html += '<div class="nat-days '+daysClass+'">'+it.days+'d<small>atrasado</small></div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    body.innerHTML = html;
+    var selCt = Object.keys(natState.selected).filter(function(k){ return natState.selected[k]; }).length;
+    foot.textContent = selCt + ' selecionado'+(selCt!==1?'s':'')+' de ' + natState.items.filter(function(i){return i.pc.pacienteTel;}).length;
+    btnNext.innerHTML = 'Escolher mensagem <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>';
+    btnBack.style.display = 'none';
+  } else if(natState.step === 2){
+    var html2 = '<div class="nat-step-label">2 · Escolher mensagem</div>';
+    html2 += '<div class="nat-tpls">';
+    NAT_TEMPLATES.forEach(function(tpl){
+      var on = natState.template === tpl.id;
+      var prev = tpl.msg('[Nome]');
+      html2 += '<div class="nat-tpl '+tpl.grp+' '+(on?'on':'')+'" onclick="natPickTpl(\''+tpl.id+'\')">';
+      html2 += '<div class="nat-tpl-ic">'+tpl.icon+'</div>';
+      html2 += '<div class="nat-tpl-b"><div class="nat-tpl-n">'+tpl.nome+'</div><div class="nat-tpl-d">'+escHtml(tpl.desc)+'</div>';
+      html2 += '<div class="nat-tpl-prev">"'+escHtml(prev)+'"</div></div>';
+      html2 += '<div class="nat-tpl-chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>';
+      html2 += '</div>';
+    });
+    html2 += '</div>';
+    body.innerHTML = html2;
+    var selCt2 = Object.keys(natState.selected).filter(function(k){ return natState.selected[k]; }).length;
+    foot.innerHTML = 'Enviara para <b>'+selCt2+'</b> paciente'+(selCt2!==1?'s':'');
+    btnNext.innerHTML = '<svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg> Enviar '+selCt2+' notifica'+(selCt2!==1?'coes':'cao');
+    btnBack.style.display = '';
+  } else if(natState.step === 3){
+    var sent = natState._lastSent || [];
+    var html3 = '<div class="nat-success">';
+    html3 += '<div class="nat-success-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>';
+    html3 += '<div class="nat-success-t">'+sent.length+' notifica'+(sent.length!==1?'coes enviadas':'cao enviada')+'!</div>';
+    html3 += '<div class="nat-success-s">Abri o WhatsApp em abas separadas. Revise e envie cada mensagem.</div>';
+    html3 += '<div class="nat-success-stats">';
+    html3 += '<div class="nat-ss-card"><div class="nat-ss-n">'+sent.length+'</div><div class="nat-ss-l">Enviadas</div></div>';
+    html3 += '<div class="nat-ss-card"><div class="nat-ss-n">0</div><div class="nat-ss-l">Erros</div></div>';
+    html3 += '</div></div>';
+    body.innerHTML = html3;
+    foot.textContent = 'Historico salvo · aparece como "notificado ha X dias"';
+    btnNext.innerHTML = 'Fechar';
+    btnBack.style.display = 'none';
+  }
+}
+
+function natDoSend(){
+  var tpl = NAT_TEMPLATES.find(function(t){ return t.id === natState.template; });
+  if(!tpl) return;
+  var selected = natState.items.filter(function(it){ return natState.selected[it.pc.id] && it.pc.pacienteTel; });
+  var sent = [];
+  selected.forEach(function(it, idx){
+    var pc = it.pc;
+    var nome = pc.pacienteNome || 'Paciente';
+    var url = window.location.origin + '/pre-consulta.html?token=' + (pc.linkToken || '');
+    var msg = encodeURIComponent(tpl.msg(nome) + '\n\n' + url);
+    var num = pc.pacienteTel.replace(/\D/g, '');
+    setTimeout(function(){ window.open('https://wa.me/55' + num + '?text=' + msg, '_blank'); }, idx * 120);
+    natState.sentLog.push({ pcId:pc.id, at:new Date().toISOString(), tpl:tpl.id });
+    sent.push(pc);
   });
-  if(!overdue.length){ toast('Nenhum paciente atrasado com telefone.', 'info'); return; }
-  overdue.forEach(function(pc){ crmReenviarWA(pc.pacienteNome || 'Paciente', pc.pacienteTel, pc.linkToken || ''); });
-  toast(overdue.length + ' notificacao(oes) enviadas via WhatsApp.', 'ok');
+  natSaveLog();
+  natState._lastSent = sent;
+  natState.step = 3;
+  natRender();
+}
+
+/* compat: botao antigo se existir */
+function crmNotifyAllOverdue(){ crmOpenNotify(); }
+
+/* ============================================================
+   MINHAS METRICAS — Modal + Render Dashboard
+   ============================================================ */
+var MM_KEY = 'vitae_metricas_config';
+var MM_DEFS = [
+  { id:'consultas', ic:'mm-ic-blue', svg:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    nome:'Consultas do mes', desc:'Pre-consultas respondidas no mes atual.', fmt:'int', meta:true },
+  { id:'novos', ic:'mm-ic-green', svg:'<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>',
+    nome:'Pacientes novos/mes', desc:'Primeira pre-consulta no mes atual.', fmt:'int' },
+  { id:'retorno', ic:'mm-ic-purple', svg:'<svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+    nome:'Taxa de retorno', desc:'% de pacientes que tiveram 2+ pre-consultas em 90d.', fmt:'pct' },
+  { id:'fatur', ic:'mm-ic-amber', svg:'<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+    nome:'Faturamento do mes', desc:'Consultas respondidas x valor do seu perfil.', fmt:'brl' },
+  { id:'noshow', ic:'mm-ic-red', svg:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>',
+    nome:'Taxa de no-show', desc:'% de pre-consultas que expiraram sem resposta.', fmt:'pct', down:true }
+];
+
+function mmLoad(){
+  try{ var c = JSON.parse(localStorage.getItem(MM_KEY) || '{}'); return c && typeof c === 'object' ? c : {}; }
+  catch(e){ return {}; }
+}
+function mmGetCfg(){
+  var c = mmLoad();
+  return { on: c.on || {}, meta: (typeof c.meta === 'number' && c.meta > 0) ? c.meta : 60 };
+}
+function mmSaveCfg(c){ try{ localStorage.setItem(MM_KEY, JSON.stringify(c)); }catch(e){} }
+
+function mmOpen(){
+  mmState = mmGetCfg();
+  document.getElementById('mm-modal').classList.add('show');
+  mmRender();
+}
+function mmClose(){ document.getElementById('mm-modal').classList.remove('show'); }
+
+var mmState = { on:{}, meta:60 };
+
+function mmToggle(id){
+  mmState.on[id] = !mmState.on[id];
+  mmRender();
+}
+function mmMetaInput(v){
+  var n = parseInt(v, 10);
+  if(isNaN(n) || n < 1) n = 1;
+  if(n > 9999) n = 9999;
+  mmState.meta = n;
+}
+
+function mmCompute(id){
+  var pc = state.allPC || [];
+  var now = new Date();
+  var m = now.getMonth(), y = now.getFullYear();
+  var pm = new Date(y, m-1, 1);
+  if(id === 'consultas'){
+    var cur = pc.filter(function(p){ if(p.status!=='RESPONDIDA') return false; var d=new Date(p.criadoEm); return d.getMonth()===m && d.getFullYear()===y; }).length;
+    var prev = pc.filter(function(p){ if(p.status!=='RESPONDIDA') return false; var d=new Date(p.criadoEm); return d.getMonth()===pm.getMonth() && d.getFullYear()===pm.getFullYear(); }).length;
+    return { value:cur, delta:cur-prev };
+  }
+  if(id === 'novos'){
+    var seen = {};
+    var sorted = pc.slice().sort(function(a,b){ return new Date(a.criadoEm) - new Date(b.criadoEm); });
+    var cur2 = 0, prev2 = 0;
+    sorted.forEach(function(p){
+      var k = p.pacienteId || p.pacienteTel || p.pacienteNome;
+      if(!k || seen[k]) return;
+      seen[k] = true;
+      var d = new Date(p.criadoEm);
+      if(d.getMonth()===m && d.getFullYear()===y) cur2++;
+      else if(d.getMonth()===pm.getMonth() && d.getFullYear()===pm.getFullYear()) prev2++;
+    });
+    return { value:cur2, delta:cur2-prev2 };
+  }
+  if(id === 'retorno'){
+    var limit = new Date(now.getTime() - 90*86400000);
+    var byPat = {};
+    pc.forEach(function(p){
+      if(new Date(p.criadoEm) < limit) return;
+      var k = p.pacienteId || p.pacienteTel;
+      if(!k) return;
+      byPat[k] = (byPat[k]||0) + 1;
+    });
+    var total = Object.keys(byPat).length;
+    if(!total) return { value:0, delta:0 };
+    var ret = Object.keys(byPat).filter(function(k){ return byPat[k] >= 2; }).length;
+    return { value: Math.round(ret*100/total), delta:0 };
+  }
+  if(id === 'fatur'){
+    var consCur = pc.filter(function(p){ if(p.status!=='RESPONDIDA') return false; var d=new Date(p.criadoEm); return d.getMonth()===m && d.getFullYear()===y; }).length;
+    var perfil = state.perfilMedico || {};
+    var valor = parseFloat(perfil.valorConsulta || perfil.valor_medio || 0) || 0;
+    return { value: consCur * valor, delta:0, valorUnit:valor };
+  }
+  if(id === 'noshow'){
+    var enviados = pc.filter(function(p){ var d=new Date(p.criadoEm); return d.getMonth()===m && d.getFullYear()===y; });
+    if(!enviados.length) return { value:0, delta:0 };
+    var exp = enviados.filter(function(p){ return p.status === 'EXPIRADA'; }).length;
+    return { value: Math.round(exp*100/enviados.length), delta:0 };
+  }
+  return { value:0, delta:0 };
+}
+
+function mmFmt(def, v){
+  if(def.fmt === 'pct') return v.value + '%';
+  if(def.fmt === 'brl'){
+    if(!v.value) return 'R$ 0';
+    return 'R$ ' + v.value.toLocaleString('pt-BR', {maximumFractionDigits:0});
+  }
+  return String(v.value);
+}
+
+function mmRender(){
+  var grid = document.getElementById('mm-grid');
+  var ct = 0;
+  var html = '';
+  MM_DEFS.forEach(function(def){
+    var on = !!mmState.on[def.id];
+    if(on) ct++;
+    var v = mmCompute(def.id);
+    html += '<div class="mm-card '+(on?'on':'')+'">';
+    html += '<div class="mm-card-hd">';
+    html += '<div class="mm-card-ic '+def.ic+'">'+def.svg+'</div>';
+    html += '<div class="mm-card-ti"><div class="mm-card-n">'+def.nome+'</div><div class="mm-card-d">'+escHtml(def.desc)+'</div></div>';
+    html += '<div class="mm-tog '+(on?'on':'')+'" onclick="mmToggle(\''+def.id+'\')"></div>';
+    html += '</div>';
+    html += '<div class="mm-mini"><div><div class="mm-mini-l">Agora</div><div class="mm-mini-v">'+mmFmt(def, v)+'</div></div>';
+    if(def.id === 'fatur' && v.valorUnit){ html += '<div class="mm-mini-l" style="letter-spacing:0;text-transform:none;font-size:11px">'+v.value/v.valorUnit+' x R$ '+v.valorUnit.toLocaleString('pt-BR')+'</div>'; }
+    html += '</div>';
+    if(def.meta && on){
+      html += '<div class="mm-meta"><span class="mm-meta-l">Meta mensal</span><input type="number" min="1" max="9999" value="'+mmState.meta+'" oninput="mmMetaInput(this.value)" /></div>';
+    }
+    html += '</div>';
+  });
+  grid.innerHTML = html;
+  document.getElementById('mm-activeCt').textContent = ct;
+}
+
+function mmSave(){
+  mmSaveCfg({ on: mmState.on, meta: mmState.meta });
+  mmClose();
+  toast('Metricas salvas. Aparecem no dashboard.', 'ok');
+  mmRenderDashboard();
+}
+
+function mmRenderDashboard(){
+  var ext = document.getElementById('dash-statExt');
+  if(!ext) return;
+  var cfg = mmGetCfg();
+  var any = false;
+  var html = '';
+  MM_DEFS.forEach(function(def){
+    if(!cfg.on[def.id]) return;
+    any = true;
+    var v = mmCompute(def.id);
+    var tag = '';
+    if(def.id === 'consultas'){
+      var pct = Math.round(v.value*100/cfg.meta);
+      tag = '<div class="dn-stat-x-tg">'+v.value+' de '+cfg.meta+' (meta) · '+pct+'%</div>';
+    } else if(v.delta && (def.id==='novos')){
+      var up = v.delta > 0;
+      tag = '<div class="dn-stat-x-tg '+(up?'up':'dn')+'">'+(up?'▲ +':'▼ ')+v.delta+' vs mes passado</div>';
+    } else {
+      tag = '<div class="dn-stat-x-tg">neste mes</div>';
+    }
+    html += '<div class="dn-stat-x"><div class="dn-stat-x-l">'+def.nome+'</div><div class="dn-stat-x-v">'+mmFmt(def, v)+'</div>'+tag+'</div>';
+  });
+  ext.innerHTML = html;
+  ext.className = 'dn-stat-ext' + (any ? ' has' : '');
 }
 
 /* ============================================================
