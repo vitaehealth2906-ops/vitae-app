@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Preview — Dupla identidade do paciente</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',sans-serif;background:#F4F6FA;color:#0D0F14;padding:40px 24px 80px;min-height:100vh}
+  .hdr{max-width:1280px;margin:0 auto 32px}
+  .hdr h1{font-size:28px;font-weight:900;letter-spacing:-.8px;margin-bottom:6px}
+  .hdr h1 em{font-style:italic;background:linear-gradient(120deg,#00E5A0,#00B4D8);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hdr p{color:#6B7280;font-size:14px;line-height:1.55;max-width:760px}
+
+  .section{max-width:1280px;margin:0 auto 32px}
+  .s-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#9CA3AF;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .s-label::before{content:'';width:28px;height:2px;background:linear-gradient(90deg,#00E5A0,#00B4D8);border-radius:2px}
+
+  .list{background:#fff;border-radius:16px;box-shadow:0 1px 12px rgba(0,0,0,.07);overflow:hidden}
+  .lhead{display:grid;grid-template-columns:2.2fr 1.1fr 1.8fr 1.3fr 1fr 0.7fr;gap:16px;padding:14px 24px;background:#FAFBFC;border-bottom:1px solid rgba(0,0,0,.05);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:#9CA3AF}
+  .row{display:grid;grid-template-columns:2.2fr 1.1fr 1.8fr 1.3fr 1fr 0.7fr;gap:16px;padding:16px 24px;align-items:center;border-bottom:1px solid rgba(0,0,0,.04);transition:background .15s}
+  .row:last-child{border-bottom:0}
+  .row:hover{background:#FAFBFC}
+
+  .pat{display:flex;align-items:center;gap:12px;min-width:0}
+  .av{width:40px;height:40px;border-radius:12px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .av.gray{background:#E5E7EB;color:#6B7280}
+  .nameblock{min-width:0;flex:1}
+  .nm{font-size:14px;font-weight:800;color:#0D0F14;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub{font-size:11px;font-weight:500;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
+  .sub.vita{color:#00B48C}
+  .sub.vita .mini-check{width:11px;height:11px;border-radius:50%;background:#00C47A;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+  .sub.vita .mini-check svg{width:7px;height:7px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+  .sub.waiting{color:#9CA3AF;font-style:italic}
+  .sub.waiting::before{content:'';width:6px;height:6px;border-radius:50%;background:#F59E0B;margin-right:2px;flex-shrink:0}
+  .sub em{font-style:normal;color:#6B7280;font-weight:700}
+
+  .telcol{font-size:13px;color:#4B5563;font-weight:500}
+  .telcol.empty{color:#C4C9D4}
+
+  .badges{display:flex;gap:6px;flex-wrap:wrap}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700;white-space:nowrap}
+  .badge .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+  .badge.gray{background:rgba(156,163,175,.12);color:#6B7280}
+  .badge.gray .dot{background:#9CA3AF}
+  .badge.warn{background:rgba(245,158,11,.12);color:#B45309}
+  .badge.warn .dot{background:#F59E0B}
+  .badge.ok{background:rgba(0,196,122,.1);color:#00824F}
+  .badge.ok .dot{background:#00C47A}
+
+  .datecol{font-size:13px;color:#4B5563;font-weight:500}
+  .pccol{font-size:13px;color:#0D0F14;font-weight:700}
+  .pccol .when{font-size:11px;color:#9CA3AF;font-weight:500;margin-top:2px}
+
+  .act{display:flex;gap:6px;justify-content:flex-end}
+  .btn{padding:7px 14px;border:1px solid rgba(0,0,0,.08);border-radius:10px;background:#fff;font:inherit;font-size:12px;font-weight:700;color:#4B5563;cursor:pointer;transition:.15s}
+  .btn:hover{border-color:rgba(0,0,0,.16);color:#0D0F14}
+
+  .notes{max-width:1280px;margin:28px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .note{background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 1px 12px rgba(0,0,0,.07);border-left:3px solid #00C47A}
+  .note h4{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:#00824F;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+  .note ul{list-style:none;padding:0}
+  .note li{font-size:13px;color:#4B5563;line-height:1.6;padding-left:16px;position:relative;margin-bottom:6px}
+  .note li::before{content:'→';position:absolute;left:0;color:#00C47A;font-weight:800}
+  .note.info{border-left-color:#3B82F6}
+  .note.info h4{color:#1D4ED8}
+  .note.info li::before{content:'•';color:#3B82F6}
+
+  .call{max-width:1280px;margin:40px auto 0;background:linear-gradient(120deg,rgba(0,229,160,.08),rgba(0,180,216,.08));border:1px solid rgba(0,229,160,.22);border-radius:16px;padding:24px 28px}
+  .call h3{font-size:14px;font-weight:900;margin-bottom:6px;color:#0D0F14}
+  .call p{font-size:13px;color:#4B5563;line-height:1.6}
+
+  .zoom{max-width:1280px;margin:28px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .zoom-card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 1px 12px rgba(0,0,0,.07)}
+  .zoom-card .z-t{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:#9CA3AF;margin-bottom:14px}
+  .zoom-row{display:flex;align-items:center;gap:14px;padding:12px;background:#FAFBFC;border-radius:12px}
+  .zoom-row .big-av{width:52px;height:52px;border-radius:14px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .zoom-row .big-av.gray{background:#E5E7EB;color:#6B7280}
+  .zoom-row .z-info{flex:1;min-width:0}
+  .zoom-row .z-nm{font-size:16px;font-weight:800;letter-spacing:-.2px;margin-bottom:4px}
+  .zoom-row .z-sb{font-size:12px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>Preview v2 — <em>dupla identidade</em> do paciente</h1>
+  <p>Versao ajustada: (1) nome igual tambem mostra o nome completo embaixo, (2) badge "vita id" removido da coluna status, (3) abreviacao inteligente pra nomes longos nunca cortarem.</p>
+</div>
+
+<div class="section">
+  <div class="s-label">Lista de pacientes — depois</div>
+  <div class="list">
+    <div class="lhead">
+      <div>Paciente</div>
+      <div>Telefone</div>
+      <div>Status</div>
+      <div>Ultima atividade</div>
+      <div>Pre-consultas</div>
+      <div></div>
+    </div>
+
+    <!-- COM VINCULO -->
+    <div class="row">
+      <div class="pat">
+        <div class="av">LS</div>
+        <div class="nameblock">
+          <div class="nm">lucas silva</div>
+          <div class="sub vita" title="Lucas Borelli da Silva">
+            <span class="mini-check"><svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 8"/></svg></span>
+            vita id · <em>Lucas B. da Silva</em>
+          </div>
+        </div>
+      </div>
+      <div class="telcol">(19) 97365-2819</div>
+      <div class="badges">
+        <span class="badge warn"><span class="dot"></span>1 pendente</span>
+      </div>
+      <div class="datecol">19 de abr. de 2026</div>
+      <div class="pccol">1 PC<div class="when">0 respondidas</div></div>
+      <div class="act"><button class="btn">Ver</button></div>
+    </div>
+
+    <!-- SEM VINCULO -->
+    <div class="row">
+      <div class="pat">
+        <div class="av gray">MS</div>
+        <div class="nameblock">
+          <div class="nm">maria da silva</div>
+          <div class="sub waiting">aguardando cadastro no vita id</div>
+        </div>
+      </div>
+      <div class="telcol">(11) 11928-3710</div>
+      <div class="badges">
+        <span class="badge gray"><span class="dot"></span>Sem vinculo</span>
+        <span class="badge warn"><span class="dot"></span>1 pendente</span>
+      </div>
+      <div class="datecol">19 de abr. de 2026</div>
+      <div class="pccol">1 PC<div class="when">0 respondidas</div></div>
+      <div class="act"><button class="btn">Info</button></div>
+    </div>
+
+    <!-- COM VINCULO — nome bem diferente -->
+    <div class="row">
+      <div class="pat">
+        <div class="av">JO</div>
+        <div class="nameblock">
+          <div class="nm">dona joana</div>
+          <div class="sub vita" title="Joana Aparecida Pereira Santos">
+            <span class="mini-check"><svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 8"/></svg></span>
+            vita id · <em>Joana A. P. Santos</em>
+          </div>
+        </div>
+      </div>
+      <div class="telcol">(11) 98877-2211</div>
+      <div class="badges">
+        <span class="badge ok"><span class="dot"></span>3 meds</span>
+      </div>
+      <div class="datecol">17 de abr. de 2026</div>
+      <div class="pccol">4 PCs<div class="when">3 respondidas</div></div>
+      <div class="act"><button class="btn">Ver</button></div>
+    </div>
+
+    <!-- COM VINCULO — nome igual (agora mostra o nome mesmo assim) -->
+    <div class="row">
+      <div class="pat">
+        <div class="av">RF</div>
+        <div class="nameblock">
+          <div class="nm">Rafael Ferraz</div>
+          <div class="sub vita" title="Rafael Ferraz">
+            <span class="mini-check"><svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 8"/></svg></span>
+            vita id · <em>Rafael Ferraz</em>
+          </div>
+        </div>
+      </div>
+      <div class="telcol">(11) 99654-4321</div>
+      <div class="badges">
+        <span style="font-size:11px;color:#C4C9D4">—</span>
+      </div>
+      <div class="datecol">15 de abr. de 2026</div>
+      <div class="pccol">2 PCs<div class="when">2 respondidas</div></div>
+      <div class="act"><button class="btn">Ver</button></div>
+    </div>
+
+    <!-- COM VINCULO — nome bem longo (teste da abreviacao) -->
+    <div class="row">
+      <div class="pat">
+        <div class="av">MF</div>
+        <div class="nameblock">
+          <div class="nm">maria ferreira</div>
+          <div class="sub vita" title="Maria Eduarda Gonçalves Ferreira de Souza">
+            <span class="mini-check"><svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 8"/></svg></span>
+            vita id · <em>Maria E. G. F. de Souza</em>
+          </div>
+        </div>
+      </div>
+      <div class="telcol">(11) 93221-5566</div>
+      <div class="badges">
+        <span class="badge ok"><span class="dot"></span>1 med</span>
+      </div>
+      <div class="datecol">14 de abr. de 2026</div>
+      <div class="pccol">1 PC<div class="when">1 respondida</div></div>
+      <div class="act"><button class="btn">Ver</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="s-label">Zoom nos tres estados</div>
+  <div class="zoom">
+    <div class="zoom-card">
+      <div class="z-t">1. Com vinculo · nome diferente</div>
+      <div class="zoom-row">
+        <div class="big-av">LS</div>
+        <div class="z-info">
+          <div class="z-nm">lucas silva</div>
+          <div class="z-sb sub vita">
+            <span class="mini-check"><svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 8"/></svg></span>
+            vita id · <em>Lucas B. da Silva</em>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#6B7280;margin-top:10px;line-height:1.55">Medico digitou "lucas silva". Paciente cadastrou "Lucas Borelli da Silva". Nome do meio vira inicial. Passar mouse em cima mostra o nome completo original no tooltip.</p>
+    </div>
+
+    <div class="zoom-card">
+      <div class="z-t">2. Com vinculo · nome igual</div>
+      <div class="zoom-row">
+        <div class="big-av">RF</div>
+        <div class="z-info">
+          <div class="z-nm">Rafael Ferraz</div>
+          <div class="z-sb sub vita">
+            <span class="mini-check"><svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 8"/></svg></span>
+            vita id · <em>Rafael Ferraz</em>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#6B7280;margin-top:10px;line-height:1.55">Mesmo quando os nomes batem, a linha vita id continua. Consistencia absoluta — medico sempre sabe onde olhar pra confirmar identidade.</p>
+    </div>
+
+    <div class="zoom-card">
+      <div class="z-t">3. Sem vinculo</div>
+      <div class="zoom-row">
+        <div class="big-av gray">MS</div>
+        <div class="z-info">
+          <div class="z-nm">maria da silva</div>
+          <div class="z-sb sub waiting">aguardando cadastro no vita id</div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#6B7280;margin-top:10px;line-height:1.55">Paciente ainda nao abriu o link. Avatar fica cinza (sinal visual sutil). Linha cinza italica deixa claro o que falta.</p>
+    </div>
+
+    <div class="zoom-card">
+      <div class="z-t">4. Nome longo · abreviacao inteligente</div>
+      <div class="zoom-row">
+        <div class="big-av">MF</div>
+        <div class="z-info">
+          <div class="z-nm">maria ferreira</div>
+          <div class="z-sb sub vita">
+            <span class="mini-check"><svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 8"/></svg></span>
+            vita id · <em>Maria E. G. F. de Souza</em>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#6B7280;margin-top:10px;line-height:1.55">Original: "Maria Eduarda Goncalves Ferreira de Souza". Primeiro e ultimo intactos, do meio vira inicial, conectivos ("de", "da", "do") preservados em minuscula.</p>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <div class="note info">
+    <h4>Hierarquia visual</h4>
+    <ul>
+      <li>Nome do medico: <strong>14px, negrito, preto</strong> — Sistema 1, reconhecimento instantaneo</li>
+      <li>vita id: <strong>11px, medio, verde-agua</strong> — Sistema 2, confirmacao analitica</li>
+      <li>Check verde minusculo marca "identidade verificada" sem poluir</li>
+      <li>Telefone sai da linha secundaria e vai pra coluna propria</li>
+    </ul>
+  </div>
+  <div class="note">
+    <h4>Regra de abreviacao</h4>
+    <ul>
+      <li><strong>Primeiro nome:</strong> inteiro (Maria, Lucas, Joana)</li>
+      <li><strong>Ultimo sobrenome:</strong> inteiro (Silva, Santos, Souza)</li>
+      <li><strong>Nomes do meio:</strong> viram inicial + ponto (Borelli → B., Eduarda → E.)</li>
+      <li><strong>Conectivos:</strong> "da / de / do / dos / das" ficam intactos em minuscula</li>
+      <li><strong>Tooltip:</strong> passar mouse mostra o nome completo original sem corte</li>
+      <li><strong>Perfil do paciente:</strong> quando abrir, mostra o nome completo inteiro</li>
+    </ul>
+  </div>
+</div>
+
+<div class="call">
+  <h3>Consistencia em 4 lugares do app</h3>
+  <p>Depois que voce aprovar, aplico essa mesma logica em: <strong>lista de pacientes</strong> (a que voce mostrou), <strong>cabecalho do perfil</strong> quando abre um paciente, <strong>cartoes de pre-consulta</strong> no dashboard, e o <strong>modal "Link pronto pra ..."</strong> que criamos hoje cedo. O medico nunca vai perder o fio da meada.</p>
+</div>
+
+</body>
+</html>

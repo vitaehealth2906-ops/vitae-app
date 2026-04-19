@@ -823,6 +823,7 @@
         <div class="pct-card">
           <div class="pct-thead">
             <div>Paciente</div>
+            <div>Telefone</div>
             <div>Status / Alertas</div>
             <div>Ultima atividade</div>
             <div>Pre-consultas</div>
@@ -1424,6 +1425,26 @@ function getInitials(n){
   if(!n) return '--';
   var p = n.replace(/^(Dr\.?\s*|Dra\.?\s*)/i,'').trim().split(/\s+/);
   return p.length>=2 ? (p[0][0]+p[p.length-1][0]).toUpperCase() : (p[0]?p[0].substring(0,2).toUpperCase():'--');
+}
+// Abreviacao inteligente: primeiro e ultimo inteiros, nomes do meio viram inicial+ponto, conectivos preservados
+function abreviarNome(n){
+  if(!n) return '';
+  var conectivos = ['da','de','do','dos','das','e','di','du','del','della'];
+  var partes = n.trim().split(/\s+/);
+  if(partes.length <= 2) return n;
+  var primeiro = partes[0];
+  var ultimo = partes[partes.length-1];
+  var meio = partes.slice(1,-1).map(function(p){
+    var lower = p.toLowerCase();
+    if(conectivos.indexOf(lower) >= 0) return lower;
+    return p[0].toUpperCase() + '.';
+  });
+  return [primeiro].concat(meio).concat([ultimo]).join(' ');
+}
+function nomesIguais(a,b){
+  if(!a || !b) return false;
+  var norm = function(s){ return s.trim().toLowerCase().replace(/\s+/g,' '); };
+  return norm(a) === norm(b);
 }
 function formatDr(n){
   if(!n) return 'Medico';
@@ -2988,11 +3009,24 @@ function ptRenderPatients(){
     var alergiasGraves = p.alergiasGraves || 0;
     var medsAtivos = p.medicamentosAtivos || 0;
 
-    // Avatar com foto ou iniciais
+    // Avatar com foto ou iniciais (cinza quando sem vinculo)
     var fotoUrl = pickFoto(p);
+    var avClass = temVinculo ? 'pct-av' : 'pct-av gray';
     var avHtml = fotoUrl
-      ? '<div class="pct-av"><img src="' + fotoUrl + '" alt="" onerror="this.parentNode.innerHTML=\'' + sa(initials) + '\'"></div>'
-      : '<div class="pct-av">' + sa(initials) + '</div>';
+      ? '<div class="' + avClass + '"><img src="' + fotoUrl + '" alt="" onerror="this.parentNode.innerHTML=\'' + sa(initials) + '\'"></div>'
+      : '<div class="' + avClass + '">' + sa(initials) + '</div>';
+
+    // Linha secundaria: vita id (com vinculo) ou "aguardando cadastro" (sem)
+    var subLineHtml = '';
+    if(temVinculo){
+      var nomeVita = p.nomeVitaId || p.pacienteNome || '';
+      var nomeAbrev = abreviarNome(nomeVita);
+      subLineHtml = '<div class="pct-sub-vita" title="' + sa(nomeVita) + '">' +
+        '<span class="mini-check"><svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 8"/></svg></span>' +
+        'vita id · <em>' + s(nomeAbrev) + '</em></div>';
+    } else {
+      subLineHtml = '<div class="pct-sub-wait">aguardando cadastro no vita id</div>';
+    }
 
     // Badges
     var badges = [];
@@ -3013,7 +3047,8 @@ function ptRenderPatients(){
       : 'ptShowAnonimoMsg(\'' + sa(name) + '\')';
 
     return '<div class="pct-trow" ' + clickHandler + '>' +
-      '<div class="pct-pat">' + avHtml + '<div style="min-width:0;flex:1"><div class="pct-name">' + s(name) + '</div><div class="pct-sub-ln">' + s(telFmt) + '</div></div></div>' +
+      '<div class="pct-pat">' + avHtml + '<div style="min-width:0;flex:1"><div class="pct-name">' + s(name) + '</div>' + subLineHtml + '</div></div>' +
+      '<div class="pct-tel' + (tel ? '' : ' empty') + '">' + s(tel ? telFmt : '—') + '</div>' +
       '<div class="pct-badges">' + badges.join('') + '</div>' +
       '<div class="pct-date">' + dateStr + '</div>' +
       '<div class="pct-date">' + pcCount + ' PC' + (pcCount !== 1 ? 's' : '') + '<div class="when">' + pcRespondidas + ' respondidas</div></div>' +

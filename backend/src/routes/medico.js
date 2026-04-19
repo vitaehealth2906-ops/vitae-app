@@ -198,10 +198,14 @@ router.get('/pacientes', async (req, res, next) => {
       const pcRespondidas = pcsDaqui.filter(x => x.status === 'RESPONDIDA').length;
       const pcPendentes = pcsDaqui.filter(x => x.status === 'PENDENTE' || x.status === 'ABERTO').length;
       const alergiasGraves = (p.alergias || []).filter(x => x.gravidade === 'GRAVE').length;
+      // Nome que o medico digitou na PC mais recente (memoria muscular do medico);
+      // se nao houver PC, usa o nome oficial do cadastro como fallback
+      const nomeDigitado = pcsDaqui[0]?.pacienteNome || p.nome;
 
       pacientesVinculadosMap.set(p.id, {
         pacienteId: p.id,
-        pacienteNome: p.nome,
+        pacienteNome: nomeDigitado,
+        nomeVitaId: p.nome,
         pacienteTel: p.celular,
         pacienteEmail: p.email,
         pacienteFotoUrl: p.fotoUrl,
@@ -235,9 +239,11 @@ router.get('/pacientes', async (req, res, next) => {
       });
       if (!usuario) continue;
       const ultimaAtividade = pcsDaqui[0]?.respondidaEm || pcsDaqui[0]?.criadoEm || null;
+      const nomeDigitado = pcsDaqui[0]?.pacienteNome || usuario.nome;
       pacientesVinculadosMap.set(pacienteId, {
         pacienteId,
-        pacienteNome: usuario.nome,
+        pacienteNome: nomeDigitado,
+        nomeVitaId: usuario.nome,
         pacienteTel: usuario.celular,
         pacienteEmail: usuario.email,
         pacienteFotoUrl: usuario.fotoUrl,
@@ -263,6 +269,7 @@ router.get('/pacientes', async (req, res, next) => {
         pacienteId: null,
         chaveAnonima: chave,
         pacienteNome: primeiroPc.pacienteNome,
+        nomeVitaId: null,
         pacienteTel: primeiroPc.pacienteTel,
         pacienteEmail: null,
         pacienteFotoUrl: primeiroPc.pacienteFotoUrl,
