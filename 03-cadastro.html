@@ -220,7 +220,7 @@
                 <div class="field-label">Celular</div>
                 <div class="phone-input-wrap">
                     <div class="phone-prefix">🇧🇷 +55</div>
-                    <input class="field-input" type="tel" placeholder="(11) 99999-9999" oninput="checkForm()">
+                    <input class="field-input" type="tel" inputmode="numeric" maxlength="15" placeholder="(11) 99999-9999" oninput="maskCelular(this); checkForm()">
                 </div>
             </div>
 
@@ -319,6 +319,25 @@
         } else {
             btn.classList.remove('enabled');
         }
+    }
+
+    function maskCelular(el) {
+        let d = el.value.replace(/\D/g, '');
+        if (d.startsWith('55') && d.length > 11) d = d.slice(2);
+        d = d.slice(0, 11);
+        let out = '';
+        if (d.length === 0) { el.value = ''; return; }
+        out = '(' + d.slice(0, 2);
+        if (d.length >= 3) {
+            out += ') ';
+            if (d.length <= 10) {
+                out += d.slice(2, 6);
+                if (d.length >= 7) out += '-' + d.slice(6, 10);
+            } else {
+                out += d.slice(2, 7) + '-' + d.slice(7, 11);
+            }
+        }
+        el.value = out;
     }
 
     function formatCelular(raw) {
