@@ -4173,7 +4173,8 @@ function crmNotifyNext(){
     natState.step = 2;
     natRender();
   } else if(natState.step === 2){
-    if(!natState.template){ toast('Escolha um template.', 'warn'); return; }
+    var m = (natState.message || '').trim();
+    if(!m){ toast('Escreva a mensagem.', 'warn'); return; }
     natDoSend();
   } else if(natState.step === 3){
     navigate('crm');
@@ -4272,20 +4273,16 @@ function natRender(){
     btnNext.innerHTML = 'Escolher mensagem <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>';
     btnBack.style.display = 'none';
   } else if(natState.step === 2){
-    var html2 = '<div class="nat-step-label">2 · Escolher mensagem</div>';
-    html2 += '<div class="nat-tpls">';
-    NAT_TEMPLATES.forEach(function(tpl){
-      var on = natState.template === tpl.id;
-      var prev = tpl.msg('[Nome]');
-      html2 += '<div class="nat-tpl '+tpl.grp+' '+(on?'on':'')+'" onclick="natPickTpl(\''+tpl.id+'\')">';
-      html2 += '<div class="nat-tpl-ic">'+tpl.icon+'</div>';
-      html2 += '<div class="nat-tpl-b"><div class="nat-tpl-n">'+tpl.nome+'</div><div class="nat-tpl-d">'+escHtml(tpl.desc)+'</div>';
-      html2 += '<div class="nat-tpl-prev">"'+escHtml(prev)+'"</div></div>';
-      html2 += '<div class="nat-tpl-chk"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>';
-      html2 += '</div>';
-    });
+    var msg = natState.message || '';
+    var html2 = '<div class="nat-step-label">2 · Escrever mensagem</div>';
+    html2 += '<div style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">';
+    html2 += '<div style="font-size:12px;color:var(--t3);line-height:1.5">Escreva a mensagem que sera enviada via WhatsApp. Use <b style="color:var(--t1);font-family:monospace;background:var(--bg);padding:1px 6px;border-radius:4px">[Nome]</b> para inserir o nome do paciente automaticamente. O link da pre-consulta sera adicionado no final.</div>';
+    html2 += '<textarea id="nat-msgArea" oninput="natUpdateMsg(this.value)" placeholder="Ola [Nome]! So passando pra lembrar de preencher o formulario antes da nossa consulta. Leva menos de 5 minutos." style="width:100%;min-height:160px;padding:14px 16px;border:1px solid var(--border);border-radius:12px;font-family:inherit;font-size:13.5px;color:var(--t1);background:var(--surface);resize:vertical;outline:none;line-height:1.55;transition:border-color .15s,box-shadow .15s">'+escHtml(msg)+'</textarea>';
+    html2 += '<div style="font-size:11.5px;color:var(--t4);display:flex;justify-content:space-between;align-items:center"><span id="nat-msgHint">&nbsp;</span><span id="nat-msgCount">'+msg.length+' caracteres</span></div>';
     html2 += '</div>';
     body.innerHTML = html2;
+    // Focus textarea
+    setTimeout(function(){ var ta = document.getElementById('nat-msgArea'); if(ta){ ta.focus(); ta.style.borderColor=''; } }, 30);
     var selCt2 = Object.keys(natState.selected).filter(function(k){ return natState.selected[k]; }).length;
     foot.innerHTML = 'Enviara para <b>'+selCt2+'</b> paciente'+(selCt2!==1?'s':'');
     btnNext.innerHTML = '<svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg> Enviar '+selCt2+' notifica'+(selCt2!==1?'coes':'cao');
@@ -4307,19 +4304,27 @@ function natRender(){
   }
 }
 
+function natUpdateMsg(v){
+  natState.message = v || '';
+  var c = document.getElementById('nat-msgCount');
+  if(c) c.textContent = natState.message.length + ' caracteres';
+}
+
 function natDoSend(){
-  var tpl = NAT_TEMPLATES.find(function(t){ return t.id === natState.template; });
-  if(!tpl) return;
+  var base = (natState.message || '').trim();
+  if(!base) return;
   var selected = natState.items.filter(function(it){ return natState.selected[it.pc.id] && it.pc.pacienteTel; });
   var sent = [];
   selected.forEach(function(it, idx){
     var pc = it.pc;
     var nome = pc.pacienteNome || 'Paciente';
+    var primeiroNome = (nome || '').split(' ')[0] || nome;
     var url = window.location.origin + '/pre-consulta.html?token=' + (pc.linkToken || '');
-    var msg = encodeURIComponent(tpl.msg(nome) + '\n\n' + url);
+    var texto = base.replace(/\[Nome\]/gi, primeiroNome);
+    var msg = encodeURIComponent(texto + '\n\n' + url);
     var num = pc.pacienteTel.replace(/\D/g, '');
     setTimeout(function(){ window.open('https://wa.me/55' + num + '?text=' + msg, '_blank'); }, idx * 120);
-    natState.sentLog.push({ pcId:pc.id, at:new Date().toISOString(), tpl:tpl.id });
+    natState.sentLog.push({ pcId:pc.id, at:new Date().toISOString(), custom:true });
     sent.push(pc);
   });
   natSaveLog();
