@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Preview — Paciente (ficha)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --v-green: #00E5A0;
+  --v-green-2: #00C47A;
+  --v-cyan: #00B4D8;
+  --v-grad: linear-gradient(120deg, #00E5A0, #00B4D8);
+  --v-grad-90: linear-gradient(90deg, #00E5A0, #00B4D8);
+  --bg: #F4F6FA;
+  --bg-2: #EEF1F6;
+  --surface: #FFFFFF;
+  --surface-hover: #F8FAFC;
+  --ink: #0D0F14;
+  --ink-2: #4B5563;
+  --ink-3: #6B7280;
+  --ink-4: #9CA3AF;
+  --ink-5: #C4C9D4;
+  --border: rgba(13,15,20,0.07);
+  --border-strong: rgba(13,15,20,0.12);
+  --ok: #00C47A;
+  --warn: #F59E0B;
+  --bad: #EF4444;
+  --info: #3B82F6;
+  --ok-bg: rgba(0,196,122,0.10);
+  --warn-bg: rgba(245,158,11,0.10);
+  --bad-bg: rgba(239,68,68,0.10);
+  --info-bg: rgba(59,130,246,0.10);
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-pill: 999px;
+  --sh-xs: 0 1px 2px rgba(13,15,20,0.04);
+  --sh-sm: 0 1px 2px rgba(13,15,20,0.04), 0 2px 6px rgba(13,15,20,0.04);
+  --sh-md: 0 2px 4px rgba(13,15,20,0.04), 0 6px 16px rgba(13,15,20,0.05);
+  --sh-lg: 0 4px 8px rgba(13,15,20,0.05), 0 12px 32px rgba(13,15,20,0.08);
+  --sh-green: 0 6px 20px rgba(0,229,160,0.28);
+  --sh-focus: 0 0 0 3px rgba(0,229,160,0.20);
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font); background: var(--bg); color: var(--ink);
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+}
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.page { padding: 28px 32px 48px; max-width: 1320px; width: 100%; margin: 0 auto; }
+
+.btn {
+  font-family: var(--font); padding: 10px 16px;
+  border-radius: var(--r-md); font-weight: 700; font-size: 13px;
+  border: 1px solid transparent; cursor: pointer;
+  transition: all .15s var(--ease);
+  display: inline-flex; align-items: center; gap: 8px;
+  letter-spacing: -0.005em; white-space: nowrap;
+}
+.btn svg { width: 15px; height: 15px; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--v-grad); color: #0A0D12; box-shadow: var(--sh-green); }
+.btn-primary:hover { filter: brightness(1.06); box-shadow: 0 8px 24px rgba(0,229,160,0.38); }
+.btn-ghost { background: var(--surface); color: var(--ink); border-color: var(--border); }
+
+/* Summary back bar (used in paciente toolbar) */
+.sum-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px 7px 9px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border);
+  font-family: var(--font); font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+  cursor: pointer; transition: all .15s var(--ease);
+}
+.sum-back:hover { border-color: var(--border-strong); color: var(--ink); background: var(--surface-hover); }
+.sum-back svg { color: var(--ink-3); }
+.sum-iconbtn {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--ink-3);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: all .15s var(--ease);
+}
+.sum-iconbtn:hover { border-color: var(--border-strong); color: var(--ink); }
+
+/* ============================================
+   PACIENTE (ficha completa)
+   ============================================ */
+
+.pac-toolbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 2px 0 18px; margin-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.pac-seg {
+  display: inline-flex; padding: 3px; border-radius: 999px;
+  background: var(--bg-2); border: 1px solid var(--border); gap: 2px;
+}
+.pac-seg-b {
+  padding: 6px 14px; border-radius: 999px;
+  background: transparent; border: none;
+  font-family: var(--font); font-size: 12px; font-weight: 600; color: var(--ink-3);
+  cursor: pointer; transition: all .15s var(--ease);
+}
+.pac-seg-b:hover { color: var(--ink); }
+.pac-seg-b.active { background: var(--ink); color: var(--surface); box-shadow: var(--sh-sm); }
+.pac-toolbar-right { margin-left: auto; display: flex; gap: 8px; }
+
+.pac-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 24px; align-items: start; }
+.pac-left { display: flex; flex-direction: column; gap: 8px; position: sticky; top: 28px; }
+
+/* Flip card 3D (adaptado de rg-publico.html) */
+.rg-flip { perspective: 1200px; cursor: pointer; width: 100%; }
+.rg-flipper { width: 100%; height: 200px; position: relative; transform-style: preserve-3d; transition: transform .7s cubic-bezier(0.4,0,0.2,1); }
+.rg-flipper.flipped { transform: rotateY(180deg); }
+.rg-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(13,15,20,0.22); border: 1px solid rgba(255,255,255,0.06); }
+.rg-face.back { transform: rotateY(180deg); }
+.rg-front { width: 100%; height: 100%; position: relative; overflow: hidden; background: #0D0F14; }
+.rg-bg { position: absolute; inset: 0; }
+.rg-content { position: relative; height: 100%; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; z-index: 1; color: #fff; }
+.rg-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.rg-mark { font-size: 14px; font-weight: 900; letter-spacing: -0.04em; color: #fff; display: inline-flex; align-items: baseline; gap: 2px; }
+.rg-mark .id { background: var(--v-grad); color: #0A0D12; padding: 1px 5px; border-radius: 4px; font-weight: 900; }
+.rg-tag-sm { font-size: 7px; font-weight: 700; letter-spacing: 0.18em; color: rgba(255,255,255,0.38); margin-top: 3px; text-transform: uppercase; }
+.rg-flip-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); font-family: var(--mono); font-size: 9px; font-weight: 600; cursor: pointer; }
+.rg-flip-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.rg-mid { display: flex; align-items: center; gap: 10px; }
+.rg-av { width: 34px; height: 34px; border-radius: 50%; background: var(--v-grad); color: #0A0D12; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+.rg-name { font-size: 13px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.1; text-transform: lowercase; }
+.rg-cpf { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+.rg-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 9px 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; }
+.rg-fields .l { font-size: 7px; font-weight: 700; letter-spacing: 0.14em; color: rgba(255,255,255,0.38); text-transform: uppercase; }
+.rg-fields .v { font-family: var(--mono); font-size: 9.5px; font-weight: 600; color: #fff; margin-top: 2px; }
+.rg-fields .v.accent { font-family: var(--font); background: var(--v-grad-90); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+.rg-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+.rg-chip { padding: 3px 8px; border-radius: 999px; font-size: 9px; font-weight: 700; }
+.rg-chip.warn { background: rgba(245,158,11,0.15); color: #FBBF24; border: 1px solid rgba(245,158,11,0.3); }
+.rg-chip.info { background: rgba(0,229,160,0.12); color: var(--v-green); border: 1px solid rgba(0,229,160,0.25); }
+
+.rg-back { width: 100%; height: 100%; background: #111318; display: flex; flex-direction: column; }
+.rg-strip { width: 100%; height: 26px; background: #1A1E26; margin-top: 14px; }
+.rg-back-body { padding: 10px 16px 12px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; color: #fff; }
+.rg-back-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.rg-back-grid .l { font-size: 7px; font-weight: 700; letter-spacing: 0.14em; color: rgba(255,255,255,0.28); text-transform: uppercase; }
+.rg-back-grid .v { font-family: var(--mono); font-size: 9.5px; font-weight: 600; color: rgba(255,255,255,0.85); margin-top: 2px; }
+.rg-emerg { border: 1px solid rgba(255,107,107,0.3); background: rgba(255,107,107,0.06); border-radius: 7px; padding: 6px 10px; margin-top: 8px; }
+.rg-emerg .l { font-size: 7px; font-weight: 700; letter-spacing: 0.16em; color: #ff6b6b; text-transform: uppercase; }
+.rg-emerg .v { font-size: 9.5px; font-weight: 500; color: rgba(255,255,255,0.75); margin-top: 1px; }
+.rg-back-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+.rg-back-foot .mark { font-size: 10px; font-weight: 800; letter-spacing: -0.04em; color: rgba(255,255,255,0.4); }
+.rg-back-foot .mark .id { background: var(--v-grad); color: #0A0D12; padding: 0 3px; border-radius: 3px; font-weight: 900; }
+.rg-valid { font-size: 7.5px; color: rgba(255,255,255,0.22); letter-spacing: 0.05em; }
+.pac-right { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+.pac-id-card {
+  background: linear-gradient(180deg, #0E1118 0%, #090B10 100%);
+  border-radius: 18px; padding: 18px;
+  color: #fff; position: relative; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 20px 50px rgba(13,15,20,0.22);
+}
+.pac-id-card::before {
+  content:''; position:absolute; inset: 0;
+  background: radial-gradient(ellipse at 100% 0%, rgba(0,229,160,0.14) 0%, transparent 50%);
+  pointer-events:none;
+}
+.pac-id-head { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+.pac-id-mark { font-size: 16px; font-weight: 900; letter-spacing: -0.04em; color: #fff; display: inline-flex; align-items: baseline; gap: 2px; }
+.pac-id-mark .id { background: var(--v-grad); color: #0A0D12; padding: 1px 6px; border-radius: 4px; }
+.pac-id-flip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 999px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7); font-family: var(--mono); font-size: 10px; font-weight: 600;
+  cursor: pointer;
+}
+.pac-id-flip:hover { background: rgba(255,255,255,0.10); color: #fff; }
+.pac-id-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.2em; color: rgba(255,255,255,0.4); margin-top: 14px; position: relative; z-index: 1; }
+.pac-id-avatar { margin: 18px 0 12px; position: relative; z-index: 1; }
+.pac-id-avatar .ring { width: 84px; height: 84px; border-radius: 50%; background: var(--v-grad); padding: 3px; }
+.pac-id-avatar .circ {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: #0A0D12; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 800; letter-spacing: -0.02em;
+}
+.pac-id-name { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: #fff; position: relative; z-index: 1; text-transform: lowercase; }
+.pac-id-cpf { font-family: var(--mono); font-size: 11.5px; color: rgba(255,255,255,0.5); margin-top: 3px; position: relative; z-index: 1; }
+.pac-id-meta {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-top: 14px; padding: 12px; border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  position: relative; z-index: 1;
+}
+.pac-id-m .l { font-size: 8px; font-weight: 700; letter-spacing: 0.16em; color: rgba(255,255,255,0.4); }
+.pac-id-m .v { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: #fff; margin-top: 3px; }
+.pac-id-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 12px; position: relative; z-index: 1; }
+.pac-id-chip { padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; }
+.pac-id-chip.warn { background: rgba(245,158,11,0.15); color: #FBBF24; border: 1px solid rgba(245,158,11,0.3); }
+.pac-id-chip.info { background: rgba(0,229,160,0.12); color: var(--v-green); border: 1px solid rgba(0,229,160,0.25); }
+
+.pac-quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pac-quick-cell {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 8px; text-align: center;
+}
+.pac-quick-cell .l { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; color: var(--ink-4); text-transform: uppercase; }
+.pac-quick-cell .v { font-size: 17px; font-weight: 800; color: var(--ink); margin-top: 3px; letter-spacing: -0.02em; }
+
+.pac-contact {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+}
+.pac-contact-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-2); font-weight: 500; }
+.pac-contact-row .ic { color: var(--ink-4); display: inline-flex; }
+.pac-contact-row .mono { font-family: var(--mono); }
+
+.pac-primary { width: 100%; justify-content: center; }
+
+.pac-header { padding-bottom: 4px; }
+.pac-hd-name { font-size: 26px; font-weight: 800; letter-spacing: -0.025em; color: var(--ink); text-transform: lowercase; }
+.pac-hd-name .age { font-size: 15px; font-weight: 500; color: var(--ink-3); letter-spacing: 0; text-transform: none; margin-left: 4px; }
+.pac-hd-line { font-size: 12px; color: var(--ink-3); margin-top: 4px; font-weight: 500; }
+.pac-hd-line b { color: var(--ink-2); font-weight: 600; }
+
+.pac-health { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+/* Side-card style (do 1-min summary / pre-consulta) */
+.side-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; box-shadow: var(--sh-xs); }
+.side-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.side-icon { width: 36px; height: 36px; background: #ECFDF5; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.side-icon svg { width: 18px; height: 18px; stroke: var(--v-green-2); fill: none; stroke-width: 1.8; }
+.side-icon.alert { background: rgba(239,68,68,0.08); }
+.side-icon.alert svg { stroke: var(--bad); }
+.side-icon.purple { background: rgba(139,92,246,0.1); }
+.side-icon.purple svg { stroke: #8B5CF6; }
+.side-icon.neutral { background: var(--bg-2); }
+.side-icon.neutral svg { stroke: var(--ink-3); }
+.side-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 100px; font-size: 11px; font-weight: 600; background: #ECFDF5; color: #027A48; }
+.side-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--v-green-2); }
+.side-chip.zero { background: var(--bg-2); color: var(--ink-3); }
+.side-chip.zero::before { background: var(--ink-4); }
+.side-chip.bad { background: var(--bad-bg); color: #B42318; }
+.side-chip.bad::before { background: var(--bad); }
+.side-title { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 10px; letter-spacing: -0.01em; }
+.side-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.side-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 100px; font-size: 12.5px; font-weight: 600; background: rgba(0,196,122,0.06); color: #027A48; border: 1px solid rgba(0,196,122,0.22); }
+.side-pill .dose { font-family: var(--mono); font-weight: 500; color: rgba(2,122,72,0.6); font-size: 11px; }
+.side-pill.allergy { background: rgba(239,68,68,0.06); color: #B42318; border-color: rgba(239,68,68,0.22); }
+.side-pill.allergy .dose { color: rgba(180,35,24,0.65); }
+.side-pill.allergy.grave { background: rgba(239,68,68,0.14); border-color: rgba(239,68,68,0.4); font-weight: 700; }
+.side-pill.cond { background: rgba(0,196,122,0.06); color: var(--v-green-2); border-color: rgba(0,196,122,0.22); }
+.side-pill.surgery { background: var(--bg-2); color: var(--ink-2); border-color: var(--border); }
+.side-pill.surgery .year { font-family: var(--mono); color: var(--ink-4); font-weight: 500; font-size: 11px; }
+.side-placeholder { font-size: 13px; color: var(--ink-4); line-height: 1.5; }
+
+/* Exames box (com miniatura real, scroll, busca) */
+.exames-box { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; box-shadow: var(--sh-xs); display: flex; flex-direction: column; gap: 12px; }
+.exames-title { font-size: 18px; font-weight: 800; background: var(--v-grad-90); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.4px; }
+.exame-search { position: relative; }
+.exame-search input { width: 100%; padding: 11px 14px 11px 38px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; font-family: var(--font); font-size: 13px; color: var(--ink); outline: none; transition: border-color .15s, box-shadow .15s; }
+.exame-search input:focus { border-color: var(--v-green); box-shadow: var(--sh-focus); }
+.exame-search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; stroke: var(--ink-4); fill: none; stroke-width: 2; }
+.exames-list { display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+.exames-list::-webkit-scrollbar { width: 6px; }
+.exames-list::-webkit-scrollbar-thumb { background: var(--ink-5); border-radius: 3px; }
+.exames-list::-webkit-scrollbar-track { background: var(--bg-2); border-radius: 3px; }
+.exame-item { display: flex; gap: 14px; background: #fff; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.04); padding: 10px; cursor: pointer; transition: border-color .15s, transform .12s; }
+.exame-item:hover { border-color: rgba(0,229,160,0.3); transform: translateY(-1px); }
+.exame-thumb {
+  width: 92px; height: 112px; border-radius: 6px; overflow: hidden; flex-shrink: 0;
+  background: #fff; border: 1px solid #e5e7eb; position: relative;
+  background-image:
+    linear-gradient(#fff,#fff),
+    repeating-linear-gradient(#d1d5db 0 1px, transparent 1px 6px);
+  background-size: 100% 14px, 100% 100%;
+  background-position: top, 0 16px;
+  background-repeat: no-repeat, repeat;
+}
+.exame-thumb::before { content: "LAUDO"; position: absolute; top: 4px; left: 7px; right: 7px; font-size: 7px; font-weight: 800; color: #00C47A; letter-spacing: 1px; }
+.exame-thumb::after { content: ""; position: absolute; top: 16px; left: 7px; right: 7px; height: 14px; background: linear-gradient(#9ca3af 0 1px, transparent 1px 4px); background-size: 100% 4px; }
+.exame-thumb.red::before { color: #EF4444; }
+.exame-thumb.blue::before { color: #3B82F6; }
+.exame-info { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 3px; min-width: 0; }
+.exame-tipo { font-size: 11px; color: var(--ink-3); text-transform: capitalize; font-weight: 500; }
+.exame-nome { font-size: 14.5px; font-weight: 700; color: var(--v-green-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exame-data { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.pac-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+  position: relative; box-shadow: var(--sh-xs);
+  transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
+}
+.pac-card:hover { border-color: var(--border-strong); box-shadow: var(--sh-sm); }
+.pac-card::before { content:''; position: absolute; top: 0; left: 14px; right: 14px; height: 2px; border-radius: 0 0 2px 2px; }
+.pac-card.accent-bad::before { background: var(--bad); }
+.pac-card.accent-cyan::before { background: var(--v-cyan); }
+.pac-card.accent-purple::before { background: #8B5CF6; }
+.pac-card.accent-green::before { background: var(--v-green); }
+.pac-card-hd { display: flex; align-items: center; gap: 10px; }
+.pac-card-ic { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+.pac-card-ic.bad { background: var(--bad-bg); color: var(--bad); }
+.pac-card-ic.cyan { background: rgba(0,180,216,0.10); color: var(--v-cyan); }
+.pac-card-ic.purple { background: rgba(139,92,246,0.10); color: #8B5CF6; }
+.pac-card-ic.green { background: rgba(0,196,122,0.10); color: var(--v-green-2); }
+.pac-card-t { font-size: 13px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; flex: 1; }
+.pac-card-ct { font-family: var(--mono); font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--bg-2); color: var(--ink-3); }
+.pac-card-ct.bad { background: var(--bad-bg); color: var(--bad); }
+.pac-card-ct.cyan { background: rgba(0,180,216,0.10); color: var(--v-cyan); }
+.pac-card-ct.purple { background: rgba(139,92,246,0.10); color: #8B5CF6; }
+.pac-card-ct.green { background: rgba(0,196,122,0.10); color: var(--v-green-2); }
+
+.pac-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.pac-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 8px;
+  font-size: 12px; font-weight: 600;
+  border: 1px solid transparent;
+}
+.pac-chip .sev {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em;
+  padding: 1px 6px; border-radius: 4px;
+}
+.pac-chip .sev .dot { width: 5px; height: 5px; border-radius: 50%; }
+.pac-chip.bad { background: var(--bad-bg); color: var(--bad); border-color: rgba(239,68,68,0.2); }
+.pac-chip.bad .sev { background: var(--bad); color: #fff; }
+.pac-chip.bad .sev .dot { background: #fff; }
+.pac-chip.warn { background: var(--warn-bg); color: #B45309; border-color: rgba(245,158,11,0.25); }
+.pac-chip.warn .sev { background: var(--warn); color: #fff; }
+.pac-chip.warn .sev .dot { background: #fff; }
+.pac-chip.soft-ok { background: rgba(0,196,122,0.08); color: var(--v-green-2); border-color: rgba(0,196,122,0.2); }
+.pac-chip.soft-neutral { background: var(--bg-2); color: var(--ink-2); border-color: var(--border); }
+.pac-chip .year { font-family: var(--mono); font-size: 10.5px; color: var(--ink-4); margin-left: 2px; }
+
+.pac-meds-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pac-med-mini {
+  padding: 7px 10px; border-radius: 8px;
+  background: var(--bg); border: 1px solid var(--border);
+}
+.pac-med-mini .n { font-size: 12px; font-weight: 700; color: var(--ink); }
+.pac-med-mini .n .dose { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--ink-3); margin-left: 2px; }
+.pac-med-mini .f { font-size: 10.5px; color: var(--ink-3); margin-top: 1px; }
+
+.pac-block {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;
+  box-shadow: var(--sh-xs);
+}
+.pac-block-hd { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pac-block-ic { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+.pac-block-ic.info { background: var(--info-bg); color: var(--info); }
+.pac-block-ic.green { background: rgba(0,196,122,0.10); color: var(--v-green-2); }
+.pac-block-t { font-size: 14px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; }
+.pac-block-ct { font-family: var(--mono); font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--bg-2); color: var(--ink-3); }
+.pac-block-actions { margin-left: auto; display: flex; gap: 4px; background: var(--bg-2); padding: 3px; border-radius: 999px; }
+.pac-tab {
+  padding: 5px 11px; border-radius: 999px;
+  background: transparent; border: none;
+  font-family: var(--font); font-size: 11.5px; font-weight: 600; color: var(--ink-3);
+  cursor: pointer; transition: all .15s var(--ease);
+}
+.pac-tab:hover { color: var(--ink); }
+.pac-tab.active { background: var(--surface); color: var(--ink); box-shadow: var(--sh-xs); }
+
+.pac-search {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; border-radius: 10px;
+  background: var(--bg); border: 1px solid var(--border);
+}
+.pac-search svg { color: var(--ink-4); }
+.pac-search input {
+  border: none; background: transparent; outline: none;
+  font-family: var(--font); font-size: 12.5px; color: var(--ink); flex: 1;
+}
+.pac-search input::placeholder { color: var(--ink-4); }
+
+.pac-exams-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.pac-exam-card {
+  display: grid; grid-template-columns: 44px 1fr 26px; gap: 10px; align-items: center;
+  padding: 12px; border-radius: 12px;
+  background: var(--bg); border: 1px solid transparent;
+  cursor: pointer; transition: all .15s var(--ease);
+}
+.pac-exam-card:hover {
+  background: var(--surface);
+  border-color: var(--v-green);
+  box-shadow: 0 0 0 3px rgba(0,229,160,0.08);
+}
+.pac-exam-card .ic { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--info-bg); color: var(--info); }
+.pac-exam-card.purple .ic { background: rgba(139,92,246,0.10); color: #8B5CF6; }
+.pac-exam-card.gray .ic { background: var(--bg-2); color: var(--ink-3); }
+.pac-exam-card .tag { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; color: var(--ink-4); text-transform: uppercase; }
+.pac-exam-card .name { font-size: 13.5px; font-weight: 700; color: var(--ink); margin-top: 1px; letter-spacing: -0.005em; }
+.pac-exam-card .meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+.pac-exam-card .go { color: var(--ink-4); opacity: 0.5; transition: all .15s var(--ease); display: flex; justify-content: center; }
+.pac-exam-card:hover .go { color: var(--v-green-2); opacity: 1; }
+
+.pac-pcs { display: flex; flex-direction: column; gap: 6px; }
+.pac-pc-row {
+  display: grid; grid-template-columns: 4px 100px 1fr auto auto 20px;
+  gap: 12px; align-items: center;
+  padding: 12px 14px 12px 0; border-radius: 10px;
+  background: var(--bg); border: 1px solid transparent;
+  cursor: pointer; transition: all .15s var(--ease);
+}
+.pac-pc-row:hover { background: var(--surface); border-color: var(--border-strong); }
+.pac-pc-bar { align-self: stretch; border-radius: 0 3px 3px 0; }
+.pac-pc-row.status-ok .pac-pc-bar { background: var(--ok); }
+.pac-pc-row.status-warn .pac-pc-bar { background: var(--warn); }
+.pac-pc-row.status-bad .pac-pc-bar { background: var(--bad); }
+.pac-pc-badge { font-size: 9.5px; font-weight: 700; letter-spacing: 0.12em; padding: 3px 10px; border-radius: 999px; text-align: center; }
+.pac-pc-row.status-ok .pac-pc-badge { background: var(--ok-bg); color: var(--v-green-2); }
+.pac-pc-row.status-warn .pac-pc-badge { background: var(--warn-bg); color: #B45309; }
+.pac-pc-row.status-bad .pac-pc-badge { background: var(--bad-bg); color: var(--bad); }
+.pac-pc-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+.pac-pc-summary {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+  background: rgba(0,229,160,0.10); color: var(--v-green-2);
+  border: 1px solid rgba(0,229,160,0.2);
+}
+.pac-pc-date { font-family: var(--mono); font-size: 11px; color: var(--ink-3); font-weight: 500; }
+.pac-pc-go { color: var(--ink-4); display: flex; justify-content: center; }
+.pac-pc-row:hover .pac-pc-go { color: var(--v-green-2); }
+
+@media (max-width: 1100px) {
+  .pac-grid { grid-template-columns: 1fr; }
+  .pac-left { position: static; }
+  .pac-health { grid-template-columns: 1fr; }
+  .pac-exams-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="page" id="target"></div>
+
+<script>
+// ============ ICON HELPER (de icons.js) ============
+window.Icon = function(name, size) {
+  if (size === undefined) size = 16;
+  const icons = {
+    home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2z"/>',
+    clipboard: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
+    users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    chev: '<polyline points="9 18 15 12 9 6"/>',
+    chevleft: '<polyline points="15 18 9 12 15 6"/>',
+    heart: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+    clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    spark: '<path d="M12 2l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/>',
+    map: '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
+    mail: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+    phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+    more: '<circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    pill: '<path d="M10.5 20.5L3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7z"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/>',
+    'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>',
+    stethoscope: '<path d="M4 4v6a4 4 0 0 0 4 4h0a4 4 0 0 0 4-4V4"/><path d="M8 14v3a4 4 0 0 0 8 0v-1"/><circle cx="18" cy="11" r="2"/>',
+    redo: '<polyline points="21 7 21 13 15 13"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/>',
+    external: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
+  };
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (icons[name] || '') + '</svg>';
+};
+
+// ============ VIEW PACIENTE (de paciente.js) ============
+function examCard(kind, name, lab, date) {
+  const cfg = {
+    lab:   { ic: 'pill',      c: 'info',   label: 'LABORATORIAL' },
+    img:   { ic: 'heart',     c: 'purple', label: 'IMAGEM' },
+    other: { ic: 'file-text', c: 'gray',   label: 'OUTRO' },
+  }[kind];
+  return `
+    <a class="pac-exam-card ${cfg.c}">
+      <div class="ic">${Icon(cfg.ic, 18)}</div>
+      <div class="body">
+        <div class="tag">${cfg.label}</div>
+        <div class="name">${name}</div>
+        <div class="meta">${lab} · ${date}</div>
+      </div>
+      <span class="go">${Icon('external', 14)}</span>
+    </a>`;
+}
+
+function pcRow(status, label, title, date, hasSummary) {
+  return `
+    <a class="pac-pc-row status-${status}">
+      <span class="pac-pc-bar"></span>
+      <span class="pac-pc-badge">${label}</span>
+      <span class="pac-pc-title">${title}</span>
+      ${hasSummary ? `<span class="pac-pc-summary">${Icon('spark', 11)} 1-min</span>` : ''}
+      <span class="pac-pc-date">${date}</span>
+      <span class="pac-pc-go">${Icon('chev', 14)}</span>
+    </a>`;
+}
+
+const viewPaciente = () => `
+<div class="pac-toolbar">
+  <button class="sum-back">${Icon('chevleft', 16)} Voltar</button>
+  <div class="pac-seg">
+    <button class="pac-seg-b">Casos</button>
+    <button class="pac-seg-b active">Completo</button>
+    <button class="pac-seg-b">Vazio</button>
+    <button class="pac-seg-b">Sem pré-consulta</button>
+  </div>
+  <div class="pac-toolbar-right">
+    <button class="sum-iconbtn" title="Imprimir">${Icon('download', 14)}</button>
+    <button class="sum-iconbtn" title="Compartilhar">${Icon('share', 14)}</button>
+    <button class="sum-iconbtn" title="Mais">${Icon('more', 14)}</button>
+  </div>
+</div>
+
+<div class="pac-grid">
+  <aside class="pac-left">
+    <div class="rg-flip" onclick="document.querySelector('.rg-flipper').classList.toggle('flipped')">
+      <div class="rg-flipper">
+        <div class="rg-face">
+          <div class="rg-front">
+            <div class="rg-bg">
+              <svg width="100%" height="100%" viewBox="0 0 640 404" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="bggrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0D0F14"/><stop offset="100%" stop-color="#131820"/></linearGradient>
+                  <linearGradient id="glow1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00B4D8" stop-opacity="0.12"/><stop offset="100%" stop-color="#00E5A0" stop-opacity="0"/></linearGradient>
+                  <linearGradient id="glow2" x1="100%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="#00E5A0" stop-opacity="0.08"/><stop offset="100%" stop-color="#00B4D8" stop-opacity="0"/></linearGradient>
+                </defs>
+                <rect width="640" height="404" fill="url(#bggrad)"/>
+                <circle cx="500" cy="-60" r="280" fill="url(#glow1)"/>
+                <circle cx="60" cy="460" r="220" fill="url(#glow2)"/>
+              </svg>
+            </div>
+            <div class="rg-content">
+              <div class="rg-top">
+                <div>
+                  <div class="rg-mark">vita<span class="id">id</span></div>
+                  <div class="rg-tag-sm">Identidade em Saúde</div>
+                </div>
+                <span class="rg-flip-btn">${Icon('redo', 10)} virar</span>
+              </div>
+              <div class="rg-mid">
+                <div class="rg-av">LS</div>
+                <div>
+                  <div class="rg-name">lucas silva</div>
+                  <div class="rg-cpf">123.456.789-00</div>
+                </div>
+              </div>
+              <div>
+                <div class="rg-fields">
+                  <div><div class="l">Nascimento</div><div class="v">12.09.2007</div></div>
+                  <div><div class="l">Sangue</div><div class="v accent">A+</div></div>
+                  <div><div class="l">Plano</div><div class="v">Unimed</div></div>
+                </div>
+                <div class="rg-chips">
+                  <span class="rg-chip warn">Dipirona</span>
+                  <span class="rg-chip info">Rinite alérgica</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="rg-face back">
+          <div class="rg-back">
+            <div class="rg-strip"></div>
+            <div class="rg-back-body">
+              <div class="rg-back-grid">
+                <div><div class="l">Sangue</div><div class="v">A+</div></div>
+                <div><div class="l">Peso</div><div class="v">83 kg</div></div>
+                <div><div class="l">Altura</div><div class="v">1,79 m</div></div>
+                <div><div class="l">Idade</div><div class="v">19</div></div>
+                <div><div class="l">Plano</div><div class="v">Unimed</div></div>
+                <div><div class="l">Alergias</div><div class="v">Dipirona</div></div>
+              </div>
+              <div class="rg-emerg">
+                <div class="l">Contato de Emergência</div>
+                <div class="v">Mãe · (19) 99111-2233</div>
+              </div>
+              <div class="rg-back-foot">
+                <span class="mark">vita<span class="id">id</span></span>
+                <span class="rg-valid">Válido até 2029</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pac-quick">
+      <div class="pac-quick-cell"><div class="l">Consultas</div><div class="v">12</div></div>
+      <div class="pac-quick-cell"><div class="l">Última</div><div class="v">19/04</div></div>
+      <div class="pac-quick-cell"><div class="l">Pendentes</div><div class="v">1</div></div>
+    </div>
+
+    <div class="pac-contact">
+      <div class="pac-contact-row"><span class="ic">${Icon('phone', 12)}</span><span class="mono">+55 19 99647-1503</span></div>
+      <div class="pac-contact-row"><span class="ic">${Icon('mail', 12)}</span><span>lucas.silva@email.com</span></div>
+    </div>
+
+  </aside>
+
+  <div class="pac-right">
+    <div class="pac-header">
+      <div class="pac-hd-name">lucas silva <span class="age">· 19 anos · M</span></div>
+      <div class="pac-hd-line">Paciente desde <b>mar 2024</b> · CPF 123.456.789-00</div>
+    </div>
+
+    <div class="pac-health">
+      <div class="side-card">
+        <div class="side-head">
+          <div class="side-icon alert">${Icon('alert', 18)}</div>
+          <span class="side-chip bad">2 registradas</span>
+        </div>
+        <div class="side-title">Alergias</div>
+        <div class="side-pills">
+          <span class="side-pill allergy grave">Dipirona <span class="dose">GRAVE</span></span>
+          <span class="side-pill allergy">Penicilina <span class="dose">MODERADA</span></span>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <div class="side-head">
+          <div class="side-icon">${Icon('plus', 18)}</div>
+          <span class="side-chip">4 ativos</span>
+        </div>
+        <div class="side-title">Medicamentos em uso</div>
+        <div class="side-pills">
+          <span class="side-pill">Cetirizina <span class="dose">10mg</span></span>
+          <span class="side-pill">Soro Fisiológico</span>
+          <span class="side-pill">Prednisolona <span class="dose">20mg</span></span>
+          <span class="side-pill">Loratadina <span class="dose">10mg</span></span>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <div class="side-head">
+          <div class="side-icon purple">${Icon('clock', 18)}</div>
+          <span class="side-chip">1 ativa</span>
+        </div>
+        <div class="side-title">Condições de saúde</div>
+        <div class="side-pills">
+          <span class="side-pill cond">Rinite alérgica</span>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <div class="side-head">
+          <div class="side-icon neutral">${Icon('stethoscope', 18)}</div>
+          <span class="side-chip zero">1 registrada</span>
+        </div>
+        <div class="side-title">Cirurgias anteriores</div>
+        <div class="side-pills">
+          <span class="side-pill surgery">Amigdalectomia <span class="year">2019</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="exames-box">
+      <div class="exames-title">Exames de lucas</div>
+      <div class="exame-search">
+        ${Icon('search', 14)}
+        <input placeholder="Buscar exame...">
+      </div>
+      <div class="exames-list">
+        <div class="exame-item">
+          <div class="exame-thumb blue"></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Laboratorial</div>
+            <div class="exame-nome">Hemograma completo.pdf</div>
+            <div class="exame-data">04/04/2026, 21:00 · Laboratório Sabin</div>
+          </div>
+        </div>
+        <div class="exame-item">
+          <div class="exame-thumb"></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Múltiplos</div>
+            <div class="exame-nome">Lalu.pdf</div>
+            <div class="exame-data">05/12/2021, 21:00 · Sabin Medicina Diagnóstica</div>
+          </div>
+        </div>
+        <div class="exame-item">
+          <div class="exame-thumb red"></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Imagem</div>
+            <div class="exame-nome">Ressonância de joelho.pdf</div>
+            <div class="exame-data">04/04/2026, 18:30 · Clínica Imagem Plus</div>
+          </div>
+        </div>
+        <div class="exame-item">
+          <div class="exame-thumb blue"></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Laboratorial</div>
+            <div class="exame-nome">Perfil lipídico.pdf</div>
+            <div class="exame-data">04/04/2026, 09:15 · Fleury</div>
+          </div>
+        </div>
+        <div class="exame-item">
+          <div class="exame-thumb"></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Laboratorial</div>
+            <div class="exame-nome">Laudo Sabin Bettina.pdf</div>
+            <div class="exame-data">11/03/2026, 14:40 · Laboratório Sabin</div>
+          </div>
+        </div>
+        <div class="exame-item">
+          <div class="exame-thumb"></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Outro</div>
+            <div class="exame-nome">Exame Fernanda.pdf</div>
+            <div class="exame-data">11/03/2026, 10:05 · Clínica Geral</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pac-block">
+      <div class="pac-block-hd">
+        <div class="pac-block-ic green">${Icon('clipboard', 14)}</div>
+        <div class="pac-block-t">Pré-consultas deste paciente</div>
+        <span class="pac-block-ct">3</span>
+        <div class="pac-block-actions">
+          <button class="pac-tab active">Todas</button>
+          <button class="pac-tab">Respondidas</button>
+          <button class="pac-tab">Pendentes</button>
+        </div>
+      </div>
+      <div class="pac-search">
+        ${Icon('search', 13)}
+        <input placeholder="Buscar por data ou status...">
+      </div>
+      <div class="pac-pcs">
+        ${pcRow('ok', 'RESPONDIDA', 'Pré-consulta · otorrino', '19 abr 2026', true)}
+        ${pcRow('warn', 'PENDENTE', 'Pré-consulta · retorno alergologia', '12 abr 2026', false)}
+        ${pcRow('bad', 'EXPIRADA', 'Pré-consulta · clínica geral', '02 fev 2026', false)}
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+document.getElementById('target').innerHTML = viewPaciente();
+</script>
+</body>
+</html>
