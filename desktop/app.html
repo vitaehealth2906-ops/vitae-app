@@ -583,6 +583,12 @@
 .pac2-exame-thumb.red::before{color:#EF4444}
 .pac2-exame-thumb.blue::before{color:#3B82F6}
 .pac2-exame-thumb.purple::before{color:#8B5CF6}
+.pac2-exame-thumb.loaded{background:#fff !important}
+.pac2-exame-thumb.loaded::before,.pac2-exame-thumb.loaded::after{display:none}
+.pac2-exame-thumb canvas,.pac2-exame-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.pac2-exame-thumb .spin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--t4)}
+.pac2-exame-thumb .spin svg{width:18px;height:18px;animation:pac2spin 1s linear infinite}
+@keyframes pac2spin{to{transform:rotate(360deg)}}
 .pac2-exame-info{flex:1;display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0}
 .pac2-exame-tipo{font-size:11px;color:var(--t3);text-transform:capitalize;font-weight:500}
 .pac2-exame-nome{font-size:14.5px;font-weight:700;color:#00C47A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -3542,6 +3548,78 @@ async function ptConfirmDel(){
 
 // ============ PACIENTE DETAIL v2 (redesign 2026-04-20) ============
 var pac2State = { pac:null, exames:[], pcs:[], patientName:'', firstName:'' };
+var pac2ThumbCache = {}; // id -> dataURL
+
+function pac2IsImage(url, nome){
+  var s = ((url||'') + ' ' + (nome||'')).toLowerCase();
+  return /\.(jpe?g|png|webp|gif|bmp)(\?|$)/.test(s);
+}
+function pac2IsPdf(url, nome){
+  var s = ((url||'') + ' ' + (nome||'')).toLowerCase();
+  return /\.pdf(\?|$)/.test(s);
+}
+
+async function pac2LoadThumb(exam, thumbEl){
+  if(!exam || !exam.arquivoUrl || !thumbEl) return;
+  var key = exam.id || exam.arquivoUrl;
+
+  // Cache hit
+  if(pac2ThumbCache[key]){
+    pac2ApplyThumb(thumbEl, pac2ThumbCache[key]);
+    return;
+  }
+
+  try{
+    if(pac2IsImage(exam.arquivoUrl, exam.nomeArquivo)){
+      pac2ThumbCache[key] = exam.arquivoUrl;
+      pac2ApplyThumb(thumbEl, exam.arquivoUrl);
+      return;
+    }
+    if(pac2IsPdf(exam.arquivoUrl, exam.nomeArquivo) && window.pdfjsLib){
+      var loadingTask = pdfjsLib.getDocument({ url: exam.arquivoUrl });
+      var pdf = await loadingTask.promise;
+      var page = await pdf.getPage(1);
+      var viewport = page.getViewport({ scale: 1 });
+      var targetW = 184; // 2x do thumb (92 * 2) pra nitidez retina
+      var scale = targetW / viewport.width;
+      var scaled = page.getViewport({ scale: scale });
+      var canvas = document.createElement('canvas');
+      canvas.width = scaled.width;
+      canvas.height = scaled.height;
+      var ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport: scaled }).promise;
+      var dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+      pac2ThumbCache[key] = dataUrl;
+      pac2ApplyThumb(thumbEl, dataUrl);
+    }
+  }catch(err){
+    // Silencioso — mantem o placeholder "LAUDO"
+  }
+}
+
+function pac2ApplyThumb(thumbEl, src){
+  if(!thumbEl || !src) return;
+  // Evita duplicar se ja tem img
+  if(thumbEl.querySelector('img')) return;
+  var img = new Image();
+  img.src = src;
+  img.onload = function(){
+    thumbEl.classList.add('loaded');
+    thumbEl.innerHTML = '';
+    thumbEl.appendChild(img);
+  };
+}
+
+function pac2LoadVisibleThumbs(){
+  var items = document.querySelectorAll('.pac2-exame-item');
+  items.forEach(function(item){
+    var idx = parseInt(item.getAttribute('data-idx'), 10);
+    if(isNaN(idx)) return;
+    var exam = pac2State.exames[idx];
+    var thumb = item.querySelector('.pac2-exame-thumb');
+    if(exam && thumb) pac2LoadThumb(exam, thumb);
+  });
+}
 
 async function ptOpenPatient(pacienteId, name, tel){
   ptState.currentPatientId = pacienteId;
@@ -3738,13 +3816,14 @@ function pac2RenderExames(){
     return;
   }
   box.innerHTML = filtered.map(function(e){
+    var idx = exames.indexOf(e);
     var nomeShow = e.nomeArquivo || e.tipoExame || 'Exame';
     var tipo = e.tipoExame || 'Exame';
     var data = e.dataExame ? pac2FmtExameData(e.dataExame) : '';
     var lab = e.laboratorio ? ' . ' + s(e.laboratorio) : '';
     var thumbClass = pac2ExameThumbClass(e);
     var clickAttr = e.arquivoUrl ? ('onclick="window.open(\'' + s(e.arquivoUrl).replace(/\'/g,'%27') + '\',\'_blank\',\'noopener\')"') : '';
-    return '<div class="pac2-exame-item" ' + clickAttr + '>'
+    return '<div class="pac2-exame-item" data-idx="' + idx + '" ' + clickAttr + '>'
       + '<div class="pac2-exame-thumb ' + thumbClass + '"></div>'
       + '<div class="pac2-exame-info">'
       + '<div class="pac2-exame-tipo">' + s(tipo) + '</div>'
@@ -3752,6 +3831,7 @@ function pac2RenderExames(){
       + '<div class="pac2-exame-data">' + s(data) + s(lab) + '</div>'
       + '</div></div>';
   }).join('');
+  pac2LoadVisibleThumbs();
 }
 
 function pac2RenderPCsForPatient(patientName){
