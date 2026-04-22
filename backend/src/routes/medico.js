@@ -164,9 +164,12 @@ router.get('/pacientes', async (req, res, next) => {
     });
 
     // 2) Todas as pre-consultas do medico (vivas) — pra contar por paciente e detectar anonimos
+    // FASE 9 — take 500 evita query explosiva quando medico acumula muitas PCs.
+    // Se precisar mais, paginacao real entra quando >400 em uso.
     const pcs = await prisma.preConsulta.findMany({
       where: { medicoId: medico.id, deletadoEm: null },
       orderBy: { criadoEm: 'desc' },
+      take: 500,
       select: {
         id: true, pacienteId: true, pacienteNome: true, pacienteTel: true,
         pacienteFotoUrl: true, status: true, criadoEm: true, respondidaEm: true,

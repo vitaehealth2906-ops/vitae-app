@@ -1,5 +1,6 @@
 const { Prisma } = require('@prisma/client');
 const { ZodError } = require('zod');
+const { capturarExcecao } = require('../services/observability');
 
 /**
  * Mapeia codigos de erro conhecidos do Prisma para status HTTP e mensagens em portugues.
@@ -15,44 +16,48 @@ const PRISMA_ERROR_MAP = {
  * Middleware global de tratamento de erros.
  * Deve ser registrado como o ultimo middleware no Express.
  */
+const isDev = process.env.NODE_ENV === 'development';
+
 function errorHandler(err, req, res, _next) {
-  // --- Log sempre (Railway captura stderr) ---
+  // --- Log sempre (Railway captura stderr) — NUNCA logar payload/body/query ---
+  // req.body/query pode conter dados clinicos (queixa, medicamentos, CPF). LGPD.
   console.error(`[ERROR] ${req.method} ${req.originalUrl} — ${err.message}`);
-  if (process.env.NODE_ENV === 'development') {
+  if (isDev) {
     console.error(err.stack);
   }
 
   // --- Erros do Prisma (PrismaClientKnownRequestError) ---
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    console.error('[PRISMA_CODE]', err.code, '[META]', JSON.stringify(err.meta || {}));
+    // em dev: loga code+meta. em prod: so code (meta pode ter valores do usuario).
+    console.error('[PRISMA_CODE]', err.code);
+    if (isDev) console.error('[PRISMA_META]', JSON.stringify(err.meta || {}));
     const mapped = PRISMA_ERROR_MAP[err.code];
     if (mapped) {
       return res.status(mapped.status).json({ erro: mapped.mensagem });
     }
-    return res.status(400).json({
-      erro: 'Erro no banco de dados.',
-      debug_code: err.code,
-      debug_meta: err.meta,
-      debug_message: err.message ? err.message.substring(0, 500) : null,
-    });
+    const body = { erro: 'Erro no banco de dados.' };
+    if (isDev) {
+      body.debug_code = err.code;
+      body.debug_meta = err.meta;
+      body.debug_message = err.message ? err.message.substring(0, 500) : null;
+    }
+    return res.status(400).json(body);
   }
 
   // --- Erros de validacao do Prisma ---
   if (err instanceof Prisma.PrismaClientValidationError) {
-    console.error('[PRISMA_VALIDATION]', err.message);
-    return res.status(400).json({
-      erro: 'Dados invalidos enviados ao banco de dados.',
-      debug_message: err.message ? err.message.substring(0, 800) : null,
-    });
+    if (isDev) console.error('[PRISMA_VALIDATION]', err.message);
+    const body = { erro: 'Dados invalidos enviados ao banco de dados.' };
+    if (isDev && err.message) body.debug_message = err.message.substring(0, 800);
+    return res.status(400).json(body);
   }
 
   // --- Erros de inicializacao do Prisma (DB down, schema mismatch) ---
   if (err instanceof Prisma.PrismaClientInitializationError || err instanceof Prisma.PrismaClientUnknownRequestError) {
     console.error('[PRISMA_INIT_OR_UNKNOWN]', err.message);
-    return res.status(500).json({
-      erro: 'Banco de dados indisponivel ou fora de sincronia.',
-      debug_message: err.message ? err.message.substring(0, 800) : null,
-    });
+    const body = { erro: 'Banco de dados indisponivel ou fora de sincronia.' };
+    if (isDev && err.message) body.debug_message = err.message.substring(0, 800);
+    return res.status(500).json(body);
   }
 
   // --- Erros do JWT ---
@@ -80,7 +85,8 @@ function errorHandler(err, req, res, _next) {
     return res.status(err.statusCode).json({ erro: err.message || 'Erro na requisicao.' });
   }
 
-  // --- Qualquer outro erro → 500 ---
+  // --- Qualquer outro erro → 500 — captura no Sentry se ativo ---
+  try { capturarExcecao(err, req); } catch (_e) { /* nunca deixar observabilidade quebrar handler */ }
   return res.status(500).json({ erro: 'Erro interno do servidor. Tente novamente mais tarde.' });
 }
 

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vita id — painel interno</title>
+<link rel="stylesheet" href="vitae-core.css">
+<style>
+  body { background:#F4F6FA; min-height:100vh; padding:24px; font-family:'Plus Jakarta Sans', system-ui; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:26px; font-weight:900; letter-spacing:-0.8px; margin:0 0 4px; }
+  h1 em { font-style:italic; background:linear-gradient(120deg,#00E5A0,#00B4D8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .subtitle { color:#6B7280; font-size:14px; margin:0 0 24px; }
+  .token-box { background:#fff; border:1.5px solid rgba(0,0,0,0.07); border-radius:14px; padding:16px; margin-bottom:16px; display:flex; gap:12px; align-items:center; }
+  .token-box input { flex:1; border:0; outline:0; font-size:14px; font-family:monospace; }
+  .token-box button { background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#fff; border:0; padding:10px 18px; border-radius:12px; font-weight:700; cursor:pointer; }
+  .section-label { font-size:11px; font-weight:700; letter-spacing:1.5px; color:#9CA3AF; text-transform:uppercase; margin:20px 0 10px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
+  .card { background:#fff; border:1.5px solid rgba(0,0,0,0.04); border-radius:14px; padding:16px; box-shadow:0 1px 12px rgba(0,0,0,0.05); }
+  .card-label { font-size:11px; font-weight:700; color:#9CA3AF; text-transform:uppercase; letter-spacing:1px; }
+  .card-value { font-size:28px; font-weight:900; color:#0D0F14; margin-top:4px; }
+  .card-value.warn { color:#F59E0B; }
+  .card-value.bad { color:#EF4444; }
+  .card-value.ok { color:#00C47A; }
+  .card-sub { font-size:12px; color:#6B7280; margin-top:4px; }
+  .tabela { background:#fff; border-radius:14px; padding:16px; box-shadow:0 1px 12px rgba(0,0,0,0.05); margin-top:12px; overflow-x:auto; }
+  .tabela table { width:100%; border-collapse:collapse; font-size:13px; }
+  .tabela th { text-align:left; padding:8px 6px; color:#6B7280; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:1px; border-bottom:1.5px solid rgba(0,0,0,0.06); }
+  .tabela td { padding:10px 6px; border-bottom:1px solid rgba(0,0,0,0.04); }
+  .pill { display:inline-block; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:700; }
+  .pill.dead { background:rgba(239,68,68,0.1); color:#EF4444; }
+  .pill.pend { background:rgba(245,158,11,0.1); color:#F59E0B; }
+  .pill.ok { background:rgba(0,196,122,0.1); color:#00C47A; }
+  .retry-btn { background:#F4F6FA; border:1px solid rgba(0,0,0,0.08); padding:4px 10px; border-radius:8px; font-size:11px; cursor:pointer; font-weight:600; }
+  .retry-btn:hover { background:#E5E7EB; }
+  .refresh-btn { position:fixed; bottom:24px; right:24px; background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#fff; width:56px; height:56px; border-radius:50%; border:0; box-shadow:0 4px 20px rgba(0,229,160,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .refresh-btn svg { width:24px; height:24px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .erro-msg { background:rgba(239,68,68,0.08); border-left:4px solid #EF4444; padding:12px 16px; border-radius:8px; margin-top:12px; color:#991B1B; font-size:13px; }
+  code { background:#F4F6FA; padding:2px 6px; border-radius:4px; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>vita id — <em>painel interno</em></h1>
+  <p class="subtitle">Observabilidade so pra Lucas. Nao indexado. Requer ADMIN_TOKEN.</p>
+
+  <div class="token-box">
+    <input type="password" id="token" placeholder="Cola o ADMIN_TOKEN aqui">
+    <button onclick="conectar()">Conectar</button>
+  </div>
+
+  <div id="erroGeral"></div>
+
+  <div id="content" style="display:none">
+
+    <div class="section-label">Saude geral</div>
+    <div class="grid">
+      <div class="card"><div class="card-label">Banco de dados</div><div class="card-value" id="db">–</div></div>
+      <div class="card"><div class="card-label">Uptime</div><div class="card-value" id="uptime">–</div></div>
+      <div class="card"><div class="card-label">Memoria</div><div class="card-value" id="memoria">–</div></div>
+      <div class="card"><div class="card-label">Sentry</div><div class="card-value" id="sentry">–</div></div>
+    </div>
+
+    <div class="section-label">Estatisticas</div>
+    <div class="grid">
+      <div class="card"><div class="card-label">Pacientes</div><div class="card-value" id="pacientes">–</div></div>
+      <div class="card"><div class="card-label">Medicos</div><div class="card-value" id="medicos">–</div></div>
+      <div class="card"><div class="card-label">Pre-consultas 24h</div><div class="card-value" id="pc24h">–</div></div>
+      <div class="card"><div class="card-label">Pre-consultas total</div><div class="card-value" id="pctotal">–</div></div>
+      <div class="card"><div class="card-label">Exames total</div><div class="card-value" id="exames">–</div></div>
+    </div>
+
+    <div class="section-label">Fila de processamento</div>
+    <div class="grid">
+      <div class="card"><div class="card-label">Pendentes</div><div class="card-value" id="pendentes">–</div></div>
+      <div class="card"><div class="card-label">Mortas (DEAD)</div><div class="card-value" id="mortas">–</div></div>
+      <div class="card"><div class="card-label">Processadas 24h</div><div class="card-value" id="proc24">–</div></div>
+    </div>
+
+    <div class="section-label">Contadores de falha (ultimos 60 min)</div>
+    <div class="grid" id="contadoresFalha"></div>
+
+    <div class="section-label">Tarefas travadas (+30 min sem processar)</div>
+    <div class="tabela">
+      <table>
+        <thead><tr><th>ID</th><th>Tipo</th><th>Tentativas</th><th>Erro</th><th>Criada</th><th></th></tr></thead>
+        <tbody id="stuckTable"><tr><td colspan="6" style="color:#9CA3AF">Nenhuma tarefa travada.</td></tr></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<button class="refresh-btn" onclick="atualizarTudo()" title="Atualizar">
+  <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+</button>
+
+<script>
+var API_BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:3002'
+  : 'https://vitae-app-production.up.railway.app';
+
+function getToken() { return document.getElementById('token').value.trim(); }
+
+async function adminFetch(path) {
+  const token = getToken();
+  if (!token) throw new Error('Cola o ADMIN_TOKEN primeiro');
+  const r = await fetch(API_BASE + '/admin' + path, { headers: { 'x-admin-token': token } });
+  if (r.status === 401) throw new Error('Token invalido');
+  if (r.status === 503) throw new Error('ADMIN_TOKEN nao configurado no servidor (veja handoff)');
+  if (!r.ok) throw new Error('Erro ' + r.status);
+  return r.json();
+}
+
+function mostrarErro(msg) {
+  document.getElementById('erroGeral').innerHTML = '<div class="erro-msg">' + msg + '</div>';
+}
+
+function limparErro() { document.getElementById('erroGeral').innerHTML = ''; }
+
+async function conectar() {
+  limparErro();
+  try {
+    await adminFetch('/health');
+    document.getElementById('content').style.display = '';
+    localStorage.setItem('vitae_admin_token', getToken());
+    atualizarTudo();
+  } catch (e) {
+    mostrarErro(e.message);
+  }
+}
+
+function fmtUptime(seg) {
+  if (seg < 60) return seg + 's';
+  if (seg < 3600) return Math.floor(seg / 60) + 'min';
+  if (seg < 86400) return (seg / 3600).toFixed(1) + 'h';
+  return (seg / 86400).toFixed(1) + 'd';
+}
+
+async function atualizarSaude() {
+  try {
+    const d = await adminFetch('/health');
+    var dbEl = document.getElementById('db');
+    dbEl.textContent = d.db === 'conectado' ? 'OK' : 'OFFLINE';
+    dbEl.className = 'card-value ' + (d.db === 'conectado' ? 'ok' : 'bad');
+    document.getElementById('uptime').textContent = fmtUptime(d.observability.uptime_segundos);
+    document.getElementById('memoria').textContent = d.observability.memoria_mb + ' MB';
+    var sentryEl = document.getElementById('sentry');
+    sentryEl.textContent = d.observability.sentry_ativo ? 'ON' : 'off';
+    sentryEl.className = 'card-value ' + (d.observability.sentry_ativo ? 'ok' : 'warn');
+
+    var ctd = d.observability.contadores;
+    var grid = document.getElementById('contadoresFalha');
+    grid.innerHTML = '';
+    var rotulos = {
+      ia_gemini_falha: 'Gemini falhou',
+      ia_claude_falha: 'Claude falhou',
+      ia_ambos_falharam: 'IA dupla falha',
+      tts_falha: 'TTS falhou',
+      whisper_falha: 'Whisper falhou',
+      upload_falha: 'Upload falhou',
+    };
+    Object.keys(rotulos).forEach(function(k){
+      var v = ctd[k] || 0;
+      var t = d.observability.thresholds[k];
+      var klass = v === 0 ? 'ok' : (t && v >= t ? 'bad' : 'warn');
+      grid.innerHTML += '<div class="card"><div class="card-label">' + rotulos[k] + '</div>' +
+        '<div class="card-value ' + klass + '">' + v + '</div>' +
+        (t ? '<div class="card-sub">alerta em ' + t + '</div>' : '') + '</div>';
+    });
+  } catch (e) { mostrarErro('Saude: ' + e.message); }
+}
+
+async function atualizarStats() {
+  try {
+    const d = await adminFetch('/stats');
+    document.getElementById('pacientes').textContent = d.pacientes;
+    document.getElementById('medicos').textContent = d.medicos;
+    document.getElementById('pc24h').textContent = d.preConsultas_24h;
+    document.getElementById('pctotal').textContent = d.preConsultas_total;
+    document.getElementById('exames').textContent = d.exames_total;
+  } catch (e) { mostrarErro('Stats: ' + e.message); }
+}
+
+async function atualizarFila() {
+  try {
+    const d = await adminFetch('/queue');
+    document.getElementById('pendentes').textContent = d.pendentes;
+    var mortas = document.getElementById('mortas');
+    mortas.textContent = d.mortas;
+    mortas.className = 'card-value ' + (d.mortas === 0 ? 'ok' : 'bad');
+    document.getElementById('proc24').textContent = d.processadas_24h;
+
+    var tbody = document.getElementById('stuckTable');
+    if (!d.stuck_30min_ou_mais || !d.stuck_30min_ou_mais.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:#9CA3AF">Nenhuma tarefa travada.</td></tr>';
+    } else {
+      tbody.innerHTML = '';
+      d.stuck_30min_ou_mais.forEach(function(t){
+        var erroTxt = (t.erro || '').substring(0, 60);
+        tbody.innerHTML += '<tr>' +
+          '<td><code>' + t.id.substring(0,8) + '...</code></td>' +
+          '<td>' + t.tipo + '</td>' +
+          '<td>' + t.tentativas + '</td>' +
+          '<td style="color:#991B1B;font-size:12px">' + erroTxt + '</td>' +
+          '<td style="color:#6B7280;font-size:12px">' + new Date(t.criado_em).toLocaleString('pt-BR') + '</td>' +
+          '<td><button class="retry-btn" onclick="retry(\'' + t.id + '\')">Retry</button></td>' +
+          '</tr>';
+      });
+    }
+  } catch (e) { mostrarErro('Fila: ' + e.message); }
+}
+
+async function retry(id) {
+  if (!confirm('Forcar retry da tarefa ' + id.substring(0,8) + '?')) return;
+  try {
+    const token = getToken();
+    const r = await fetch(API_BASE + '/admin/queue/' + id + '/retry', {
+      method: 'POST',
+      headers: { 'x-admin-token': token },
+    });
+    if (!r.ok) throw new Error('Erro ' + r.status);
+    alert('Retry agendado.');
+    atualizarFila();
+  } catch (e) { alert('Erro: ' + e.message); }
+}
+
+function atualizarTudo() {
+  atualizarSaude();
+  atualizarStats();
+  atualizarFila();
+}
+
+// Auto-reconnect se token salvo
+var tokenSalvo = localStorage.getItem('vitae_admin_token');
+if (tokenSalvo) {
+  document.getElementById('token').value = tokenSalvo;
+  conectar();
+}
+
+// Auto-refresh a cada 30s
+setInterval(function(){ if (document.getElementById('content').style.display === '') atualizarTudo(); }, 30000);
+</script>
+</body>
+</html>

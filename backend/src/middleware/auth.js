@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const prisma = require('../utils/prisma');
 
 /**
  * Extrai e decodifica o Bearer token do header Authorization.
@@ -16,18 +17,47 @@ function extrairToken(req) {
   return jwt.verify(token, process.env.JWT_SECRET);
 }
 
+// FASE 7 — Cache de JWTs revogados (1 min TTL) pra evitar query no DB a cada request
+let revocationCache = new Map();
+const REVOCATION_TTL_MS = 60 * 1000;
+
+async function tokenRevogado(jti) {
+  if (!jti) return false;
+  const agora = Date.now();
+  const cached = revocationCache.get(jti);
+  if (cached && cached.expira > agora) return cached.revogado;
+  try {
+    const row = await prisma.$queryRawUnsafe(
+      `SELECT jti FROM jwt_revogados WHERE jti = $1 AND expira_em > NOW() LIMIT 1`,
+      jti
+    );
+    const revogado = Array.isArray(row) && row.length > 0;
+    revocationCache.set(jti, { revogado, expira: agora + REVOCATION_TTL_MS });
+    // Limpa cache se crescer muito
+    if (revocationCache.size > 1000) revocationCache = new Map();
+    return revogado;
+  } catch (_e) {
+    // Se tabela nao existir ainda (migration nao rodou), nao bloqueia requests
+    return false;
+  }
+}
+
 /**
  * Middleware de autenticacao obrigatoria.
  * Rejeita a requisicao com 401 se o token for ausente ou invalido.
  * Anexa { id, email } em req.user.
  */
-function verificarAuth(req, res, next) {
+async function verificarAuth(req, res, next) {
   try {
     const decoded = extrairToken(req);
     if (!decoded) {
       return res.status(401).json({ erro: 'Token de autenticacao nao fornecido.' });
     }
-    req.user = { id: decoded.id, email: decoded.email };
+    // FASE 7 — Check revocation list (LGPD: revogar consentimento = revogar token)
+    if (decoded.jti && await tokenRevogado(decoded.jti)) {
+      return res.status(401).json({ erro: 'Sessao revogada. Faca login novamente.' });
+    }
+    req.user = { id: decoded.id, email: decoded.email, jti: decoded.jti };
     req.usuario = req.user;
     next();
   } catch (err) {

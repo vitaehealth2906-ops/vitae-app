@@ -349,7 +349,13 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
     if (preConsulta.expiraEm < new Date()) return res.status(410).json({ erro: 'Link expirado' });
     if (preConsulta.status === 'RESPONDIDA') return res.status(409).json({ erro: 'Pre-consulta ja respondida' });
 
-    const respostas = req.body.respostas ? JSON.parse(req.body.respostas) : { metodo: 'audio' };
+    // FASE 6 — JSON.parse defensivo (evita 500 se corrompido)
+    let respostas;
+    try {
+      respostas = req.body.respostas ? JSON.parse(req.body.respostas) : { metodo: 'audio' };
+    } catch (e) {
+      return res.status(400).json({ erro: 'Formato de respostas invalido. Tente enviar novamente.' });
+    }
     const transcricao = req.body.transcricao || '';
 
     // Save audio to storage
@@ -391,8 +397,10 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
     const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
     const pacienteIdFinal = await vincularPaciente({ preConsulta, pacienteIdLogado, req });
 
-    const atualizada = await prisma.preConsulta.update({
-      where: { id: preConsulta.id },
+    // FASE 6 — UPDATE atomico: so atualiza se status ainda NAO for RESPONDIDA.
+    // Protege contra 2 requests simultaneos (double-submit do paciente).
+    const updatedCount = await prisma.preConsulta.updateMany({
+      where: { id: preConsulta.id, status: { not: 'RESPONDIDA' } },
       data: {
         respostas,
         transcricao,
@@ -405,6 +413,11 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
         ...(pacienteIdFinal && { pacienteId: pacienteIdFinal }),
       },
     });
+    if (updatedCount.count === 0) {
+      // Outro request ja respondeu enquanto processavamos — comportamento idempotente
+      return res.status(409).json({ erro: 'Pre-consulta ja respondida', detalhe: 'Outro envio foi processado em paralelo.' });
+    }
+    const atualizada = await prisma.preConsulta.findUnique({ where: { id: preConsulta.id } });
 
     // TTS: Generate ElevenLabs audio in background (fire-and-forget)
     if (summaryJson && (summaryJson.textoVoz || summaryIA)) {
@@ -563,29 +576,44 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
     if (finalAudioUrl && audioConfirmado) updateData.audioUrl = finalAudioUrl;
     if (finalFotoUrl && fotoConfirmada) updateData.pacienteFotoUrl = finalFotoUrl;
 
-    const atualizada = await prisma.preConsulta.update({
-      where: { id: preConsulta.id },
+    // FASE 6 — UPDATE atomico: so atualiza se status ainda NAO for RESPONDIDA.
+    const updatedCount = await prisma.preConsulta.updateMany({
+      where: { id: preConsulta.id, status: { not: 'RESPONDIDA' } },
       data: updateData,
     });
+    if (updatedCount.count === 0) {
+      return res.status(409).json({ erro: 'Pre-consulta ja respondida', detalhe: 'Outro envio foi processado em paralelo.' });
+    }
+    const atualizada = await prisma.preConsulta.findUnique({ where: { id: preConsulta.id } });
 
     // === ETAPA 5 — Enfileirar processamento assincrono (fora do caminho critico) ===
-    // Summary, Whisper, TTS vao pra fila. Worker processa em background.
+    // FASE 6 — Dedupe: so enfileira se nao existir tarefa pendente do mesmo tipo pra essa PC.
     try {
-      // Tarefa de gerar summary (inclui whisper se transcricao vazia, depois TTS)
-      await prisma.tarefaPendente.create({
-        data: {
+      const existente = await prisma.tarefaPendente.findFirst({
+        where: {
           tipo: 'GERAR_SUMMARY_E_TTS',
           preConsultaId: preConsulta.id,
-          payload: {
-            temAudio: !!(finalAudioUrl && audioConfirmado),
-            transcricaoInicial: transcricao || null,
-          },
-          tentativas: 0,
+          processadoEm: null,
+          dead: false,
         },
       });
+      if (!existente) {
+        await prisma.tarefaPendente.create({
+          data: {
+            tipo: 'GERAR_SUMMARY_E_TTS',
+            preConsultaId: preConsulta.id,
+            payload: {
+              temAudio: !!(finalAudioUrl && audioConfirmado),
+              transcricaoInicial: transcricao || null,
+            },
+            tentativas: 0,
+          },
+        });
+      } else {
+        console.log('[FILA] tarefa ja existe pra PC', preConsulta.id, '— nao duplicou');
+      }
     } catch (queueErr) {
       console.error('[FILA] Erro ao enfileirar summary:', queueErr.message);
-      // Nao falha a resposta — medico vai ver "Incompleta" e pode pedir reenvio
     }
 
     // === ETAPA 4 — Resposta explicita ao cliente ===
@@ -654,6 +682,17 @@ router.get('/:id', verificarAuth, async (req, res, next) => {
       return res.status(404).json({ erro: 'Pre-consulta nao encontrada' });
     }
 
+    // FASE 7 — Audit trail LGPD/CFM: registra abertura do briefing pelo medico
+    try {
+      const { registrarAcessoBriefing } = require('../services/audit');
+      registrarAcessoBriefing({
+        preConsultaId: preConsulta.id,
+        medicoId: medico.id,
+        acao: 'view_briefing',
+        req,
+      });
+    } catch (_e) { /* auditoria nao pode quebrar response */ }
+
     return res.status(200).json({ preConsulta });
   } catch (err) {
     next(err);
@@ -664,10 +703,25 @@ router.get('/:id', verificarAuth, async (req, res, next) => {
 // POST /:id/regenerar — Regenerar resumo IA de uma pre-consulta (autenticado)
 // ---------------------------------------------------------------------------
 
+// FASE 9 — debounce em memoria: regenerar/PC nao pode ser disparado > 1x em 15s
+const _regenDebounce = new Map();
+setInterval(function() {
+  const agora = Date.now();
+  for (const [k, v] of _regenDebounce.entries()) if (agora - v > 30000) _regenDebounce.delete(k);
+}, 60000).unref();
+
 router.post('/:id/regenerar', verificarAuth, async (req, res, next) => {
   try {
     const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
     if (!medico) return res.status(403).json({ erro: 'Apenas medicos' });
+
+    // FASE 9 — debounce: evita custo duplicado se medico clica 3x rapido
+    const debounceKey = medico.id + '|' + req.params.id;
+    const ultimo = _regenDebounce.get(debounceKey);
+    if (ultimo && Date.now() - ultimo < 15000) {
+      return res.status(429).json({ erro: 'Aguarde 15 segundos antes de regenerar novamente.' });
+    }
+    _regenDebounce.set(debounceKey, Date.now());
 
     const pc = await prisma.preConsulta.findFirst({
       where: { id: req.params.id, medicoId: medico.id, status: 'RESPONDIDA' },

@@ -95,6 +95,15 @@ router.get('/', async (req, res, next) => {
 // POST /
 // ---------------------------------------------------------------------------
 
+// Normaliza nome de medicamento pra dedupe: minusculo, trim, espacos colapsados, sem acento
+function normalizarNomeMed(s) {
+  return String(s || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
 router.post('/', validate(criarMedicamentoSchema), async (req, res, next) => {
   try {
     const usuarioId = req.usuario.id;
@@ -108,26 +117,61 @@ router.post('/', validate(criarMedicamentoSchema), async (req, res, next) => {
       calcDataFim.setDate(calcDataFim.getDate() + duracaoDias);
     }
 
-    const medicamento = await prisma.medicamento.create({
-      data: {
-        usuarioId,
-        nome,
-        dosagem: dosagem || null,
-        frequencia: frequencia || null,
-        horario: horario || null,
-        motivo: motivo || null,
-        observacao: observacao || null,
-        medicoPrescritor: medicoPrescritor || null,
-        duracaoDias: duracaoDias || null,
-        quantidadeEstoque: quantidadeEstoque || null,
-        quantidadePorDose: quantidadePorDose || 1,
-        dataInicio: dataInicio || new Date(),
-        dataFim: calcDataFim,
-        ativo: true,
-      },
+    // ── FASE 6 — Dedupe: se ja existe medicamento ativo com mesmo nome+dosagem (normalizado),
+    //    atualiza em vez de criar duplicata. Resolve o bug original do Lucas (5 Creatinas) na raiz.
+    const nomeNorm = normalizarNomeMed(nome);
+    const dosNorm = normalizarNomeMed(dosagem);
+    const candidatos = await prisma.medicamento.findMany({
+      where: { usuarioId, ativo: true },
+      select: { id: true, nome: true, dosagem: true },
     });
+    const duplicado = candidatos.find(c =>
+      normalizarNomeMed(c.nome) === nomeNorm && normalizarNomeMed(c.dosagem) === dosNorm
+    );
 
-    return res.status(201).json({ medicamento });
+    let medicamento;
+    let duplicadoDetectado = false;
+    if (duplicado) {
+      duplicadoDetectado = true;
+      medicamento = await prisma.medicamento.update({
+        where: { id: duplicado.id },
+        data: {
+          // Atualiza os campos informados, mantem os anteriores se vieram vazios
+          frequencia: frequencia || undefined,
+          horario: horario || undefined,
+          motivo: motivo || undefined,
+          observacao: observacao || undefined,
+          medicoPrescritor: medicoPrescritor || undefined,
+          duracaoDias: duracaoDias || undefined,
+          quantidadeEstoque: quantidadeEstoque || undefined,
+          quantidadePorDose: quantidadePorDose || undefined,
+          dataInicio: dataInicio || undefined,
+          dataFim: calcDataFim || undefined,
+          atualizadoEm: new Date(),
+        },
+      });
+    } else {
+      medicamento = await prisma.medicamento.create({
+        data: {
+          usuarioId,
+          nome,
+          dosagem: dosagem || null,
+          frequencia: frequencia || null,
+          horario: horario || null,
+          motivo: motivo || null,
+          observacao: observacao || null,
+          medicoPrescritor: medicoPrescritor || null,
+          duracaoDias: duracaoDias || null,
+          quantidadeEstoque: quantidadeEstoque || null,
+          quantidadePorDose: quantidadePorDose || 1,
+          dataInicio: dataInicio || new Date(),
+          dataFim: calcDataFim,
+          ativo: true,
+        },
+      });
+    }
+
+    return res.status(duplicadoDetectado ? 200 : 201).json({ medicamento, duplicadoAtualizado: duplicadoDetectado });
   } catch (err) {
     next(err);
   }

@@ -16,6 +16,8 @@ const { gerarSummaryPreConsulta, gerarAudioElevenLabs } = require('../services/a
 const { transcreverAudio, transcreverAudioComTimestamps } = require('../services/transcription');
 const { enviarEmailPreConsultaRespondida } = require('../services/email');
 const { enviarSMSConfirmacaoPreConsulta } = require('../services/sms');
+const { registrarFalha } = require('../services/observability');
+const { validarTranscricao, validarFoto, validarAudio, validarQueixa, calcularNivel, validarResultadoIA } = require('../services/briefing');
 
 const INTERVALO_MS = 30 * 1000; // checa a cada 30s
 const MAX_TENTATIVAS = 5;
@@ -158,10 +160,26 @@ async function processarGerarSummaryETts(tarefa) {
   });
   if (!preConsulta) throw new Error('Pre-consulta nao encontrada: ' + tarefa.preConsultaId);
 
+  // ── FASE 3 — Status por peca, calculado a cada etapa ──
+  // Inicia com estado derivado do que chegou do paciente.
+  const status = {
+    statusFoto: validarFoto(preConsulta.pacienteFotoUrl).ok ? 'ok' : 'ausente',
+    statusAudio: validarAudio(preConsulta.audioUrl).ok ? 'ok' : 'ausente',
+    statusTranscricao: 'sem_audio',
+    statusResumoIa: 'falhou',
+    statusAudioResumo: 'falhou',
+    temTexto: !!(preConsulta.respostas && Object.keys(preConsulta.respostas).length > 1),
+  };
+
   // [1] Transcricao via Whisper com word-level timestamps (para karaoke sync)
   //     Sempre atualiza os words se temos audio — mesmo que ja exista transcricao,
   //     precisamos dos timestamps. Se ja tem words salvos, nao re-transcreve.
   let transcricao = preConsulta.transcricao;
+  // Se ja tinha transcricao salva antes, validar antes de usar
+  if (transcricao) {
+    const v = validarTranscricao(transcricao);
+    status.statusTranscricao = v.ok ? 'ok' : 'falhou';
+  }
   const precisaTranscrever = !preConsulta.transcricaoWords && preConsulta.audioUrl;
   if (precisaTranscrever) {
     try {
@@ -191,7 +209,19 @@ async function processarGerarSummaryETts(tarefa) {
         }
       } catch (e2) {
         console.error('[WORKER] Whisper simples tambem falhou:', e2.message);
+        registrarFalha('whisper_falha', { preConsultaId: preConsulta.id, motivo: 'ambos_fallbacks_falharam' });
       }
+    }
+    // Valida transcricao produzida (pode ter saido "(áudio sem transcrição)" etc)
+    if (transcricao) {
+      const v = validarTranscricao(transcricao);
+      status.statusTranscricao = v.ok ? 'ok' : 'falhou';
+      if (!v.ok) {
+        console.warn('[WORKER] transcricao invalida:', v.motivo, preConsulta.id);
+        registrarFalha('whisper_falha', { preConsultaId: preConsulta.id, motivo: v.motivo });
+      }
+    } else {
+      status.statusTranscricao = 'falhou';
     }
   }
 
@@ -232,7 +262,10 @@ async function processarGerarSummaryETts(tarefa) {
         }
       }
     } catch (e) {
-      if (tentativaSummary >= 2) throw new Error('gerarSummary falhou: ' + e.message);
+      if (tentativaSummary >= 2) {
+        registrarFalha('ia_ambos_falharam', { preConsultaId: preConsulta.id, motivo: e.message?.substring(0, 60) });
+        throw new Error('gerarSummary falhou: ' + e.message);
+      }
       console.warn('[WORKER] gerarSummary erro tentativa', tentativaSummary, ':', e.message);
     }
   }
@@ -241,15 +274,34 @@ async function processarGerarSummaryETts(tarefa) {
     console.error('[VALIDACAO] FALHOU apos 2 tentativas. Salvando mesmo assim + flag. Faltou:', validacao.faltando.join(', '));
   }
 
+  // Valida resultado da IA pra decidir statusResumoIa
+  if (summaryJson) {
+    const validResult = validarResultadoIA(summaryJson);
+    // Se IA nao conseguiu o basico, marca falhou; se parcial (faltou indispensaveis), parcial
+    if (!validResult.ok) status.statusResumoIa = 'falhou';
+    else if (validResult.nivel === 'parcial' || !validacao.ok) status.statusResumoIa = 'parcial';
+    else status.statusResumoIa = 'ok';
+  } else {
+    status.statusResumoIa = 'falhou';
+  }
+
   // [4] Salvar summary no banco (inclui alerta de incompleto se faltou indispensavel)
   await prisma.preConsulta.update({
     where: { id: preConsulta.id },
-    data: { summaryIA, summaryJson },
+    data: { summaryIA, summaryJson, statusResumoIa: status.statusResumoIa },
   });
 
   // [5] TTS — separado em try pra nao falhar tarefa se so TTS falhar
   if (summaryJson && (summaryJson.textoVoz || summaryIA)) {
     const textoVoz = summaryJson.textoVoz || summaryIA;
+    // Marca "processando" ANTES de tentar — medico ve "em processamento" se demorar
+    try {
+      await prisma.preConsulta.update({
+        where: { id: preConsulta.id },
+        data: { statusAudioResumo: 'processando' },
+      });
+    } catch (_e) { /* nao bloqueia */ }
+
     try {
       const audioBuffer = await gerarAudioElevenLabs(textoVoz, preConsulta.pacienteNome);
       const ttsUrl = await storage.upload({
@@ -258,15 +310,45 @@ async function processarGerarSummaryETts(tarefa) {
         mimetype: 'audio/mpeg',
         pasta: 'tts',
       });
+      // Suspeita: audio muito curto (voz costuma ser 1MB+ pra 60s)
+      const tamSuspeito = audioBuffer && audioBuffer.length < 30000; // <30KB = uns 2-3s
+      status.statusAudioResumo = tamSuspeito ? 'suspeito' : 'ok';
       await prisma.preConsulta.update({
         where: { id: preConsulta.id },
-        data: { audioSummaryUrl: ttsUrl },
+        data: { audioSummaryUrl: ttsUrl, statusAudioResumo: status.statusAudioResumo },
       });
-      console.log('[WORKER] TTS gerado:', preConsulta.id);
+      console.log('[WORKER] TTS gerado:', preConsulta.id, 'status:', status.statusAudioResumo);
     } catch (ttsErr) {
       console.error('[WORKER] TTS falhou (nao bloqueia tarefa):', ttsErr.message);
-      // TTS falhar nao faz a tarefa ser retentada — medico ainda tem o summary
+      registrarFalha('tts_falha', { preConsultaId: preConsulta.id, motivo: ttsErr.message?.substring(0, 60) });
+      status.statusAudioResumo = 'falhou';
+      try {
+        await prisma.preConsulta.update({
+          where: { id: preConsulta.id },
+          data: { statusAudioResumo: 'falhou' },
+        });
+      } catch (_e) { /* nao bloqueia */ }
     }
+  } else {
+    status.statusAudioResumo = 'falhou';
+  }
+
+  // [7] Calcula e grava nivel final do briefing (0-5)
+  const nivel = calcularNivel(status);
+  try {
+    await prisma.preConsulta.update({
+      where: { id: preConsulta.id },
+      data: {
+        nivelBriefing: nivel,
+        statusFoto: status.statusFoto,
+        statusAudio: status.statusAudio,
+        statusTranscricao: status.statusTranscricao,
+      },
+    });
+    console.log('[WORKER] nivel briefing:', preConsulta.id, '= nivel', nivel);
+  } catch (e) {
+    // Se colunas ainda nao migraram, nao bloqueia fluxo existente
+    console.warn('[WORKER] falha ao gravar nivel/status (migration pode nao ter rodado):', e.message);
   }
 
   // [6] Notificacoes fire-and-forget

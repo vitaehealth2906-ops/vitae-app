@@ -21,6 +21,10 @@ const autorizacaoRoutes = require('./routes/autorizacao');
 const consentimentoRoutes = require('./routes/consentimento');
 const timelineRoutes = require('./routes/timeline');
 const templatesRoutes = require('./routes/templates');
+const adminRoutes = require('./routes/admin');
+
+// Observabilidade — inicializa Sentry se SENTRY_DSN setado
+require('./services/observability');
 
 // ── App ────────────────────────────────────────────────
 const app = express();
@@ -38,11 +42,12 @@ const allowedOrigins = [
   'http://127.0.0.1:3001',
   'http://127.0.0.1:3002',
 ];
+const isDevelopment = process.env.NODE_ENV !== 'production';
 app.use(
   cors({
     origin: function(origin, callback) {
-      // Permitir requests sem origin (file://, mobile apps, curl)
-      if (!origin) return callback(null, true);
+      // Sem origin: so permitir em dev (curl, Postman) — em prod, rejeitar file:// e requests sem origin
+      if (!origin) return callback(null, isDevelopment);
       if (allowedOrigins.some(o => origin.startsWith(o))) return callback(null, true);
       callback(null, false);
     },
@@ -97,30 +102,32 @@ app.get('/health', (_req, res) => {
 // Version check endpoint
 app.get('/version', (_req, res) => res.json({ version: '3.1-gemini', timestamp: new Date().toISOString() }));
 
-// ── DIAGNOSTICO: teste do scan sem login ──────────────
-app.post('/test-scan', require('multer')({ storage: require('multer').memoryStorage(), limits: { fileSize: 10*1024*1024 } }).single('arquivo'), async (req, res) => {
-  const log = [];
-  log.push('Request received');
-  log.push('File: ' + (req.file ? `${req.file.mimetype} ${req.file.size} bytes` : 'NENHUM'));
+// ── DIAGNOSTICO: teste do scan — APENAS em dev (sem auth = vetor DoS em prod) ──
+if (isDevelopment) {
+  app.post('/test-scan', require('multer')({ storage: require('multer').memoryStorage(), limits: { fileSize: 10*1024*1024 } }).single('arquivo'), async (req, res) => {
+    const log = [];
+    log.push('Request received');
+    log.push('File: ' + (req.file ? `${req.file.mimetype} ${req.file.size} bytes` : 'NENHUM'));
 
-  if (!req.file) {
-    return res.json({ ok: false, log, erro: 'Nenhum arquivo' });
-  }
+    if (!req.file) {
+      return res.json({ ok: false, log, erro: 'Nenhum arquivo' });
+    }
 
-  try {
-    const ai = require('./services/ai');
-    log.push('AI module loaded');
-    log.push('Calling scanReceita...');
+    try {
+      const ai = require('./services/ai');
+      log.push('AI module loaded');
+      log.push('Calling scanReceita...');
 
-    const result = await ai.scanReceita(req.file.buffer, req.file.mimetype);
-    log.push('Result: ' + JSON.stringify(result).substring(0, 200));
+      const result = await ai.scanReceita(req.file.buffer, req.file.mimetype);
+      log.push('Result: ' + JSON.stringify(result).substring(0, 200));
 
-    return res.json({ ok: true, log, result });
-  } catch(e) {
-    log.push('ERROR: ' + e.message);
-    return res.json({ ok: false, log, erro: e.message });
-  }
-});
+      return res.json({ ok: true, log, result });
+    } catch(e) {
+      log.push('ERROR: ' + e.message);
+      return res.json({ ok: false, log, erro: e.message });
+    }
+  });
+}
 
 // ── Montagem das rotas ─────────────────────────────────
 // Auth: brute-force protection mais agressiva
@@ -143,6 +150,8 @@ app.use('/agendamento', limiterGeral, agendamentoRoutes);
 app.use('/consentimento', limiterGeral, consentimentoRoutes);
 app.use('/templates', limiterGeral, templatesRoutes);
 app.use('/timeline', limiterGeral, timelineRoutes);
+// Admin — protegido por ADMIN_TOKEN header (rate limit apertado)
+app.use('/admin', limiterPublico, adminRoutes);
 
 // ── 404 para rotas nao encontradas ────────────────────
 app.use((_req, res) => {
@@ -213,6 +222,47 @@ app.listen(PORT, '0.0.0.0', async () => {
     // Coluna valor_consulta no medico (pra mostrar impacto em R$ no dashboard)
     await prisma.$executeRawUnsafe(`ALTER TABLE "medicos" ADD COLUMN IF NOT EXISTS "valor_consulta" DOUBLE PRECISION`);
     console.log('[MIGRATE] coluna medicos.valor_consulta OK');
+
+    // ETAPA 6 (FASE 3) — Status honesto por peca da pre-consulta
+    // Tudo nullable, aditivo. Zero risco de data loss.
+    await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "nivel_briefing" INTEGER`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "status_resumo_ia" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "status_audio_resumo" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "status_transcricao" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "status_foto" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "status_audio" TEXT`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "pre_consultas_medico_nivel_idx" ON "pre_consultas"("medico_id", "nivel_briefing")`);
+    console.log('[MIGRATE] colunas de status do briefing OK');
+
+    // ETAPA 7 (FASE 7) — Audit trail de acesso ao briefing (LGPD/CFM 5 anos).
+    // Cria tabela separada pra nao poluir pre_consultas. Nao guarda dado clinico — so metadata.
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "auditoria_briefing" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "pre_consulta_id" TEXT NOT NULL,
+        "medico_id" TEXT NOT NULL,
+        "acao" TEXT NOT NULL,
+        "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "ip_hash" TEXT,
+        "user_agent_hash" TEXT
+      )
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "auditoria_briefing_pc_idx" ON "auditoria_briefing"("pre_consulta_id", "criado_em")`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "auditoria_briefing_medico_idx" ON "auditoria_briefing"("medico_id", "criado_em")`);
+    console.log('[MIGRATE] tabela auditoria_briefing OK');
+
+    // ETAPA 7 — JWT revocation list (jti blacklist) — LGPD: revogar consentimento = revogar token imediato
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "jwt_revogados" (
+        "jti" TEXT NOT NULL PRIMARY KEY,
+        "usuario_id" TEXT,
+        "motivo" TEXT,
+        "revogado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "expira_em" TIMESTAMP(3) NOT NULL
+      )
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "jwt_revogados_expira_idx" ON "jwt_revogados"("expira_em")`);
+    console.log('[MIGRATE] tabela jwt_revogados OK');
   } catch (e) {
     console.error('[MIGRATE] Erro ao aplicar migracao manual:', e.message);
   }

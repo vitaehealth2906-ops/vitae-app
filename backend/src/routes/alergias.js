@@ -79,8 +79,17 @@ router.post('/', validate(criarAlergiaSchema), async (req, res, next) => {
       },
     });
 
+    // FASE 6 — Se ja existe, ATUALIZA com os novos campos (promove leve->grave, adiciona tipo).
+    // Antes retornava 409 — gerava frustracao no paciente. Agora merge inteligente.
     if (existente) {
-      return res.status(409).json({ erro: 'Voce ja cadastrou esta alergia' });
+      const alergia = await prisma.alergia.update({
+        where: { id: existente.id },
+        data: {
+          tipo: tipo || existente.tipo,
+          gravidade: gravidade || existente.gravidade,
+        },
+      });
+      return res.status(200).json({ alergia, duplicadoAtualizado: true });
     }
 
     const alergia = await prisma.alergia.create({

@@ -331,6 +331,15 @@ model PreConsulta {
 
   deletadoEm      DateTime? @map("deletado_em") // soft-delete
 
+  // ── FASE 3 — Status honesto por peca (nullable = legado, sem valor ainda) ──
+  // Tela do medico usa isso pra mostrar selo de nivel e fallbacks honestos.
+  nivelBriefing       Int?     @map("nivel_briefing") // 0-5 (5=completo, 0=nao respondido)
+  statusResumoIa      String?  @map("status_resumo_ia") // 'ok' | 'parcial' | 'falhou'
+  statusAudioResumo   String?  @map("status_audio_resumo") // 'ok' | 'processando' | 'falhou' | 'suspeito'
+  statusTranscricao   String?  @map("status_transcricao") // 'ok' | 'falhou' | 'sem_audio'
+  statusFoto          String?  @map("status_foto") // 'ok' | 'ausente' | 'falhou'
+  statusAudio         String?  @map("status_audio") // 'ok' | 'ausente' | 'silencio' | 'falhou'
+
   medico          Medico   @relation(fields: [medicoId], references: [id], onDelete: Cascade)
   template        FormTemplate? @relation(fields: [templateId], references: [id])
   paciente        Usuario? @relation("paciente_pre_consultas", fields: [pacienteId], references: [id], onDelete: SetNull)
@@ -338,6 +347,7 @@ model PreConsulta {
   @@index([medicoId, pacienteId])
   @@index([medicoId, criadoEm])
   @@index([medicoId, status])
+  @@index([medicoId, nivelBriefing])
   @@map("pre_consultas")
 }
 

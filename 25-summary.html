@@ -54,6 +54,323 @@
         }
         .date-badge svg { width: 12px; height: 12px; stroke: var(--v-green2); fill: none; stroke-width: 2; stroke-linecap: round; }
 
+        /* ── FASE 4 — Selo de nivel de briefing ──
+           Cor + icone + padrao sao REDUNDANTES (cada selo tem os 3).
+           Isso garante que medicos daltonicos distinguem mesmo sem ver cor.        */
+        .nivel-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 10px 5px 8px;
+            border-radius: var(--v-r-pill);
+            font-size: 11px; font-weight: 700;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            border: 1.5px solid transparent;
+        }
+        .nivel-badge .nivel-badge-mark {
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: inline-block;
+            border: 1.5px solid currentColor;
+            position: relative;
+        }
+        .nivel-badge svg { width: 11px; height: 11px; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+        /* NIVEL 5 — completo (verde, sol do, check) */
+        .nivel-badge.nivel-5 { background: rgba(0,196,122,0.1); color: #00764A; border-color: rgba(0,196,122,0.3); }
+        .nivel-badge.nivel-5 .nivel-badge-mark { background: #00C47A; border-color: #00764A; }
+        /* NIVEL 4 — sem voz (azul, pontilhado, info) */
+        .nivel-badge.nivel-4 { background: rgba(59,130,246,0.09); color: #1E40AF; border-color: rgba(59,130,246,0.3); }
+        .nivel-badge.nivel-4 .nivel-badge-mark { background: #3B82F6; border-style: dashed; border-color: #1E40AF; }
+        /* NIVEL 3 — sem resumo IA (amarelo, listras) */
+        .nivel-badge.nivel-3 {
+            background: rgba(245,158,11,0.1); color: #92400E; border-color: rgba(245,158,11,0.35);
+        }
+        .nivel-badge.nivel-3 .nivel-badge-mark {
+            background-image: repeating-linear-gradient(45deg, #F59E0B 0 2px, #FCD34D 2px 4px);
+            border-color: #92400E;
+        }
+        /* NIVEL 2 — audio bruto (laranja, grade) */
+        .nivel-badge.nivel-2 {
+            background: rgba(249,115,22,0.1); color: #9A3412; border-color: rgba(249,115,22,0.35);
+        }
+        .nivel-badge.nivel-2 .nivel-badge-mark {
+            background-image: linear-gradient(#F97316 1px, transparent 1px), linear-gradient(90deg, #F97316 1px, #FDBA74 1px);
+            background-size: 4px 4px;
+            border-color: #9A3412;
+        }
+        /* NIVEL 1 — so texto (laranja, grade — parecido com 2 mas com icone diferente) */
+        .nivel-badge.nivel-1 {
+            background: rgba(249,115,22,0.08); color: #9A3412; border-color: rgba(249,115,22,0.3);
+        }
+        .nivel-badge.nivel-1 .nivel-badge-mark {
+            background-image: linear-gradient(#F97316 1px, #FDBA74 1px), linear-gradient(90deg, #F97316 1px, #FDBA74 1px);
+            background-size: 3px 3px;
+            border-color: #9A3412;
+        }
+        /* NIVEL 0 — nao respondeu (cinza vazio) */
+        .nivel-badge.nivel-0 {
+            background: rgba(156,163,175,0.12); color: #4B5563; border-color: rgba(156,163,175,0.35);
+        }
+        .nivel-badge.nivel-0 .nivel-badge-mark { background: transparent; border-style: dotted; border-color: #6B7280; }
+
+        /* ── FASE 4 — Bloco substituto quando player de audio falha (nivel <= 4) ── */
+        .audio-fallback {
+            background: #FFFFFF; border-radius: var(--v-r-md);
+            padding: 16px 18px; margin: 0 var(--v-s5) var(--v-s3);
+            border-left: 4px solid #3B82F6;
+            box-shadow: 0 1px 12px rgba(0,0,0,0.05);
+        }
+        .audio-fallback.falhou { border-left-color: #F59E0B; }
+        .audio-fallback-title {
+            font-size: 12px; font-weight: 700; color: #1E40AF;
+            text-transform: uppercase; letter-spacing: 0.8px;
+            display: flex; align-items: center; gap: 6px;
+            margin-bottom: 8px;
+        }
+        .audio-fallback.falhou .audio-fallback-title { color: #92400E; }
+        .audio-fallback-title svg { width: 14px; height: 14px; stroke-width: 2; fill: none; stroke: currentColor; }
+        .audio-fallback-text {
+            font-size: 14px; color: var(--v-ink); line-height: 1.55;
+            font-weight: 500; max-height: 240px; overflow-y: auto;
+        }
+
+        /* ── FASE 4 — Card vazio honesto (quando IA nao gerou X) ── */
+        .honest-empty {
+            background: rgba(0,0,0,0.02); border: 1.5px dashed rgba(0,0,0,0.1);
+            border-radius: var(--v-r-md);
+            padding: 14px 16px; margin: 0 var(--v-s5) var(--v-s2);
+            font-size: 13px; color: var(--v-ink3); font-style: italic;
+            line-height: 1.5;
+        }
+        .honest-empty strong { color: var(--v-ink2); font-style: normal; font-weight: 700; }
+
+        /* ── FASE 5 — Bloco "O que o paciente disse" (fidelidade acima de resumo) ──
+           Destaque maior que os cards normais. Texto LITERAL do paciente.
+           S1 da tela: apos o selo, a SEGUNDA coisa que o medico ve.                  */
+        .fala-paciente {
+            background: linear-gradient(180deg, rgba(0,180,216,0.04), rgba(0,180,216,0.01));
+            border-left: 4px solid #00B4D8;
+            border-radius: var(--v-r-md);
+            margin: 0 var(--v-s5) var(--v-s4);
+            padding: 16px 18px;
+            position: relative;
+            box-shadow: 0 1px 12px rgba(0,0,0,0.04);
+        }
+        .fala-paciente-label {
+            font-size: 11px; font-weight: 800;
+            letter-spacing: 1.2px; text-transform: uppercase;
+            color: #0077A0; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .fala-paciente-label svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+        .fala-paciente-texto {
+            font-size: 15px; line-height: 1.6; color: var(--v-ink);
+            font-weight: 500;
+            quotes: "\201C" "\201D";
+        }
+        .fala-paciente-texto::before { content: open-quote; color: #00B4D8; font-weight: 800; font-size: 18px; margin-right: 3px; }
+        .fala-paciente-texto::after { content: close-quote; color: #00B4D8; font-weight: 800; font-size: 18px; margin-left: 3px; }
+        .fala-paciente-meta {
+            font-size: 11px; color: #6B7280; margin-top: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .fala-paciente-fonte { font-style: italic; }
+
+        /* ── FASE 5 — Header com 2 botoes auxiliares (privado + tema) ──
+           Ficam do lado do selo de nivel. Discretos, so icones.             */
+        .header-actions { display: flex; align-items: center; gap: 6px; }
+        .header-icon-btn {
+            width: 36px; height: 36px; min-width: 36px;
+            border-radius: 10px;
+            background: #FFFFFF; border: 1.5px solid rgba(0,0,0,0.06);
+            display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; padding: 0;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .header-icon-btn:hover { background: #F4F6FA; }
+        .header-icon-btn.active { background: #0D0F14; border-color: #0D0F14; }
+        .header-icon-btn.active svg { stroke: #FFFFFF; }
+        .header-icon-btn svg { width: 18px; height: 18px; stroke: var(--v-ink2); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* ── FASE 5 — Modo privado (paciente ve a tela junto com medico) ──
+           Borra foto, nome vira iniciais, alergias/meds sao rotuladas mas nao detalhadas. */
+        body.privacy-mode .patient-photo-inner img { filter: blur(18px) saturate(0.7); }
+        body.privacy-mode .patient-name { filter: blur(8px); user-select: none; }
+        body.privacy-mode .patient-desc { filter: blur(6px); user-select: none; }
+        body.privacy-mode .fala-paciente-texto { filter: blur(7px); user-select: none; }
+        body.privacy-mode .insight-msg { filter: blur(6px); user-select: none; }
+        body.privacy-mode .transcricao-box { filter: blur(7px); user-select: none; }
+        body.privacy-mode .audio-fallback-text { filter: blur(6px); user-select: none; }
+        body.privacy-mode .ref-item { filter: blur(5px); user-select: none; }
+        body.privacy-mode::before {
+            content: 'MODO PRIVADO ATIVO — dados sensiveis ocultos'; position: fixed;
+            top: 0; left: 0; right: 0; z-index: 1000;
+            background: #0D0F14; color: #FFF; font-size: 11px; font-weight: 700;
+            text-align: center; padding: 6px; letter-spacing: 1px; text-transform: uppercase;
+        }
+        body.privacy-mode { padding-top: 28px; }
+
+        /* ── FASE 5 — Modo escuro (plantao noturno, prefers-color-scheme ou toggle) ──
+           Override das cores principais. Respeita prefers-color-scheme SE usuario nao trocou. */
+        body.dark-mode {
+            background: #0D0F14 !important;
+        }
+        body.dark-mode .phone, body.dark-mode .content { background: #0D0F14; }
+        body.dark-mode .patient-name { color: #F4F6FA; }
+        body.dark-mode .patient-age { color: #9CA3AF; }
+        body.dark-mode .patient-desc { color: #C4C9D4; }
+        body.dark-mode .insight-card,
+        body.dark-mode .audio-fallback,
+        body.dark-mode .audio-player,
+        body.dark-mode .fala-paciente {
+            background: #1A1E26 !important; color: #F4F6FA;
+        }
+        body.dark-mode .insight-title { color: #F4F6FA; }
+        body.dark-mode .insight-msg,
+        body.dark-mode .audio-fallback-text,
+        body.dark-mode .fala-paciente-texto { color: #E5E7EB; }
+        body.dark-mode .section-label { color: #9CA3AF; }
+        body.dark-mode .honest-empty { background: rgba(255,255,255,0.03); color: #9CA3AF; border-color: rgba(255,255,255,0.08); }
+        body.dark-mode .honest-empty strong { color: #E5E7EB; }
+        body.dark-mode .btn-back,
+        body.dark-mode .header-icon-btn { background: #1A1E26; border-color: rgba(255,255,255,0.08); }
+        body.dark-mode .btn-back svg,
+        body.dark-mode .header-icon-btn svg { stroke: #E5E7EB; }
+        body.dark-mode .transcricao-box { background: #1A1E26; }
+        body.dark-mode .ref-item { background: rgba(255,255,255,0.04); color: #E5E7EB; }
+
+        /* Auto-dark (so se nao tiver escolha manual salva) */
+        @media (prefers-color-scheme: dark) {
+            body:not(.light-mode):not(.dark-mode) { background: #0D0F14; }
+            body:not(.light-mode):not(.dark-mode) .patient-name { color: #F4F6FA; }
+            body:not(.light-mode):not(.dark-mode) .insight-card,
+            body:not(.light-mode):not(.dark-mode) .audio-fallback,
+            body:not(.light-mode):not(.dark-mode) .audio-player,
+            body:not(.light-mode):not(.dark-mode) .fala-paciente { background: #1A1E26; color: #F4F6FA; }
+        }
+
+        /* ── FASE 5 — Daltonismo em alertas: cor + padrao visual na borda lateral ──
+           Ja tem cor. Adicionamos textura pra quem nao diferencia. */
+        .insight-card.urgente::before {
+            background: repeating-linear-gradient(45deg, #EF4444 0 3px, #B91C1C 3px 6px);
+        }
+        .insight-card.atencao::before {
+            background: repeating-linear-gradient(-45deg, #F59E0B 0 2px, #FCD34D 2px 5px);
+        }
+        .insight-card.info::before {
+            background: #3B82F6;
+        }
+        .insight-card.queixa::before { background: #00B4D8; }
+        .insight-card.historico::before {
+            background: repeating-linear-gradient(90deg, #8B5CF6 0 2px, #7C3AED 2px 6px);
+        }
+
+        /* ── FASE 5 — Contraste WCAG AA em textos secundarios ──
+           --v-ink3 antes: #6B7280 = 4.5:1 limite. Deixamos 4B5563 = 7.2:1 (margem confortavel). */
+        .patient-age { color: #4B5563; }
+        .insight-msg { color: #4B5563; }
+        .fala-paciente-meta { color: #4B5563; }
+
+        /* ── FASE 5 — Mobile: hit targets maiores, fontes ajustadas ── */
+        @media (max-width: 480px) {
+            .header-icon-btn { width: 44px; height: 44px; }
+            .btn-back { width: 44px; height: 44px; }
+            .nivel-badge { font-size: 12px; padding: 7px 12px 7px 10px; }
+            .audio-play-btn { width: 64px; height: 64px; }
+            .audio-skip-btn { width: 44px; height: 44px; }
+            .speed-cycle { min-height: 44px; padding: 10px 18px; }
+            .transcricao-word.clickable { padding: 2px 4px; min-height: 32px; display: inline-block; }
+            .insight-card { padding-left: 20px; padding-right: 16px; padding-top: 14px; padding-bottom: 14px; }
+            .fala-paciente-texto { font-size: 16px; }
+            .honest-empty { padding: 16px; font-size: 14px; }
+        }
+
+        /* ── FASE 5 — Desktop grande: escala discreta ── */
+        @media (min-width: 1200px) {
+            .patient-name { font-size: 26px; }
+            .fala-paciente-texto { font-size: 16px; }
+            .insight-msg { font-size: 14px; }
+        }
+
+        /* ── FASE 8 — Anotacoes efemeras do medico (sticky notes) ──
+           Salvas em localStorage por pc id. Desaparecem ao limpar dados do navegador.
+           Nao vao pro servidor = nenhum dado persistido que vire obrigacao LGPD. */
+        .sticky-wrap { margin: 0 var(--v-s5) var(--v-s3); }
+        .sticky-note {
+            background: #FFF9C4;
+            border-left: 4px solid #F59E0B;
+            padding: 10px 14px; border-radius: var(--v-r-sm);
+            font-size: 13px; color: #422006;
+            line-height: 1.5;
+            margin-bottom: 8px;
+            position: relative;
+            box-shadow: 0 1px 6px rgba(245,158,11,0.15);
+        }
+        .sticky-note-meta {
+            font-size: 10px; color: #78350F; margin-top: 6px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .sticky-note-del {
+            background: transparent; border: 0; color: #92400E; cursor: pointer;
+            padding: 2px 6px; font-size: 11px; font-weight: 600;
+            border-radius: 4px;
+        }
+        .sticky-note-del:hover { background: rgba(146,64,14,0.1); }
+        body.dark-mode .sticky-note { background: #2D2410; color: #FDE68A; border-left-color: #F59E0B; }
+        body.dark-mode .sticky-note-meta { color: #D97706; }
+        body.dark-mode .sticky-note-del { color: #FDE68A; }
+
+        .sticky-input-wrap {
+            display: flex; gap: 8px; align-items: flex-start;
+            background: #FFFFFF; border: 1.5px solid rgba(0,0,0,0.08);
+            border-radius: var(--v-r-md); padding: 10px;
+            margin-bottom: 8px;
+        }
+        .sticky-input-wrap textarea {
+            flex: 1; border: 0; outline: 0; resize: none; min-height: 48px;
+            font-size: 13px; font-family: inherit; color: var(--v-ink);
+            background: transparent;
+        }
+        .sticky-input-wrap button {
+            background: #F59E0B; color: #FFFFFF; border: 0;
+            padding: 8px 14px; border-radius: 10px;
+            font-size: 12px; font-weight: 700; cursor: pointer;
+            white-space: nowrap;
+        }
+        body.dark-mode .sticky-input-wrap { background: #1A1E26; border-color: rgba(255,255,255,0.1); }
+        body.dark-mode .sticky-input-wrap textarea { color: #F4F6FA; }
+
+        /* ── FASE 8 — Checkbox em alertas (descartei essa hipotese) ── */
+        .insight-card { position: relative; }
+        .alert-dismiss-btn {
+            position: absolute; top: 10px; right: 10px;
+            width: 22px; height: 22px; border-radius: 6px;
+            background: transparent; border: 1.5px solid rgba(0,0,0,0.2);
+            cursor: pointer; padding: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .alert-dismiss-btn:hover { background: rgba(0,0,0,0.05); }
+        .alert-dismiss-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 3; stroke-linecap: round; opacity: 0; }
+        .insight-card[data-dismissed="true"] { opacity: 0.5; background: rgba(0,0,0,0.02); }
+        .insight-card[data-dismissed="true"] .insight-title { text-decoration: line-through; color: var(--v-ink3); }
+        .insight-card[data-dismissed="true"] .alert-dismiss-btn svg { opacity: 1; }
+        .insight-card[data-dismissed="true"] .alert-dismiss-btn { background: var(--v-green); border-color: var(--v-green); color: #FFFFFF; }
+
+        /* ── FASE 7 — Disclaimer CFM/LGPD permanente (rodape do briefing) ──
+           Obrigatorio legal: medico precisa saber que IA e suporte, nao substitui avaliacao. */
+        .cfm-disclaimer {
+            margin: 24px var(--v-s5) var(--v-s6);
+            padding: 14px 16px;
+            background: rgba(59,130,246,0.04);
+            border-left: 3px solid #3B82F6;
+            border-radius: var(--v-r-sm);
+            font-size: 12px; line-height: 1.55;
+            color: var(--v-ink2);
+        }
+        .cfm-disclaimer strong { color: #1E40AF; font-weight: 700; }
+        body.dark-mode .cfm-disclaimer { background: rgba(59,130,246,0.08); color: #C4C9D4; }
+        body.dark-mode .cfm-disclaimer strong { color: #93C5FD; }
+
         /* Stale warning */
         .stale-warning {
             display: flex; align-items: center; gap: 8px;
@@ -813,6 +1130,105 @@ function fallbackBrowserTTS() {
     speechSynthesis.speak(utterance);
 }
 
+// ── FASE 8 — Anotacoes efemeras (sticky notes) ──
+function stickyKey() { return 'vitae_sticky_' + pcId; }
+function getStickies() {
+    try { return JSON.parse(localStorage.getItem(stickyKey()) || '[]'); } catch (_e) { return []; }
+}
+function setStickies(arr) {
+    try { localStorage.setItem(stickyKey(), JSON.stringify(arr)); } catch (_e) {}
+}
+function saveSticky() {
+    var txt = document.getElementById('stickyInput').value.trim();
+    if (!txt) return;
+    var all = getStickies();
+    all.push({ id: Date.now(), text: txt, when: new Date().toISOString() });
+    setStickies(all);
+    document.getElementById('stickyInput').value = '';
+    renderStickies();
+}
+function delSticky(id) {
+    var all = getStickies().filter(function(s){ return s.id !== id; });
+    setStickies(all);
+    renderStickies();
+}
+function renderStickies() {
+    var list = document.getElementById('stickyList');
+    if (!list) return;
+    var all = getStickies().slice().reverse();
+    if (all.length === 0) { list.innerHTML = ''; return; }
+    var safe = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+    list.innerHTML = all.map(function(n){
+        var dt = new Date(n.when);
+        var quando = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        return '<div class="sticky-note"><div>' + safe(n.text) + '</div>' +
+            '<div class="sticky-note-meta"><span>' + quando + '</span>' +
+            '<button class="sticky-note-del" onclick="delSticky(' + n.id + ')">Apagar</button></div></div>';
+    }).join('');
+}
+
+// ── FASE 8 — Descarte de alerta (persiste em localStorage) ──
+function dismissKey() { return 'vitae_dismissed_' + pcId; }
+function getDismissed() {
+    try { return JSON.parse(localStorage.getItem(dismissKey()) || '[]'); } catch (_e) { return []; }
+}
+function setDismissed(arr) {
+    try { localStorage.setItem(dismissKey(), JSON.stringify(arr)); } catch (_e) {}
+}
+function toggleDismissAlert(btn) {
+    var card = btn.closest('.insight-card');
+    if (!card) return;
+    var key = card.getAttribute('data-alert-key');
+    var all = getDismissed();
+    var novo;
+    if (card.getAttribute('data-dismissed') === 'true') {
+        card.setAttribute('data-dismissed', 'false');
+        novo = all.filter(function(k){ return k !== key; });
+    } else {
+        card.setAttribute('data-dismissed', 'true');
+        novo = all.concat([key]);
+    }
+    setDismissed(novo);
+}
+function aplicarDismissed() {
+    var all = getDismissed();
+    document.querySelectorAll('.insight-card[data-alert-key]').forEach(function(card){
+        if (all.indexOf(card.getAttribute('data-alert-key')) !== -1) {
+            card.setAttribute('data-dismissed', 'true');
+        }
+    });
+}
+
+// ── FASE 5 — Modo privado (paciente ve a tela durante consulta) ──
+function togglePrivacy() {
+    document.body.classList.toggle('privacy-mode');
+    var ativo = document.body.classList.contains('privacy-mode');
+    var btn = document.getElementById('btnPrivacy');
+    if (btn) btn.classList.toggle('active', ativo);
+}
+
+// ── FASE 5 — Modo escuro (plantao noturno) ──
+function toggleTheme() {
+    var atual = document.body.classList.contains('dark-mode');
+    if (atual) {
+        document.body.classList.remove('dark-mode');
+        document.body.classList.add('light-mode');
+        localStorage.setItem('vitae_theme', 'light');
+    } else {
+        document.body.classList.remove('light-mode');
+        document.body.classList.add('dark-mode');
+        localStorage.setItem('vitae_theme', 'dark');
+    }
+    var btn = document.getElementById('btnTheme');
+    if (btn) btn.classList.toggle('active', !atual);
+}
+// Aplica tema salvo antes de renderizar (evita flicker)
+(function(){
+    var salvo = localStorage.getItem('vitae_theme');
+    if (salvo === 'dark') document.body.classList.add('dark-mode');
+    else if (salvo === 'light') document.body.classList.add('light-mode');
+})();
+
 async function init() {
     if (!pcId) { document.getElementById('loadingState').textContent = 'ID nao fornecido.'; return; }
 
@@ -823,12 +1239,46 @@ async function init() {
         var r = pc.respostas || {};
         var summaryText = summary.textoVoz || summary.summaryTexto || pc.summaryIA || '';
         var descBreve = summary.descricaoBreve || (summaryText ? summaryText.split('. ')[0] + '.' : '');
-        var respondidaEm = pc.respondidaEm ? new Date(pc.respondidaEm).toLocaleDateString('pt-BR') : '';
+        // FASE 8 — Timestamp completo (DD/MM HH:MM) em vez de so data
+        var respondidaEm = '';
+        if (pc.respondidaEm) {
+            var dt = new Date(pc.respondidaEm);
+            respondidaEm = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
         var days = daysSince(pc.respondidaEm);
         var foto = (pc.paciente && pc.paciente.fotoUrl) || pc.pacienteFotoUrl || r.fotoUrl || null;
         var age = calcAge(r.dataNascimento || r.nascimento);
         var initials = getInitials(pc.pacienteNome);
         var audioUrl = pc.audioSummaryUrl || null;
+
+        // ── FASE 4 — Nivel de briefing (0-5) ──
+        // Fonte de verdade: campo nivelBriefing do backend (Fase 3).
+        // Pre-consultas antigas nao tem → derivamos na hora com base no que chegou.
+        // forceNivel=N no querystring permite Lucas testar os 6 niveis visualmente.
+        var forceNivel = urlParams.get('forceNivel');
+        var nivel;
+        if (forceNivel !== null && forceNivel !== '') {
+            nivel = Math.max(0, Math.min(5, parseInt(forceNivel, 10) || 0));
+        } else if (typeof pc.nivelBriefing === 'number') {
+            nivel = pc.nivelBriefing;
+        } else {
+            // Fallback pra briefings antigos sem o campo — estimativa local
+            var temAudio = !!pc.audioUrl;
+            var temTransc = !!(pc.transcricao && pc.transcricao.trim().length >= 15);
+            var temResumo = !!(pc.summaryIA || (summary && (summary.textoVoz || summary.summaryTexto)));
+            var temTTS = !!pc.audioSummaryUrl;
+            var temTexto = !!(r && Object.keys(r).length > 1);
+            if (pc.status !== 'RESPONDIDA') nivel = 0;
+            else if (temAudio && temTransc && temResumo && temTTS) nivel = 5;
+            else if (temAudio && temTransc && temResumo) nivel = 4;
+            else if (temAudio && temTransc) nivel = 3;
+            else if (temAudio) nivel = 2;
+            else if (temTexto) nivel = 1;
+            else nivel = 0;
+        }
+        var statusAudioResumo = pc.statusAudioResumo || (audioUrl ? 'ok' : 'falhou');
+        var statusResumoIa = pc.statusResumoIa || (summaryText ? 'ok' : 'falhou');
+        var statusTranscricao = pc.statusTranscricao || (pc.transcricao ? 'ok' : 'sem_audio');
 
         var fromParam = urlParams.get('from');
         var backUrl = '20-medico-dashboard.html';
@@ -839,31 +1289,101 @@ async function init() {
 
         var html = '';
 
-        // Header (so botao voltar, sem titulo — chip + patient hero ja carregam identidade)
-        html += '<div class="summary-header anim">';
-        html += '<div class="btn-back" onclick="window.location.href=\'' + backUrl + '\'"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>';
+        // Header (botao voltar + selo de nivel — cor+icone+padrao)
+        var nivelRotulos = {
+            5: 'Briefing completo',
+            4: 'Sem voz',
+            3: 'Sem resumo',
+            2: 'Audio bruto',
+            1: 'So texto',
+            0: 'Nao respondeu',
+        };
+        var nivelTitulos = {
+            5: 'Todas as pecas geradas. Briefing 100% disponivel.',
+            4: 'Audio-resumo nao pode ser gerado. Leia o texto abaixo.',
+            3: 'Resumo automatico nao disponivel. Consulte a transcricao do paciente.',
+            2: 'Transcricao falhou. Disponivel so o audio original.',
+            1: 'Paciente respondeu por texto, sem audio.',
+            0: 'Paciente ainda nao respondeu.',
+        };
+        html += '<div class="summary-header anim" style="justify-content:space-between;gap:8px">';
+        html += '<div class="btn-back" onclick="window.location.href=\'' + backUrl + '\'" aria-label="Voltar"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>';
+        html += '<div class="nivel-badge nivel-' + nivel + '" title="' + sanitize(nivelTitulos[nivel]) + '">' +
+                '<span class="nivel-badge-mark" aria-hidden="true"></span>' +
+                '<span>' + sanitize(nivelRotulos[nivel]) + '</span>' +
+                '</div>';
+        // FASE 5 — Botoes auxiliares (privado + tema)
+        html += '<div class="header-actions">';
+        html += '<button class="header-icon-btn" id="btnPrivacy" onclick="togglePrivacy()" aria-label="Modo privado (ocultar dados sensiveis)" title="Modo privado — ocultar dados sensiveis quando paciente ve a tela">';
+        html += '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+        html += '</button>';
+        html += '<button class="header-icon-btn" id="btnTheme" onclick="toggleTheme()" aria-label="Alternar tema claro/escuro" title="Alternar tema (claro / escuro)">';
+        html += '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
+        html += '</button>';
+        html += '</div>';
         html += '</div>';
 
         // Patient hero
         html += '<div class="patient-hero anim anim-d1">';
         html += '<div class="patient-photo"><div class="patient-photo-inner">';
         if (foto) {
-            html += '<img src="' + foto + '" onerror="this.parentElement.textContent=\'' + initials + '\'">';
+            // foto e URL do backend — encoding pra url context (src attribute)
+            html += '<img src="' + encodeURI(foto) + '" onerror="this.parentElement.textContent=\'' + sanitize(initials) + '\'">';
         } else {
-            html += initials;
+            html += sanitize(initials);
         }
         html += '</div></div>';
-        html += '<div class="patient-name">' + (pc.pacienteNome || 'Paciente') + '</div>';
-        if (age) html += '<div class="patient-age">' + age + ' anos</div>';
+        html += '<div class="patient-name">' + sanitize(pc.pacienteNome || 'Paciente') + '</div>';
+        if (age) html += '<div class="patient-age">' + sanitize(String(age)) + ' anos</div>';
         if (respondidaEm) {
-            html += '<div class="date-badge"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Respondida em ' + respondidaEm + '</div>';
+            html += '<div class="date-badge"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Respondida em ' + sanitize(respondidaEm) + '</div>';
         }
-        if (descBreve) html += '<div class="patient-desc">"' + descBreve + '"</div>';
+        if (descBreve) html += '<div class="patient-desc">"' + sanitize(descBreve) + '"</div>';
         html += '</div>';
+
+        // FASE 4 — Nivel 0: paciente ainda nao respondeu. Nao mostra o resto, mostra CTA.
+        if (nivel === 0) {
+            html += '<div class="honest-empty anim anim-d2" style="margin-top:20px;text-align:center;padding:24px 20px">';
+            html += '<strong style="display:block;font-size:15px;margin-bottom:6px">Paciente ainda nao respondeu</strong>';
+            html += 'O link foi enviado mas o paciente nao abriu ou nao enviou a resposta. ';
+            html += 'Reenvie pelo WhatsApp ou entre em contato.';
+            html += '</div>';
+            var dc = document.getElementById('dynamicContent');
+            dc.innerHTML = html;
+            dc.style.display = '';
+            document.getElementById('loadingState').style.display = 'none';
+            return;
+        }
 
         // Stale warning
         if (days > 7) {
             html += '<div class="stale-warning anim anim-d1"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Pre-consulta com mais de 7 dias. Dados podem estar desatualizados.</div>';
+        }
+
+        // ── FASE 5 — "O que o paciente disse" — texto LITERAL, antes do resumo da IA ──
+        // Principio 1 do redesign: fidelidade acima de resumo. Palavras exatas do paciente
+        // tem prioridade visual sobre qualquer parafrase da IA.
+        // Fonte: texto cru do quiz (r.queixaPrincipal/r.queixa) ou transcricao do audio.
+        var falaCrua = (r.queixaPrincipal && r.queixaPrincipal.trim())
+                    || (r.queixa && r.queixa.trim())
+                    || (pc.transcricao && pc.transcricao.trim().length >= 15 ? pc.transcricao.trim() : '');
+        var falaFonte = '';
+        if (r.queixaPrincipal || r.queixa) falaFonte = 'respondido por escrito';
+        else if (pc.transcricao) falaFonte = 'transcricao do audio do paciente';
+        if (falaCrua) {
+            // Limite visual: texto longo usa max-height com scroll (raro mas possivel)
+            html += '<div class="fala-paciente anim anim-d1">';
+            html += '<div class="fala-paciente-label">';
+            html += '<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>';
+            html += 'O que o paciente disse';
+            html += '</div>';
+            html += '<div class="fala-paciente-texto">' + sanitize(falaCrua) + '</div>';
+            if (falaFonte) {
+                html += '<div class="fala-paciente-meta"><span class="fala-paciente-fonte">' + sanitize(falaFonte) + '</span>';
+                if (r.duracaoSintomas) html += '<span>' + sanitize(String(r.duracaoSintomas)) + '</span>';
+                html += '</div>';
+            }
+            html += '</div>';
         }
 
         // ── Chip identificador (nome · idade · motivo) ──
@@ -887,8 +1407,30 @@ async function init() {
         }
 
         // ── Premium Audio Player ──
-        console.log('[SUMMARY DEBUG] summaryText length:', summaryText.length, '| audioUrl:', audioUrl, '| textoVoz:', !!summary.textoVoz, '| summaryTexto:', !!summary.summaryTexto, '| summaryIA:', !!pc.summaryIA, '| words:', (pc.transcricaoWords || []).length);
-        if (summaryText) {
+        // (debug console.log removido — exposicao de dados clinicos em F12 = LGPD)
+
+        // FASE 4 — Fallback honesto: se audio-resumo nao existe ou falhou, substitui por bloco de texto
+        // com aviso claro. Medico nao clica num player invisivel esperando audio que nunca vem.
+        var audioDisponivel = audioUrl && statusAudioResumo === 'ok';
+        var audioProcessando = !audioUrl && statusAudioResumo === 'processando';
+        var audioFalhou = !audioUrl && (statusAudioResumo === 'falhou' || statusAudioResumo === 'suspeito');
+
+        if (summaryText && !audioDisponivel) {
+            // Fallback visual: bloco com aviso + texto do resumo destacado
+            var classFb = audioFalhou ? 'audio-fallback falhou' : 'audio-fallback';
+            var svgFb = audioProcessando
+                ? '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>'
+                : '<svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>';
+            var tituloFb = audioProcessando ? 'Audio em processamento' : 'Leia o resumo abaixo';
+            var subtituloFb = audioProcessando
+                ? 'Aguarde alguns minutos e atualize a tela. Se persistir, use o texto.'
+                : 'A voz do briefing nao pode ser gerada. O resumo em texto esta disponivel.';
+            html += '<div class="' + classFb + ' anim anim-d2">';
+            html += '<div class="audio-fallback-title">' + svgFb + '<span>' + tituloFb + '</span></div>';
+            html += '<div style="font-size:12px;color:var(--v-ink3);margin-bottom:10px">' + sanitize(subtituloFb) + '</div>';
+            html += '<div class="audio-fallback-text">' + sanitize(summaryText) + '</div>';
+            html += '</div>';
+        } else if (summaryText) {
             html += '<div class="audio-player idle" id="audioPlayer" data-summary-text="' + summaryText.replace(/"/g, '&quot;') + '"' + (audioUrl ? ' data-audio-url="' + audioUrl + '"' : '') + '>';
             html += '<div class="audio-player-top">';
             html += '<button class="audio-skip-btn" id="skipBack5" onclick="skipAudio(-5)" title="Voltar 5s">';
@@ -942,24 +1484,40 @@ async function init() {
 
         // ── Pontos de Atencao (insights clinicos) ──
         var alertas = summary.alertas || [];
+        // FASE 4 — Se nivel <= 3 e nao tem alertas, mostrar honest-empty (medico ve que IA nao rodou).
+        if (alertas.length === 0 && nivel <= 3 && nivel >= 1) {
+            html += '<div class="section-label anim anim-d3">Pontos de atencao</div>';
+            html += '<div class="honest-empty anim anim-d3"><strong>Sem alertas automaticos.</strong> ' +
+                (statusResumoIa === 'falhou'
+                    ? 'O resumo automatico nao foi gerado. Consulte a transcricao ou as respostas do paciente abaixo.'
+                    : 'Nenhum cruzamento critico detectado. Avalie o contexto clinico.') +
+                '</div>';
+        }
         if (alertas.length > 0) {
             html += '<div class="section-label anim anim-d3">Pontos de atencao</div>';
             alertas.forEach(function(a) {
                 var tipo = (a.tipo || 'INFO').toLowerCase();
-                var titulo = a.titulo || a.mensagem.substring(0, 40);
-                var msg = a.titulo ? a.mensagem : '';
+                // tipo so aceita valores conhecidos (evita class injection)
+                if (['urgente','atencao','info'].indexOf(tipo) === -1) tipo = 'info';
+                var mensagemSafe = (a.mensagem || '');
+                var titulo = a.titulo || mensagemSafe.substring(0, 40);
+                var msg = a.titulo ? mensagemSafe : '';
                 var iconSvg = {
                     urgente: '<svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>',
                     atencao: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
                     info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'
                 }[tipo] || '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
 
-                html += '<div class="insight-card ' + tipo + ' anim anim-d3">';
+                // FASE 8 — data-alert-key estavel pra persistir "descartado" em localStorage
+                var alertKey = tipo + '|' + (titulo || '').substring(0, 60);
+                html += '<div class="insight-card ' + tipo + ' anim anim-d3" data-alert-key="' + sanitize(alertKey) + '">';
                 html += '<div class="insight-icon">' + iconSvg + '</div>';
                 html += '<div class="insight-content">';
-                html += '<div class="insight-title">' + titulo + '</div>';
-                if (msg) html += '<div class="insight-msg">' + msg + '</div>';
-                html += '</div></div>';
+                html += '<div class="insight-title">' + sanitize(titulo) + '</div>';
+                if (msg) html += '<div class="insight-msg">' + sanitize(msg) + '</div>';
+                html += '</div>';
+                html += '<button class="alert-dismiss-btn" onclick="toggleDismissAlert(this)" aria-label="Marcar como descartado" title="Marcar como descartado / descartei essa hipotese"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>';
+                html += '</div>';
             });
         }
 
@@ -983,7 +1541,9 @@ async function init() {
 
         var alergiasRaw = findBloco(['alergia','reac']) || r.alergias || r.reacoesAdversas || '';
         var medsRaw = findBloco(['medicament']) || r.medicamentosEmUso || '';
-        var queixaRaw = findBloco(['queixa','motivo']) || r.queixaPrincipal || r.queixa || '';
+        // Prioridade: texto CRU do paciente (r.queixaPrincipal) > bloco da IA.
+        // IA resume e perde detalhes — as palavras originais do paciente sao a fonte fiel.
+        var queixaRaw = (r.queixaPrincipal && r.queixaPrincipal.trim()) || (r.queixa && r.queixa.trim()) || findBloco(['queixa','motivo']) || '';
         if (r.duracaoSintomas && queixaRaw && queixaRaw.indexOf(r.duracaoSintomas) === -1) {
             queixaRaw += ' (' + r.duracaoSintomas + ')';
         }
@@ -999,27 +1559,29 @@ async function init() {
 
         function renderRefCard(tipo, icon, titulo, conteudo, isList) {
             if (!conteudo || (!isList && !conteudo.trim()) || (isList && !conteudo.length)) return '';
-            var h = '<div class="insight-card ' + tipo + ' anim anim-d4">';
+            // tipo so valores conhecidos — evita class injection via summary.blocos
+            var tipoSafe = ['alergia','med','queixa','historico','familiar','exames','info'].indexOf(tipo) !== -1 ? tipo : 'info';
+            var h = '<div class="insight-card ' + tipoSafe + ' anim anim-d4">';
             h += '<div class="insight-icon">' + icon + '</div>';
             h += '<div class="insight-content">';
-            h += '<div class="insight-title">' + titulo + '</div>';
+            h += '<div class="insight-title">' + sanitize(titulo) + '</div>';
             if (isList) {
                 var items = conteudo;
                 var visible = items.slice(0, 3);
                 var rest = items.length - 3;
                 h += '<div class="ref-items">';
                 visible.forEach(function(it) {
-                    h += '<div class="ref-item">' + it + '</div>';
+                    h += '<div class="ref-item">' + sanitize(it) + '</div>';
                 });
                 if (rest > 0) {
                     h += '<div class="ref-more" onclick="this.parentElement.querySelectorAll(\'.ref-item-hidden\').forEach(function(x){x.style.display=\'block\';});this.remove();">+ ver mais ' + rest + '</div>';
                     items.slice(3).forEach(function(it) {
-                        h += '<div class="ref-item ref-item-hidden" style="display:none">' + it + '</div>';
+                        h += '<div class="ref-item ref-item-hidden" style="display:none">' + sanitize(it) + '</div>';
                     });
                 }
                 h += '</div>';
             } else {
-                h += '<div class="insight-msg">' + conteudo + '</div>';
+                h += '<div class="insight-msg">' + sanitize(conteudo) + '</div>';
             }
             h += '</div></div>';
             return h;
@@ -1055,16 +1617,42 @@ async function init() {
                 if (HIDE_FIELDS.indexOf(key) !== -1) return;
                 if (typeof val === 'string' && val.startsWith('http')) return;
                 var label = LABELS[key] || key;
-                html += '<div class="insight-card info anim anim-d4"><div class="insight-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div><div class="insight-content"><div class="insight-title">' + label + '</div><div class="insight-msg">' + val + '</div></div></div>';
+                html += '<div class="insight-card info anim anim-d4"><div class="insight-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div><div class="insight-content"><div class="insight-title">' + sanitize(label) + '</div><div class="insight-msg">' + sanitize(val) + '</div></div></div>';
             });
         }
 
+        // FASE 8 — Anotacoes efemeras do medico (sticky notes)
+        html += '<div class="section-label anim anim-d5">Minhas anotacoes</div>';
+        html += '<div class="sticky-wrap anim anim-d5">';
+        html += '<div class="sticky-input-wrap">';
+        html += '<textarea id="stickyInput" placeholder="Anotacao rapida (so voce ve, fica no navegador)..."></textarea>';
+        html += '<button onclick="saveSticky()">Salvar</button>';
+        html += '</div>';
+        html += '<div id="stickyList"></div>';
+        html += '</div>';
+
+        // FASE 7 — Disclaimer CFM/LGPD
+        html += '<div class="cfm-disclaimer anim anim-d5">' +
+            '<strong>Suporte a decisao clinica.</strong> Este briefing e gerado automaticamente a partir das respostas do paciente e serve como referencia. ' +
+            'Nao substitui a avaliacao medica. Diagnostico, prescricao e conduta sao de responsabilidade exclusiva do medico. ' +
+            'Acesso auditado conforme LGPD e CFM.' +
+        '</div>';
         html += '<div style="height:40px"></div>';
 
         document.getElementById('loadingState').style.display = 'none';
         var dc = document.getElementById('dynamicContent');
         dc.innerHTML = html;
         dc.style.display = '';
+
+        // FASE 5 — marcar botoes header como active se tema/privado ja estao ligados
+        var btnTheme = document.getElementById('btnTheme');
+        if (btnTheme && document.body.classList.contains('dark-mode')) btnTheme.classList.add('active');
+        var btnPrivacy = document.getElementById('btnPrivacy');
+        if (btnPrivacy && document.body.classList.contains('privacy-mode')) btnPrivacy.classList.add('active');
+
+        // FASE 8 — Renderiza sticky notes e aplica dismissed state em alertas
+        renderStickies();
+        aplicarDismissed();
 
         // Wait for layout before initializing canvas
         requestAnimationFrame(function() {
