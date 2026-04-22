@@ -676,6 +676,89 @@
         }
         .insight-card .ref-more:hover { text-decoration: underline; }
 
+        /* ═══ 3 NOVOS COMPONENTES (22/04/2026) ═══ */
+
+        /* Componente 1: Queixa principal (limpa, completa, nunca cortada) */
+        .queixa-card {
+            display: flex; gap: 14px;
+            padding: 16px 18px;
+            margin-bottom: 12px;
+            background: var(--v-surface);
+            border: 1px solid rgba(0,0,0,0.06);
+            border-left: 4px solid var(--v-cyan);
+            border-radius: 14px;
+            box-shadow: 0 1px 12px rgba(0,0,0,0.04);
+        }
+        .queixa-card-icon {
+            width: 38px; height: 38px; border-radius: 10px;
+            background: rgba(0,180,216,0.1);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .queixa-card-icon svg {
+            width: 18px; height: 18px; fill: none;
+            stroke: var(--v-cyan); stroke-width: 2;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+        .queixa-card-text {
+            font-size: 15px; font-weight: 700;
+            color: var(--v-ink); line-height: 1.5;
+            padding-top: 2px;
+        }
+
+        /* Componente 3: Padroes observados (discreto, roxo lavanda, com disclaimer) */
+        .padroes-section-label {
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .padroes-section-sub {
+            font-size: 12px; color: var(--v-ink3);
+            font-weight: 500; font-style: italic;
+            letter-spacing: normal; text-transform: none;
+        }
+        .padroes-card {
+            display: flex; gap: 12px; align-items: flex-start;
+            padding: 14px 16px; margin-bottom: 8px;
+            background: rgba(139,92,246,0.04);
+            border: 1px solid rgba(139,92,246,0.15);
+            border-radius: 14px;
+        }
+        .padroes-card-icon {
+            width: 30px; height: 30px; border-radius: 50%;
+            background: rgba(139,92,246,0.12);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 2px;
+        }
+        .padroes-card-icon svg {
+            width: 14px; height: 14px; fill: none;
+            stroke: #8B5CF6; stroke-width: 2;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+        .padroes-card-content { flex: 1; min-width: 0; }
+        .padroes-card-hipotese {
+            font-size: 14px; font-weight: 700; color: var(--v-ink);
+            line-height: 1.4; margin-bottom: 3px;
+        }
+        .padroes-card-evidencia {
+            font-size: 12.5px; color: var(--v-ink3);
+            line-height: 1.55; font-weight: 400;
+        }
+        .padroes-disclaimer {
+            font-size: 11.5px; color: var(--v-ink4);
+            padding: 10px 12px;
+            margin-top: 4px; margin-bottom: 12px;
+            background: rgba(0,0,0,0.02);
+            border-left: 2px solid rgba(0,0,0,0.08);
+            border-radius: 6px;
+            line-height: 1.55;
+        }
+        /* Dark mode overrides dos novos componentes */
+        body.dark-mode .queixa-card { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.06); }
+        body.dark-mode .queixa-card-text { color: #F4F6FA; }
+        body.dark-mode .padroes-card { background: rgba(139,92,246,0.1); border-color: rgba(139,92,246,0.22); }
+        body.dark-mode .padroes-card-hipotese { color: #F4F6FA; }
+        body.dark-mode .padroes-card-evidencia { color: #C4C9D4; }
+        body.dark-mode .padroes-disclaimer { background: rgba(255,255,255,0.03); border-left-color: rgba(255,255,255,0.1); color: #9CA3AF; }
+
         /* Animations */
         .anim { opacity: 0; transform: translateY(20px); animation: fadeUp 0.4s var(--v-ease) forwards; }
         .anim-d1 { animation-delay: 0.05s; }
@@ -1306,21 +1389,9 @@ async function init() {
             1: 'Paciente respondeu por texto, sem audio.',
             0: 'Paciente ainda nao respondeu.',
         };
-        html += '<div class="summary-header anim" style="justify-content:space-between;gap:8px">';
+        html += '<div class="summary-header anim" style="justify-content:flex-start;gap:8px">';
         html += '<div class="btn-back" onclick="window.location.href=\'' + backUrl + '\'" aria-label="Voltar"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>';
-        html += '<div class="nivel-badge nivel-' + nivel + '" title="' + sanitize(nivelTitulos[nivel]) + '">' +
-                '<span class="nivel-badge-mark" aria-hidden="true"></span>' +
-                '<span>' + sanitize(nivelRotulos[nivel]) + '</span>' +
-                '</div>';
-        // FASE 5 — Botoes auxiliares (privado + tema)
-        html += '<div class="header-actions">';
-        html += '<button class="header-icon-btn" id="btnPrivacy" onclick="togglePrivacy()" aria-label="Modo privado (ocultar dados sensiveis)" title="Modo privado — ocultar dados sensiveis quando paciente ve a tela">';
-        html += '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-        html += '</button>';
-        html += '<button class="header-icon-btn" id="btnTheme" onclick="toggleTheme()" aria-label="Alternar tema claro/escuro" title="Alternar tema (claro / escuro)">';
-        html += '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
-        html += '</button>';
-        html += '</div>';
+        // Removidos (22/04/2026): badge "Briefing completo" (nivel-badge), botao olhinho privacy, botao lua theme
         html += '</div>';
 
         // Patient hero
@@ -1360,31 +1431,8 @@ async function init() {
             html += '<div class="stale-warning anim anim-d1"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Pre-consulta com mais de 7 dias. Dados podem estar desatualizados.</div>';
         }
 
-        // ── FASE 5 — "O que o paciente disse" — texto LITERAL, antes do resumo da IA ──
-        // Principio 1 do redesign: fidelidade acima de resumo. Palavras exatas do paciente
-        // tem prioridade visual sobre qualquer parafrase da IA.
-        // Fonte: texto cru do quiz (r.queixaPrincipal/r.queixa) ou transcricao do audio.
-        var falaCrua = (r.queixaPrincipal && r.queixaPrincipal.trim())
-                    || (r.queixa && r.queixa.trim())
-                    || (pc.transcricao && pc.transcricao.trim().length >= 15 ? pc.transcricao.trim() : '');
-        var falaFonte = '';
-        if (r.queixaPrincipal || r.queixa) falaFonte = 'respondido por escrito';
-        else if (pc.transcricao) falaFonte = 'transcricao do audio do paciente';
-        if (falaCrua) {
-            // Limite visual: texto longo usa max-height com scroll (raro mas possivel)
-            html += '<div class="fala-paciente anim anim-d1">';
-            html += '<div class="fala-paciente-label">';
-            html += '<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>';
-            html += 'O que o paciente disse';
-            html += '</div>';
-            html += '<div class="fala-paciente-texto">' + sanitize(falaCrua) + '</div>';
-            if (falaFonte) {
-                html += '<div class="fala-paciente-meta"><span class="fala-paciente-fonte">' + sanitize(falaFonte) + '</span>';
-                if (r.duracaoSintomas) html += '<span>' + sanitize(String(r.duracaoSintomas)) + '</span>';
-                html += '</div>';
-            }
-            html += '</div>';
-        }
+        // Bloco "O que o paciente disse" removido em 22/04/2026.
+        // Motivo: queixa agora aparece como componente limpo logo abaixo do player.
 
         // ── Chip identificador (nome · idade · motivo) ──
         // Extrai motivo curto do descricaoBreve ou summaryTexto
@@ -1482,132 +1530,106 @@ async function init() {
             }
         }
 
-        // ── Pontos de Atencao (insights clinicos) ──
-        var alertas = summary.alertas || [];
-        // FASE 4 — Se nivel <= 3 e nao tem alertas, mostrar honest-empty (medico ve que IA nao rodou).
-        if (alertas.length === 0 && nivel <= 3 && nivel >= 1) {
-            html += '<div class="section-label anim anim-d3">Pontos de atencao</div>';
-            html += '<div class="honest-empty anim anim-d3"><strong>Sem alertas automaticos.</strong> ' +
-                (statusResumoIa === 'falhou'
-                    ? 'O resumo automatico nao foi gerado. Consulte a transcricao ou as respostas do paciente abaixo.'
-                    : 'Nenhum cruzamento critico detectado. Avalie o contexto clinico.') +
-                '</div>';
-        }
-        if (alertas.length > 0) {
-            html += '<div class="section-label anim anim-d3">Pontos de atencao</div>';
-            alertas.forEach(function(a) {
-                var tipo = (a.tipo || 'INFO').toLowerCase();
-                // tipo so aceita valores conhecidos (evita class injection)
-                if (['urgente','atencao','info'].indexOf(tipo) === -1) tipo = 'info';
-                var mensagemSafe = (a.mensagem || '');
-                var titulo = a.titulo || mensagemSafe.substring(0, 40);
-                var msg = a.titulo ? mensagemSafe : '';
-                var iconSvg = {
-                    urgente: '<svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>',
-                    atencao: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
-                    info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'
-                }[tipo] || '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  3 NOVOS COMPONENTES (22/04/2026) — abaixo do player+transcricao
+        //  Substituem: "O que o paciente disse", "Pontos de atencao" antigo, "Referencia" (Queixa+Historico).
+        //  Todos aparecem SEMPRE (estado vazio quando IA nao tem dados).
+        // ═══════════════════════════════════════════════════════════════════════════
 
-                // FASE 8 — data-alert-key estavel pra persistir "descartado" em localStorage
-                var alertKey = tipo + '|' + (titulo || '').substring(0, 60);
-                html += '<div class="insight-card ' + tipo + ' anim anim-d3" data-alert-key="' + sanitize(alertKey) + '">';
+        // ─── COMPONENTE 1: QUEIXA PRINCIPAL ───
+        // Prioridade: summary.queixaPrincipal (IA nova, limpa) > pc.transcricao (Whisper completo) > r.queixaPrincipal (cru browser, ultimo recurso)
+        var queixaLimpa = '';
+        if (summary.queixaPrincipal && summary.queixaPrincipal.trim().length >= 20) {
+            queixaLimpa = summary.queixaPrincipal.trim();
+        } else if (summary.descricaoBreve && summary.descricaoBreve.trim().length >= 20) {
+            // Fallback pra pre-consultas antigas (sem campo queixaPrincipal)
+            queixaLimpa = summary.descricaoBreve.trim();
+        } else if (r.queixaPrincipal && r.queixaPrincipal.trim()) {
+            queixaLimpa = r.queixaPrincipal.trim();
+        }
+        html += '<div class="section-label anim anim-d3">Queixa principal</div>';
+        if (queixaLimpa) {
+            html += '<div class="queixa-card anim anim-d3">';
+            html += '<div class="queixa-card-icon"><svg viewBox="0 0 24 24"><path d="M8 5v8a4 4 0 008 0V5"/><circle cx="6" cy="19" r="2"/><path d="M8 15a4 4 0 004 4"/></svg></div>';
+            html += '<div class="queixa-card-text">' + sanitize(queixaLimpa) + '</div>';
+            html += '</div>';
+        } else {
+            html += '<div class="honest-empty anim anim-d3"><strong>Queixa nao capturada</strong> na pre-consulta. Colher em consulta.</div>';
+        }
+
+        // ─── COMPONENTE 2: PONTOS DE ATENCAO (mesmo visual do antigo, com fallback pra summary.alertas) ───
+        var pontosAt = summary.pontosAtencao && summary.pontosAtencao.length
+            ? summary.pontosAtencao
+            : (summary.alertas || []).map(function(a) {
+                var tipoLower = (a.tipo || 'INFO').toLowerCase();
+                var grav = tipoLower === 'urgente' ? 'urgente' : (tipoLower === 'atencao' ? 'media' : 'baixa');
+                return { titulo: a.titulo, mensagem: a.mensagem, gravidade: grav };
+            });
+        html += '<div class="section-label anim anim-d4">Pontos de atencao</div>';
+        if (pontosAt.length === 0) {
+            html += '<div class="honest-empty anim anim-d4"><strong>Sem pontos destacaveis</strong> neste pre-atendimento.</div>';
+        } else {
+            var ordemGrav = { urgente: 0, alta: 1, media: 2, baixa: 3 };
+            var pontosOrd = pontosAt.slice().sort(function(a, b) {
+                var ga = ordemGrav[(a.gravidade || 'baixa').toLowerCase()];
+                var gb = ordemGrav[(b.gravidade || 'baixa').toLowerCase()];
+                if (ga == null) ga = 3;
+                if (gb == null) gb = 3;
+                return ga - gb;
+            }).slice(0, 4);
+            pontosOrd.forEach(function(p) {
+                var gravLower = (p.gravidade || 'media').toLowerCase();
+                var classe = 'atencao';
+                if (gravLower === 'urgente' || gravLower === 'alta') classe = 'urgente';
+                else if (gravLower === 'media') classe = 'atencao';
+                else classe = 'info';
+                var mensagemSafe = p.mensagem || '';
+                var tituloSafe = p.titulo || mensagemSafe.substring(0, 40);
+                var msgSafe = p.titulo ? mensagemSafe : '';
+                var iconSvg = classe === 'urgente'
+                    ? '<svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>'
+                    : '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+                var alertKey = classe + '|' + (tituloSafe || '').substring(0, 60);
+                html += '<div class="insight-card ' + classe + ' anim anim-d4" data-alert-key="' + sanitize(alertKey) + '">';
                 html += '<div class="insight-icon">' + iconSvg + '</div>';
                 html += '<div class="insight-content">';
-                html += '<div class="insight-title">' + sanitize(titulo) + '</div>';
-                if (msg) html += '<div class="insight-msg">' + sanitize(msg) + '</div>';
+                html += '<div class="insight-title">' + sanitize(tituloSafe) + '</div>';
+                if (msgSafe) html += '<div class="insight-msg">' + sanitize(msgSafe) + '</div>';
                 html += '</div>';
-                html += '<button class="alert-dismiss-btn" onclick="toggleDismissAlert(this)" aria-label="Marcar como descartado" title="Marcar como descartado / descartei essa hipotese"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>';
+                html += '<button class="alert-dismiss-btn" onclick="toggleDismissAlert(this)" aria-label="Marcar como descartado" title="Marcar como descartado"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button>';
                 html += '</div>';
             });
         }
 
-        // ── Referência: insight-cards clínicos (mesmo componente dos Pontos de Atenção) ──
-        var blocos = summary.blocos || [];
-        var blocoMap = {};
-        blocos.forEach(function(b) {
-            if (b.conteudo && b.conteudo.trim()) {
-                var t = (b.titulo || '').toLowerCase();
-                blocoMap[t] = b.conteudo.trim();
-            }
-        });
-        function findBloco(keywords) {
-            for (var k in blocoMap) {
-                for (var i = 0; i < keywords.length; i++) {
-                    if (k.indexOf(keywords[i]) !== -1) return blocoMap[k];
-                }
-            }
-            return null;
+        // ─── COMPONENTE 3: PADROES OBSERVADOS (novo — sugestoes SEM diagnosticar) ───
+        var padroes = summary.identificaPadroes || [];
+        html += '<div class="section-label padroes-section-label anim anim-d5">';
+        html += '<span>Padroes observados</span>';
+        html += '<span class="padroes-section-sub">Sugestoes para apoio ao raciocinio clinico</span>';
+        html += '</div>';
+        if (padroes.length === 0) {
+            html += '<div class="honest-empty anim anim-d5"><strong>Sem padroes suficientes</strong> para sugerir hipoteses neste relato.</div>';
+        } else {
+            padroes.slice(0, 3).forEach(function(p) {
+                var hip = (p.hipotese || '').trim();
+                var evid = (p.evidencia || '').trim();
+                if (!hip) return;
+                html += '<div class="padroes-card anim anim-d5">';
+                html += '<div class="padroes-card-icon"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.74V17h8v-2.26A7 7 0 0012 2z"/></svg></div>';
+                html += '<div class="padroes-card-content">';
+                html += '<div class="padroes-card-hipotese">' + sanitize(hip) + '</div>';
+                if (evid) html += '<div class="padroes-card-evidencia">' + sanitize(evid) + '</div>';
+                html += '</div>';
+                html += '</div>';
+            });
         }
+        // Disclaimer permanente (sempre aparece, mesmo quando vazio)
+        html += '<div class="padroes-disclaimer anim anim-d5">Sugestoes geradas a partir do relato do paciente. Nao substituem avaliacao clinica. Decisao diagnostica e sempre do medico.</div>';
 
-        var alergiasRaw = findBloco(['alergia','reac']) || r.alergias || r.reacoesAdversas || '';
-        var medsRaw = findBloco(['medicament']) || r.medicamentosEmUso || '';
-        // Prioridade: texto CRU do paciente (r.queixaPrincipal) > bloco da IA.
-        // IA resume e perde detalhes — as palavras originais do paciente sao a fonte fiel.
-        var queixaRaw = (r.queixaPrincipal && r.queixaPrincipal.trim()) || (r.queixa && r.queixa.trim()) || findBloco(['queixa','motivo']) || '';
-        if (r.duracaoSintomas && queixaRaw && queixaRaw.indexOf(r.duracaoSintomas) === -1) {
-            queixaRaw += ' (' + r.duracaoSintomas + ')';
-        }
-        var historicoRaw = findBloco(['hist\u00f3rico relevante','doenca','cirurgi','internac']) ||
-            [r.doencasAtuais, r.cirurgias, r.historicoInternacoes].filter(Boolean).join('. ');
-        var familiarRaw = findBloco(['familiar']) || r.historicoFamiliar || '';
-        var examesRaw = findBloco(['exames']) || r.examesRecentes || '';
-
-        function parseItens(txt) {
-            if (!txt) return [];
-            return txt.split(/[,;\n\u2022]+/).map(function(s){return s.trim();}).filter(function(s){return s.length > 1;});
-        }
-
-        function renderRefCard(tipo, icon, titulo, conteudo, isList) {
-            if (!conteudo || (!isList && !conteudo.trim()) || (isList && !conteudo.length)) return '';
-            // tipo so valores conhecidos — evita class injection via summary.blocos
-            var tipoSafe = ['alergia','med','queixa','historico','familiar','exames','info'].indexOf(tipo) !== -1 ? tipo : 'info';
-            var h = '<div class="insight-card ' + tipoSafe + ' anim anim-d4">';
-            h += '<div class="insight-icon">' + icon + '</div>';
-            h += '<div class="insight-content">';
-            h += '<div class="insight-title">' + sanitize(titulo) + '</div>';
-            if (isList) {
-                var items = conteudo;
-                var visible = items.slice(0, 3);
-                var rest = items.length - 3;
-                h += '<div class="ref-items">';
-                visible.forEach(function(it) {
-                    h += '<div class="ref-item">' + sanitize(it) + '</div>';
-                });
-                if (rest > 0) {
-                    h += '<div class="ref-more" onclick="this.parentElement.querySelectorAll(\'.ref-item-hidden\').forEach(function(x){x.style.display=\'block\';});this.remove();">+ ver mais ' + rest + '</div>';
-                    items.slice(3).forEach(function(it) {
-                        h += '<div class="ref-item ref-item-hidden" style="display:none">' + sanitize(it) + '</div>';
-                    });
-                }
-                h += '</div>';
-            } else {
-                h += '<div class="insight-msg">' + sanitize(conteudo) + '</div>';
-            }
-            h += '</div></div>';
-            return h;
-        }
-
-        var iconAlergia = '<svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15.4L8.2 5.2a4 4 0 017.6 0l4.6 10.2a2 2 0 01-1.8 2.8H5.4a2 2 0 01-1.8-2.8z"/></svg>';
-        var iconMed = '<svg viewBox="0 0 24 24"><path d="M4.5 12.5l8-8a4 4 0 015.66 5.66l-8 8a4 4 0 01-5.66-5.66z"/><line x1="8" y1="8" x2="16" y2="16"/></svg>';
-        var iconQueixa = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
-        var iconHistorico = '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>';
-        var iconFamiliar = '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
-        var iconExames = '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
-
-        var alergias = parseItens(alergiasRaw);
-        var meds = parseItens(medsRaw);
-
-        var refHtml = '';
-        refHtml += renderRefCard('queixa', iconQueixa, 'Queixa principal', queixaRaw, false);
-        refHtml += renderRefCard('historico', iconHistorico, 'Hist\u00f3rico relevante', historicoRaw, false);
-
-        if (refHtml) {
-            html += '<div class="section-label anim anim-d4">Refer\u00eancia</div>';
-            html += refHtml;
-        }
-
-        // Raw fallback
-        if (!refHtml && !blocos.length && !alertas.length && pc.respostas) {
+        // Raw fallback (so se nenhum dos 3 componentes novos renderizou e nao tem alertas legacy)
+        var temAlgumNovo = queixaLimpa || pontosAt.length > 0 || padroes.length > 0;
+        var blocosLegacy = summary.blocos || [];
+        if (!temAlgumNovo && !blocosLegacy.length && (!summary.alertas || !summary.alertas.length) && pc.respostas) {
             html += '<div class="section-label anim anim-d3">Respostas do paciente</div>';
             var entries = Object.entries(pc.respostas);
             entries.forEach(function(pair) {

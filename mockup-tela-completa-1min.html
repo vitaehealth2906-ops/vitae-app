@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Preview — 1 Minute Summary v2 (fiel ao layout atual)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F4F5F7;
+    --surface: #FFFFFF;
+    --surface-2: #FAFBFC;
+    --ink: #0D0F14;
+    --ink2: #4B5563;
+    --ink3: #6B7280;
+    --ink4: #9CA3AF;
+    --ink5: #C4C9D4;
+    --green: #00E5A0;
+    --green-soft: #9EF0C7;
+    --green-dark: #008f5a;
+    --cyan: #00B4D8;
+    --warn: #F59E0B;
+    --bad: #EF4444;
+    --info: #3B82F6;
+    --purple: #8B5CF6;
+    --border-c: rgba(0,0,0,0.08);
+    --border: 1px solid rgba(0,0,0,0.08);
+    --r-md: 14px;
+    --r-lg: 18px;
+    --sh: 0 1px 12px rgba(0,0,0,0.05);
+  }
+  body.dark {
+    --bg: #0A0C11;
+    --surface: #161922;
+    --surface-2: #1C2029;
+    --ink: #F4F6FA;
+    --ink2: #C4C9D4;
+    --ink3: #9CA3AF;
+    --ink4: #6B7280;
+    --border-c: rgba(255,255,255,0.08);
+    --border: 1px solid rgba(255,255,255,0.08);
+    --sh: 0 1px 12px rgba(0,0,0,0.3);
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+    min-height: 100vh; padding: 16px 32px 80px;
+    transition: background 0.3s;
+    min-width: 1200px; /* DESKTOP ONLY — nao colapsa */
+  }
+
+  /* ----- PREVIEW BAR ----- */
+  .preview-bar {
+    max-width: 1440px; margin: 0 auto 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 18px; background: var(--surface);
+    border: var(--border); border-radius: 12px;
+    box-shadow: var(--sh); font-size: 12px; color: var(--ink3);
+  }
+  .preview-bar b { color: var(--ink); }
+  .btn-toggle {
+    padding: 7px 12px; border: var(--border); background: transparent;
+    color: var(--ink); border-radius: 8px; cursor: pointer;
+    font-family: inherit; font-size: 12px; font-weight: 600;
+  }
+
+  /* ----- APP ----- */
+  .app { max-width: 1440px; margin: 0 auto; }
+
+  /* ----- TOP HEADER (breadcrumb style) ----- */
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 4px 24px;
+  }
+  .breadcrumb {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 18px; font-weight: 800; color: var(--ink);
+  }
+  .breadcrumb .sep {
+    color: var(--ink4); font-size: 16px;
+  }
+  .breadcrumb .current {
+    color: var(--ink3); font-weight: 600; font-size: 16px;
+  }
+  .date-chip {
+    padding: 8px 14px; border-radius: 8px;
+    background: var(--surface); border: var(--border);
+    color: var(--ink2); font-size: 13px; font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ----- SUBTITLE ----- */
+  .subtitle {
+    font-size: 14px; color: var(--ink3);
+    margin: 0 4px 20px; font-weight: 500;
+  }
+
+  /* ----- GRID ----- */
+  .grid {
+    display: grid; grid-template-columns: 1fr 400px;
+    gap: 28px;
+  }
+
+  /* =================================================
+     MAIN COLUMN
+     ================================================= */
+
+  /* Patient hero card */
+  .patient-hero {
+    background: var(--surface); border-radius: var(--r-lg);
+    padding: 24px 28px; box-shadow: var(--sh);
+    border: var(--border); margin-bottom: 20px;
+  }
+  .hero-top { display: flex; align-items: center; gap: 18px; }
+  .vita-id-logo {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: var(--surface-2);
+    border: 3px solid var(--green-soft);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .vita-id-logo .txt {
+    font-size: 14px; font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+  .vita-id-logo .txt .id-pill {
+    background: var(--green-soft); color: #004d2e;
+    padding: 1px 5px; border-radius: 4px; margin-left: 2px;
+    font-weight: 900;
+  }
+  .hero-info .name {
+    font-size: 22px; font-weight: 800; color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: var(--green-dark);
+  }
+  body.dark .status-pill { color: var(--green); }
+  .status-pill .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+  }
+  .hero-quote {
+    margin-top: 20px; padding-top: 20px;
+    border-top: var(--border);
+    font-size: 15px; color: var(--ink2); line-height: 1.55;
+    font-style: italic;
+  }
+
+  /* Audio player (preto) */
+  .player {
+    background: #0D0F14; border-radius: var(--r-lg);
+    padding: 22px 26px; color: white;
+    margin-bottom: 8px;
+  }
+  .player-top {
+    display: flex; justify-content: space-between; align-items: start;
+    margin-bottom: 16px;
+  }
+  .p-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 16px; font-weight: 800;
+  }
+  .p-title::before {
+    content: ''; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 5px rgba(0,229,160,0.15);
+  }
+  .p-meta { font-size: 12px; color: #9CA3AF; margin-top: 4px; }
+  .p-speed {
+    padding: 6px 12px; background: rgba(255,255,255,0.08);
+    border-radius: 100px; font-size: 12px; font-weight: 600;
+  }
+  .wave {
+    display: flex; align-items: center; gap: 3px;
+    height: 64px; margin: 8px 0 18px;
+  }
+  .wave .bar {
+    flex: 1; border-radius: 2px; min-width: 3px;
+    background: linear-gradient(180deg, var(--green), var(--cyan));
+  }
+  .wave .bar.unplayed { opacity: 0.25; background: #6B7280; }
+  .p-controls {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .p-time {
+    font-size: 12px; color: #9CA3AF;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .p-buttons { display: flex; align-items: center; gap: 24px; }
+  .p-btn {
+    background: transparent; border: none; cursor: pointer; color: white;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .p-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .p-play {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: white; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none;
+  }
+  .p-play svg { width: 20px; height: 20px; margin-left: 2px; }
+
+  .transcript-toggle {
+    display: block; width: 100%; text-align: center;
+    padding: 14px; background: transparent; border: none;
+    color: var(--green-dark); font-family: inherit;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  body.dark .transcript-toggle { color: var(--green); }
+
+  /* ============================================ */
+  /* SECTION LABEL - igual ao atual               */
+  /* ============================================ */
+  .section-label {
+    font-size: 15px; font-weight: 800; color: var(--ink);
+    margin: 28px 0 12px;
+  }
+  .section-label-group {
+    margin: 28px 0 12px;
+  }
+  .section-label-group .top {
+    font-size: 15px; font-weight: 800; color: var(--ink);
+  }
+  .section-label-group .sub {
+    font-size: 12.5px; color: var(--ink3);
+    font-weight: 500; margin-top: 3px; font-style: italic;
+  }
+
+  /* ============================================ */
+  /* ⭐ COMPONENTE 1 - QUEIXA PRINCIPAL (NOVO)    */
+  /* ============================================ */
+  .card-queixa {
+    display: flex; gap: 14px;
+    padding: 18px 20px;
+    background: var(--surface);
+    border: var(--border);
+    border-left: 4px solid var(--cyan);
+    border-radius: var(--r-md);
+    box-shadow: var(--sh);
+  }
+  .card-queixa .icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: rgba(0,180,216,0.1);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .card-queixa .icon svg {
+    width: 18px; height: 18px; fill: none;
+    stroke: var(--cyan); stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .card-queixa .text {
+    font-size: 15px; font-weight: 700;
+    color: var(--ink); line-height: 1.5;
+    padding-top: 2px;
+  }
+
+  /* ============================================ */
+  /* ⭐ COMPONENTE 2 - PONTOS DE ATENÇÃO          */
+  /*     (mantém o VISUAL ATUAL com checkbox)     */
+  /* ============================================ */
+  .card-ponto {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 18px 20px; margin-bottom: 10px;
+    background: var(--surface);
+    border: var(--border);
+    border-radius: var(--r-md);
+    box-shadow: var(--sh);
+    position: relative; overflow: hidden;
+  }
+  .card-ponto::before {
+    content: ''; position: absolute;
+    left: 0; top: 0; bottom: 0; width: 4px;
+    background: repeating-linear-gradient(
+      45deg,
+      var(--warn) 0px, var(--warn) 6px,
+      rgba(245,158,11,0.4) 6px, rgba(245,158,11,0.4) 12px
+    );
+  }
+  .card-ponto .icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #FEF3C7;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  body.dark .card-ponto .icon { background: rgba(245,158,11,0.15); }
+  .card-ponto .icon svg {
+    width: 16px; height: 16px; fill: none;
+    stroke: var(--warn); stroke-width: 2.5;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .card-ponto .content { flex: 1; }
+  .card-ponto .title {
+    font-size: 15px; font-weight: 800; color: var(--ink);
+    margin-bottom: 4px; line-height: 1.35;
+  }
+  .card-ponto .msg {
+    font-size: 14px; color: var(--ink2);
+    line-height: 1.55; font-weight: 500;
+  }
+  .card-ponto .check {
+    width: 22px; height: 22px; border-radius: 6px;
+    border: 1.5px solid var(--ink5);
+    background: transparent; cursor: pointer;
+    flex-shrink: 0; margin-top: 6px;
+  }
+
+  /* ============================================ */
+  /* ⭐ COMPONENTE 3 - PADRÕES OBSERVADOS (NOVO)  */
+  /* ============================================ */
+  .card-padrao {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 16px 18px; margin-bottom: 10px;
+    background: rgba(139,92,246,0.04);
+    border: 1px solid rgba(139,92,246,0.15);
+    border-radius: var(--r-md);
+  }
+  body.dark .card-padrao {
+    background: rgba(139,92,246,0.08);
+    border: 1px solid rgba(139,92,246,0.22);
+  }
+  .card-padrao .icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(139,92,246,0.12);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .card-padrao .icon svg {
+    width: 15px; height: 15px; fill: none;
+    stroke: var(--purple); stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .card-padrao .content { flex: 1; }
+  .card-padrao .hipotese {
+    font-size: 14.5px; font-weight: 700; color: var(--ink);
+    line-height: 1.4; margin-bottom: 4px;
+  }
+  .card-padrao .evidencia {
+    font-size: 13px; color: var(--ink3);
+    line-height: 1.55; font-weight: 400;
+  }
+  .disclaimer-padroes {
+    font-size: 12px; color: var(--ink4);
+    padding: 12px 14px;
+    margin-top: 10px;
+    background: rgba(0,0,0,0.02);
+    border-left: 2px solid rgba(0,0,0,0.08);
+    border-radius: 6px;
+    line-height: 1.6;
+  }
+  body.dark .disclaimer-padroes {
+    background: rgba(255,255,255,0.03);
+    border-left-color: rgba(255,255,255,0.1);
+  }
+
+  /* ----- Minhas anotações ----- */
+  .notas-label {
+    font-size: 15px; font-weight: 800; color: var(--ink);
+    margin: 32px 0 10px;
+  }
+  .notas-box {
+    background: var(--surface); border: var(--border);
+    border-radius: var(--r-md); padding: 14px 16px;
+    display: flex; gap: 12px; align-items: center;
+  }
+  .notas-input {
+    flex: 1; border: none; outline: none;
+    background: transparent; color: var(--ink);
+    font-family: inherit; font-size: 14px;
+  }
+  .notas-input::placeholder { color: var(--ink4); }
+  .btn-save {
+    padding: 9px 20px; border: none; border-radius: 10px;
+    background: var(--warn); color: white; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 700;
+  }
+
+  /* ----- CFM disclaimer ----- */
+  .cfm-disclaimer {
+    padding: 16px 18px; margin-top: 18px;
+    background: rgba(59,130,246,0.06);
+    border-left: 3px solid var(--info);
+    border-radius: 10px;
+    font-size: 13px; line-height: 1.65; color: var(--ink2);
+  }
+  body.dark .cfm-disclaimer { background: rgba(59,130,246,0.1); }
+  .cfm-disclaimer strong { color: var(--info); font-weight: 800; }
+
+  /* =================================================
+     SIDEBAR
+     ================================================= */
+  .sidebar-card {
+    background: var(--surface); border: var(--border);
+    border-radius: var(--r-lg); padding: 22px 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--sh);
+  }
+  .sb-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px;
+  }
+  .sb-plus {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sb-plus svg { width: 18px; height: 18px; stroke: var(--green-dark); fill: none; stroke-width: 2; }
+  body.dark .sb-plus svg { stroke: var(--green); }
+  .sb-warn {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sb-warn svg { width: 18px; height: 18px; stroke: var(--green-dark); fill: none; stroke-width: 2; }
+  body.dark .sb-warn svg { stroke: var(--green); }
+  .sb-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 700; color: var(--green-dark);
+  }
+  body.dark .sb-badge { color: var(--green); }
+  .sb-badge .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+  }
+  .sb-title {
+    font-size: 17px; font-weight: 800; color: var(--ink);
+    margin-bottom: 14px;
+  }
+  .sb-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sb-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 14px; border-radius: 100px;
+    background: rgba(0,229,160,0.1);
+    border: 1px solid rgba(0,229,160,0.18);
+    font-size: 13px; font-weight: 700;
+    color: var(--green-dark);
+  }
+  body.dark .sb-chip { color: var(--green); background: rgba(0,229,160,0.16); }
+  .sb-chip small { color: var(--ink3); font-weight: 600; }
+  body.dark .sb-chip small { color: var(--ink3); }
+  .sb-empty {
+    font-size: 14px; color: var(--ink3); font-weight: 500;
+  }
+
+  /* Exames */
+  .exames-title {
+    font-size: 26px; font-weight: 900;
+    margin: 24px 0 14px;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.01em;
+  }
+  .exame-search {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px;
+    background: var(--surface); border: var(--border);
+    border-radius: var(--r-md); margin-bottom: 12px;
+    box-shadow: var(--sh);
+  }
+  .exame-search svg { width: 16px; height: 16px; stroke: var(--ink4); fill: none; stroke-width: 2; }
+  .exame-search input {
+    flex: 1; border: none; outline: none;
+    background: transparent; color: var(--ink);
+    font-family: inherit; font-size: 14px;
+  }
+  .exame-search input::placeholder { color: var(--ink4); }
+  .exame-item {
+    display: flex; gap: 14px; align-items: center;
+    padding: 14px 16px;
+    background: var(--surface); border: var(--border);
+    border-radius: var(--r-md); cursor: pointer;
+    box-shadow: var(--sh);
+  }
+  .exame-thumb {
+    width: 64px; height: 74px; border-radius: 8px;
+    background: white; border: 1px solid #E5E7EB;
+    flex-shrink: 0; overflow: hidden; position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .exame-thumb::before {
+    content: ''; position: absolute; top: 6px; left: 8px; right: 8px;
+    height: 4px; background: var(--bad); border-radius: 1px;
+  }
+  .exame-thumb::after {
+    content: ''; position: absolute; top: 18px; left: 8px; right: 40px;
+    height: 44px;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        #9CA3AF 0px, #9CA3AF 1px,
+        transparent 1px, transparent 4px
+      );
+    opacity: 0.4;
+  }
+  .exame-name { font-size: 15px; font-weight: 800; color: var(--ink); }
+  .exame-file {
+    font-size: 14px; font-weight: 800; margin-top: 3px;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .exame-meta { font-size: 11.5px; color: var(--ink4); margin-top: 4px; }
+
+  /* ----- note bottom ----- */
+  .preview-note {
+    max-width: 1440px; margin: 40px auto 0;
+    padding: 18px 22px; background: var(--surface);
+    border-left: 4px solid var(--purple);
+    border-radius: var(--r-md); box-shadow: var(--sh);
+    font-size: 13px; color: var(--ink2); line-height: 1.65;
+  }
+  .preview-note strong { color: var(--ink); }
+  .preview-note p + p { margin-top: 8px; }
+
+  /* Removido responsivo mobile. Layout eh SOMENTE desktop. */
+</style>
+</head>
+<body>
+
+<div class="preview-bar">
+  <span><b>Preview fiel da tela atual</b> — mesmo layout do 25-summary.html, só mudam os componentes da região central</span>
+  <button class="btn-toggle" onclick="document.body.classList.toggle('dark')">🌓 Alternar tema</button>
+</div>
+
+<div class="app">
+
+  <!-- ===== TOPBAR (breadcrumb + data — sem badge, sem olhinho, sem lua) ===== -->
+  <div class="topbar">
+    <div class="breadcrumb">
+      <span>Resumo do Paciente</span>
+      <span class="sep">›</span>
+      <span class="current">Pre-consulta respondida</span>
+    </div>
+    <span class="date-chip">18:14 · Qua, 22 Abr</span>
+  </div>
+
+  <div class="subtitle">lucas silva · Respondida em 19/04/2026 18:39</div>
+
+  <!-- ===== GRID ===== -->
+  <div class="grid">
+
+    <!-- ================= MAIN ================= -->
+    <div>
+
+      <!-- Patient hero -->
+      <div class="patient-hero">
+        <div class="hero-top">
+          <div class="vita-id-logo">
+            <span class="txt">vita<span class="id-pill">id</span></span>
+          </div>
+          <div class="hero-info">
+            <div class="name">lucas silva</div>
+            <span class="status-pill"><span class="dot"></span> Respondida</span>
+          </div>
+        </div>
+        <div class="hero-quote">"Paciente de 19 anos relata mal-estar generalizado, incluindo palpitações e insônia, há cerca de três semanas, associado a um período de alta demanda no trabalho."</div>
+      </div>
+
+      <!-- Audio player -->
+      <div class="player">
+        <div class="player-top">
+          <div>
+            <div class="p-title">Resumo em áudio</div>
+            <div class="p-meta">19/04/2026 18:39 · 1 min</div>
+          </div>
+          <div class="p-speed">1x</div>
+        </div>
+        <div class="wave" id="wave"></div>
+        <div class="p-controls">
+          <div class="p-time">0:00</div>
+          <div class="p-buttons">
+            <button class="p-btn"><svg viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+            <button class="p-play"><svg viewBox="0 0 24 24" fill="black"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+            <button class="p-btn"><svg viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg></button>
+          </div>
+          <div class="p-time">-0:00</div>
+        </div>
+      </div>
+      <button class="transcript-toggle">Ver transcricao ⌄</button>
+
+      <!-- ==================================================== -->
+      <!--  ⭐ COMPONENTE 1 — QUEIXA PRINCIPAL (NOVO, refeito)  -->
+      <!-- ==================================================== -->
+      <div class="section-label">Queixa principal</div>
+      <div class="card-queixa">
+        <div class="icon">
+          <svg viewBox="0 0 24 24"><path d="M8 5v8a4 4 0 0 0 8 0V5"/><circle cx="6" cy="19" r="2"/><path d="M8 15a4 4 0 0 0 4 4"/></svg>
+        </div>
+        <div class="text">Mal-estar generalizado com palpitações e insônia há 3 semanas em paciente de 19 anos, em uso de Prednisolona.</div>
+      </div>
+
+      <!-- ==================================================== -->
+      <!--  ⭐ COMPONENTE 2 — PONTOS DE ATENÇÃO (visual igual)  -->
+      <!-- ==================================================== -->
+      <div class="section-label">Pontos de atencao</div>
+
+      <div class="card-ponto">
+        <div class="icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="content">
+          <div class="title">Fatores de Estresse e Sono</div>
+          <div class="msg">O paciente relata trabalhar 12 horas/dia nos últimos dois meses, o que coincide com o início dos sintomas de mal-estar, insônia, irritabilidade e perda de peso. Vale considerar o impacto do estresse crônico.</div>
+        </div>
+        <div class="check"></div>
+      </div>
+
+      <div class="card-ponto">
+        <div class="icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="content">
+          <div class="title">Medicamentos e Sintomas</div>
+          <div class="msg">O uso de Prednisolona pode contribuir para insônia, irritabilidade e taquicardia, sintomas relatados pelo paciente.</div>
+        </div>
+        <div class="check"></div>
+      </div>
+
+      <div class="card-ponto">
+        <div class="icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="content">
+          <div class="title">Histórico Familiar e Sintomas</div>
+          <div class="msg">O histórico familiar de depressão, combinado com insônia, irritabilidade e sintomas de ansiedade como palpitações e dor torácica, merece avaliação de um possível componente de humor/ansiedade.</div>
+        </div>
+        <div class="check"></div>
+      </div>
+
+      <!-- ==================================================== -->
+      <!--  ⭐ COMPONENTE 3 — PADRÕES OBSERVADOS (NOVO)         -->
+      <!-- ==================================================== -->
+      <div class="section-label-group">
+        <div class="top">Padrões observados</div>
+        <div class="sub">Sugestões para apoio ao raciocínio clínico</div>
+      </div>
+
+      <div class="card-padrao">
+        <div class="icon">
+          <svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg>
+        </div>
+        <div class="content">
+          <div class="hipotese">Considere investigar síndrome de burnout</div>
+          <div class="evidencia">Relato menciona jornada de 12h/dia há 2 meses; perda de peso não intencional; insônia e irritabilidade associadas ao período.</div>
+        </div>
+      </div>
+
+      <div class="card-padrao">
+        <div class="icon">
+          <svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg>
+        </div>
+        <div class="content">
+          <div class="hipotese">Vale cogitar componente ansioso</div>
+          <div class="evidencia">Relato menciona palpitações e dor torácica episódicas; histórico familiar de depressão; exacerbação em contexto de estressor laboral.</div>
+        </div>
+      </div>
+
+      <div class="card-padrao">
+        <div class="icon">
+          <svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg>
+        </div>
+        <div class="content">
+          <div class="hipotese">Padrão compatível com efeito colateral de corticoide</div>
+          <div class="evidencia">Relato menciona uso atual de Prednisolona 20mg; insônia e taquicardia entre os sintomas; quadro iniciado após introdução da medicação.</div>
+        </div>
+      </div>
+
+      <div class="disclaimer-padroes">
+        Sugestões geradas a partir do relato do paciente. Não substituem avaliação clínica. Decisão diagnóstica é sempre do médico.
+      </div>
+
+      <!-- Minhas anotações -->
+      <div class="notas-label">Minhas anotacoes</div>
+      <div class="notas-box">
+        <input class="notas-input" placeholder="Anotacao rapida (so voce ve, fica no navegador)...">
+        <button class="btn-save">Salvar</button>
+      </div>
+
+      <!-- CFM disclaimer -->
+      <div class="cfm-disclaimer">
+        <strong>Suporte a decisao clinica.</strong> Este briefing e gerado automaticamente a partir das respostas do paciente e serve como referência. Nao substitui a avaliacao medica. Diagnostico, prescricao e conduta sao de responsabilidade exclusiva do medico. Acesso auditado conforme LGPD e CFM.
+      </div>
+
+    </div>
+
+    <!-- ================= SIDEBAR ================= -->
+    <div>
+
+      <!-- Medicamentos -->
+      <div class="sidebar-card">
+        <div class="sb-row">
+          <div class="sb-plus">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+          <span class="sb-badge"><span class="dot"></span> 4 ativos</span>
+        </div>
+        <div class="sb-title">Medicamentos em uso</div>
+        <div class="sb-chips">
+          <span class="sb-chip">Cetirizina 10mg <small>10mg</small></span>
+          <span class="sb-chip">Soro Fisiologico</span>
+          <span class="sb-chip">Prednisolona 20mg <small>20mg</small></span>
+          <span class="sb-chip">Loratadina 10mg <small>10mg</small></span>
+        </div>
+      </div>
+
+      <!-- Alergias -->
+      <div class="sidebar-card">
+        <div class="sb-row">
+          <div class="sb-warn">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <span class="sb-badge"><span class="dot"></span> Nenhuma</span>
+        </div>
+        <div class="sb-title">Alergias</div>
+        <div class="sb-empty">Nenhuma alergia registrada</div>
+      </div>
+
+      <!-- Exames -->
+      <h2 class="exames-title">Exames de lucas</h2>
+      <div class="exame-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Buscar exame...">
+      </div>
+      <div class="exame-item">
+        <div class="exame-thumb"></div>
+        <div>
+          <div class="exame-name">Exame</div>
+          <div class="exame-file">laudo.pdf</div>
+          <div class="exame-meta">04/04/2026, 21:00</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<div class="preview-note">
+  <p><strong>O que mudou vs tela atual:</strong> (1) bloco "O que o paciente disse" foi removido — queixa agora aparece como componente limpo no topo da região. (2) Bloco "Referência" (com cards Queixa principal + Histórico relevante) foi removido. (3) Os cards de Pontos de atenção permanecem idênticos ao visual atual (borda lateral âmbar tracejada, ícone circular, checkbox à direita). (4) Acrescentado bloco "Padrões observados" com 3 hipóteses em tom sugestivo + disclaimer permanente.</p>
+  <p><strong>O que NÃO mudou:</strong> header com breadcrumb + data, card do paciente com logo vita id + citação, player de áudio preto com waveform, botão "Ver transcrição", sidebar com Medicamentos + Alergias + Exames, minhas anotações, suporte à decisão clínica.</p>
+</div>
+
+<script>
+  const wave = document.getElementById('wave');
+  const bars = 52;
+  const played = 0;
+  for (let i = 0; i < bars; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'bar ' + (i < played ? 'played' : 'unplayed');
+    const base = 16;
+    const variation = Math.abs(Math.sin(i * 0.35) * 22) + Math.random() * 12;
+    bar.style.height = Math.min(60, base + variation) + 'px';
+    wave.appendChild(bar);
+  }
+</script>
+</body>
+</html>

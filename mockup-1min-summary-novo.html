@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Preview — 1 Minute Summary v2 (3 componentes novos)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F5F7FA;
+    --surface: #FFFFFF;
+    --ink: #0D0F14;
+    --ink2: #4B5563;
+    --ink3: #6B7280;
+    --ink4: #9CA3AF;
+    --ink5: #C4C9D4;
+    --green: #00E5A0;
+    --cyan: #00B4D8;
+    --warn: #F59E0B;
+    --bad: #EF4444;
+    --info: #3B82F6;
+    --purple: #8B5CF6;
+    --border: 1px solid rgba(0,0,0,0.08);
+    --r-md: 14px;
+    --sh: 0 1px 12px rgba(0,0,0,0.06);
+  }
+  body.dark {
+    --bg: #0D0F14;
+    --surface: #161922;
+    --ink: #F4F6FA;
+    --ink2: #C4C9D4;
+    --ink3: #9CA3AF;
+    --ink4: #6B7280;
+    --ink5: #4B5563;
+    --border: 1px solid rgba(255,255,255,0.08);
+    --sh: 0 1px 12px rgba(0,0,0,0.4);
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 40px 20px 80px;
+    transition: background 0.3s, color 0.3s;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 32px; padding: 16px 20px;
+    background: var(--surface); border-radius: var(--r-md);
+    border: var(--border); box-shadow: var(--sh);
+  }
+  .topbar h1 {
+    font-size: 20px; font-weight: 900;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .topbar .sub { font-size: 12px; color: var(--ink3); margin-top: 2px; }
+  .btn-toggle {
+    padding: 8px 14px; border: var(--border); background: var(--surface);
+    color: var(--ink); border-radius: 10px; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+  }
+  .btn-toggle:hover { background: rgba(0,0,0,0.04); }
+  body.dark .btn-toggle:hover { background: rgba(255,255,255,0.04); }
+
+  .intro {
+    background: var(--surface); border: var(--border);
+    border-radius: var(--r-md); padding: 20px 24px;
+    margin-bottom: 40px; box-shadow: var(--sh);
+    border-left: 4px solid var(--cyan);
+  }
+  .intro strong { color: var(--ink); }
+  .intro p { color: var(--ink2); line-height: 1.6; font-size: 14px; }
+  .intro p + p { margin-top: 10px; }
+
+  /* ---------- Estado (seção) ---------- */
+  .estado {
+    background: var(--surface); border: var(--border);
+    border-radius: 18px; padding: 28px;
+    margin-bottom: 32px; box-shadow: var(--sh);
+  }
+  .estado-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 6px;
+  }
+  .estado-badge {
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .estado-badge.cheio { background: rgba(0,229,160,0.1); color: #008f5a; }
+  body.dark .estado-badge.cheio { color: var(--green); }
+  .estado-badge.parcial { background: rgba(245,158,11,0.12); color: #b07506; }
+  body.dark .estado-badge.parcial { color: var(--warn); }
+  .estado-badge.vazio { background: rgba(107,114,128,0.12); color: var(--ink3); }
+  .estado h2 {
+    font-size: 22px; font-weight: 900; color: var(--ink);
+  }
+  .estado-desc {
+    font-size: 13px; color: var(--ink3); margin-bottom: 20px;
+  }
+
+  /* ---------- Section label ---------- */
+  .section-label {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--ink4);
+    margin: 24px 0 10px;
+  }
+  .section-label:first-of-type { margin-top: 8px; }
+
+  /* ---------- Componente 1: Queixa Principal ---------- */
+  .queixa-card {
+    display: flex; gap: 14px;
+    padding: 18px 20px;
+    background: var(--surface);
+    border: var(--border);
+    border-left: 4px solid var(--cyan);
+    border-radius: var(--r-md);
+    box-shadow: var(--sh);
+  }
+  .queixa-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: rgba(0,180,216,0.1);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .queixa-icon svg {
+    width: 18px; height: 18px; fill: none;
+    stroke: var(--cyan); stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .queixa-content { flex: 1; }
+  .queixa-title {
+    font-size: 15px; font-weight: 800;
+    color: var(--ink); line-height: 1.35;
+    margin-bottom: 3px;
+  }
+  .queixa-empty {
+    font-size: 13px; color: var(--ink3);
+    font-style: italic;
+  }
+
+  /* ---------- Componente 2: Pontos de Atenção ---------- */
+  .ponto-card {
+    display: flex; gap: 12px;
+    padding: 14px 16px; margin-bottom: 8px;
+    background: var(--surface);
+    border: var(--border);
+    border-radius: var(--r-md);
+    box-shadow: var(--sh);
+    position: relative; overflow: hidden;
+  }
+  .ponto-card::before {
+    content: ''; position: absolute;
+    left: 0; top: 0; bottom: 0; width: 4px;
+  }
+  .ponto-card.urgente::before { background: var(--bad); }
+  .ponto-card.atencao::before { background: var(--warn); }
+  .ponto-card.info::before { background: var(--info); }
+  .ponto-icon {
+    width: 32px; height: 32px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ponto-card.urgente .ponto-icon { background: rgba(239,68,68,0.1); }
+  .ponto-card.urgente .ponto-icon svg { stroke: var(--bad); }
+  .ponto-card.atencao .ponto-icon { background: rgba(245,158,11,0.1); }
+  .ponto-card.atencao .ponto-icon svg { stroke: var(--warn); }
+  .ponto-card.info .ponto-icon { background: rgba(59,130,246,0.1); }
+  .ponto-card.info .ponto-icon svg { stroke: var(--info); }
+  .ponto-icon svg {
+    width: 16px; height: 16px; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .ponto-content { flex: 1; min-width: 0; }
+  .ponto-title {
+    font-size: 14px; font-weight: 800; color: var(--ink);
+    line-height: 1.3; margin-bottom: 3px;
+  }
+  .ponto-msg {
+    font-size: 13px; color: var(--ink2);
+    line-height: 1.55; font-weight: 500;
+  }
+
+  /* ---------- Empty state genérico ---------- */
+  .empty {
+    background: rgba(0,0,0,0.02);
+    border: 1.5px dashed rgba(0,0,0,0.08);
+    border-radius: var(--r-md);
+    padding: 16px 18px;
+    font-size: 13px; color: var(--ink3);
+    font-style: italic; line-height: 1.55;
+  }
+  body.dark .empty {
+    background: rgba(255,255,255,0.03);
+    border-color: rgba(255,255,255,0.08);
+  }
+  .empty strong { color: var(--ink2); font-style: normal; font-weight: 700; }
+
+  /* ---------- Componente 3: Identifica Padrões ---------- */
+  .padroes-header {
+    display: flex; flex-direction: column;
+    margin-bottom: 8px;
+  }
+  .padroes-subtitle {
+    font-size: 12px; color: var(--ink3);
+    font-weight: 500; font-style: italic;
+    margin-top: 2px;
+  }
+  .padroes-card {
+    display: flex; gap: 12px;
+    padding: 14px 16px; margin-bottom: 8px;
+    background: rgba(139,92,246,0.04);
+    border: 1px solid rgba(139,92,246,0.14);
+    border-radius: var(--r-md);
+  }
+  body.dark .padroes-card {
+    background: rgba(139,92,246,0.08);
+    border: 1px solid rgba(139,92,246,0.2);
+  }
+  .padroes-icon {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(139,92,246,0.12);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .padroes-icon svg {
+    width: 14px; height: 14px; fill: none;
+    stroke: var(--purple); stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .padroes-content { flex: 1; min-width: 0; }
+  .padroes-hipotese {
+    font-size: 14px; font-weight: 700; color: var(--ink);
+    line-height: 1.35; margin-bottom: 3px;
+  }
+  .padroes-evidencia {
+    font-size: 12.5px; color: var(--ink3);
+    line-height: 1.55; font-weight: 400;
+  }
+  .padroes-disclaimer {
+    font-size: 11.5px; color: var(--ink4);
+    padding: 12px 14px;
+    margin-top: 12px;
+    background: rgba(0,0,0,0.02);
+    border-left: 2px solid rgba(0,0,0,0.08);
+    border-radius: 8px;
+    line-height: 1.6;
+  }
+  body.dark .padroes-disclaimer {
+    background: rgba(255,255,255,0.03);
+    border-left-color: rgba(255,255,255,0.08);
+  }
+
+  /* ---------- Banner análise parcial ---------- */
+  .banner-parcial {
+    display: flex; gap: 10px; align-items: center;
+    padding: 12px 16px; margin-bottom: 18px;
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.22);
+    border-radius: 10px;
+    font-size: 13px; color: #92570b; font-weight: 600;
+  }
+  body.dark .banner-parcial { color: var(--warn); }
+  .banner-parcial svg {
+    flex-shrink: 0; width: 18px; height: 18px;
+    stroke: var(--warn); fill: none; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* ---------- Hero fake do paciente (mini) ---------- */
+  .hero-mini {
+    display: flex; gap: 14px; align-items: center;
+    padding: 14px 16px; margin-bottom: 8px;
+    background: rgba(0,0,0,0.02);
+    border-radius: var(--r-md);
+  }
+  body.dark .hero-mini { background: rgba(255,255,255,0.03); }
+  .hero-photo {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--green), var(--cyan));
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; font-size: 16px;
+  }
+  .hero-name {
+    font-size: 14px; font-weight: 800; color: var(--ink);
+  }
+  .hero-meta {
+    font-size: 12px; color: var(--ink3); margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="topbar">
+    <div>
+      <h1>Preview — 1 Minute Summary v2</h1>
+      <div class="sub">3 componentes novos abaixo do player de áudio. Tudo ao redor fica igual.</div>
+    </div>
+    <button class="btn-toggle" onclick="document.body.classList.toggle('dark')">Alternar tema</button>
+  </div>
+
+  <div class="intro">
+    <p><strong>O que você está vendo:</strong> apenas a região central que vai mudar. O header, card do paciente, player de áudio, transcrição, sidebar (medicamentos/alergias/exames), minhas anotações e aviso de suporte à decisão clínica permanecem intocados.</p>
+    <p><strong>3 estados abaixo</strong>: (1) paciente com áudio completo — tudo preenchido; (2) áudio curto/parcial — alguns componentes vazios; (3) sem áudio ou Whisper falhou — todos em estado vazio.</p>
+  </div>
+
+  <!-- ========== ESTADO 1: CHEIO ========== -->
+  <div class="estado">
+    <div class="estado-header">
+      <h2>Estado 1 — Áudio completo</h2>
+      <span class="estado-badge cheio">Ideal</span>
+    </div>
+    <div class="estado-desc">Daniel, 17 anos, gravou 2 min de áudio completo. IA tem informação suficiente para os 3 componentes.</div>
+
+    <div class="hero-mini">
+      <div class="hero-photo">D</div>
+      <div>
+        <div class="hero-name">Daniel Garrote Schocair</div>
+        <div class="hero-meta">17 anos · Respondida em 21/04/2026 15:31</div>
+      </div>
+    </div>
+
+    <!-- COMPONENTE 1 — Queixa Principal -->
+    <div class="section-label">Queixa principal</div>
+    <div class="queixa-card">
+      <div class="queixa-icon">
+        <svg viewBox="0 0 24 24"><path d="M8 5v8a4 4 0 008 0V5"/><circle cx="6" cy="19" r="2"/><path d="M8 15a4 4 0 004 4"/></svg>
+      </div>
+      <div class="queixa-content">
+        <div class="queixa-title">Cefaleia frontal há 3 semanas em paciente de 17 anos, em uso de creatina.</div>
+      </div>
+    </div>
+
+    <!-- COMPONENTE 2 — Pontos de Atenção -->
+    <div class="section-label">Pontos de atenção</div>
+
+    <div class="ponto-card atencao">
+      <div class="ponto-icon">
+        <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div class="ponto-content">
+        <div class="ponto-title">Creatina e cefaleia persistente</div>
+        <div class="ponto-msg">Paciente refere uso diário de creatina 5g há 4 meses, coincidindo com início do quadro. Vale checar hidratação e pressão arterial.</div>
+      </div>
+    </div>
+
+    <div class="ponto-card atencao">
+      <div class="ponto-icon">
+        <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div class="ponto-content">
+        <div class="ponto-title">Histórico familiar de hipertensão</div>
+        <div class="ponto-msg">Relata pai com diagnóstico de hipertensão aos 45 anos. Merece rastreio em paciente jovem com cefaleia persistente.</div>
+      </div>
+    </div>
+
+    <div class="ponto-card info">
+      <div class="ponto-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      </div>
+      <div class="ponto-content">
+        <div class="ponto-title">Padrão de sono irregular associado</div>
+        <div class="ponto-msg">Refere média de 5 horas de sono em dias de estudo intenso. Chama atenção a correlação temporal com o quadro.</div>
+      </div>
+    </div>
+
+    <!-- COMPONENTE 3 — Identifica Padrões -->
+    <div class="section-label padroes-header">
+      <span>Padrões observados</span>
+      <span class="padroes-subtitle">Sugestões para apoio ao raciocínio clínico</span>
+    </div>
+
+    <div class="padroes-card">
+      <div class="padroes-icon">
+        <svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.74V17h8v-2.26A7 7 0 0012 2z"/></svg>
+      </div>
+      <div class="padroes-content">
+        <div class="padroes-hipotese">Considere investigar cefaleia tensional crônica</div>
+        <div class="padroes-evidencia">Relato menciona dor frontal bilateral; piora vespertina; correlação com estresse acadêmico; ausência de sinais de alarme.</div>
+      </div>
+    </div>
+
+    <div class="padroes-card">
+      <div class="padroes-icon">
+        <svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.74V17h8v-2.26A7 7 0 0012 2z"/></svg>
+      </div>
+      <div class="padroes-content">
+        <div class="padroes-hipotese">Vale cogitar componente de desidratação</div>
+        <div class="padroes-evidencia">Relato menciona uso de creatina 5g/dia; treinos diários; baixa ingestão de água relatada.</div>
+      </div>
+    </div>
+
+    <div class="padroes-disclaimer">
+      Sugestões geradas a partir do relato do paciente. Não substituem avaliação clínica. Decisão diagnóstica é sempre do médico.
+    </div>
+  </div>
+
+  <!-- ========== ESTADO 2: PARCIAL ========== -->
+  <div class="estado">
+    <div class="estado-header">
+      <h2>Estado 2 — Áudio curto ou parcial</h2>
+      <span class="estado-badge parcial">Dados limitados</span>
+    </div>
+    <div class="estado-desc">Áudio com 18 segundos. IA consegue queixa, mas não tem evidências suficientes pra cruzamentos nem padrões.</div>
+
+    <div class="hero-mini">
+      <div class="hero-photo">M</div>
+      <div>
+        <div class="hero-name">Maria Helena Oliveira</div>
+        <div class="hero-meta">34 anos · Respondida em 22/04/2026 09:14</div>
+      </div>
+    </div>
+
+    <div class="banner-parcial">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Análise parcial — áudio curto (18s). Recomenda-se aprofundar na consulta.
+    </div>
+
+    <div class="section-label">Queixa principal</div>
+    <div class="queixa-card">
+      <div class="queixa-icon">
+        <svg viewBox="0 0 24 24"><path d="M8 5v8a4 4 0 008 0V5"/><circle cx="6" cy="19" r="2"/><path d="M8 15a4 4 0 004 4"/></svg>
+      </div>
+      <div class="queixa-content">
+        <div class="queixa-title">Dor lombar há 4 dias em paciente de 34 anos, sem comorbidades declaradas.</div>
+      </div>
+    </div>
+
+    <div class="section-label">Pontos de atenção</div>
+    <div class="empty"><strong>Sem pontos destacáveis</strong> neste pré-atendimento.</div>
+
+    <div class="section-label padroes-header">
+      <span>Padrões observados</span>
+      <span class="padroes-subtitle">Sugestões para apoio ao raciocínio clínico</span>
+    </div>
+    <div class="empty"><strong>Sem padrões suficientes</strong> para sugerir hipóteses neste relato.</div>
+
+    <div class="padroes-disclaimer">
+      Sugestões geradas a partir do relato do paciente. Não substituem avaliação clínica. Decisão diagnóstica é sempre do médico.
+    </div>
+  </div>
+
+  <!-- ========== ESTADO 3: VAZIO TOTAL ========== -->
+  <div class="estado">
+    <div class="estado-header">
+      <h2>Estado 3 — Sem áudio processável</h2>
+      <span class="estado-badge vazio">Fallback seguro</span>
+    </div>
+    <div class="estado-desc">Paciente gravou áudio mas Whisper não conseguiu transcrever (silêncio, ruído, ou falha técnica). Componentes mostram estado vazio honesto — nunca inventamos.</div>
+
+    <div class="hero-mini">
+      <div class="hero-photo">J</div>
+      <div>
+        <div class="hero-name">João Pedro Andrade</div>
+        <div class="hero-meta">52 anos · Respondida em 22/04/2026 11:02</div>
+      </div>
+    </div>
+
+    <div class="banner-parcial">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Análise parcial — áudio não foi compreendido. Ouvir gravação original e colher anamnese na consulta.
+    </div>
+
+    <div class="section-label">Queixa principal</div>
+    <div class="queixa-card">
+      <div class="queixa-icon">
+        <svg viewBox="0 0 24 24"><path d="M8 5v8a4 4 0 008 0V5"/><circle cx="6" cy="19" r="2"/><path d="M8 15a4 4 0 004 4"/></svg>
+      </div>
+      <div class="queixa-content">
+        <div class="queixa-title queixa-empty">Queixa não capturada — colher em consulta.</div>
+      </div>
+    </div>
+
+    <div class="section-label">Pontos de atenção</div>
+    <div class="empty"><strong>Sem pontos destacáveis</strong> neste pré-atendimento.</div>
+
+    <div class="section-label padroes-header">
+      <span>Padrões observados</span>
+      <span class="padroes-subtitle">Sugestões para apoio ao raciocínio clínico</span>
+    </div>
+    <div class="empty"><strong>Sem padrões suficientes</strong> para sugerir hipóteses neste relato.</div>
+
+    <div class="padroes-disclaimer">
+      Sugestões geradas a partir do relato do paciente. Não substituem avaliação clínica. Decisão diagnóstica é sempre do médico.
+    </div>
+  </div>
+
+  <div class="intro" style="border-left-color: var(--purple); margin-top: 40px;">
+    <p><strong>Como os 3 estados garantem consistência:</strong> todo paciente verá os mesmos 3 componentes na mesma ordem (Queixa → Pontos → Padrões). O que muda é só o conteúdo dentro. Nunca um componente some.</p>
+    <p><strong>Hierarquia visual:</strong> Queixa (ciano, destaque, topo) > Pontos (cores semânticas por gravidade, meio) > Padrões (roxo lavanda muito suave, mais discreto). Potência semântica inversa ao peso visual: as sugestões são as mais discretas pra não parecer que a IA está diagnosticando.</p>
+    <p><strong>Disclaimer permanente</strong> no bloco de Padrões deixa claro em toda visualização: sugestões são apoio, decisão é do médico.</p>
+  </div>
+
+</div>
+</body>
+</html>

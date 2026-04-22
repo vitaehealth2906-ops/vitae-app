@@ -737,6 +737,9 @@ Retorne EXCLUSIVAMENTE um JSON valido:
   "descricaoBreve": "1-2 frases SIMPLES, linguagem leiga",
   "summaryTexto": "3-5 frases clinicas INTERPRETATIVAS que CONECTAM dados entre si",
   "textoVoz": "BRIEFING MEDICO de 150-180 palavras (~1 minuto de narracao)",
+  "queixaPrincipal": "FRASE CLINICA LIMPA de 40-140 caracteres, template: [Sintoma clinico] ha [duracao] em paciente de [idade] anos[, em uso de/com (complemento)]",
+  "pontosAtencao": [{ "titulo": "string (ate 6 palavras)", "mensagem": "string 1-2 frases", "gravidade": "baixa|media|alta|urgente" }],
+  "identificaPadroes": [{ "hipotese": "string comeca com Considere/Padrao compativel com/Vale cogitar/Pode haver componente de", "evidencia": "string com 2-3 observacoes do relato separadas por ponto-e-virgula" }],
   "blocos": [{ "titulo": "string", "conteudo": "string", "prioridade": "alta|media|baixa" }],
   "alertas": [{ "tipo": "URGENTE|ATENCAO|INFO", "titulo": "string", "mensagem": "string" }]
 }
@@ -831,7 +834,58 @@ alertas:
 - INFO: contexto factual util (ex: "Paciente cadeirante")
 - Cada alerta tem "titulo" (acao curta: "Evitar Dipirona") + "mensagem" (explicacao em 1-2 frases)
 - NAO gere alertas genericos como "Acompanhar evolucao" ou "Manter monitoramento"
-- Se nao ha cruzamento real, NAO gere alertas — e melhor zero alertas que um alerta falso`;
+- Se nao ha cruzamento real, NAO gere alertas — e melhor zero alertas que um alerta falso
+
+═══ REGRAS DOS 3 CAMPOS NOVOS (queixaPrincipal, pontosAtencao, identificaPadroes) ═══
+
+queixaPrincipal (OBRIGATORIO, 40-140 caracteres, frase clinica LIMPA — nunca cortada, nunca copia literal da transcricao):
+- Template sintatico: "[Sintoma clinico] ha [duracao] em paciente de [idade] anos[, em uso de/com (comorbidade ou medicamento relevante)]"
+- Exemplos VALIDOS:
+  · "Cefaleia frontal ha 3 semanas em paciente de 17 anos, em uso de creatina."
+  · "Mal-estar generalizado com palpitacoes e insonia ha 3 semanas em paciente de 19 anos, em uso de Prednisolona."
+  · "Dor toracica em queimacao ha 2 dias em paciente de 52 anos, hipertenso."
+- Exemplos INVALIDOS:
+  · "Fala doutor tudo bem eu estou aqui nessa consulta..." (copia literal, comeca com saudacao)
+  · "Dor de cabeca" (muito curto, sem contexto)
+  · "O paciente tem enxaqueca" (diagnostica)
+  · "Cefaleia ha 3 sema" (truncada)
+  · "Mal-estar generalizado ... estou tomando" (nunca termine em verbo incompleto)
+- NUNCA comece com: "Fala", "Oi", "Ola", "Doutor", "Doutora", "Entao", "Tudo bem", "Eu"
+- NUNCA termine sem ponto final
+- NUNCA termine em palavra truncada ou preposicao
+- Se dados insuficientes, use fallback neutro: "Queixa nao capturada na pre-consulta — colher em consulta."
+
+pontosAtencao (array, 0-4 itens, MANTEM o MESMO VISUAL do campo alertas existente — mas com enum de gravidade):
+- gravidade: "baixa" | "media" | "alta" | "urgente" (enum obrigatorio)
+- urgente: SO conflito med×alergia documentada OU sintoma de alarme real (dor toracica, dispneia subita, ideacao suicida, anafilaxia, sangramento ativo)
+- alta: correlacao clinica forte que merece avaliacao imediata (ex: sintoma + historico familiar compativel)
+- media: correlacao moderada entre dados (ex: padrao temporal, efeito colateral conhecido)
+- baixa: contexto util (ex: "Paciente cadeirante", "Relato sugestivo de estresse laboral")
+- titulo: acao curta (max 6 palavras). Ex: "Fatores de Estresse e Sono"
+- mensagem: 1-2 frases explicativas usando linguagem segura ("relata", "refere", "chama atencao", "vale considerar")
+- Se nao ha cruzamento real, retorne array vazio []
+- NUNCA gere pontos genericos tipo "Acompanhar evolucao"
+
+identificaPadroes (array, 0-3 hipoteses SEM DIAGNOSTICAR, componente mais sensivel eticamente):
+- hipotese: OBRIGATORIAMENTE comeca com um dos prefixos:
+  · "Considere..."
+  · "Padrao compativel com..."
+  · "Vale cogitar..."
+  · "Pode haver componente de..."
+- Exemplos VALIDOS:
+  · {hipotese: "Considere investigar sindrome de burnout", evidencia: "Relato menciona jornada de 12h/dia ha 2 meses; perda de peso nao intencional; insonia e irritabilidade."}
+  · {hipotese: "Vale cogitar componente ansioso", evidencia: "Palpitacoes e dor toracica episodicas; historico familiar de depressao; exacerbacao em contexto estressor."}
+  · {hipotese: "Padrao compativel com efeito colateral de corticoide", evidencia: "Uso atual de Prednisolona 20mg; insonia e taquicardia entre sintomas; quadro iniciado apos introducao da medicacao."}
+- Exemplos INVALIDOS:
+  · {hipotese: "O paciente tem ansiedade"} — diagnostica
+  · {hipotese: "Provavelmente e depressao"} — quantifica probabilidade
+  · {hipotese: "Caso tipico de burnout"} — palavra proibida "caso tipico"
+  · {hipotese: "Recomendo tratar como infeccao viral"} — prescricao
+- PROIBIDO em identificaPadroes: "tem", "possui", "sofre de", "e portador de", "diagnostico", "CID", "trata-se de", "caso tipico", "provavelmente", "certamente", "recomendo prescrever"
+- evidencia: 2-3 observacoes do relato que justificam a hipotese, separadas por ponto-e-virgula
+- Se nao ha padrao claro com pelo menos 2 evidencias convergentes, retorne array vazio []
+- Maximo 3 hipoteses. Preferir 2 (mostra discernimento) a 3 (pode parecer chute)
+- NUNCA quantifique probabilidade (nao use "70% de chance", "provavel", "muito provavel")`;
 
   const systemPrompt = 'Voce e um interpretador clinico da plataforma VITAE, construido para adiantar contexto para medicos antes da consulta. ' +
     'Seu papel e INTERPRETAR — nunca reorganizar, nunca diagnosticar, nunca prescrever. ' +
@@ -855,11 +909,11 @@ alertas:
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash',
         systemInstruction: systemPrompt,
-        // 4096 tokens de output — cobre JSON com textoVoz 150-180 palavras + blocos + alertas
-        // Antes era 1500 e cortava no meio, gerando JSON invalido
+        // 8192 tokens de output — cobre JSON com textoVoz + blocos + alertas mesmo com transcricao longa
+        // Era 4096 mas cortava quando transcricao + prompt geravam resposta grande (JSON truncado no meio)
         generationConfig: {
           responseMimeType: 'application/json',
-          maxOutputTokens: 4096,
+          maxOutputTokens: 8192,
           temperature: 0.7,
         },
       });
@@ -900,7 +954,7 @@ alertas:
     console.log('[SUMMARY-AI] Tentando Claude Sonnet...');
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
+      max_tokens: 4096,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     });
