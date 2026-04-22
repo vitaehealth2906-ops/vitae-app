@@ -3033,17 +3033,55 @@ async function pcOpenDetail(pcId){
     }
 
     // MELHORIA — Bloco "O que o paciente disse" (texto LITERAL antes de qualquer resumo da IA)
-    var falaCrua = (r.queixaPrincipal && r.queixaPrincipal.trim())
-                || (r.queixa && r.queixa.trim())
-                || (pc.transcricao && pc.transcricao.trim().length >= 15 && pc.transcricao !== '(áudio sem transcrição)' ? pc.transcricao.trim() : '');
+    // Fontes possiveis: resposta escrita do quiz (r.queixaPrincipal/queixa) OU transcricao do audio (pc.transcricao).
+    // Regra: pegar a mais LONGA das duas — evita cortar fala quando ha fonte mais completa.
+    // Se forem diferentes e ambas validas, mostrar as duas (escrito + audio).
+    var queixaEscrita = ((r.queixaPrincipal || r.queixa) || '').trim();
+    var transcricaoValida = pc.transcricao && pc.transcricao.trim().length >= 15
+      && pc.transcricao !== '(áudio sem transcrição)' && pc.transcricao !== '(audio sem transcricao)';
+    var transcricaoAudio = transcricaoValida ? pc.transcricao.trim() : '';
+    // Escolhe texto principal: a fonte mais longa ganha (evita corte)
+    var falaCrua = '';
     var falaFonte = '';
-    if(r.queixaPrincipal || r.queixa) falaFonte = 'respondido por escrito';
-    else if(pc.transcricao) falaFonte = 'transcricao do audio do paciente';
+    if(queixaEscrita && transcricaoAudio){
+      if(transcricaoAudio.length >= queixaEscrita.length){
+        falaCrua = transcricaoAudio;
+        falaFonte = 'transcricao do audio do paciente';
+      } else {
+        falaCrua = queixaEscrita;
+        falaFonte = 'respondido por escrito';
+      }
+    } else if(queixaEscrita){
+      falaCrua = queixaEscrita;
+      falaFonte = 'respondido por escrito';
+    } else if(transcricaoAudio){
+      falaCrua = transcricaoAudio;
+      falaFonte = 'transcricao do audio do paciente';
+    }
+
+    // Se as duas fontes existirem E forem diferentes (mais que 20% divergentes), mostrar ambas
+    var mostrarAmbas = false;
+    if(queixaEscrita && transcricaoAudio){
+      var curtoLongo = Math.abs(queixaEscrita.length - transcricaoAudio.length) / Math.max(queixaEscrita.length, transcricaoAudio.length);
+      if(curtoLongo > 0.2) mostrarAmbas = true;
+    }
+
     if(falaCrua){
       html += '<div class="fala-box">';
       html += '<div class="fala-lbl"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>O que o paciente disse</div>';
       html += '<div class="fala-txt">' + escHtml(falaCrua) + '</div>';
       if(falaFonte) html += '<div class="fala-meta">' + escHtml(falaFonte) + (r.duracaoSintomas ? ' · ' + escHtml(String(r.duracaoSintomas)) : '') + '</div>';
+
+      // Se houver divergencia entre escrito e audio, mostrar a outra fonte abaixo
+      if(mostrarAmbas){
+        var outraFonte = falaFonte === 'respondido por escrito' ? transcricaoAudio : queixaEscrita;
+        var outroRotulo = falaFonte === 'respondido por escrito' ? 'tambem disse no audio' : 'tambem escreveu';
+        html += '<div style="margin-top:14px;padding-top:12px;border-top:1px dashed rgba(0,180,216,.3)">';
+        html += '<div class="fala-meta" style="margin-bottom:6px;font-weight:600;color:#0077A0">' + escHtml(outroRotulo) + '</div>';
+        html += '<div class="fala-txt" style="font-size:14px">' + escHtml(outraFonte) + '</div>';
+        html += '</div>';
+      }
+
       html += '</div>';
     }
 
