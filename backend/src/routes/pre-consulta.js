@@ -546,15 +546,24 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
     // Tem transcricao textual como fallback valido (se browser conseguiu gerar)?
     const transcricaoValida = transcricao && transcricao.trim().length > 5 && transcricao !== '(áudio sem transcrição)';
 
-    // REGRA: pelo menos UM entre audio confirmado OU transcricao valida precisa existir
-    // Se nao tem nem um nem outro, rejeita com 422 — cliente tem que tentar de novo
-    if (!audioConfirmado && !transcricaoValida) {
+    // REGRA: se o cliente mandou audio (fluxo audio), exige confirmacao — protecao do bug "audio silencioso" da Sessao 5.
+    // Se nao mandou audio (fluxo formulario), aceita desde que tenha respostas preenchidas.
+    const clienteTentouAudio = !!(audioBase64 || (respostas && respostas.audioUrl));
+    const temRespostas = respostas && Object.keys(respostas).length >= 2;
+
+    if (clienteTentouAudio && !audioConfirmado && !transcricaoValida) {
       return res.status(422).json({
         erro: 'Audio nao chegou',
         detalhe: 'A gravacao de audio nao foi confirmada no servidor. Tente enviar novamente.',
         audioConfirmado: false,
         fotoConfirmada: fotoConfirmada,
         transcricaoValida: false,
+      });
+    }
+    if (!clienteTentouAudio && !temRespostas) {
+      return res.status(400).json({
+        erro: 'Envio vazio',
+        detalhe: 'Grave um audio ou preencha o formulario antes de enviar.',
       });
     }
 
