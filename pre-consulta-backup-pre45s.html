@@ -1,0 +1,2554 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>vitaid — Pré-Consulta</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#F4F6FA; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif; }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#F4F6FA;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 1px 12px rgba(0,0,0,0.07);
+        }
+        @media(max-width:480px){
+          html,body{padding:0!important;background:inherit!important;overflow-x:hidden;min-height:100vh;min-height:100dvh;}
+          .phone{width:100vw!important;max-width:100vw!important;height:100vh!important;height:100dvh!important;max-height:none!important;border-radius:0!important;box-shadow:none!important;}
+          .notch,.status{display:none!important;}
+        }
+        .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:126px; height:34px; background:#F4F6FA; border-radius:0 0 20px 20px; z-index:10; }
+
+        .content { height:100%; overflow-y:auto; padding:52px 20px 40px; scrollbar-width:none; }
+        .content::-webkit-scrollbar { display:none; }
+
+        /* Header */
+        .pc-header { text-align:center; margin-bottom:20px; }
+        .pc-logo { font-family:'Plus Jakarta Sans',sans-serif; font-size:22px; font-weight:700; color:#00E5A0; letter-spacing:2px; }
+        .pc-sub { font-size:11px; color:#9CA3AF; margin-top:2px; font-family:'Plus Jakarta Sans',sans-serif; letter-spacing:.1em; text-transform:uppercase; }
+
+        .welcome-card {
+            background:rgba(0,229,160,0.06); border:1px solid rgba(0,229,160,0.15);
+            border-radius:16px; padding:16px; margin-bottom:20px;
+        }
+        .welcome-name { font-size:16px; font-weight:600; color:#0D0F14; margin-bottom:4px; }
+        .welcome-doc { font-size:12px; color:#4B5563; }
+
+        /* Seções */
+        .section { margin-bottom:20px; }
+        .section-title {
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500;
+            color:rgba(0,229,160,0.7); text-transform:uppercase; letter-spacing:.15em;
+            margin-bottom:12px; display:flex; align-items:center; gap:8px;
+        }
+        .section-title::after { content:''; flex:1; height:1px; background:rgba(0,229,160,0.12); }
+        .section-card {
+            background:#FFFFFF; border:1px solid rgba(0,0,0,0.07);
+            border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:14px;
+        }
+
+        /* Fields */
+        .field { display:flex; flex-direction:column; gap:6px; }
+        .field-label { font-size:11px; font-weight:600; color:#4B5563; text-transform:uppercase; letter-spacing:0.5px; }
+        .field-label .req { color:#EF4444; }
+        .field-hint { font-size:11px; color:#9CA3AF; line-height:1.4; margin-top:2px; }
+        .field-input, .field-textarea, .field-select {
+            width:100%; padding:12px 14px;
+            background:#FFFFFF; border:1.5px solid rgba(0,0,0,0.07);
+            border-radius:12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; color:#0D0F14; outline:none;
+            appearance:none; -webkit-appearance:none;
+        }
+        .field-input::placeholder, .field-textarea::placeholder { color:#9CA3AF; }
+        .field-textarea { min-height:76px; resize:vertical; }
+        .field-input:focus, .field-textarea:focus, .field-select:focus { border-color:rgba(0,229,160,0.3); }
+        .field-select option { background:#FFFFFF; color:#0D0F14; }
+        .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+        /* Aviso de destaque */
+        .field-warn {
+            background:rgba(217,68,82,0.06); border:1px solid rgba(217,68,82,0.15);
+            border-radius:10px; padding:10px 12px;
+            font-size:12px; color:#4B5563; line-height:1.5;
+        }
+        .field-warn strong { color:#EF4444; }
+
+        /* Checkboxes */
+        .check-item {
+            display:flex; align-items:center; gap:12px; padding:12px;
+            background:#FFFFFF; border:1px solid rgba(0,0,0,0.07);
+            border-radius:12px; cursor:pointer;
+        }
+        .check-item input[type=checkbox] { width:18px; height:18px; accent-color:#00E5A0; flex-shrink:0; cursor:pointer; }
+        .check-item-label { font-size:13px; color:#4B5563; line-height:1.4; }
+        .check-item-label small { display:block; font-size:11px; color:#9CA3AF; margin-top:2px; }
+
+        /* Tags pré-preenchidas */
+        .prefill-tags { display:flex; flex-wrap:wrap; gap:6px; }
+        .prefill-tag {
+            padding:5px 10px; border-radius:20px;
+            background:rgba(0,229,160,0.08); border:1px solid rgba(0,229,160,0.2);
+            font-size:12px; color:#4B5563; font-family:'Plus Jakarta Sans',sans-serif;
+        }
+        .prefill-note { font-size:11px; color:#9CA3AF; margin-bottom:8px; }
+
+        /* Hábitos radio */
+        .radio-group { display:flex; gap:6px; flex-wrap:wrap; }
+        .radio-opt { position:relative; }
+        .radio-opt input { position:absolute; opacity:0; width:0; height:0; }
+        .radio-opt label {
+            padding:7px 12px; border-radius:20px; cursor:pointer;
+            background:#FFFFFF; border:1.5px solid rgba(0,0,0,0.07);
+            font-size:12px; color:#4B5563; display:block; transition:all .2s;
+        }
+        .radio-opt input:checked + label {
+            background:rgba(0,229,160,0.12); border-color:rgba(0,229,160,0.3);
+            color:rgba(0,229,160,0.9);
+        }
+
+        /* Submit */
+        .btn-submit {
+            width:100%; padding:18px;
+            background:linear-gradient(120deg, #00E5A0, #00B4D8);
+            border:none; border-radius:16px;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700;
+            color:#0D0F14; cursor:pointer; margin-top:8px; transition:all .2s;
+            box-shadow:0 4px 20px rgba(0,229,160,0.25);
+        }
+        .btn-submit:active { transform:scale(.98); }
+
+        /* Telas de estado */
+        .overlay-screen {
+            display:none; position:absolute; top:0; left:0; right:0; bottom:0;
+            background:#FFFFFF; z-index:50;
+            flex-direction:column; align-items:center; justify-content:center; padding:40px;
+            text-align:center;
+        }
+        .overlay-screen.active { display:flex; }
+        .overlay-icon { width:56px; height:56px; margin-bottom:20px; color:#00E5A0; }
+        .overlay-title { font-family:'Plus Jakarta Sans',sans-serif; font-size:24px; font-weight:700; color:#0D0F14; margin-bottom:8px; }
+        .overlay-sub { font-size:14px; color:rgba(13,15,20,0.45); line-height:1.6; }
+
+        /* Spinner */
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .spinner { width:40px; height:40px; border:3px solid rgba(0,229,160,0.2); border-top-color:#00E5A0; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:16px; }
+
+        /* ── Toggle pill ── */
+        .toggle-wrap { display:flex; justify-content:center; margin-bottom:24px; }
+        .toggle-pill {
+            display:inline-flex; border-radius:14px;
+            background:rgba(13,15,20,0.06); padding:3px;
+            border:none; outline:none;
+        }
+        .toggle-opt {
+            padding:11px 22px; border-radius:11px; cursor:pointer;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600;
+            color:rgba(13,15,20,0.4); background:transparent;
+            border:none; outline:none; -webkit-appearance:none; appearance:none;
+            transition:all .2s; white-space:nowrap;
+        }
+        .toggle-opt.active {
+            background:#ffffff; color:#0D0F14;
+            box-shadow:0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        /* ── Panels ── */
+        .audio-panel { display:none; }
+        .audio-panel.active { display:block; }
+        .form-panel { display:none; }
+        .form-panel.active { display:block; }
+
+        /* ── Topic list ── */
+        .topic-list {
+            width:100%; border-radius:16px; padding:16px 18px; margin-bottom:20px;
+            background:rgba(0,229,160,0.03); border:1px solid rgba(0,229,160,0.10);
+        }
+        .topic-list-title {
+            font-size:13px; font-weight:700; color:#0D0F14; margin-bottom:10px;
+        }
+        .topic-list ul {
+            list-style:none; padding:0; margin:0;
+            display:flex; flex-direction:column; gap:6px;
+        }
+        .topic-list li {
+            font-size:12px; color:rgba(13,15,20,0.50); line-height:1.4;
+            padding-left:16px; position:relative;
+        }
+        .topic-list li::before {
+            content:'•'; position:absolute; left:0; color:rgba(0,229,160,0.5); font-weight:700;
+        }
+
+        /* ── Recorder ── */
+        .rec-area { width:100%; margin-top:8px; }
+
+        .rec-idle {
+            width:100%; padding:14px 18px; border-radius:16px; cursor:pointer;
+            background:rgba(0,229,160,0.04); border:1px solid rgba(0,229,160,0.12);
+            display:flex; align-items:center; gap:14px;
+            transition:all .2s; -webkit-appearance:none; appearance:none;
+            font-family:'Plus Jakarta Sans',sans-serif;
+        }
+        .rec-idle:hover { background:rgba(0,229,160,0.07); }
+        .rec-idle-icon {
+            width:44px; height:44px; border-radius:50%; flex-shrink:0;
+            background:linear-gradient(120deg,#00B4D8,#00B4D8);
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 4px 16px rgba(0,229,160,0.25);
+        }
+        .rec-idle-icon svg { width:20px; height:20px; stroke:#0f172a; }
+        .rec-idle-text { font-size:14px; font-weight:600; color:#0D0F14; }
+        .rec-idle-sub { font-size:11px; color:rgba(13,15,20,0.35); margin-top:1px; }
+
+        /* Recording state */
+        .rec-recording {
+            display:none; width:100%; padding:16px 18px; border-radius:16px;
+            background:rgba(0,229,160,0.04); border:1px solid rgba(0,229,160,0.15);
+            flex-direction:column; gap:14px;
+        }
+        .rec-recording.active { display:flex; }
+        .rec-recording-top { display:flex; align-items:center; gap:12px; }
+        .rec-dot {
+            width:10px; height:10px; border-radius:50%; background:#00E5A0; flex-shrink:0;
+            animation:blink-dot 1s ease-in-out infinite;
+        }
+        @keyframes blink-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
+        .rec-timer {
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:20px; font-weight:500;
+            color:#00B4D8; letter-spacing:1px;
+        }
+        .rec-stop-btn {
+            margin-left:auto; width:38px; height:38px; border-radius:12px;
+            background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.2);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; -webkit-appearance:none; appearance:none;
+        }
+        .rec-stop-btn svg { width:16px; height:16px; stroke:#00B4D8; }
+
+        .rec-wave-wrap { width:100%; height:40px; border-radius:8px; overflow:hidden; background:rgba(0,229,160,0.04); }
+        .rec-wave-wrap canvas { width:100%; height:100%; display:block; }
+
+        /* Review state */
+        .rec-review { display:none; width:100%; flex-direction:column; gap:14px; }
+        .rec-review.active { display:flex; }
+        .rec-player {
+            width:100%; padding:14px 16px; border-radius:16px;
+            background:rgba(0,229,160,0.04); border:1px solid rgba(0,229,160,0.12);
+            display:flex; align-items:center; gap:12px;
+        }
+        .rec-play-btn {
+            width:42px; height:42px; border-radius:50%; flex-shrink:0;
+            background:linear-gradient(120deg,#00B4D8,#00B4D8);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; border:none; -webkit-appearance:none; appearance:none;
+            box-shadow:0 4px 16px rgba(0,229,160,0.25);
+        }
+        .rec-play-btn:active { transform:scale(.92); }
+        .rec-play-btn svg { width:18px; height:18px; stroke:#fff; fill:none; }
+        .rec-player-info { flex:1; }
+        .rec-player-label { font-size:13px; font-weight:600; color:#0D0F14; }
+        .rec-player-time { font-size:11px; color:rgba(13,15,20,0.35); font-family:'Plus Jakarta Sans',sans-serif; }
+        .rec-player-wave { flex:1; height:32px; }
+        .rec-player-wave canvas { width:100%; height:100%; display:block; }
+        .rec-delete-btn {
+            width:36px; height:36px; border-radius:10px; flex-shrink:0;
+            background:rgba(217,68,82,0.06); border:1px solid rgba(217,68,82,0.10);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; -webkit-appearance:none; appearance:none;
+        }
+        .rec-delete-btn svg { width:16px; height:16px; stroke:#EF4444; fill:none; }
+
+        /* IA verification box */
+        .ia-box {
+            display:none; width:100%; border-radius:14px; padding:14px 16px;
+        }
+        .ia-box.active { display:flex; align-items:flex-start; gap:10px; }
+        .ia-box.loading {
+            background:rgba(13,15,20,0.02); border:1px solid rgba(13,15,20,0.06);
+            color:rgba(13,15,20,0.4); font-size:13px; justify-content:center;
+        }
+        .ia-box.success {
+            background:rgba(0,229,160,0.04); border:1px solid rgba(0,229,160,0.15);
+        }
+        .ia-box.warning {
+            background:rgba(0,229,160,0.04); border:1px solid rgba(0,229,160,0.15);
+        }
+        .ia-icon { width:20px; height:20px; flex-shrink:0; margin-top:1px; }
+        .ia-text { font-size:13px; line-height:1.5; }
+        .ia-box.success .ia-text { color:rgba(13,15,20,0.6); }
+        .ia-box.warning .ia-text { color:rgba(13,15,20,0.6); }
+        .ia-box.warning .ia-text strong { color:#92700C; }
+        .ia-box.success .ia-text strong { color:#00B4D8; }
+
+        /* Send button */
+        .rec-send-btn {
+            width:100%; padding:16px; border-radius:14px; border:none; cursor:pointer;
+            background:linear-gradient(120deg,#00B4D8,#00B4D8); color:#0D0F14;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700;
+            display:flex; align-items:center; justify-content:center; gap:10px;
+            box-shadow:0 4px 20px rgba(0,229,160,0.25);
+            -webkit-appearance:none; appearance:none; transition:all .15s;
+        }
+        .rec-send-btn:active { transform:scale(.98); }
+        .rec-send-btn svg { width:18px; height:18px; stroke:#fff; fill:none; }
+
+        /* ── Dynamic template fields ── */
+        .tpl-field { display:flex; flex-direction:column; gap:6px; margin-bottom:18px; }
+        .tpl-field:last-child { margin-bottom:0; }
+        .tpl-field .field-label { font-size:11px; font-weight:600; color:#4B5563; text-transform:uppercase; letter-spacing:0.5px; }
+        .tpl-field .field-label .req { color:#EF4444; }
+
+        /* Yes/No pill buttons */
+        .yesno-group { display:flex; gap:8px; }
+        .yesno-btn {
+            flex:1; padding:12px 16px; border-radius:24px; cursor:pointer;
+            background:#FFFFFF; border:1.5px solid rgba(0,0,0,0.07);
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:500;
+            color:#4B5563; text-align:center; transition:all .2s;
+            -webkit-appearance:none; appearance:none;
+        }
+        .yesno-btn.selected {
+            background:rgba(0,229,160,0.15); border-color:rgba(0,229,160,0.4);
+            color:#00E5A0; font-weight:600;
+        }
+
+        /* Slider / scale */
+        .scale-wrap { display:flex; flex-direction:column; gap:6px; }
+        .scale-labels { display:flex; justify-content:space-between; font-size:11px; color:#9CA3AF; font-family:'Plus Jakarta Sans',sans-serif; }
+        .scale-value { text-align:center; font-size:18px; font-weight:700; color:#00E5A0; font-family:'Plus Jakarta Sans',sans-serif; margin-bottom:2px; }
+        .scale-input {
+            -webkit-appearance:none; appearance:none; width:100%; height:6px;
+            border-radius:3px; background:rgba(0,0,0,0.06); outline:none;
+        }
+        .scale-input::-webkit-slider-thumb {
+            -webkit-appearance:none; appearance:none; width:22px; height:22px;
+            border-radius:50%; background:linear-gradient(120deg,#00B4D8,#00B4D8);
+            cursor:pointer; box-shadow:0 2px 8px rgba(0,229,160,0.3);
+        }
+        .scale-input::-moz-range-thumb {
+            width:22px; height:22px; border-radius:50%; border:none;
+            background:linear-gradient(120deg,#00B4D8,#00B4D8);
+            cursor:pointer; box-shadow:0 2px 8px rgba(0,229,160,0.3);
+        }
+
+        /* Upload area */
+        .upload-area {
+            width:100%; padding:24px 16px; border-radius:12px; cursor:pointer;
+            border:2px dashed rgba(0,0,0,0.12); background:#FFFFFF;
+            display:flex; flex-direction:column; align-items:center; gap:8px;
+            transition:all .2s; text-align:center;
+        }
+        .upload-area:hover { border-color:rgba(0,229,160,0.3); background:rgba(0,229,160,0.03); }
+        .upload-area svg { width:28px; height:28px; stroke:#9CA3AF; fill:none; }
+        .upload-area .upload-text { font-size:13px; color:#4B5563; }
+        .upload-area.has-file { border-color:rgba(0,229,160,0.3); background:rgba(0,229,160,0.04); }
+        .upload-area.has-file svg { stroke:#00E5A0; }
+        .upload-area.has-file .upload-text { color:#00E5A0; }
+
+        /* Date input for template */
+        .field-input[type="date"] { color-scheme:light; }
+
+        /* Template section wrapper */
+        .tpl-section { margin-bottom:20px; }
+        .tpl-section .section-card { display:flex; flex-direction:column; gap:0; padding:16px; }
+
+        /* ── Login Gate Screen ── */
+        .login-gate {
+            display:none; position:absolute; top:0; left:0; right:0; bottom:0;
+            background:#F4F6FA; z-index:45;
+            flex-direction:column; align-items:center; justify-content:center; padding:40px 28px;
+            text-align:center;
+        }
+        .login-gate.active { display:flex; }
+        .login-gate-logo { margin-bottom:32px; }
+        .login-gate-msg {
+            font-size:16px; color:#4B5563; line-height:1.6; margin-bottom:32px;
+            max-width:280px;
+        }
+        .login-gate-btns { display:flex; flex-direction:column; gap:12px; width:100%; max-width:280px; }
+        .btn-login-outlined {
+            width:100%; padding:16px; border-radius:14px; cursor:pointer;
+            background:transparent; border:1.5px solid rgba(0,229,160,0.4);
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:600;
+            color:#00E5A0; text-align:center; transition:all .2s;
+        }
+        .btn-login-outlined:hover { background:rgba(0,229,160,0.06); }
+        .btn-criar-conta {
+            width:100%; padding:16px; border-radius:14px; cursor:pointer;
+            background:linear-gradient(120deg, #00E5A0, #00B4D8); border:none;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700;
+            color:#0D0F14; text-align:center; transition:all .2s;
+            box-shadow:0 4px 20px rgba(0,229,160,0.25);
+        }
+        .btn-criar-conta:active { transform:scale(.98); }
+        .login-gate-doc {
+            margin-top:40px; padding:16px 20px;
+            background:rgba(0,229,160,0.06); border:1px solid rgba(0,229,160,0.15);
+            border-radius:14px; text-align:center; width:100%; max-width:280px;
+        }
+        .login-gate-doc-name { font-size:14px; font-weight:600; color:#0D0F14; }
+        .login-gate-doc-spec { font-size:12px; color:#4B5563; margin-top:2px; }
+
+        /* ── Inline Login Form ── */
+        .login-form-wrap {
+            display:none; position:absolute; top:0; left:0; right:0; bottom:0;
+            background:#F4F6FA; z-index:46;
+            flex-direction:column; align-items:center; justify-content:center; padding:40px 28px;
+        }
+        .login-form-wrap.active { display:flex; }
+        .login-form { width:100%; max-width:300px; display:flex; flex-direction:column; gap:16px; }
+        .login-form-title { font-size:20px; font-weight:700; color:#0D0F14; text-align:center; margin-bottom:8px; }
+        .login-form .field-input { background:#FFFFFF; }
+        .login-form-error {
+            display:none; padding:10px 14px; border-radius:10px;
+            background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2);
+            font-size:13px; color:#EF4444; text-align:center;
+        }
+        .login-form-error.active { display:block; }
+        .btn-entrar {
+            width:100%; padding:16px; border-radius:14px; cursor:pointer;
+            background:linear-gradient(120deg, #00E5A0, #00B4D8); border:none;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700;
+            color:#0D0F14; transition:all .2s;
+            box-shadow:0 4px 20px rgba(0,229,160,0.25);
+        }
+        .btn-entrar:active { transform:scale(.98); }
+        .btn-entrar:disabled { opacity:0.6; cursor:not-allowed; }
+        .login-forgot {
+            font-size:13px; color:rgba(0,229,160,0.8); text-align:center;
+            cursor:pointer; text-decoration:none;
+        }
+        .login-forgot:hover { text-decoration:underline; }
+        .login-back {
+            font-size:13px; color:#9CA3AF; text-align:center; cursor:pointer; margin-top:8px;
+        }
+        .login-back:hover { color:#4B5563; }
+
+        /* ── Profile Incomplete Screen ── */
+        .profile-incomplete {
+            display:none; position:absolute; top:0; left:0; right:0; bottom:0;
+            background:#F4F6FA; z-index:44;
+            flex-direction:column; align-items:center; justify-content:center; padding:40px 28px;
+            text-align:center;
+        }
+        .profile-incomplete.active { display:flex; }
+        .profile-incomplete-msg {
+            font-size:16px; color:#4B5563; line-height:1.6; margin-bottom:24px;
+            max-width:280px;
+        }
+
+        /* ── LGPD Consent ── */
+        .lgpd-consent {
+            display:flex; align-items:flex-start; gap:12px; padding:14px;
+            background:rgba(0,229,160,0.04); border:1px solid rgba(0,229,160,0.12);
+            border-radius:14px; margin-top:16px; margin-bottom:8px;
+        }
+        .lgpd-consent input[type=checkbox] { width:20px; height:20px; accent-color:#00E5A0; flex-shrink:0; cursor:pointer; margin-top:2px; }
+        .lgpd-consent-label { font-size:13px; color:#4B5563; line-height:1.5; cursor:pointer; }
+        .lgpd-consent-label a { color:#00E5A0; text-decoration:none; }
+        .lgpd-consent-label a:hover { text-decoration:underline; }
+    </style>
+    <link rel="stylesheet" href="vitae-light.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.css">
+    <style>
+        .air-datepicker { --adp-font-family:'Plus Jakarta Sans',sans-serif; --adp-background-color:#0D0F14; --adp-color:#0D0F14; --adp-color-secondary:rgba(13,15,20,0.35); --adp-accent-color:#00E5A0; --adp-color-current-date:#00E5A0; --adp-cell-background-color-selected:#00E5A0; --adp-cell-background-color-selected-hover:#00B4D8; --adp-color-other-month:rgba(13,15,20,0.2); --adp-day-name-color:rgba(13,15,20,0.35); --adp-border-color:rgba(0,0,0,0.08); --adp-cell-border-radius:10px; --adp-pointer-size:0; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.12); border:1px solid rgba(0,0,0,0.06); z-index:100; }
+        .air-datepicker-nav { border-bottom:1px solid rgba(0,0,0,0.06); padding:12px 16px; }
+        .air-datepicker-nav--title { font-weight:600; font-size:14px; }
+        .air-datepicker-cell.-selected- { color:#fff !important; }
+        .air-datepicker-cell.-current- { color:#00E5A0; }
+        .air-datepicker-buttons { border-top:1px solid rgba(0,0,0,0.06); padding:8px 16px; }
+        .air-datepicker-button { color:#00E5A0 !important; font-weight:600; }
+    </style>
+    <link rel="stylesheet" href="vitae-core.css">
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+
+    <!-- ═══ LOGIN GATE (BLOCO 4.0) ═══ -->
+    <div class="login-gate" id="loginGate">
+        <div class="login-gate-logo">
+            <svg viewBox="0 0 400 200" style="width:140px;height:auto;"><defs><linearGradient id="vGrad2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#00B4D8"/></linearGradient></defs><text x="115" y="50%" dominant-baseline="central" text-anchor="middle" font-family="'Plus Jakarta Sans','Arial Black',sans-serif" font-weight="800" font-size="96" letter-spacing="-5" fill="#0D0F14">vita</text><rect x="225" y="28" width="165" height="144" rx="24" fill="url(#vGrad2)"/><text x="307" y="50%" dominant-baseline="central" text-anchor="middle" font-family="'Plus Jakarta Sans','Arial Black',sans-serif" font-weight="800" font-size="96" letter-spacing="-5" fill="#0D0F14">id</text></svg>
+        </div>
+        <div class="login-gate-msg">Para enviar suas respostas, você precisa de uma conta VitaID</div>
+        <div class="login-gate-btns">
+            <button class="btn-login-outlined" onclick="showLoginForm()">Já tenho conta &rarr; Fazer login</button>
+            <button class="btn-criar-conta" onclick="redirectCriarConta()">Não tenho conta &rarr; Criar conta</button>
+        </div>
+        <div class="login-gate-doc" id="loginGateDocInfo" style="display:none;">
+            <div class="login-gate-doc-name" id="loginGateDocName"></div>
+            <div class="login-gate-doc-spec" id="loginGateDocSpec"></div>
+        </div>
+    </div>
+
+    <!-- ═══ INLINE LOGIN FORM ═══ -->
+    <div class="login-form-wrap" id="loginFormWrap">
+        <div class="login-form">
+            <div class="login-gate-logo" style="text-align:center;">
+                <svg viewBox="0 0 400 200" style="width:120px;height:auto;"><defs><linearGradient id="vGrad3" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#00B4D8"/></linearGradient></defs><text x="115" y="50%" dominant-baseline="central" text-anchor="middle" font-family="'Plus Jakarta Sans','Arial Black',sans-serif" font-weight="800" font-size="96" letter-spacing="-5" fill="#0D0F14">vita</text><rect x="225" y="28" width="165" height="144" rx="24" fill="url(#vGrad3)"/><text x="307" y="50%" dominant-baseline="central" text-anchor="middle" font-family="'Plus Jakarta Sans','Arial Black',sans-serif" font-weight="800" font-size="96" letter-spacing="-5" fill="#0D0F14">id</text></svg>
+            </div>
+            <div class="login-form-title">Fazer login</div>
+            <div class="login-form-error" id="loginError"></div>
+            <input class="field-input" id="loginEmail" type="email" placeholder="Seu e-mail" autocomplete="email">
+            <input class="field-input" id="loginSenha" type="password" placeholder="Sua senha" autocomplete="current-password">
+            <button class="btn-entrar" id="btnEntrar" onclick="doLogin()">Entrar</button>
+            <a class="login-forgot" href="14-esqueci-senha.html" target="_blank">Esqueci minha senha</a>
+            <div class="login-back" onclick="hideLoginForm()">&larr; Voltar</div>
+        </div>
+    </div>
+
+    <!-- ═══ PROFILE INCOMPLETE SCREEN ═══ -->
+    <div class="profile-incomplete" id="profileIncomplete">
+        <svg style="width:56px;height:56px;color:#00E5A0;margin-bottom:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div class="overlay-title" style="font-size:20px;">Complete seu perfil</div>
+        <div class="profile-incomplete-msg">Precisamos de algumas informacoes antes de enviar a pre-consulta.</div>
+        <div id="missingFieldsList" style="margin:12px 0 20px;text-align:left;width:100%;max-width:300px;"></div>
+        <button class="btn-criar-conta" onclick="redirectCompletarPerfil()">Completar perfil</button>
+    </div>
+
+    <!-- ═══ CONTEÚDO PRINCIPAL ═══ -->
+    <div class="content" id="mainContent">
+        <div class="pc-header">
+            <div class="pc-logo"><svg viewBox="0 0 400 200" style="width:140px;height:auto;"><defs><linearGradient id="vGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#00B4D8"/></linearGradient></defs><text x="115" y="50%" dominant-baseline="central" text-anchor="middle" font-family="'Plus Jakarta Sans','Arial Black',sans-serif" font-weight="800" font-size="96" letter-spacing="-5" fill="#0D0F14">vita</text><rect x="225" y="28" width="165" height="144" rx="24" fill="url(#vGrad)"/><text x="307" y="50%" dominant-baseline="central" text-anchor="middle" font-family="'Plus Jakarta Sans','Arial Black',sans-serif" font-weight="800" font-size="96" letter-spacing="-5" fill="#0D0F14">id</text></svg></div>
+            <div class="pc-sub" style="color:rgba(0,229,160,0.6);">Pré-Consulta Médica</div>
+        </div>
+
+        <!-- Preview mode banner (shown only in ?preview=ID mode) -->
+        <div id="previewBanner" style="display:none;background:#F59E0B;color:#0D0F14;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;text-align:center;padding:10px 16px;border-radius:12px;margin-bottom:14px;letter-spacing:0.03em;">
+            MODO PREVIEW — como o paciente verá o formulário
+        </div>
+
+        <div class="welcome-card">
+            <div class="welcome-name" id="welcomeName">Olá!</div>
+            <div class="welcome-doc" id="welcomeDoc">Preencha as informações antes da sua consulta</div>
+        </div>
+
+        <!-- Photo capture -->
+        <div id="photoSection" style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.10);border-radius:16px;cursor:pointer;" onclick="document.getElementById('photoInput').click()">
+                <div id="photoCircle" style="width:56px;height:56px;border-radius:50%;background:rgba(0,229,160,0.08);border:2px dashed rgba(0,229,160,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+                    <svg id="photoIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
+                <div style="flex:1;">
+                    <div id="photoLabel" style="font-size:14px;font-weight:600;color:#0D0F14;">Tire uma foto do seu rosto</div>
+                    <div id="photoSub" style="font-size:12px;color:rgba(13,15,20,0.40);margin-top:2px;">O médico precisa ver quem vai atender</div>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,0.25)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <input type="file" id="photoInput" accept="image/*" capture="user" style="display:none;" onchange="handlePhoto(this)">
+        </div>
+
+        <!-- Toggle -->
+        <div class="toggle-wrap">
+            <div class="toggle-pill">
+                <button class="toggle-opt active" id="toggleAudio" onclick="switchTab('audio')" style="color:#0D0F14;">Gravar áudio</button>
+                <button class="toggle-opt" id="toggleForm" onclick="switchTab('form')" style="color:rgba(13,15,20,0.4);">Preencher formulário</button>
+            </div>
+        </div>
+
+        <!-- ═══ PAINEL DE ÁUDIO ═══ -->
+        <div class="audio-panel active" id="audioPanel">
+
+            <!-- Aviso iOS (so aparece em iPhone) -->
+            <div id="iosRecWarning" style="display:none; margin: 0 0 14px; padding: 10px 12px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.20); border-radius: 12px; font-size: 12px; color: #92700C; line-height: 1.4;">
+                <strong>Importante:</strong> mantenha a tela acesa durante a gravação e o envio. Se bloquear o celular, a gravação pode ser interrompida.
+            </div>
+
+            <!-- Topic list -->
+            <div class="topic-list" id="topicList">
+                <div class="topic-list-title">Você precisa falar sobre:</div>
+                <ul>
+                    <li>Motivo da consulta e há quanto tempo</li>
+                    <li>Medicamentos, suplementos e vitaminas</li>
+                    <li>Alergias conhecidas</li>
+                    <li>Doenças e internações</li>
+                    <li>Cirurgias e procedimentos</li>
+                    <li>Doenças hereditárias na família</li>
+                    <li>Hábitos (fumo, álcool, exercício, sono)</li>
+                    <li>Exames recentes</li>
+                </ul>
+            </div>
+
+            <div class="rec-area">
+                <!-- Idle -->
+                <button class="rec-idle" id="recIdle" onclick="startRecording()">
+                    <div class="rec-idle-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </div>
+                    <div>
+                        <div class="rec-idle-text">Toque para gravar</div>
+                        <div class="rec-idle-sub">Fale naturalmente, como se estivesse conversando</div>
+                    </div>
+                </button>
+
+                <!-- Recording -->
+                <div class="rec-recording" id="recRecording">
+                    <div class="rec-recording-top">
+                        <div class="rec-dot"></div>
+                        <div class="rec-timer" id="recTimer">00:00</div>
+                        <button class="rec-stop-btn" onclick="stopRecording()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                        </button>
+                    </div>
+                    <div class="rec-wave-wrap"><canvas id="waveCanvas"></canvas></div>
+                </div>
+
+                <!-- Review -->
+                <div class="rec-review" id="recReview">
+                    <div class="rec-player">
+                        <button class="rec-play-btn" id="playBtn" onclick="togglePlayback()">
+                            <svg id="playIcon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <svg id="pauseIcon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                        </button>
+                        <div class="rec-player-info">
+                            <div class="rec-player-label">Sua gravação</div>
+                            <div class="rec-player-time" id="reviewTime">00:00</div>
+                        </div>
+                        <div class="rec-player-wave"><canvas id="reviewWaveCanvas"></canvas></div>
+                        <button class="rec-delete-btn" onclick="deleteRecording()">
+                            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- IA verification -->
+                    <div class="ia-box loading active" id="iaBox">
+                        <div class="ia-spinner" style="width:16px;height:16px;border:2px solid rgba(0,0,0,0.1);border-top-color:#00E5A0;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;"></div>
+                        Analisando sua gravação...
+                    </div>
+
+                    <!-- LGPD consent for audio mode -->
+                    <div class="lgpd-consent" id="lgpdConsentAudioWrap" style="margin:12px 0;">
+                        <input type="checkbox" id="lgpdConsentAudio" onchange="var t=document.getElementById('lgpdConsentTpl');var d=document.getElementById('lgpdConsentDefault');if(t)t.checked=this.checked;if(d)d.checked=this.checked;atualizarEstadoBotao();">
+                        <label class="lgpd-consent-label" for="lgpdConsentAudio">Autorizo o compartilhamento dos meus dados de saúde com o(a) Dr(a). <span class="lgpd-doc-name">seu médico</span>. <a href="lgpd.html" target="_blank">Ver termos</a></label>
+                    </div>
+
+                    <div id="faltamMsg" style="text-align:center;font-size:13px;font-weight:600;color:rgba(13,15,20,0.50);margin:6px 0 10px;">Falta: foto, áudio, aceite dos termos</div>
+
+                    <button class="rec-send-btn" id="sendBtn" onclick="enviarAudio()" style="display:none;">
+                        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        Enviar para o médico
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ PAINEL DE FORMULÁRIO ═══ -->
+        <div class="form-panel" id="formPanel">
+
+        <!-- Dynamic template questions (rendered by JS when templatePerguntas exists) -->
+        <div id="templateFormWrap" style="display:none;">
+            <div class="tpl-section">
+                <div class="section-title">Perguntas do médico</div>
+                <div class="section-card" id="templateFieldsContainer"></div>
+            </div>
+
+            <!-- Consent for template mode -->
+            <div class="section">
+                <div class="section-title">Consentimento</div>
+                <div class="section-card">
+                    <div class="check-item">
+                        <input type="checkbox" id="consentAllTpl">
+                        <label class="check-item-label" for="consentAllTpl">
+                            Aceito a Política de Privacidade, autorizo o contato pelo médico/clínica e o compartilhamento dos meus dados com a equipe de saúde responsável
+                            <small>Dados protegidos nos termos da LGPD</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LGPD consent (template mode) -->
+            <div class="lgpd-consent">
+                <input type="checkbox" id="lgpdConsentTpl" onchange="atualizarEstadoBotao()">
+                <label class="lgpd-consent-label" for="lgpdConsentTpl">
+                    Autorizo o compartilhamento dos meus dados de saúde com o(a) Dr(a). <span class="lgpd-doc-name">seu médico</span>.
+                    <a href="lgpd.html" target="_blank">Ver termos completos</a>
+                </label>
+            </div>
+
+            <button class="btn-submit" onclick="enviarTemplate()">Enviar pré-consulta</button>
+            <div style="height:20px;"></div>
+        </div>
+
+        <!-- ═══ FORMULÁRIO PADRÃO (11 seções) ═══ -->
+        <div id="defaultFormWrap">
+        <!-- ─── 1. IDENTIFICAÇÃO ─── -->
+        <div class="section">
+            <div class="section-title">1. Sua identificação</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Nome completo</div>
+                    <input class="field-input" id="nomeCompleto" placeholder="Seu nome completo">
+                </div>
+                <div class="field">
+                    <div class="field-label">Data de nascimento</div>
+                    <input class="field-input" id="dataNascimento" type="text" placeholder="dd/mm/aaaa" autocomplete="off" inputmode="numeric" style="cursor:pointer;">
+                    <input type="hidden" id="dataNascimentoISO">
+                </div>
+                <div class="field">
+                    <div class="field-label">CPF</div>
+                    <input class="field-input" id="cpf" placeholder="000.000.000-00">
+                </div>
+                <div class="field">
+                    <div class="field-label">Telefone</div>
+                    <input class="field-input" id="telefone" placeholder="(11) 99999-9999">
+                </div>
+                <div class="field">
+                    <div class="field-label">E-mail</div>
+                    <input class="field-input" id="emailId" type="email" placeholder="seu@email.com">
+                </div>
+                <div class="field">
+                    <div class="field-label">Sexo biológico</div>
+                    <select class="field-select" id="sexo">
+                        <option value="">Selecione</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="feminino">Feminino</option>
+                        <option value="outro">Outro</option>
+                        <option value="nao_informado">Prefiro não informar</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 2. MOTIVO DA CONSULTA ─── -->
+        <div class="section">
+            <div class="section-title">2. Motivo da consulta</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Queixa principal <span class="req">*</span></div>
+                    <textarea class="field-textarea" id="queixa" placeholder="O que te trouxe aqui hoje? Descreva seus sintomas com detalhes..."></textarea>
+                </div>
+                <div class="field">
+                    <div class="field-label">Há quanto tempo?</div>
+                    <input class="field-input" id="duracao" placeholder="Ex: 3 dias, 2 semanas, 1 mês">
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 3. MEDICAMENTOS E SUPLEMENTOS ─── -->
+        <div class="section">
+            <div class="section-title">3. Medicamentos e suplementos</div>
+            <div class="section-card">
+                <div class="field-warn">
+                    <strong>Atenção:</strong> Inclua <strong>suplementos, vitaminas, injetáveis para emagrecer</strong> (Ozempic, Mounjaro, Wegovy), fitoterápicos e qualquer outro produto — eles são medicamentos e o médico precisa saber.
+                </div>
+                <div id="prefillMeds" style="display:none">
+                    <div class="prefill-note">Medicamentos já cadastrados no Vitae:</div>
+                    <div class="prefill-tags" id="medsTagsWrap"></div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Medicamentos, suplementos e vitaminas</div>
+                    <textarea class="field-textarea" id="medicamentos" placeholder="Liste todos, incluindo dosagem se souber...&#10;Ex: Dipirona 500mg quando necessário, Vitamina D 4000UI/dia, Ozempic 0,5mg/semana"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 4. ALERGIAS E REAÇÕES ─── -->
+        <div class="section">
+            <div class="section-title">4. Alergias e reações adversas</div>
+            <div class="section-card">
+                <div id="prefillAlergias" style="display:none">
+                    <div class="prefill-note">Alergias já cadastradas no Vitae:</div>
+                    <div class="prefill-tags" id="alergiasTagsWrap"></div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Alergias conhecidas</div>
+                    <input class="field-input" id="alergias" placeholder="Ex: Penicilina, Dipirona, Látex, Frutos do mar">
+                </div>
+                <div class="field">
+                    <div class="field-label">Reações adversas a medicamentos</div>
+                    <textarea class="field-textarea" id="reacoesAdversas" placeholder="Ex: Tomei amoxicilina e tive urticária. Uso de AINEs causa gastrite forte..." style="min-height:64px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 5. DOENÇAS E INTERNAÇÕES ─── -->
+        <div class="section">
+            <div class="section-title">5. Doenças e internações</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Doenças atuais e condições crônicas</div>
+                    <textarea class="field-textarea" id="doencasAtuais" placeholder="Ex: Hipertensão, Diabetes tipo 2, Hipotireoidismo, Ansiedade..."></textarea>
+                </div>
+                <div class="field">
+                    <div class="field-label">Doenças anteriores e internações relevantes</div>
+                    <textarea class="field-textarea" id="historicoInternacoes" placeholder="Ex: Pneumonia em 2020 (internado 5 dias), Dengue em 2022..." style="min-height:64px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 6. CIRURGIAS E PROCEDIMENTOS ─── -->
+        <div class="section">
+            <div class="section-title">6. Cirurgias e procedimentos</div>
+            <div class="section-card">
+                <div class="field-warn">
+                    <strong>Lembre-se:</strong> Procedimentos estéticos também contam — botox, preenchimentos, implantes, rinoplastia, lipoaspiração, etc.
+                </div>
+                <div id="prefillCirurgias" style="display:none">
+                    <div class="prefill-note">Cirurgias cadastradas no Vitae:</div>
+                    <div class="prefill-tags" id="cirurgiasTagsWrap"></div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Cirurgias e procedimentos realizados</div>
+                    <textarea class="field-textarea" id="cirurgias" placeholder="Ex: Apendicectomia (2018), Preenchimento labial (2023), Colocação de silicone (2021)..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 7. HISTÓRIA FAMILIAR ─── -->
+        <div class="section">
+            <div class="section-title">7. História familiar</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Doenças hereditárias na família</div>
+                    <textarea class="field-textarea" id="historiaFamiliar" placeholder="Ex: Pai tem diabetes tipo 2. Mãe teve câncer de mama. Avô paterno faleceu de infarto..." style="min-height:64px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 8. HÁBITOS E ROTINA ─── -->
+        <div class="section">
+            <div class="section-title">8. Hábitos e contexto de vida</div>
+            <div class="section-card">
+                <div class="field">
+                    <div class="field-label">Tabagismo</div>
+                    <select class="field-select" id="tabagismo">
+                        <option value="">Selecione</option>
+                        <option value="nunca">Nunca fumei</option>
+                        <option value="ex">Ex-fumante</option>
+                        <option value="sim">Fumo atualmente</option>
+                    </select>
+                    <input class="field-input" id="tabagismoDetalhe" placeholder="Quantos cigarros por dia?" style="margin-top:8px; display:none;">
+                </div>
+                <div class="field">
+                    <div class="field-label">Álcool</div>
+                    <select class="field-select" id="alcool">
+                        <option value="">Selecione</option>
+                        <option value="nunca">Nunca</option>
+                        <option value="socialmente">Socialmente</option>
+                        <option value="frequente">Com frequência</option>
+                        <option value="diario">Diariamente</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <div class="field-label">Exercício físico</div>
+                    <select class="field-select" id="exercicio">
+                        <option value="">Selecione</option>
+                        <option value="sedentario">Sedentário</option>
+                        <option value="leve">Leve (1-2x/semana)</option>
+                        <option value="moderado">Moderado (3-4x/semana)</option>
+                        <option value="intenso">Intenso (5x+ /semana)</option>
+                    </select>
+                    <input class="field-input" id="exercicioTipo" placeholder="Qual atividade? Ex: caminhada, musculação, natação" style="margin-top:8px;">
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <div class="field-label">Cafeína (xícaras/dia)</div>
+                        <select class="field-select" id="cafeina">
+                            <option value="">Selecione</option>
+                            <option value="nenhuma">Nenhuma</option>
+                            <option value="1-2">1-2</option>
+                            <option value="3-5">3-5</option>
+                            <option value="6+">6+</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Horas de sono/noite</div>
+                        <select class="field-select" id="sono">
+                            <option value="">Selecione</option>
+                            <option value="menos5">Menos de 5h</option>
+                            <option value="5-7">5-7h</option>
+                            <option value="7-9">7-9h</option>
+                            <option value="mais9">Mais de 9h</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Mudanças recentes na rotina</div>
+                    <textarea class="field-textarea" id="mudancasRotina" placeholder="Ex: novo trabalho, viagem longa, estresse elevado, mudança de cidade, término de relacionamento..." style="min-height:60px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 9. EXAMES ANTERIORES ─── -->
+        <div class="section">
+            <div class="section-title">9. Exames anteriores</div>
+            <div class="section-card">
+                <div id="prefillExames" style="display:none">
+                    <div class="prefill-note">Exames no Vitae relacionados:</div>
+                    <div class="prefill-tags" id="examesTagsWrap"></div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Exames anteriores relevantes</div>
+                    <textarea class="field-textarea" id="examesAnteriores" placeholder="Liste exames recentes relacionados à queixa. Ex: hemograma (jan/2025), TSH (mar/2025)..." style="min-height:64px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 10. CONSENTIMENTO ─── -->
+        <div class="section">
+            <div class="section-title">10. Consentimento</div>
+            <div class="section-card">
+                <div class="check-item">
+                    <input type="checkbox" id="consentAll">
+                    <label class="check-item-label" for="consentAll">
+                        Aceito a Política de Privacidade, autorizo o contato pelo médico/clínica e o compartilhamento dos meus dados com a equipe de saúde responsável
+                        <small>Dados protegidos nos termos da LGPD</small>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="field">
+            <div class="field-label">Observações adicionais</div>
+            <textarea class="field-textarea" id="observacoes" placeholder="Algo mais que deseja informar ao médico? Qualquer informação que considere relevante..."></textarea>
+        </div>
+
+        <!-- LGPD consent (default form mode) -->
+        <div class="lgpd-consent">
+            <input type="checkbox" id="lgpdConsentDefault" onchange="atualizarEstadoBotao()">
+            <label class="lgpd-consent-label" for="lgpdConsentDefault">
+                Autorizo o compartilhamento dos meus dados de saúde com o(a) Dr(a). <span class="lgpd-doc-name">seu médico</span>.
+                <a href="lgpd.html" target="_blank">Ver termos completos</a>
+            </label>
+        </div>
+
+        <button class="btn-submit" onclick="enviar()">Enviar pré-consulta</button>
+        <div style="height:20px;"></div>
+        </div><!-- /defaultFormWrap -->
+        </div><!-- /form-panel -->
+    </div><!-- /mainContent -->
+
+    <!-- Loading -->
+    <div class="overlay-screen" id="loadingScreen">
+        <div class="spinner"></div>
+        <div class="overlay-title" style="font-size:18px;">Um momento</div>
+        <div class="overlay-sub">Estruturando seu resumo clínico para o médico</div>
+    </div>
+
+    <!-- Sucesso -->
+    <div class="overlay-screen" id="successScreen">
+        <svg class="overlay-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div class="overlay-title">Pré-consulta enviada!</div>
+        <div class="overlay-sub">Seu médico receberá um resumo completo antes da consulta.<br><br>Pode fechar esta página.</div>
+    </div>
+
+    <!-- Erro -->
+    <div class="overlay-screen" id="errorState">
+        <svg class="overlay-icon" style="color:#EF4444;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <div class="overlay-title" id="errorTitle">Erro</div>
+        <div class="overlay-sub" id="errorMsg"></div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.js"></script>
+<script src="api.js?v=3"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//   vitaStorage — IndexedDB wrapper para persistir audio/foto localmente
+//   Objetivo: nunca perder a gravação/foto enquanto não confirmar entrega.
+// ═══════════════════════════════════════════════════════════════════
+const vitaStorage = (function() {
+    const DB_NAME = 'vitae_offline_v1';
+    const STORE = 'pre_consultas';
+    let dbPromise = null;
+
+    function openDB() {
+        if (dbPromise) return dbPromise;
+        dbPromise = new Promise(function(resolve, reject) {
+            if (!window.indexedDB) { reject(new Error('IndexedDB não disponível')); return; }
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = function(e) {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE)) {
+                    db.createObjectStore(STORE, { keyPath: 'id' });
+                }
+            };
+            req.onsuccess = function(e) { resolve(e.target.result); };
+            req.onerror = function(e) { reject(e.target.error); };
+        });
+        return dbPromise;
+    }
+
+    async function put(id, data) {
+        const db = await openDB();
+        return new Promise(function(resolve, reject) {
+            const tx = db.transaction([STORE], 'readwrite');
+            const store = tx.objectStore(STORE);
+            const record = Object.assign({}, data, { id: id, atualizadoEm: Date.now() });
+            const req = store.put(record);
+            req.onsuccess = function() { resolve(record); };
+            req.onerror = function() { reject(req.error); };
+        });
+    }
+
+    async function get(id) {
+        const db = await openDB();
+        return new Promise(function(resolve, reject) {
+            const tx = db.transaction([STORE], 'readonly');
+            const req = tx.objectStore(STORE).get(id);
+            req.onsuccess = function() { resolve(req.result || null); };
+            req.onerror = function() { reject(req.error); };
+        });
+    }
+
+    async function remove(id) {
+        const db = await openDB();
+        return new Promise(function(resolve, reject) {
+            const tx = db.transaction([STORE], 'readwrite');
+            const req = tx.objectStore(STORE).delete(id);
+            req.onsuccess = function() { resolve(); };
+            req.onerror = function() { reject(req.error); };
+        });
+    }
+
+    async function listAll() {
+        const db = await openDB();
+        return new Promise(function(resolve, reject) {
+            const tx = db.transaction([STORE], 'readonly');
+            const req = tx.objectStore(STORE).getAll();
+            req.onsuccess = function() { resolve(req.result || []); };
+            req.onerror = function() { reject(req.error); };
+        });
+    }
+
+    return { put: put, get: get, remove: remove, listAll: listAll };
+})();
+
+// Persistent storage: pede ao browser pra não limpar o IDB
+// (parcialmente suportado — se aceitar, reduz risco de ITP apagar)
+if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().then(function(granted) {
+        console.log('[vitaStorage] persist granted:', granted);
+    }).catch(function() {});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//   Wake Lock — evita celular auto-lockar durante gravacao/envio
+//   iOS 16.4+ suportado. Se nao suportar, ignora silenciosamente.
+// ═══════════════════════════════════════════════════════════════════
+let _wakeLock = null;
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator && !_wakeLock) {
+            _wakeLock = await navigator.wakeLock.request('screen');
+            _wakeLock.addEventListener('release', function() { _wakeLock = null; });
+            console.log('[WakeLock] ativo');
+        }
+    } catch (e) {
+        console.log('[WakeLock] nao disponivel:', e.message);
+    }
+}
+function releaseWakeLock() {
+    if (_wakeLock) {
+        try { _wakeLock.release(); } catch (e) {}
+        _wakeLock = null;
+    }
+}
+// Re-adquire wake lock se usuario voltar pra aba
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible' && (window._needsWakeLock === true)) {
+        requestWakeLock();
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//   Deteccao de iOS — pra exibir aviso especifico ao paciente
+// ═══════════════════════════════════════════════════════════════════
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const IS_IOS_SAFARI = IS_IOS && /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|OPiOS/.test(navigator.userAgent);
+
+// Air Datepicker for date of birth
+try {
+    const dnEl = document.getElementById('dataNascimento');
+    const dnISO = document.getElementById('dataNascimentoISO');
+    if (dnEl && typeof AirDatepicker !== 'undefined') {
+        const localePtBR = {
+            days: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
+            daysShort: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+            daysMin: ['Do','Se','Te','Qu','Qu','Se','Sá'],
+            months: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+            monthsShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+            today: 'Hoje',
+            clear: 'Limpar',
+            dateFormat: 'dd/MM/yyyy',
+            timeFormat: 'HH:mm',
+            firstDay: 0
+        };
+        new AirDatepicker(dnEl, {
+            locale: localePtBR,
+            dateFormat: 'dd/MM/yyyy',
+            maxDate: new Date(),
+            minDate: new Date(1920, 0, 1),
+            startDate: new Date(1990, 0, 1),
+            view: 'years',
+            autoClose: true,
+            isMobile: window.innerWidth < 500,
+            buttons: ['clear'],
+            container: dnEl.closest('.phone') || document.body,
+            onSelect({date}) {
+                if (date) {
+                    const y = date.getFullYear();
+                    const m = String(date.getMonth()+1).padStart(2,'0');
+                    const d = String(date.getDate()).padStart(2,'0');
+                    dnISO.value = `${y}-${m}-${d}`;
+                } else {
+                    dnISO.value = '';
+                }
+            }
+        });
+    }
+} catch(e) { console.warn('Datepicker init error:', e); }
+
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+
+// ── Pre-consulta data (loaded once, reused) ──
+let preConsultaData = null;
+let medicoNomeGlobal = '';
+let especialidadeGlobal = '';
+
+// ── Photo state ──
+let fotoBlob = null;
+function handlePhoto(input) {
+    if (input.files && input.files[0]) {
+        fotoBlob = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const circle = document.getElementById('photoCircle');
+            circle.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+            circle.style.border = '2px solid #00E5A0';
+            document.getElementById('photoLabel').textContent = 'Foto adicionada!';
+            document.getElementById('photoSub').textContent = 'Toque para trocar';
+        };
+        reader.readAsDataURL(input.files[0]);
+        // Persiste foto na IDB (nao se perde se tela recarregar)
+        vitaStorage.put('foto_' + token, { blob: fotoBlob, token: token }).catch(function(e){
+            console.warn('[vitaStorage] falha persistir foto:', e && e.message);
+        });
+        atualizarEstadoBotao();
+    }
+}
+
+// ── Validação das 3 bandeirinhas (foto + áudio + termos) ──
+function atualizarEstadoBotao() {
+    const fotoOK = !!fotoBlob;
+    const audioOK = !!(audioBlob || fullTranscript);
+    const c1 = document.getElementById('lgpdConsentAudio');
+    const c2 = document.getElementById('lgpdConsentTpl');
+    const c3 = document.getElementById('lgpdConsentDefault');
+    const termosOK = (c1 && c1.checked) || (c2 && c2.checked) || (c3 && c3.checked);
+
+    const sendBtns = [
+        document.getElementById('sendBtn'),
+        document.getElementById('sendBtnForm'),
+    ].filter(Boolean);
+
+    const tudoOK = fotoOK && audioOK && termosOK;
+
+    sendBtns.forEach(btn => {
+        if (!btn) return;
+        if (tudoOK) {
+            btn.disabled = false;
+            btn.style.opacity = '';
+            btn.style.cursor = '';
+            btn.style.filter = '';
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            btn.style.filter = 'grayscale(0.6)';
+        }
+    });
+
+    // Mensagem do que falta (visualizada no topo do botão de envio)
+    let msgEl = document.getElementById('faltamMsg');
+    if (!msgEl) return;
+    if (tudoOK) {
+        msgEl.textContent = 'Pronto para enviar!';
+        msgEl.style.color = '#00C47A';
+    } else {
+        const faltam = [];
+        if (!fotoOK) faltam.push('foto');
+        if (!audioOK) faltam.push('áudio');
+        if (!termosOK) faltam.push('aceite dos termos');
+        msgEl.textContent = 'Falta: ' + faltam.join(', ');
+        msgEl.style.color = 'rgba(13,15,20,0.50)';
+    }
+}
+
+// ── Audio state ──
+let mediaRecorder = null;
+let audioChunks = [];
+let audioBlob = null;
+let audioUrl = null;
+let audioElement = null;
+let recognition = null;
+let isRecording = false;
+let isPlaying = false;
+let recordingStartTime = null;
+let timerInterval = null;
+let fullTranscript = '';
+let analyser = null;
+let animFrameId = null;
+let recordedDuration = '00:00';
+
+// ── Tab switching ──
+function switchTab(tab) {
+    const ap = document.getElementById('audioPanel');
+    const fp = document.getElementById('formPanel');
+    const ta = document.getElementById('toggleAudio');
+    const tf = document.getElementById('toggleForm');
+    if (tab === 'audio') {
+        ap.classList.add('active'); fp.classList.remove('active');
+        ta.classList.add('active'); ta.style.color='#0D0F14';
+        tf.classList.remove('active'); tf.style.color='rgba(13,15,20,0.4)';
+    } else {
+        if (isRecording) stopRecording();
+        ap.classList.remove('active'); fp.classList.add('active');
+        tf.classList.add('active'); tf.style.color='#0D0F14';
+        ta.classList.remove('active'); ta.style.color='rgba(13,15,20,0.4)';
+    }
+}
+
+// ── Recording ──
+// Limite maximo de gravacao: 5 minutos
+const MAX_RECORDING_MS = 5 * 60 * 1000;
+let maxDurationTimeout = null;
+
+async function startRecording() {
+    try {
+        // Pede permissao pra microfone com contexto audio bom pra voz
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        });
+
+        // Setup analyser for waveform
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 128;
+        source.connect(analyser);
+
+        // Detect best supported audio format for this device
+        // iOS Safari so suporta audio/mp4 (ignora webm). Android/Chrome suporta webm.
+        const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav'];
+        let selectedMime = '';
+        for (const mime of mimeTypes) {
+            if (MediaRecorder.isTypeSupported(mime)) { selectedMime = mime; break; }
+        }
+        // Bitrate baixo (64kbps) suficiente pra voz clinica — reduz 5min de ~4.8MB pra ~2.4MB
+        const options = selectedMime ? { mimeType: selectedMime, audioBitsPerSecond: 64000 } : { audioBitsPerSecond: 64000 };
+        try {
+            mediaRecorder = new MediaRecorder(stream, options);
+        } catch (_) {
+            // Fallback sem options se o browser rejeitar
+            mediaRecorder = selectedMime ? new MediaRecorder(stream, { mimeType: selectedMime }) : new MediaRecorder(stream);
+        }
+        const actualMime = mediaRecorder.mimeType || selectedMime || 'audio/webm';
+        audioChunks = [];
+
+        // Chunked recording: a cada 1s um chunk chega via ondataavailable
+        // Se tela bloquear ou app fechar, temos pelo menos ate o ultimo chunk
+        mediaRecorder.ondataavailable = async function(e) {
+            if (e.data && e.data.size > 0) {
+                audioChunks.push(e.data);
+                // Persiste chunks na IDB em tempo real (fallback caso app morra)
+                try {
+                    await vitaStorage.put('rec_inprogress_' + token, {
+                        chunks: audioChunks.slice(),
+                        mimeType: actualMime,
+                        startedAt: recordingStartTime,
+                        token: token,
+                    });
+                } catch (idbErr) {
+                    console.warn('[vitaStorage] falha persistir chunk:', idbErr && idbErr.message);
+                }
+            }
+        };
+
+        mediaRecorder.onstop = async function() {
+            audioBlob = new Blob(audioChunks, { type: actualMime });
+            audioUrl = URL.createObjectURL(audioBlob);
+            audioElement = new Audio(audioUrl);
+            audioElement.onended = function() { isPlaying = false; updatePlayBtn(); };
+            stream.getTracks().forEach(function(t) { t.stop(); });
+
+            // Persiste Blob final consolidado (substitui chunks em andamento)
+            try {
+                await vitaStorage.put('audio_' + token, {
+                    blob: audioBlob,
+                    mimeType: actualMime,
+                    duracao: recordedDuration,
+                    token: token,
+                });
+                await vitaStorage.remove('rec_inprogress_' + token);
+            } catch (idbErr) {
+                console.warn('[vitaStorage] falha persistir blob final:', idbErr && idbErr.message);
+            }
+
+            if (maxDurationTimeout) { clearTimeout(maxDurationTimeout); maxDurationTimeout = null; }
+            showReviewState();
+            atualizarEstadoBotao();
+        };
+
+        // start(1000) = ondataavailable dispara a cada 1s com um chunk
+        mediaRecorder.start(1000);
+        isRecording = true;
+        fullTranscript = '';
+        recordingStartTime = Date.now();
+
+        // Wake Lock: evita o celular auto-lockar durante gravacao
+        window._needsWakeLock = true;
+        requestWakeLock();
+
+        // Auto-stop aos 5 minutos
+        maxDurationTimeout = setTimeout(function() {
+            if (isRecording) {
+                alert('Limite de 5 minutos atingido. Gravação finalizada.');
+                stopRecording();
+            }
+        }, MAX_RECORDING_MS);
+
+        // UI: hide idle, show recording
+        document.getElementById('recIdle').style.display = 'none';
+        document.getElementById('recRecording').classList.add('active');
+        document.getElementById('recReview').classList.remove('active');
+
+        timerInterval = setInterval(updateTimer, 1000);
+        drawWaveform();
+        startSpeechRecognition();
+    } catch (err) {
+        alert('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
+    }
+}
+
+function stopRecording() {
+    isRecording = false;
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    if (recognition) { recognition.stop(); recognition = null; }
+    clearInterval(timerInterval);
+    cancelAnimationFrame(animFrameId);
+    recordedDuration = document.getElementById('recTimer').textContent;
+    if (maxDurationTimeout) { clearTimeout(maxDurationTimeout); maxDurationTimeout = null; }
+    window._needsWakeLock = false;
+    releaseWakeLock();
+}
+
+async function showReviewState() {
+    document.getElementById('recRecording').classList.remove('active');
+    document.getElementById('recReview').classList.add('active');
+    document.getElementById('reviewTime').textContent = recordedDuration;
+    document.getElementById('topicList').style.display = 'none';
+
+    drawStaticWave();
+
+    // Show loading state in IA box
+    const iaBox = document.getElementById('iaBox');
+    iaBox.className = 'ia-box loading active';
+    iaBox.innerHTML = '<div style="width:16px;height:16px;border:2px solid rgba(0,0,0,0.1);border-top-color:#00E5A0;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;"></div> Analisando sua gravação...';
+    document.getElementById('sendBtn').style.display = 'none';
+
+    // Call backend to verify topics
+    try {
+        const resultado = await vitaeAPI.verificarTranscricao(token, fullTranscript.trim());
+
+        if (resultado.completo) {
+            iaBox.className = 'ia-box success active';
+            iaBox.innerHTML = '<svg class="ia-icon" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><div class="ia-text"><strong>Tudo certo!</strong> ' + resultado.mensagem + '</div>';
+            document.getElementById('sendBtn').style.display = '';
+        } else {
+            iaBox.className = 'ia-box warning active';
+            iaBox.innerHTML = '<svg class="ia-icon" viewBox="0 0 24 24" fill="none" stroke="#92700C" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><div class="ia-text">' + resultado.mensagem + '</div>';
+            // Still show send button — patient can send anyway
+            document.getElementById('sendBtn').style.display = '';
+        }
+    } catch (err) {
+        // If verification fails, let them send anyway
+        iaBox.className = 'ia-box success active';
+        iaBox.innerHTML = '<svg class="ia-icon" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><div class="ia-text">Não foi possível verificar os tópicos, mas você pode enviar mesmo assim.</div>';
+        document.getElementById('sendBtn').style.display = '';
+    }
+}
+
+function deleteRecording() {
+    if (isPlaying && audioElement) { audioElement.pause(); isPlaying = false; }
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    audioBlob = null; audioUrl = null; audioElement = null;
+    fullTranscript = '';
+    // Limpa IDB quando paciente decide deletar
+    vitaStorage.remove('audio_' + token).catch(function(){});
+    vitaStorage.remove('rec_inprogress_' + token).catch(function(){});
+
+    document.getElementById('recIdle').style.display = '';
+    document.getElementById('recRecording').classList.remove('active');
+    document.getElementById('recReview').classList.remove('active');
+    document.getElementById('topicList').style.display = '';
+    document.getElementById('iaBox').className = 'ia-box';
+    document.getElementById('sendBtn').style.display = 'none';
+    document.getElementById('recTimer').textContent = '00:00';
+    atualizarEstadoBotao();
+}
+
+// ── Playback ──
+function togglePlayback() {
+    if (!audioElement) return;
+    if (isPlaying) {
+        audioElement.pause();
+        isPlaying = false;
+    } else {
+        audioElement.currentTime = 0;
+        audioElement.play();
+        isPlaying = true;
+    }
+    updatePlayBtn();
+}
+
+function updatePlayBtn() {
+    document.getElementById('playIcon').style.display = isPlaying ? 'none' : '';
+    document.getElementById('pauseIcon').style.display = isPlaying ? '' : 'none';
+}
+
+// ── Timer ──
+let _avisoDuracaoMostrado = { '4min': false, '4min30': false };
+function updateTimer() {
+    const s = Math.floor((Date.now() - recordingStartTime) / 1000);
+    const el = document.getElementById('recTimer');
+    el.textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    // Alertas visuais conforme se aproxima do limite
+    if (s >= 270 && !_avisoDuracaoMostrado['4min30']) {  // 4:30
+        _avisoDuracaoMostrado['4min30'] = true;
+        el.style.color = '#EF4444';
+    } else if (s >= 240 && !_avisoDuracaoMostrado['4min']) {  // 4:00
+        _avisoDuracaoMostrado['4min'] = true;
+        el.style.color = '#F59E0B';
+    }
+}
+
+// ── Waveform drawing ──
+function drawWaveform() {
+    const canvas = document.getElementById('waveCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * 2;
+    canvas.height = canvas.offsetHeight * 2;
+
+    function draw() {
+        if (!isRecording) return;
+        animFrameId = requestAnimationFrame(draw);
+
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const bars = 48;
+        const barW = canvas.width / bars;
+        const step = Math.floor(data.length / bars);
+
+        for (let i = 0; i < bars; i++) {
+            const val = data[i * step] / 255;
+            const h = Math.max(4, val * canvas.height * 0.85);
+            const x = i * barW;
+            const y = (canvas.height - h) / 2;
+            ctx.fillStyle = `rgba(0, 229, 160, ${0.3 + val * 0.5})`;
+            ctx.beginPath();
+            ctx.roundRect(x + 1, y, barW - 2, h, 2);
+            ctx.fill();
+        }
+    }
+    draw();
+}
+
+function drawStaticWave() {
+    const canvas = document.getElementById('reviewWaveCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * 2;
+    canvas.height = canvas.offsetHeight * 2;
+
+    const bars = 32;
+    const barW = canvas.width / bars;
+    for (let i = 0; i < bars; i++) {
+        const val = 0.2 + Math.random() * 0.6;
+        const h = Math.max(4, val * canvas.height * 0.75);
+        const x = i * barW;
+        const y = (canvas.height - h) / 2;
+        ctx.fillStyle = `rgba(0, 229, 160, ${0.25 + val * 0.35})`;
+        ctx.beginPath();
+        ctx.roundRect(x + 1, y, barW - 2, h, 2);
+        ctx.fill();
+    }
+}
+
+// ── Speech-to-text ──
+function startSpeechRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    recognition = new SR();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) fullTranscript += event.results[i][0].transcript + ' ';
+        }
+    };
+    recognition.onend = () => { if (isRecording && recognition) try { recognition.start(); } catch(e) {} };
+    recognition.onerror = () => {};
+    recognition.start();
+}
+
+// ── Supabase direct upload ──
+const SUPABASE_URL = 'https://zkpilzhyrhsptoujhflz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprcGlsemh5cmhzcHRvdWpoZmx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NDI0NzcsImV4cCI6MjA4ODMxODQ3N30.Yo990kgETdBLt1oXjot-BB9fkJC6IsGmjpcAzavu54c';
+
+// Converte Blob em base64 (sem o prefixo "data:...;base64,")
+function blobToBase64(blob) {
+    return new Promise(function(resolve, reject) {
+        var r = new FileReader();
+        r.onload = function() {
+            var s = String(r.result || '');
+            var comma = s.indexOf(',');
+            resolve(comma >= 0 ? s.substring(comma + 1) : s);
+        };
+        r.onerror = reject;
+        r.readAsDataURL(blob);
+    });
+}
+
+// Upload com timeout explicito e uma re-tentativa
+// Timeout 25s (cobre audio 5min em 3G; acima disso, desistir e ir pra base64)
+async function uploadToSupabase(blob, folder, filename, tentativa) {
+    tentativa = tentativa || 1;
+    const path = `${folder}/${Date.now()}-${filename}`;
+    const url = `${SUPABASE_URL}/storage/v1/object/vitae/${path}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(function() { controller.abort(); }, 25000);
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'apikey': SUPABASE_ANON_KEY,
+                'Content-Type': blob.type || 'application/octet-stream',
+                'x-upsert': 'true',
+            },
+            body: blob,
+            signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (!res.ok) {
+            const errTxt = await res.text().catch(function(){ return ''; });
+            console.warn('[upload] Supabase nao-ok status', res.status, errTxt.substring(0, 200));
+            // 401/403 nao vale a pena retentar (CORS/policy)
+            if (res.status === 401 || res.status === 403) return null;
+            // 5xx ou outro — 1 retry
+            if (tentativa < 2) {
+                console.log('[upload] retentando em 2s...');
+                await new Promise(function(r){ setTimeout(r, 2000); });
+                return uploadToSupabase(blob, folder, filename, tentativa + 1);
+            }
+            return null;
+        }
+        return `${SUPABASE_URL}/storage/v1/object/public/vitae/${path}`;
+    } catch (err) {
+        clearTimeout(timeoutId);
+        console.warn('[upload] fetch erro:', err.name, err.message);
+        // AbortError (timeout) ou network error — 1 retry
+        if (tentativa < 2) {
+            console.log('[upload] retentando apos erro em 2s...');
+            await new Promise(function(r){ setTimeout(r, 2000); });
+            return uploadToSupabase(blob, folder, filename, tentativa + 1);
+        }
+        return null;
+    }
+}
+
+// ── Send audio ──
+async function enviarAudio() {
+    const transcricao = fullTranscript.trim();
+    if (!fotoBlob) {
+        alert('Por favor, tire uma foto do seu rosto antes de enviar.');
+        return;
+    }
+    if (!transcricao && !audioBlob) {
+        alert('Nenhuma gravação detectada. Por favor, grave sua mensagem.');
+        return;
+    }
+    // LGPD consent check — use whichever checkbox is visible
+    const lgpdTpl = document.getElementById('lgpdConsentTpl');
+    const lgpdDef = document.getElementById('lgpdConsentDefault');
+    const lgpdAudio = document.getElementById('lgpdConsentAudio');
+    const lgpdChecked = (lgpdAudio && lgpdAudio.checked) || (lgpdTpl && lgpdTpl.checked) || (lgpdDef && lgpdDef.checked);
+    if (!lgpdChecked) {
+        alert('Por favor, aceite os termos de compartilhamento para continuar.');
+        return;
+    }
+    document.getElementById('loadingScreen').classList.add('active');
+
+    // Marca estado "enviando" na IDB — se app fechar aqui, retomada detecta
+    try {
+        await vitaStorage.put('envio_' + token, {
+            status: 'enviando',
+            token: token,
+            iniciadoEm: Date.now(),
+            transcricao: transcricao,
+        });
+    } catch (e) {}
+
+    // Wake Lock durante o envio pra evitar tela bloquear
+    window._needsWakeLock = true;
+    requestWakeLock();
+
+    try {
+        // ═══ Upload audio ═══
+        let audioUrl = null;
+        let audioBase64 = null;
+        if (audioBlob) {
+            const ext = (audioBlob.type || '').includes('mp4') ? 'mp4' : (audioBlob.type || '').includes('ogg') ? 'ogg' : 'webm';
+            audioUrl = await uploadToSupabase(audioBlob, 'audios', `gravacao.${ext}`);
+            if (!audioUrl) {
+                // Fallback base64 via backend
+                try {
+                    audioBase64 = await blobToBase64(audioBlob);
+                    console.log('[enviarAudio] fallback base64 tamanho:', audioBase64 ? audioBase64.length : 0);
+                } catch (b64Err) {
+                    console.error('[enviarAudio] base64 falhou:', b64Err);
+                }
+            }
+        }
+
+        // ═══ Upload photo ═══
+        let fotoUrl = null;
+        let fotoBase64 = null;
+        if (fotoBlob) {
+            fotoUrl = await uploadToSupabase(fotoBlob, 'fotos', 'foto.jpg');
+            if (!fotoUrl) {
+                try {
+                    fotoBase64 = await blobToBase64(fotoBlob);
+                } catch (b64Err) {
+                    console.error('[enviarAudio] foto base64 falhou:', b64Err);
+                }
+            }
+        }
+
+        // Validacao final local: precisa de AO MENOS uma evidencia de audio
+        if (!transcricao && !audioUrl && !audioBase64) {
+            releaseWakeLock();
+            window._needsWakeLock = false;
+            document.getElementById('loadingScreen').classList.remove('active');
+            alert('Não foi possível enviar seu áudio. Verifique sua conexão e tente gravar novamente.');
+            return;
+        }
+
+        // ═══ Monta body e envia pro backend ═══
+        const body = {
+            respostas: {
+                metodo: 'audio',
+                queixaPrincipal: transcricao || '(áudio sem transcrição)',
+                audioUrl: audioUrl,
+                fotoUrl: fotoUrl,
+            },
+            transcricao: transcricao,
+        };
+        if (audioBase64) body.audioBase64 = audioBase64;
+        if (fotoBase64) body.fotoBase64 = fotoBase64;
+
+        const pacienteToken = vitaeAPI.getToken();
+        if (pacienteToken) body.pacienteToken = pacienteToken;
+
+        // Chama o backend — pode lançar erro ou retornar resposta estruturada
+        let resposta;
+        try {
+            resposta = await vitaeAPI.responderPreConsulta(token, body);
+        } catch (reqErr) {
+            // apiRequest faz throw em !response.ok, inclusive 422
+            // Diferenciar 422 (audio nao chegou) dos outros erros
+            const msg = String(reqErr.message || '');
+            releaseWakeLock();
+            window._needsWakeLock = false;
+            document.getElementById('loadingScreen').classList.remove('active');
+            // Mantem IDB intacto — paciente pode tentar de novo
+            if (msg.indexOf('Audio nao chegou') !== -1 || msg.indexOf('422') !== -1) {
+                alert('O áudio não chegou ao servidor. Sua gravação foi salva no app — tente enviar de novo em alguns segundos.');
+            } else {
+                alert('Erro ao enviar: ' + msg + '\n\nSua gravação foi salva no app. Tente novamente.');
+            }
+            return;
+        }
+
+        // ═══ Servidor confirmou — valida resposta explicita ═══
+        const audioOK = resposta && resposta.audioConfirmado;
+        const transcricaoOK = resposta && resposta.transcricaoValida;
+
+        if (!audioOK && !transcricaoOK) {
+            // Backend aceitou mas nao confirmou nem audio nem transcricao: suspeito
+            releaseWakeLock();
+            window._needsWakeLock = false;
+            document.getElementById('loadingScreen').classList.remove('active');
+            alert('O servidor recebeu, mas não confirmou o áudio. Sua gravação está salva — tente reenviar.');
+            return;
+        }
+
+        // Sucesso confirmado — limpa IDB e mostra sucesso
+        try {
+            await vitaStorage.remove('audio_' + token);
+            await vitaStorage.remove('foto_' + token);
+            await vitaStorage.remove('envio_' + token);
+            await vitaStorage.remove('rec_inprogress_' + token);
+        } catch (e) {}
+
+        releaseWakeLock();
+        window._needsWakeLock = false;
+        document.getElementById('loadingScreen').classList.remove('active');
+        document.getElementById('successScreen').classList.add('active');
+    } catch (e) {
+        releaseWakeLock();
+        window._needsWakeLock = false;
+        document.getElementById('loadingScreen').classList.remove('active');
+        alert('Erro inesperado ao enviar: ' + (e.message || 'Tente novamente.') + '\nSua gravação foi salva no app.');
+    }
+}
+
+// Mostrar/ocultar detalhe do tabagismo
+document.getElementById('tabagismo').addEventListener('change', function() {
+    const detail = document.getElementById('tabagismoDetalhe');
+    const show = this.value === 'sim';
+    detail.style.display = show ? 'block' : 'none';
+    if (!show) detail.value = '';
+});
+
+// ── Template questions state ──
+let templatePerguntas = null;
+let templateAnswers = {};
+let templateUploadFiles = {};
+
+function renderTemplateQuestions(perguntas) {
+    const container = document.getElementById('templateFieldsContainer');
+    container.innerHTML = '';
+    templateAnswers = {};
+    templateUploadFiles = {};
+
+    perguntas.forEach((q, idx) => {
+        const div = document.createElement('div');
+        div.className = 'tpl-field';
+
+        const reqMark = q.obrigatoria ? ' <span class="req">*</span>' : '';
+        const labelHtml = `<div class="field-label">${q.texto}${reqMark}</div>`;
+
+        switch (q.tipo) {
+            case 'text':
+                div.innerHTML = labelHtml +
+                    `<textarea class="field-textarea" id="tpl_${q.id}" placeholder="Digite sua resposta..."></textarea>`;
+                break;
+
+            case 'yesno':
+                div.innerHTML = labelHtml +
+                    `<div class="yesno-group">
+                        <button type="button" class="yesno-btn" data-qid="${q.id}" data-val="sim" onclick="selectYesNo(this)">Sim</button>
+                        <button type="button" class="yesno-btn" data-qid="${q.id}" data-val="nao" onclick="selectYesNo(this)">Não</button>
+                    </div>`;
+                break;
+
+            case 'single_select':
+                let optsHtml = '<option value="">Selecione</option>';
+                (q.opcoes || []).forEach(opt => {
+                    const val = typeof opt === 'object' ? opt.value : opt;
+                    const lbl = typeof opt === 'object' ? opt.label : opt;
+                    optsHtml += `<option value="${val}">${lbl}</option>`;
+                });
+                div.innerHTML = labelHtml +
+                    `<select class="field-select" id="tpl_${q.id}">${optsHtml}</select>`;
+                break;
+
+            case 'scale': {
+                const min = q.min != null ? q.min : 0;
+                const max = q.max != null ? q.max : 10;
+                const mid = Math.round((min + max) / 2);
+                div.innerHTML = labelHtml +
+                    `<div class="scale-wrap">
+                        <div class="scale-value" id="tpl_${q.id}_val">${mid}</div>
+                        <input type="range" class="scale-input" id="tpl_${q.id}" min="${min}" max="${max}" value="${mid}"
+                            oninput="document.getElementById('tpl_${q.id}_val').textContent=this.value">
+                        <div class="scale-labels"><span>${min}</span><span>${max}</span></div>
+                    </div>`;
+                templateAnswers[q.id] = String(mid);
+                break;
+            }
+
+            case 'upload':
+                div.innerHTML = labelHtml +
+                    `<div class="upload-area" id="tpl_${q.id}_area" onclick="document.getElementById('tpl_${q.id}').click()">
+                        <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <div class="upload-text" id="tpl_${q.id}_text">Toque para enviar foto</div>
+                    </div>
+                    <input type="file" id="tpl_${q.id}" accept="image/*" capture="environment" style="display:none;" onchange="handleTemplateUpload('${q.id}', this)">`;
+                break;
+
+            case 'date':
+                div.innerHTML = labelHtml +
+                    `<input type="date" class="field-input" id="tpl_${q.id}">`;
+                break;
+
+            default:
+                div.innerHTML = labelHtml +
+                    `<input type="text" class="field-input" id="tpl_${q.id}" placeholder="Digite sua resposta...">`;
+                break;
+        }
+
+        container.appendChild(div);
+    });
+}
+
+function selectYesNo(btn) {
+    const qid = btn.getAttribute('data-qid');
+    const val = btn.getAttribute('data-val');
+    // Deselect siblings
+    btn.parentElement.querySelectorAll('.yesno-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    templateAnswers[qid] = val;
+}
+
+function handleTemplateUpload(qid, input) {
+    if (input.files && input.files[0]) {
+        templateUploadFiles[qid] = input.files[0];
+        const area = document.getElementById(`tpl_${qid}_area`);
+        area.classList.add('has-file');
+        document.getElementById(`tpl_${qid}_text`).textContent = input.files[0].name;
+    }
+}
+
+function collectTemplateAnswers() {
+    const answers = {};
+    templatePerguntas.forEach(q => {
+        if (q.tipo === 'yesno') {
+            answers[q.id] = templateAnswers[q.id] || '';
+        } else if (q.tipo === 'upload') {
+            // Handled separately via upload
+            answers[q.id] = templateUploadFiles[q.id] ? '(arquivo enviado)' : '';
+        } else if (q.tipo === 'scale') {
+            const el = document.getElementById(`tpl_${q.id}`);
+            answers[q.id] = el ? el.value : '';
+        } else {
+            const el = document.getElementById(`tpl_${q.id}`);
+            answers[q.id] = el ? el.value.trim() : '';
+        }
+    });
+    return answers;
+}
+
+function validateTemplateAnswers(answers) {
+    for (const q of templatePerguntas) {
+        if (q.obrigatoria && (!answers[q.id] || answers[q.id] === '')) {
+            return q.texto;
+        }
+    }
+    return null;
+}
+
+async function enviarTemplate() {
+    const answers = collectTemplateAnswers();
+    const missing = validateTemplateAnswers(answers);
+    if (missing) {
+        alert(`Por favor, preencha o campo obrigatório: "${missing}"`);
+        return;
+    }
+
+    const consentEl = document.getElementById('consentAllTpl');
+    if (!consentEl.checked) {
+        alert('Por favor, aceite os termos de consentimento para continuar.');
+        return;
+    }
+
+    // LGPD consent validation
+    const lgpdConsent = document.getElementById('lgpdConsentTpl');
+    if (!lgpdConsent.checked) {
+        alert('Por favor, autorize o compartilhamento dos seus dados de saúde para continuar.');
+        return;
+    }
+
+    document.getElementById('loadingScreen').classList.add('active');
+
+    try {
+        // Upload any photo files
+        for (const qid of Object.keys(templateUploadFiles)) {
+            const file = templateUploadFiles[qid];
+            const url = await uploadToSupabase(file, 'fotos-template', `tpl_${qid}.jpg`);
+            if (url) answers[qid] = url;
+        }
+
+        // Upload face photo if present
+        let fotoUrl = null;
+        if (fotoBlob) {
+            fotoUrl = await uploadToSupabase(fotoBlob, 'fotos', 'foto.jpg');
+        }
+
+        const body = {
+            respostas: {
+                metodo: 'formulario_template',
+                fotoUrl: fotoUrl,
+                ...answers,
+            },
+        };
+
+        // Include patient token if logged in
+        const pacienteToken = vitaeAPI.getToken();
+        if (pacienteToken) {
+            body.pacienteToken = pacienteToken;
+        }
+
+        await vitaeAPI.responderPreConsulta(token, body);
+        document.getElementById('loadingScreen').classList.remove('active');
+        document.getElementById('successScreen').classList.add('active');
+    } catch (e) {
+        document.getElementById('loadingScreen').classList.remove('active');
+        alert('Erro ao enviar: ' + (e.message || 'Tente novamente.'));
+    }
+}
+
+function updateTopicListForTemplate(perguntas) {
+    const topicList = document.getElementById('topicList');
+    const ul = topicList.querySelector('ul');
+    ul.innerHTML = '';
+    // Show all question texts as topics for audio orientation
+    const items = perguntas.filter(q => !q.obrigatoria);
+    if (items.length === 0) {
+        // If all are mandatory, show all anyway
+        perguntas.forEach(q => {
+            const li = document.createElement('li');
+            li.textContent = q.texto;
+            ul.appendChild(li);
+        });
+    } else {
+        items.forEach(q => {
+            const li = document.createElement('li');
+            li.textContent = q.texto;
+            ul.appendChild(li);
+        });
+    }
+}
+
+// ── Login Gate functions ──
+function showLoginGate() {
+    document.getElementById('loginGate').classList.add('active');
+    // Populate doctor info if available
+    if (medicoNomeGlobal) {
+        document.getElementById('loginGateDocInfo').style.display = '';
+        document.getElementById('loginGateDocName').textContent = `Dr(a). ${medicoNomeGlobal}`;
+        document.getElementById('loginGateDocSpec').textContent = especialidadeGlobal || '';
+    }
+}
+
+function hideLoginGate() {
+    document.getElementById('loginGate').classList.remove('active');
+}
+
+function showLoginForm() {
+    document.getElementById('loginGate').classList.remove('active');
+    document.getElementById('loginFormWrap').classList.add('active');
+    setTimeout(() => document.getElementById('loginEmail').focus(), 100);
+}
+
+function hideLoginForm() {
+    document.getElementById('loginFormWrap').classList.remove('active');
+    document.getElementById('loginGate').classList.add('active');
+    // Clear form
+    document.getElementById('loginEmail').value = '';
+    document.getElementById('loginSenha').value = '';
+    document.getElementById('loginError').classList.remove('active');
+}
+
+async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const senha = document.getElementById('loginSenha').value;
+    const errorEl = document.getElementById('loginError');
+    const btnEntrar = document.getElementById('btnEntrar');
+
+    if (!email || !senha) {
+        errorEl.textContent = 'Preencha e-mail e senha.';
+        errorEl.classList.add('active');
+        return;
+    }
+
+    errorEl.classList.remove('active');
+    btnEntrar.disabled = true;
+    btnEntrar.textContent = 'Entrando...';
+
+    try {
+        await vitaeAPI.login(email, senha);
+        // Login successful — clear credentials, hide login form, proceed
+        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginSenha').value = '';
+        document.getElementById('loginFormWrap').classList.remove('active');
+        await afterLogin();
+    } catch (e) {
+        const msg = e.message || 'Erro ao fazer login.';
+        if (msg.toLowerCase().includes('senha') || msg.toLowerCase().includes('password') || msg.toLowerCase().includes('credenciais') || msg.toLowerCase().includes('inválid')) {
+            errorEl.textContent = 'E-mail ou senha incorretos. Tente novamente.';
+        } else {
+            errorEl.textContent = msg;
+        }
+        errorEl.classList.add('active');
+    } finally {
+        btnEntrar.disabled = false;
+        btnEntrar.textContent = 'Entrar';
+    }
+}
+
+// Allow Enter key to submit login
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && document.getElementById('loginFormWrap').classList.contains('active')) {
+        e.preventDefault();
+        doLogin();
+    }
+});
+
+function redirectCriarConta() {
+    // Save current pre-consulta token — vai ser usado apos cadastro para voltar
+    if (token) {
+        localStorage.setItem('vitae_quiz_retorno', token);
+    }
+    // Vai para cadastro primeiro; depois do cadastro, 03-cadastro redireciona pro quiz-preconsulta
+    window.location.href = `03-cadastro.html${token ? '?retorno=' + encodeURIComponent(token) : ''}`;
+}
+
+function redirectCompletarPerfil() {
+    // Paciente ja logado mas perfil incompleto — vai direto pro quiz-preconsulta
+    if (token) {
+        localStorage.setItem('vitae_quiz_retorno', token);
+    }
+    window.location.href = `quiz-preconsulta.html${token ? '?retorno=' + encodeURIComponent(token) : ''}`;
+}
+
+// ── After login: check profile completeness, pre-fill data, show form ──
+async function afterLogin() {
+    try {
+        // Check profile completeness
+        const perfilData = await vitaeAPI.getPerfil();
+        const perfil = perfilData?.perfil || perfilData || {};
+        const isProfileComplete = !!(perfil.cpf && perfil.dataNascimento);
+
+        if (!isProfileComplete) {
+            // Show WHAT is missing
+            const missing = [];
+            if (!perfil.cpf) missing.push('CPF');
+            if (!perfil.dataNascimento) missing.push('Data de nascimento');
+            const listEl = document.getElementById('missingFieldsList');
+            if (listEl && missing.length > 0) {
+                listEl.innerHTML = '<div style="font-size:13px;font-weight:600;color:#EF4444;margin-bottom:8px;">Falta preencher:</div>' +
+                    missing.map(function(f) {
+                        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:6px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);border-radius:10px;font-size:13px;color:#0D0F14;font-weight:500;">' +
+                            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
+                            f + '</div>';
+                    }).join('');
+            }
+            document.getElementById('profileIncomplete').classList.add('active');
+            return;
+        }
+
+        // Profile is complete — pre-fill from API and show form
+        await prefillFromProfile();
+        showMainContent();
+    } catch (e) {
+        console.warn('Error checking profile after login:', e);
+        // If profile check fails, still show the form
+        showMainContent();
+    }
+}
+
+async function prefillFromProfile() {
+    try {
+        const [perfil, medsRes, alergiasRes] = await Promise.all([
+            vitaeAPI.getPerfil().catch(() => null),
+            vitaeAPI.listarMedicamentos().catch(() => []),
+            vitaeAPI.listarAlergias().catch(() => []),
+        ]);
+
+        // Pre-fill identification fields from profile
+        if (perfil) {
+            const u = perfil.usuario || perfil;
+            const p = perfil.perfil || perfil;
+            if (u.nome) document.getElementById('nomeCompleto').value = u.nome;
+            if (p.dataNascimento) {
+                const isoDate = p.dataNascimento.slice(0,10);
+                document.getElementById('dataNascimentoISO').value = isoDate;
+                const [y,m,d] = isoDate.split('-');
+                document.getElementById('dataNascimento').value = `${d}/${m}/${y}`;
+            }
+            if (p.cpf) document.getElementById('cpf').value = p.cpf;
+            if (u.celular) document.getElementById('telefone').value = u.celular;
+            if (u.email) document.getElementById('emailId').value = u.email;
+            if (p.genero) document.getElementById('sexo').value = p.genero.toLowerCase();
+
+            // Se paciente ja tem foto no perfil (tirada no quiz ou upload anterior),
+            // reaproveitar automaticamente — nao precisa tirar outra.
+            if (u.fotoUrl && !fotoBlob) {
+                try {
+                    const resp = await fetch(u.fotoUrl, { cache: 'no-store' });
+                    if (resp.ok) {
+                        const blob = await resp.blob();
+                        fotoBlob = blob;
+                        const circle = document.getElementById('photoCircle');
+                        if (circle) {
+                            circle.innerHTML = '<img src="' + u.fotoUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+                            circle.style.border = '2px solid #00E5A0';
+                        }
+                        const lbl = document.getElementById('photoLabel');
+                        if (lbl) lbl.textContent = 'Foto do seu perfil';
+                        const sub = document.getElementById('photoSub');
+                        if (sub) sub.textContent = 'Toque para trocar, se quiser';
+                    }
+                } catch (err) {
+                    console.warn('Nao foi possivel carregar foto do perfil:', err && err.message);
+                }
+            }
+        }
+
+        // Pre-fill medications
+        const medsArr = Array.isArray(medsRes) ? medsRes : (medsRes?.medicamentos || []);
+        if (medsArr.length > 0) {
+            const medNames = medsArr.map(m => typeof m === 'string' ? m : (m.nome || m.medicamento || '')).filter(Boolean);
+            if (medNames.length > 0) {
+                document.getElementById('prefillMeds').style.display = 'block';
+                const wrap = document.getElementById('medsTagsWrap');
+                wrap.innerHTML = '';
+                medNames.forEach(name => {
+                    const tag = document.createElement('span');
+                    tag.className = 'prefill-tag';
+                    tag.textContent = name;
+                    wrap.appendChild(tag);
+                });
+                document.getElementById('medicamentos').value = medNames.join('\n');
+                document.getElementById('medicamentos').placeholder = 'Adicione outros medicamentos não listados acima...';
+            }
+        }
+
+        // Pre-fill allergies
+        const alergiasArr = Array.isArray(alergiasRes) ? alergiasRes : (alergiasRes?.alergias || []);
+        if (alergiasArr.length > 0) {
+            const alergiaNames = alergiasArr.map(a => typeof a === 'string' ? a : (a.nome || a.alergia || '')).filter(Boolean);
+            if (alergiaNames.length > 0) {
+                document.getElementById('prefillAlergias').style.display = 'block';
+                const wrap = document.getElementById('alergiasTagsWrap');
+                wrap.innerHTML = '';
+                alergiaNames.forEach(name => {
+                    const tag = document.createElement('span');
+                    tag.className = 'prefill-tag';
+                    tag.textContent = name;
+                    wrap.appendChild(tag);
+                });
+                document.getElementById('alergias').value = alergiaNames.join(', ');
+            }
+        }
+    } catch (e) {
+        console.warn('Error pre-filling from profile:', e);
+    }
+}
+
+function showMainContent() {
+    // Make sure all gate/login screens are hidden
+    document.getElementById('loginGate').classList.remove('active');
+    document.getElementById('loginFormWrap').classList.remove('active');
+    document.getElementById('profileIncomplete').classList.remove('active');
+    // Mostra aviso de iOS se for iPhone
+    if (IS_IOS) {
+        var iosWarn = document.getElementById('iosRecWarning');
+        if (iosWarn) iosWarn.style.display = 'block';
+    }
+    setTimeout(atualizarEstadoBotao, 50);
+    // Etapa 6: checa se tem envio pendente na IDB e oferece retomada
+    setTimeout(checarPendenciasERetomar, 200);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//   ETAPA 6 — Retomada automatica de envios pendentes
+//
+//   Quando o paciente abre pre-consulta.html novamente (mesmo token),
+//   checa se tem dados salvos na IDB do envio anterior.
+//   Se tiver, mostra banner oferecendo retomar.
+// ═══════════════════════════════════════════════════════════════════
+async function checarPendenciasERetomar() {
+    if (!token) return;
+    try {
+        const [envio, audioSalvo, fotoSalva] = await Promise.all([
+            vitaStorage.get('envio_' + token),
+            vitaStorage.get('audio_' + token),
+            vitaStorage.get('foto_' + token),
+        ]);
+
+        // So retoma se tem audio salvo E tinha um envio em andamento
+        if (!audioSalvo || !audioSalvo.blob) return;
+
+        // Restaura o Blob global pra permitir reenvio
+        audioBlob = audioSalvo.blob;
+        audioUrl = URL.createObjectURL(audioBlob);
+        audioElement = new Audio(audioUrl);
+        audioElement.onended = function() { isPlaying = false; updatePlayBtn(); };
+        recordedDuration = audioSalvo.duracao || '';
+
+        if (fotoSalva && fotoSalva.blob) {
+            fotoBlob = fotoSalva.blob;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const circle = document.getElementById('photoCircle');
+                if (circle) {
+                    circle.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+                    circle.style.border = '2px solid #00E5A0';
+                }
+                const lbl = document.getElementById('photoLabel');
+                if (lbl) lbl.textContent = 'Foto recuperada!';
+                const sub = document.getElementById('photoSub');
+                if (sub) sub.textContent = 'Toque para trocar';
+            };
+            reader.readAsDataURL(fotoBlob);
+        }
+
+        // Mostra banner de retomada no topo da tela
+        mostrarBannerRetomada(!!envio);
+
+        // Mostra o review state (como se tivesse acabado de gravar)
+        showReviewState();
+        atualizarEstadoBotao();
+    } catch (e) {
+        console.warn('[retomada] erro:', e && e.message);
+    }
+}
+
+function mostrarBannerRetomada(envioEmAndamento) {
+    // Cria banner dinamicamente no topo da tela de audio
+    const painel = document.getElementById('audioPanel');
+    if (!painel) return;
+    let banner = document.getElementById('retomadaBanner');
+    if (banner) banner.remove();
+    banner = document.createElement('div');
+    banner.id = 'retomadaBanner';
+    banner.style.cssText = 'margin: 0 0 14px; padding: 12px 14px; background: rgba(0,229,160,0.08); border: 1px solid rgba(0,229,160,0.22); border-radius: 12px; font-size: 13px; color: #0D0F14; line-height: 1.45;';
+    banner.innerHTML =
+        '<div style="font-weight:700;margin-bottom:4px;">Sua gravação anterior foi recuperada</div>' +
+        '<div style="font-size:12px;color:rgba(13,15,20,0.65);">' +
+        (envioEmAndamento
+            ? 'Seu envio anterior não foi concluído. Você pode enviar de novo agora.'
+            : 'Você fechou o app antes de enviar. O áudio e a foto foram recuperados.') +
+        '</div>' +
+        '<div style="display:flex; gap:8px; margin-top:10px;">' +
+        '<button onclick="descartarRetomada()" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(0,0,0,0.07);background:#fff;font-family:inherit;font-size:12px;font-weight:600;color:#6B7280;cursor:pointer;">Descartar e gravar novo</button>' +
+        '</div>';
+    painel.insertBefore(banner, painel.firstChild);
+}
+
+async function descartarRetomada() {
+    if (!confirm('Descartar a gravação recuperada?')) return;
+    try {
+        await vitaStorage.remove('audio_' + token);
+        await vitaStorage.remove('foto_' + token);
+        await vitaStorage.remove('envio_' + token);
+        await vitaStorage.remove('rec_inprogress_' + token);
+    } catch (e) {}
+    // Reset UI
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    audioBlob = null; audioUrl = null; audioElement = null;
+    fotoBlob = null;
+    const banner = document.getElementById('retomadaBanner');
+    if (banner) banner.remove();
+    const circle = document.getElementById('photoCircle');
+    if (circle) {
+        circle.innerHTML = '<svg id="photoIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+        circle.style.border = '';
+    }
+    document.getElementById('photoLabel').textContent = 'Tire uma foto do seu rosto';
+    document.getElementById('photoSub').textContent = 'O médico precisa ver quem vai atender';
+    document.getElementById('recIdle').style.display = '';
+    document.getElementById('recReview').classList.remove('active');
+    document.getElementById('topicList').style.display = '';
+    document.getElementById('iaBox').className = 'ia-box';
+    document.getElementById('sendBtn').style.display = 'none';
+    document.getElementById('recTimer').textContent = '00:00';
+    atualizarEstadoBotao();
+}
+window.descartarRetomada = descartarRetomada;
+
+// ── Update LGPD doctor name in consent checkboxes ──
+function updateLgpdDocName(nome) {
+    document.querySelectorAll('.lgpd-doc-name').forEach(el => {
+        el.textContent = nome || 'seu médico';
+    });
+}
+
+async function init() {
+    // ── Preview mode ──
+    const previewId = urlParams.get('preview');
+    if (previewId) {
+        document.getElementById('previewBanner').style.display = 'block';
+        try {
+            const data = await vitaeAPI.buscarTemplatePublico(previewId);
+            const tpl = data;
+            document.getElementById('welcomeName').textContent = 'Preview do formulário';
+            document.getElementById('welcomeDoc').textContent = tpl.nome;
+            const perguntas = tpl.perguntas || [];
+            if (perguntas.length > 0) {
+                document.getElementById('defaultFormWrap').style.display = 'none';
+                document.getElementById('templateFormWrap').style.display = 'block';
+                renderTemplateQuestions(perguntas);
+            }
+            // Esconde só o botão enviar e a foto (toggle áudio/formulário fica visível)
+            document.querySelectorAll('.btn-submit').forEach(b => b.style.display = 'none');
+            document.getElementById('photoSection') && (document.getElementById('photoSection').style.display = 'none');
+        } catch(e) {
+            showError('Template não encontrado', 'Verifique o ID do template.');
+        }
+        return;
+    }
+
+    if (!token) { showError('Link inválido', 'Este link de pré-consulta não é válido. Solicite um novo link ao seu médico.'); return; }
+
+    try {
+        // 1. Load pre-consulta data
+        const data = await vitaeAPI.getPreConsultaPorToken(token);
+        preConsultaData = data;
+
+        // Store doctor info globally
+        medicoNomeGlobal = data.medicoNome || '';
+        especialidadeGlobal = data.especialidade || '';
+
+        // Update LGPD consent doctor name
+        updateLgpdDocName(medicoNomeGlobal);
+
+        document.getElementById('welcomeName').textContent = `Olá, ${data.pacienteNome}!`;
+        document.getElementById('welcomeDoc').textContent = `Consulta com Dr(a). ${medicoNomeGlobal} — ${especialidadeGlobal}`;
+
+        // ── Handle template questions ──
+        templatePerguntas = data.templatePerguntas || null;
+        const permitirAudio = data.permitirAudio !== undefined ? data.permitirAudio : true;
+
+        if (templatePerguntas && templatePerguntas.length > 0) {
+            // Hide default form, show template form
+            document.getElementById('defaultFormWrap').style.display = 'none';
+            document.getElementById('templateFormWrap').style.display = 'block';
+            renderTemplateQuestions(templatePerguntas);
+
+            // Update audio topic list
+            updateTopicListForTemplate(templatePerguntas);
+        }
+
+        if (!permitirAudio) {
+            // Hide toggle, hide audio panel, force form mode
+            document.querySelector('.toggle-wrap').style.display = 'none';
+            document.getElementById('audioPanel').classList.remove('active');
+            document.getElementById('formPanel').classList.add('active');
+        }
+
+        // 2. Check if user is logged in
+        if (!vitaeAPI.isLoggedIn()) {
+            // Show login gate, hide main content behind it
+            showLoginGate();
+
+            // Still pre-fill from backend data if available (for when they log in)
+            prefillFromBackendData(data);
+            return;
+        }
+
+        // 3. User IS logged in — check profile completeness
+        try {
+            const perfilData = await vitaeAPI.getPerfil();
+            const p = perfilData?.perfil || perfilData || {};
+            const isProfileComplete = !!(p.cpf && p.dataNascimento);
+
+            if (!isProfileComplete) {
+                const missing2 = [];
+                if (!p.cpf) missing2.push('CPF');
+                if (!p.dataNascimento) missing2.push('Data de nascimento');
+                const listEl2 = document.getElementById('missingFieldsList');
+                if (listEl2 && missing2.length > 0) {
+                    listEl2.innerHTML = '<div style="font-size:13px;font-weight:600;color:#EF4444;margin-bottom:8px;">Falta preencher:</div>' +
+                        missing2.map(function(f) {
+                            return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:6px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);border-radius:10px;font-size:13px;color:#0D0F14;font-weight:500;">' +
+                                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
+                                f + '</div>';
+                        }).join('');
+                }
+                document.getElementById('profileIncomplete').classList.add('active');
+                return;
+            }
+
+            // Pre-fill from API (logged-in user's own data)
+            await prefillFromProfile();
+        } catch (profileErr) {
+            console.warn('Could not check profile, using backend data:', profileErr);
+            // Fall back to backend-provided data
+            prefillFromBackendData(data);
+        }
+
+    } catch (e) {
+        showError('Link expirado ou inválido', e.message || 'Solicite um novo link ao seu médico.');
+    }
+}
+
+// Pre-fill from the backend pre-consulta response data (existing logic)
+function prefillFromBackendData(data) {
+    // Pré-preencher se tiver dados do perfil Vitae
+    if (data.perfilPaciente) {
+        const p = data.perfilPaciente;
+        if (p.nome) document.getElementById('nomeCompleto').value = p.nome;
+        if (p.dataNascimento) {
+            const isoDate = p.dataNascimento.slice(0,10);
+            document.getElementById('dataNascimentoISO').value = isoDate;
+            const [y,m,d] = isoDate.split('-');
+            document.getElementById('dataNascimento').value = `${d}/${m}/${y}`;
+        }
+        if (p.cpf) document.getElementById('cpf').value = p.cpf;
+        if (p.celular) document.getElementById('telefone').value = p.celular;
+        if (p.email) document.getElementById('emailId').value = p.email;
+        if (p.genero) document.getElementById('sexo').value = p.genero.toLowerCase();
+    }
+
+    // Tags de medicamentos pré-preenchidos
+    const meds = data.perfilPaciente?.medicamentos || [];
+    if (meds.length > 0) {
+        document.getElementById('prefillMeds').style.display = 'block';
+        const wrap = document.getElementById('medsTagsWrap');
+        meds.forEach(m => {
+            const tag = document.createElement('span');
+            tag.className = 'prefill-tag';
+            tag.textContent = m;
+            wrap.appendChild(tag);
+        });
+        document.getElementById('medicamentos').value = meds.join('\n');
+        document.getElementById('medicamentos').placeholder = 'Adicione outros medicamentos não listados acima...';
+    }
+
+    // Tags de alergias pré-preenchidas
+    const algs = data.perfilPaciente?.alergias || [];
+    if (algs.length > 0) {
+        document.getElementById('prefillAlergias').style.display = 'block';
+        const wrap = document.getElementById('alergiasTagsWrap');
+        algs.forEach(a => {
+            const tag = document.createElement('span');
+            tag.className = 'prefill-tag';
+            tag.textContent = a;
+            wrap.appendChild(tag);
+        });
+        document.getElementById('alergias').value = algs.join(', ');
+    }
+
+    // Tags de cirurgias pré-preenchidas
+    const cirgs = data.perfilPaciente?.cirurgias || [];
+    if (cirgs.length > 0) {
+        document.getElementById('prefillCirurgias').style.display = 'block';
+        const wrap = document.getElementById('cirurgiasTagsWrap');
+        cirgs.forEach(c => {
+            const tag = document.createElement('span');
+            tag.className = 'prefill-tag';
+            tag.textContent = c;
+            wrap.appendChild(tag);
+        });
+        document.getElementById('cirurgias').value = cirgs.join('\n');
+    }
+
+    // Tags de exames pré-preenchidos
+    const examesStr = data.perfilPaciente?.examesRecentes || '';
+    if (examesStr) {
+        document.getElementById('prefillExames').style.display = 'block';
+        const wrap = document.getElementById('examesTagsWrap');
+        examesStr.split(', ').slice(0,5).forEach(e => {
+            const tag = document.createElement('span');
+            tag.className = 'prefill-tag';
+            tag.textContent = e;
+            wrap.appendChild(tag);
+        });
+    }
+}
+
+function showError(title, msg) {
+    document.getElementById('errorTitle').textContent = title;
+    document.getElementById('errorMsg').textContent = msg;
+    document.getElementById('errorState').classList.add('active');
+}
+
+function getSelectVal(id) {
+    return document.getElementById(id)?.value || '';
+}
+
+async function enviar() {
+    const queixa = document.getElementById('queixa').value.trim();
+    if (!queixa) { alert('A queixa principal é obrigatória.'); return; }
+
+    const consentAll = document.getElementById('consentAll').checked;
+    if (!consentAll) {
+        alert('Por favor, aceite os termos de consentimento para continuar.');
+        return;
+    }
+
+    // LGPD consent validation
+    const lgpdConsent = document.getElementById('lgpdConsentDefault');
+    if (!lgpdConsent.checked) {
+        alert('Por favor, autorize o compartilhamento dos seus dados de saúde para continuar.');
+        return;
+    }
+
+    document.getElementById('loadingScreen').classList.add('active');
+
+    const respostas = {
+        // Identificação
+        nomeCompleto: document.getElementById('nomeCompleto').value.trim(),
+        dataNascimento: document.getElementById('dataNascimentoISO').value || document.getElementById('dataNascimento').value,
+        cpf: document.getElementById('cpf').value.trim(),
+        telefone: document.getElementById('telefone').value.trim(),
+        email: document.getElementById('emailId').value.trim(),
+        sexo: document.getElementById('sexo').value,
+        // Motivo
+        queixaPrincipal: queixa,
+        duracaoSintomas: document.getElementById('duracao').value.trim(),
+        // Medicamentos
+        medicamentosEmUso: document.getElementById('medicamentos').value.trim(),
+        // Alergias
+        alergias: document.getElementById('alergias').value.trim(),
+        reacoesAdversas: document.getElementById('reacoesAdversas').value.trim(),
+        // Doenças
+        doencasAtuais: document.getElementById('doencasAtuais').value.trim(),
+        historicoInternacoes: document.getElementById('historicoInternacoes').value.trim(),
+        // Cirurgias
+        cirurgias: document.getElementById('cirurgias').value.trim(),
+        // História familiar
+        historiaFamiliar: document.getElementById('historiaFamiliar').value.trim(),
+        // Hábitos
+        tabagismo: getSelectVal('tabagismo'),
+        tabagismoDetalhe: document.getElementById('tabagismoDetalhe').value.trim(),
+        alcool: getSelectVal('alcool'),
+        exercicio: getSelectVal('exercicio'),
+        exercicioTipo: document.getElementById('exercicioTipo').value.trim(),
+        cafeina: getSelectVal('cafeina'),
+        sono: getSelectVal('sono'),
+        mudancasRotina: document.getElementById('mudancasRotina').value.trim(),
+        // Exames
+        examesAnteriores: document.getElementById('examesAnteriores').value.trim(),
+        // Consentimento
+        consentimentos: {
+            aceite: true,
+            lgpdAceite: true,
+            dataHora: new Date().toISOString(),
+        },
+        // Observações
+        observacoes: document.getElementById('observacoes').value.trim(),
+    };
+
+    const body = { respostas };
+
+    // Include patient token if logged in
+    const pacienteToken = vitaeAPI.getToken();
+    if (pacienteToken) {
+        body.pacienteToken = pacienteToken;
+    }
+
+    try {
+        await vitaeAPI.responderPreConsulta(token, body);
+        document.getElementById('loadingScreen').classList.remove('active');
+        document.getElementById('successScreen').classList.add('active');
+    } catch (e) {
+        document.getElementById('loadingScreen').classList.remove('active');
+        alert('Erro ao enviar: ' + (e.message || 'Tente novamente.'));
+    }
+}
+
+init();
+</script>
+</body>
+</html>

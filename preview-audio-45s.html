@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Preview — Áudio 45s</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#00E5A0;--cyan:#00B4D8;--dark:#0D0F14;--bg:#F5F7FA;
+  --surface:#FFFFFF;--surface2:#F4F6F9;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.13);
+  --shadow:0 2px 16px rgba(0,0,0,0.08);--shadow-lg:0 8px 32px rgba(0,0,0,0.13);
+  --text-1:#0D0F14;--text-2:#4B5563;--text-3:#9CA3AF;
+  --accent:rgba(0,229,160,0.10);--accent-border:rgba(0,229,160,0.20);
+  --font:'Plus Jakarta Sans',sans-serif;--r:16px;--r-sm:10px;
+}
+html,body{width:100%;min-height:100vh;background:var(--bg);font-family:var(--font);-webkit-font-smoothing:antialiased;color:var(--text-1)}
+
+/* ─── LAYOUT GERAL DO PREVIEW ─── */
+.page{max-width:1400px;margin:0 auto;padding:40px 24px 80px}
+.page-header{text-align:center;margin-bottom:48px}
+.page-header h1{font-size:36px;font-weight:800;letter-spacing:-1px;margin-bottom:8px}
+.page-header .grd{background:linear-gradient(120deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.page-header p{font-size:15px;color:var(--text-2);max-width:560px;margin:0 auto;line-height:1.6}
+
+.section{margin-bottom:72px}
+.section-head{display:flex;align-items:baseline;gap:14px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.section-head .num{font-size:42px;font-weight:800;letter-spacing:-2px;background:linear-gradient(120deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.section-head h2{font-size:24px;font-weight:800;letter-spacing:-.6px}
+.section-head .sub{font-size:13px;color:var(--text-3);margin-left:auto}
+
+/* ─── FLUXOGRAMA MÉDICO ─── */
+.flow{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px;box-shadow:var(--shadow)}
+.flow-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;align-items:stretch;margin-bottom:24px}
+.flow-step{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:18px 16px;position:relative;display:flex;flex-direction:column;gap:8px;min-height:140px}
+.flow-step .fs-num{font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--text-3);text-transform:uppercase}
+.flow-step .fs-title{font-size:14px;font-weight:700;color:var(--text-1)}
+.flow-step .fs-body{font-size:12px;color:var(--text-2);line-height:1.5;flex:1}
+.flow-step.hl{background:linear-gradient(135deg,rgba(0,229,160,0.08),rgba(0,180,216,0.06));border-color:var(--accent-border)}
+.flow-step.hl .fs-title{color:var(--text-1)}
+.flow-arrow{position:absolute;right:-12px;top:50%;transform:translateY(-50%);width:20px;height:20px;display:flex;align-items:center;justify-content:center;background:var(--bg);border-radius:50%;z-index:2;font-size:14px;color:var(--text-3);font-weight:700}
+.flow-step:last-child .flow-arrow{display:none}
+
+.flow-notes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+.flow-note{background:var(--accent);border:1px solid var(--accent-border);border-radius:12px;padding:14px 16px}
+.flow-note .fn-label{font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--green);text-transform:uppercase;margin-bottom:6px}
+.flow-note .fn-title{font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:4px}
+.flow-note .fn-body{font-size:12px;color:var(--text-2);line-height:1.5}
+
+/* ─── PHONE SHELL (fiel ao 02-slides-paciente) ─── */
+.shells-row{display:flex;gap:32px;justify-content:center;flex-wrap:wrap}
+.shell-wrap{display:flex;flex-direction:column;align-items:center;gap:14px}
+.shell-label{font-size:12px;font-weight:700;color:var(--text-2);letter-spacing:.04em}
+.shell-label .sub{display:block;font-size:11px;font-weight:500;color:var(--text-3);margin-top:2px}
+
+.shell{
+  width:375px;height:812px;background:var(--surface);border-radius:52px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.10),0 0 0 10px #1C1C1E,0 0 0 11px rgba(255,255,255,.12),0 40px 80px rgba(0,0,0,.30);
+  overflow:hidden;position:relative;display:flex;flex-direction:column;flex-shrink:0;
+}
+.island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:36px;background:#1C1C1E;border-radius:20px;z-index:50}
+.sbar{height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 8px;flex-shrink:0}
+.st-time{font-size:15px;font-weight:600;color:var(--text-1)}
+.st-r{display:flex;align-items:center;gap:5px}
+.st-bars{display:flex;gap:2px;align-items:flex-end}
+.st-bars span{width:3px;background:var(--text-1);border-radius:1px}
+.st-bars span:nth-child(1){height:5px}.st-bars span:nth-child(2){height:8px}
+.st-bars span:nth-child(3){height:11px}.st-bars span:nth-child(4){height:14px}
+.st-batt{width:24px;height:13px;border:1.5px solid var(--text-1);border-radius:3px;padding:2px;position:relative;display:flex;align-items:center}
+.st-batt::after{content:'';position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:3px;height:6px;background:var(--text-1);border-radius:0 2px 2px 0}
+.st-batt-f{flex:1;background:var(--text-1);border-radius:1px}
+
+.ob-logo{padding:4px 24px 12px;flex-shrink:0}
+.logo-txt{font-size:20px;font-weight:800;letter-spacing:-.6px;color:var(--text-1);display:inline-flex;align-items:center;line-height:1}
+.logo-txt .grd{display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#0D0F14;font-weight:800;margin-left:2px;padding:2px 6px;border-radius:5px;line-height:1;-webkit-text-fill-color:#0D0F14}
+
+.track{flex:1;display:flex;min-height:0;transition:transform .55s cubic-bezier(.42,0,.18,1);will-change:transform}
+.slide{min-width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden}
+
+.ob-bot{flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);padding:14px 24px 26px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.dots{display:flex;gap:7px;align-items:center}
+.dot{height:6px;border-radius:3px;background:var(--border2);transition:all .4s cubic-bezier(.42,0,.18,1);width:6px}
+.dot.active{width:22px;background:var(--green)}
+
+.cta{width:100%;padding:16px;background:linear-gradient(120deg,var(--green),var(--cyan));color:var(--dark);font-family:var(--font);font-size:15px;font-weight:700;border:none;cursor:pointer;border-radius:2px;letter-spacing:.01em;box-shadow:0 6px 24px rgba(0,229,160,.25);transition:all .22s;position:relative;overflow:hidden}
+.cta:active{transform:scale(.98)}
+.skip{font-size:13px;font-weight:500;color:var(--text-3);background:none;border:none;font-family:var(--font);cursor:pointer;transition:color .2s}
+.skip:hover{color:var(--text-2)}
+.home-ind{height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.home-bar{width:134px;height:5px;background:var(--text-1);border-radius:3px;opacity:.16}
+
+.s-inner{flex:1;display:flex;flex-direction:column;padding:0 24px 12px;overflow:hidden}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--green);margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:'';width:18px;height:1.5px;background:var(--green);opacity:.6}
+.s-title{font-size:26px;font-weight:800;letter-spacing:-.8px;line-height:1.13;color:var(--text-1);margin-bottom:6px}
+.s-title .hl{background:linear-gradient(120deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.s-sub{font-size:13.5px;color:var(--text-2);line-height:1.6;margin-bottom:16px}
+
+/* SLIDE 1 — CONFIANÇA — 2 cards + seta */
+.trust-body{flex:1;display:flex;flex-direction:column;gap:14px;overflow:hidden;justify-content:center}
+.trust-wire{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 4px}
+.trust-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 14px;box-shadow:var(--shadow);text-align:center}
+.trust-avatar{width:52px;height:52px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1.5px solid var(--border)}
+.trust-avatar svg{stroke:var(--text-2)}
+.trust-card.doctor .trust-avatar{background:var(--accent);border-color:var(--accent-border)}
+.trust-card.doctor .trust-avatar svg{stroke:var(--green)}
+.trust-name{font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:2px}
+.trust-role{font-size:11px;color:var(--text-3)}
+.trust-arrow{flex-shrink:0;position:relative;width:52px;height:2px;background:linear-gradient(90deg,var(--green),var(--cyan));border-radius:2px;overflow:visible}
+.trust-arrow::after{content:'';position:absolute;right:-2px;top:50%;transform:translateY(-50%) rotate(45deg);width:8px;height:8px;border-top:2px solid var(--cyan);border-right:2px solid var(--cyan)}
+.trust-pulse{position:absolute;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px rgba(0,229,160,.8);animation:pulseMove 2.4s ease-in-out infinite}
+@keyframes pulseMove{0%{left:-4px;opacity:0}15%{opacity:1}85%{opacity:1}100%{left:52px;opacity:0}}
+
+.trust-note{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;margin-top:8px}
+.trust-note::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--green),var(--cyan))}
+.tn-num{font-size:48px;font-weight:800;letter-spacing:-3px;line-height:1;background:linear-gradient(120deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;flex-shrink:0}
+.tn-label{font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:3px}
+.tn-sub{font-size:12px;color:var(--text-2)}
+
+/* SLIDE 2 — PREPARO — timeline dos 8 tópicos */
+.topics-body{flex:1;display:flex;flex-direction:column;gap:0;overflow:hidden;position:relative;padding-top:4px}
+.topics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;overflow:auto;padding-bottom:12px}
+.topic-chip{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+.topic-chip-icon{width:30px;height:30px;border-radius:8px;flex-shrink:0;background:var(--accent);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center}
+.topic-chip-icon svg{stroke:var(--green)}
+.topic-chip-label{font-size:11.5px;font-weight:600;color:var(--text-1);line-height:1.25}
+.topics-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;margin-top:4px}
+.topics-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--green),var(--cyan))}
+
+/* SLIDE 3 — COMPROMISSO — timeline 0→45→90 */
+.commit-body{flex:1;display:flex;flex-direction:column;gap:14px;overflow:hidden;justify-content:center}
+.commit-timeline{background:var(--surface);border:1px solid var(--accent-border);border-radius:var(--r);padding:28px 20px 22px;position:relative;box-shadow:0 4px 20px rgba(0,229,160,.10)}
+.commit-timeline::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--green),var(--cyan))}
+.ct-label{font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--green);text-transform:uppercase;margin-bottom:18px;text-align:center}
+.ct-bar{position:relative;height:6px;background:var(--surface2);border-radius:3px;margin:0 8px 40px}
+.ct-bar-fill{position:absolute;left:0;top:0;bottom:0;width:50%;background:linear-gradient(90deg,var(--green),var(--cyan));border-radius:3px;opacity:.35}
+.ct-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:var(--surface);border:3px solid var(--green);box-shadow:0 2px 8px rgba(0,229,160,.4)}
+.ct-marker.m0{left:0%}.ct-marker.m45{left:50%}.ct-marker.m90{left:100%;border-color:var(--cyan)}
+.ct-marker-label{position:absolute;top:28px;left:50%;transform:translateX(-50%);text-align:center;white-space:nowrap}
+.ct-marker-time{font-size:13px;font-weight:800;color:var(--text-1);letter-spacing:-.3px}
+.ct-marker-sub{font-size:10px;color:var(--text-3);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.1em}
+.ct-marker.m45 + .ct-marker-label .ct-marker-sub{color:var(--green)}
+
+.commit-cta-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.commit-cta-icon{width:38px;height:38px;border-radius:10px;flex-shrink:0;background:rgba(0,229,160,.18);border:1px solid rgba(0,229,160,.3);display:flex;align-items:center;justify-content:center}
+.commit-cta-icon svg{stroke:var(--green)}
+.commit-cta-title{font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:2px}
+.commit-cta-sub{font-size:11.5px;color:var(--text-2)}
+
+/* ─── TELAS DE GRAVAÇÃO ─── */
+.scn-selector{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:32px;max-width:900px;margin-left:auto;margin-right:auto}
+.scn-btn{padding:10px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.scn-btn:hover{border-color:var(--accent-border);color:var(--text-1)}
+.scn-btn.active{background:linear-gradient(120deg,var(--green),var(--cyan));color:var(--dark);border-color:transparent;box-shadow:0 4px 16px rgba(0,229,160,.25)}
+.scn-explain{max-width:640px;margin:0 auto 32px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 22px;box-shadow:var(--shadow)}
+.scn-explain .se-num{font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--green);text-transform:uppercase;margin-bottom:6px}
+.scn-explain .se-title{font-size:16px;font-weight:800;margin-bottom:6px;letter-spacing:-.3px}
+.scn-explain .se-body{font-size:13px;color:var(--text-2);line-height:1.6}
+.scn-explain .se-body strong{color:var(--text-1)}
+
+.rec-view{flex:1;display:flex;flex-direction:column;padding:24px 24px 14px;overflow:hidden;background:#F4F6FA}
+.rec-view-title{font-size:22px;font-weight:800;letter-spacing:-.6px;margin-bottom:4px}
+.rec-view-sub{font-size:13px;color:var(--text-2);margin-bottom:18px;line-height:1.5}
+
+.rec-box{background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.15);border-radius:16px;padding:18px;margin-bottom:14px}
+.rec-box.idle{display:flex;align-items:center;gap:14px;cursor:pointer}
+.rec-box-icon{width:52px;height:52px;border-radius:50%;flex-shrink:0;background:linear-gradient(120deg,var(--green),var(--cyan));display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,229,160,0.25)}
+.rec-box-icon svg{width:22px;height:22px;stroke:var(--dark);fill:none;stroke-width:2}
+.rec-box-label{font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:2px}
+.rec-box-sub{font-size:12px;color:var(--text-3)}
+
+.rec-active-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:var(--green);flex-shrink:0;animation:blink 1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.rec-timer{font-size:24px;font-weight:600;color:var(--cyan);letter-spacing:1px;font-variant-numeric:tabular-nums}
+.rec-timer .sep{color:var(--text-3);font-weight:500}
+.rec-paused-badge{margin-left:auto;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:4px 10px;border-radius:10px;background:rgba(245,158,11,0.12);color:#92700C;border:1px solid rgba(245,158,11,0.25)}
+
+.rec-progress{position:relative;height:6px;background:rgba(0,0,0,0.06);border-radius:3px;margin-bottom:16px;overflow:visible}
+.rec-progress-fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--green),var(--cyan));border-radius:3px;transition:width .3s}
+.rec-progress-marker{position:absolute;top:-6px;width:2px;height:18px;background:var(--text-3);opacity:.35}
+.rec-progress-marker.min{left:50%;background:var(--green);opacity:.8}
+.rec-progress-marker.min::after{content:'00:45';position:absolute;top:22px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:var(--green);white-space:nowrap}
+
+.rec-wave{height:48px;border-radius:8px;background:rgba(0,229,160,0.04);margin-bottom:16px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:3px;padding:0 12px}
+.rec-wave-bar{width:3px;background:var(--green);border-radius:2px;animation:wave 1.2s ease-in-out infinite}
+@keyframes wave{0%,100%{height:10%}50%{height:80%}}
+
+.rec-hint{font-size:12px;color:var(--text-2);text-align:center;margin-bottom:16px;line-height:1.5}
+.rec-hint strong{color:var(--text-1);font-weight:700}
+
+.rec-main-btn{width:100%;padding:16px;border-radius:14px;border:none;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s}
+.rec-main-btn.primary{background:linear-gradient(120deg,var(--green),var(--cyan));color:var(--dark);box-shadow:0 4px 20px rgba(0,229,160,0.25)}
+.rec-main-btn.secondary{background:var(--surface);border:1.5px solid var(--border);color:var(--text-2)}
+.rec-main-btn:active{transform:scale(.98)}
+.rec-main-btn[disabled]{opacity:.5;cursor:not-allowed}
+.rec-main-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* Bottom sheet (exceção) */
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:24px 24px 0 0;padding:14px 24px 28px;box-shadow:0 -12px 40px rgba(0,0,0,0.15);z-index:60}
+.sheet-handle{width:42px;height:4px;background:rgba(0,0,0,0.14);border-radius:2px;margin:4px auto 18px}
+.sheet-title{font-size:18px;font-weight:700;color:var(--text-1);margin-bottom:8px;letter-spacing:-.3px;line-height:1.3}
+.sheet-body{font-size:13.5px;color:var(--text-2);line-height:1.55;margin-bottom:14px}
+.sheet-timepill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(0,0,0,0.05);font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:18px}
+.sheet-timepill .cur{color:var(--text-1);font-weight:700}
+.sheet-btns{display:flex;flex-direction:column;gap:10px}
+.sheet-btn{width:100%;padding:14px;border-radius:14px;border:none;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer}
+.sheet-btn.primary{background:linear-gradient(120deg,var(--green),var(--cyan));color:var(--dark);box-shadow:0 4px 16px rgba(0,229,160,.25)}
+.sheet-btn.secondary{background:var(--surface);border:1.5px solid var(--border);color:var(--text-2)}
+.sheet-overlay{position:absolute;inset:0;background:rgba(13,15,20,0.22);z-index:55}
+
+.overlay-center{position:absolute;inset:0;background:var(--surface);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center}
+.overlay-spinner{width:48px;height:48px;border:3px solid rgba(0,229,160,0.15);border-top-color:var(--green);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay-check{width:64px;height:64px;border-radius:50%;background:var(--accent);border:2px solid var(--accent-border);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.overlay-check svg{width:30px;height:30px;stroke:var(--green);stroke-width:3;fill:none}
+.overlay-alert{width:56px;height:56px;border-radius:50%;background:rgba(245,158,11,0.12);border:2px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.overlay-alert svg{width:26px;height:26px;stroke:#F59E0B;stroke-width:2.5;fill:none}
+.overlay-title{font-size:22px;font-weight:800;color:var(--text-1);margin-bottom:8px;letter-spacing:-.3px}
+.overlay-body{font-size:13.5px;color:var(--text-2);line-height:1.6;max-width:280px;margin-bottom:24px}
+.overlay-btn{padding:14px 28px;border-radius:14px;border:none;background:linear-gradient(120deg,var(--green),var(--cyan));color:var(--dark);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,229,160,.25)}
+
+/* ─── PREVIEW DO MÉDICO ─── */
+.medico-mock{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;box-shadow:var(--shadow);max-width:900px;margin:0 auto}
+.medico-mock-head{display:flex;align-items:center;gap:14px;padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.medico-avatar{width:52px;height:52px;border-radius:50%;background:var(--accent);border:1.5px solid var(--accent-border);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.medico-avatar svg{stroke:var(--green)}
+.medico-info h3{font-size:15px;font-weight:700;margin-bottom:2px}
+.medico-info p{font-size:12px;color:var(--text-3)}
+.medico-badges{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.med-badge{padding:5px 10px;border-radius:8px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.med-badge.ok{background:var(--accent);color:var(--green);border:1px solid var(--accent-border)}
+.med-badge.warn{background:rgba(245,158,11,0.12);color:#92700C;border:1px solid rgba(245,158,11,0.25)}
+
+.medico-player{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.medico-player-btn{width:44px;height:44px;border-radius:50%;background:linear-gradient(120deg,var(--green),var(--cyan));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 16px rgba(0,229,160,.25)}
+.medico-player-btn svg{fill:var(--dark);stroke:none}
+.medico-player-info{flex:1}
+.medico-player-label{font-size:12px;font-weight:600;color:var(--text-3);margin-bottom:4px}
+.medico-player-time{font-size:14px;font-weight:700;color:var(--text-1);font-variant-numeric:tabular-nums}
+
+.medico-insights{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.insight-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--green);border-radius:12px;padding:14px}
+.insight-card.blue{border-left-color:#3B82F6}
+.insight-card.purple{border-left-color:#8B5CF6}
+.insight-card-label{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px}
+.insight-card-body{font-size:13px;color:var(--text-1);line-height:1.5}
+
+@media(max-width:1100px){
+  .shells-row{flex-direction:column;align-items:center}
+  .flow-grid{grid-template-columns:1fr 1fr}
+  .flow-notes{grid-template-columns:1fr}
+  .medico-insights{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .shell{transform:scale(.82);transform-origin:top center;margin-bottom:-140px}
+  .page{padding:24px 12px 60px}
+  .page-header h1{font-size:26px}
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="page-header">
+    <h1>Preview — áudio de <span class="grd">45 segundos</span></h1>
+    <p>Os 3 slides novos, os 8 cenários da gravação e o caminho dos dados até o médico. Nada de código real — só visualização fiel.</p>
+  </div>
+
+  <!-- ═══════ SEÇÃO 1: FLUXO DOS DADOS ═══════ -->
+  <div class="section">
+    <div class="section-head">
+      <div class="num">01</div>
+      <h2>Como os dados chegam no médico</h2>
+      <div class="sub">spoiler: fluxo atual continua intacto</div>
+    </div>
+    <div class="flow">
+      <div class="flow-grid">
+        <div class="flow-step">
+          <div class="fs-num">1</div>
+          <div class="fs-title">Paciente grava</div>
+          <div class="fs-body">Áudio chunked a cada 1s no celular. Mínimo garantido de 00:45.</div>
+          <div class="flow-arrow">›</div>
+        </div>
+        <div class="flow-step hl">
+          <div class="fs-num">2 · novo</div>
+          <div class="fs-title">attemptId único</div>
+          <div class="fs-body">Cada tentativa leva um UUID. Se recomeçar, gera outro. Backend só aceita o último.</div>
+          <div class="flow-arrow">›</div>
+        </div>
+        <div class="flow-step">
+          <div class="fs-num">3</div>
+          <div class="fs-title">Upload Supabase</div>
+          <div class="fs-body">Chunks montam arquivo final. HEAD valida que chegou.</div>
+          <div class="flow-arrow">›</div>
+        </div>
+        <div class="flow-step">
+          <div class="fs-num">4</div>
+          <div class="fs-title">Whisper transcreve</div>
+          <div class="fs-body">Mesma fila assíncrona da Sessão 5. Backoff exponencial se falhar.</div>
+          <div class="flow-arrow">›</div>
+        </div>
+        <div class="flow-step">
+          <div class="fs-num">5</div>
+          <div class="fs-title">Claude resume</div>
+          <div class="fs-body">1-minute summary com prompt da Sessão 6. Médico vê no 25-summary.html.</div>
+        </div>
+      </div>
+      <div class="flow-notes">
+        <div class="flow-note">
+          <div class="fn-label">Não muda</div>
+          <div class="fn-title">Dashboard, 25-summary, insights</div>
+          <div class="fn-body">Médico continua abrindo a pre-consulta exatamente como hoje. Nenhuma tela dele muda.</div>
+        </div>
+        <div class="flow-note">
+          <div class="fn-label">Melhora</div>
+          <div class="fn-title">Qualidade do summary</div>
+          <div class="fn-body">45s mínimo = transcrição mais rica = insights mais úteis. O médico ganha contexto sem levantar um dedo.</div>
+        </div>
+        <div class="flow-note">
+          <div class="fn-label">Rede de segurança</div>
+          <div class="fn-title">Badge "Conteúdo curto"</div>
+          <div class="fn-body">Se passou dos 45s mas a transcrição deu menos de 80 palavras, badge avisa + botão "Pedir reenvio" já existente.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ SEÇÃO 2: 3 SLIDES ═══════ -->
+  <div class="section">
+    <div class="section-head">
+      <div class="num">02</div>
+      <h2>Slides de orientação</h2>
+      <div class="sub">use os dots ou arraste para navegar</div>
+    </div>
+    <div class="shells-row">
+      <div class="shell-wrap">
+        <div class="shell">
+          <div class="island"></div>
+          <div class="sbar">
+            <div class="st-time">9:41</div>
+            <div class="st-r">
+              <div class="st-bars"><span></span><span></span><span></span><span></span></div>
+              <div class="st-batt"><div class="st-batt-f"></div></div>
+            </div>
+          </div>
+          <div class="ob-logo"><div class="logo-txt">vita<span class="grd">id</span></div></div>
+
+          <div class="track" id="track">
+
+            <!-- SLIDE 1 -->
+            <div class="slide" id="s1">
+              <div class="s-inner">
+                <div class="eyebrow">Antes de gravar</div>
+                <h2 class="s-title">Sua voz vai direto<br>para o seu <span class="hl">médico.</span></h2>
+                <p class="s-sub">Sem intermediário. É como deixar um recado que ele escuta antes de te atender.</p>
+                <div class="trust-body">
+                  <div class="trust-wire">
+                    <div class="trust-card">
+                      <div class="trust-avatar">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      </div>
+                      <div class="trust-name">Você</div>
+                      <div class="trust-role">paciente</div>
+                    </div>
+                    <div class="trust-arrow"><div class="trust-pulse"></div></div>
+                    <div class="trust-card doctor">
+                      <div class="trust-avatar">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M3 7V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2v-2"/><path d="M12 11v6M9 14h6"/></svg>
+                      </div>
+                      <div class="trust-name">Seu médico</div>
+                      <div class="trust-role">quem pediu</div>
+                    </div>
+                  </div>
+                  <div class="trust-note">
+                    <div class="tn-num">0</div>
+                    <div>
+                      <div class="tn-label">pessoas entre você e ele.</div>
+                      <div class="tn-sub">O que você gravar, só ele escuta.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SLIDE 2 -->
+            <div class="slide" id="s2">
+              <div class="s-inner">
+                <div class="eyebrow">O que falar</div>
+                <h2 class="s-title">Conte como se estivesse<br>na <span class="hl">consulta.</span></h2>
+                <p class="s-sub">Sem roteiro. Pela ordem que quiser. Na linguagem que preferir.</p>
+                <div class="topics-body">
+                  <div class="topics-grid">
+                    <div class="topic-chip"><div class="topic-chip-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="topic-chip-label">Motivo da consulta</div></div>
+                    <div class="topic-chip"><div class="topic-chip-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div><div class="topic-chip-label">Medicamentos</div></div>
+                    <div class="topic-chip"><div class="topic-chip-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/></svg></div><div class="topic-chip-label">Alergias</div></div>
+                    <div class="topic-chip"><div class="topic-chip-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div class="topic-chip-label">Doenças, internações</div></div>
+                    <div class="topic-chip"><div class="topic-chip-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4.5 12.5l3 3 12-12"/><path d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h8"/></svg></div><div class="topic-chip-label">Cirurgias</div></div>
+                    <div class="topic-chip"><div class="topic-chip-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div><div class="topic-chip-label">Família</div></div>
+                    <div class="topic-chip"><div class="topic-chip-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="topic-chip-label">Hábitos</div></div>
+                    <div class="topic-chip"><div class="topic-chip-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12l3 3 5-6"/></svg></div><div class="topic-chip-label">Exames recentes</div></div>
+                  </div>
+                  <div class="topics-stat">
+                    <div class="tn-num">8</div>
+                    <div>
+                      <div class="tn-label">assuntos. Pela ordem que quiser.</div>
+                      <div class="tn-sub">Esquecer um? Você atualiza depois.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SLIDE 3 -->
+            <div class="slide" id="s3">
+              <div class="s-inner">
+                <div class="eyebrow">O combinado</div>
+                <h2 class="s-title">Pelo menos<br><span class="hl">45 segundos.</span></h2>
+                <p class="s-sub">Abaixo disso, seu médico não tem contexto suficiente para te atender bem.</p>
+                <div class="commit-body">
+                  <div class="commit-timeline">
+                    <div class="ct-label">Tempo ideal de gravação</div>
+                    <div class="ct-bar">
+                      <div class="ct-bar-fill"></div>
+                      <div class="ct-marker m0"></div>
+                      <div class="ct-marker m45"></div>
+                      <div class="ct-marker m90"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:0 8px;margin-top:-28px">
+                      <div style="text-align:left"><div class="ct-marker-time">00:00</div><div class="ct-marker-sub" style="color:var(--text-3)">início</div></div>
+                      <div style="text-align:center"><div class="ct-marker-time">00:45</div><div class="ct-marker-sub" style="color:var(--green)">mínimo</div></div>
+                      <div style="text-align:right"><div class="ct-marker-time">01:30</div><div class="ct-marker-sub" style="color:var(--cyan)">ideal</div></div>
+                    </div>
+                  </div>
+                  <div class="commit-cta-card">
+                    <div class="commit-cta-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                    </div>
+                    <div style="flex:1">
+                      <div class="commit-cta-title">Tudo pronto</div>
+                      <div class="commit-cta-sub">O microfone abre na próxima tela.</div>
+                    </div>
+                    <div style="font-size:18px;color:var(--green)">›</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="ob-bot">
+            <div class="dots" id="dotsEl"></div>
+            <button class="cta" id="ctaBtn" onclick="nextSlide()">Próximo</button>
+            <div style="display:flex;gap:18px;align-items:center">
+              <button class="skip" id="backBtn" onclick="prevSlide()" style="visibility:hidden">‹ Voltar</button>
+              <button class="skip" id="skipBtn" onclick="goTo(2)">Pular introdução</button>
+            </div>
+          </div>
+          <div class="home-ind"><div class="home-bar"></div></div>
+        </div>
+        <div class="shell-label">3 slides &middot; swipe / arrow keys / dots<span class="sub">pulável até o último. No 3º, só "Começar a gravar"</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ SEÇÃO 3: CENÁRIOS DA GRAVAÇÃO ═══════ -->
+  <div class="section">
+    <div class="section-head">
+      <div class="num">03</div>
+      <h2>Gravação — 8 cenários</h2>
+      <div class="sub">clique os botões para navegar</div>
+    </div>
+
+    <div class="scn-selector">
+      <button class="scn-btn active" data-scn="A">A · Antes</button>
+      <button class="scn-btn" data-scn="B">B · Gravando 0:23</button>
+      <button class="scn-btn" data-scn="C">C · Gravando 0:52</button>
+      <button class="scn-btn" data-scn="D">D · Pausa 0:23</button>
+      <button class="scn-btn" data-scn="E">E · Sheet &lt;45s</button>
+      <button class="scn-btn" data-scn="F">F · Sem voz</button>
+      <button class="scn-btn" data-scn="G">G · Enviando</button>
+      <button class="scn-btn" data-scn="H">H · Sucesso</button>
+    </div>
+
+    <div class="scn-explain" id="scnExplain">
+      <div class="se-num">Cenário A</div>
+      <div class="se-title">Antes de gravar</div>
+      <div class="se-body">Paciente acabou de fechar o slide 3. O microfone ainda não abriu. Botão único em destaque: <strong>Iniciar gravação</strong>. Zero ruído visual.</div>
+    </div>
+
+    <div class="shells-row">
+      <div class="shell-wrap">
+        <div class="shell" id="recShell">
+          <div class="island"></div>
+          <div class="sbar">
+            <div class="st-time">9:42</div>
+            <div class="st-r">
+              <div class="st-bars"><span></span><span></span><span></span><span></span></div>
+              <div class="st-batt"><div class="st-batt-f"></div></div>
+            </div>
+          </div>
+          <div class="ob-logo"><div class="logo-txt">vita<span class="grd">id</span></div></div>
+
+          <div class="rec-view" id="recView">
+            <!-- Conteúdo injetado por JS -->
+          </div>
+
+          <div class="home-ind"><div class="home-bar"></div></div>
+        </div>
+        <div class="shell-label">Estado da gravação<span class="sub" id="scnShellSub">Cenário A · antes de abrir o microfone</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══ SLIDES ═══
+const N=3;let cur=0;
+const track=document.getElementById('track');
+const ctaBtn=document.getElementById('ctaBtn');
+const skipBtn=document.getElementById('skipBtn');
+const backBtn=document.getElementById('backBtn');
+const dotsEl=document.getElementById('dotsEl');
+const dotEls=[];
+for(let i=0;i<N;i++){const d=document.createElement('div');d.className='dot'+(i===0?' active':'');dotsEl.appendChild(d);dotEls.push(d);}
+function goTo(n){cur=n;track.style.transform='translateX(-'+(cur*100)+'%)';dotEls.forEach((d,i)=>d.classList.toggle('active',i===cur));ctaBtn.textContent=cur===N-1?'Começar a gravar':'Próximo';skipBtn.style.visibility=cur===N-1?'hidden':'visible';backBtn.style.visibility=cur===0?'hidden':'visible';}
+function nextSlide(){if(cur<N-1)goTo(cur+1);else alert('Aqui abriria o cenário A (microfone).');}
+function prevSlide(){if(cur>0)goTo(cur-1);}
+dotEls.forEach((d,i)=>d.addEventListener('click',()=>goTo(i)));
+// Swipe nos slides
+let sx=0;
+const shell1=document.querySelectorAll('.shell')[0];
+shell1.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
+shell1.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40){if(dx<0&&cur<N-1)goTo(cur+1);if(dx>0&&cur>0)goTo(cur-1);}});
+
+// ═══ CENÁRIOS ═══
+const scenarios={
+  A:{
+    title:'Antes de gravar',
+    body:'Paciente acabou de fechar o slide 3. O microfone ainda não abriu. Botão único em destaque: <strong>Iniciar gravação</strong>. Zero ruído visual.',
+    render:()=>`
+      <div class="rec-view-title">Grave seu áudio</div>
+      <div class="rec-view-sub">Fale naturalmente, como uma conversa com seu médico.</div>
+      <div class="rec-box idle">
+        <div class="rec-box-icon"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></div>
+        <div><div class="rec-box-label">Toque para gravar</div><div class="rec-box-sub">Mínimo 00:45 &middot; ideal 01:30</div></div>
+      </div>
+      <div style="flex:1"></div>
+      <button class="rec-main-btn primary">Iniciar gravação</button>
+    `
+  },
+  B:{
+    title:'Gravando — 00:23 (antes do mínimo)',
+    body:'Timer passou de 00:15. A barra de progresso mostra o quanto falta até os 00:45 (marcador verde). O botão principal se chama <strong>Pausar</strong> — ainda não existe "Finalizar" nesta tela. Hint abaixo da onda: <em>"Continue. Fale dos medicamentos e alergias também."</em>',
+    render:()=>`
+      <div class="rec-view-title">Gravando</div>
+      <div class="rec-box" style="border-radius:16px;padding:18px">
+        <div class="rec-active-top">
+          <div class="rec-dot"></div>
+          <div class="rec-timer">00<span class="sep">:</span>23</div>
+        </div>
+        <div class="rec-progress">
+          <div class="rec-progress-fill" style="width:25.5%"></div>
+          <div class="rec-progress-marker min"></div>
+        </div>
+        <div class="rec-wave" style="margin-top:22px">
+          ${Array.from({length:28}).map((_,i)=>`<div class="rec-wave-bar" style="animation-delay:${i*0.04}s;height:${20+Math.random()*60}%"></div>`).join('')}
+        </div>
+      </div>
+      <div class="rec-hint">Continue. Fale dos <strong>medicamentos</strong> e <strong>alergias</strong> também.</div>
+      <div style="flex:1"></div>
+      <button class="rec-main-btn secondary">
+        <svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        Pausar
+      </button>
+    `
+  },
+  C:{
+    title:'Gravando — 00:52 (passou do mínimo)',
+    body:'Mínimo atingido. Barra verde transborda o marcador. O botão principal agora se chama <strong>Finalizar gravação ✓</strong> em verde. O paciente pode finalizar a qualquer momento daqui pra frente. Hint: <em>"Completo. Pode finalizar ou continuar falando."</em>',
+    render:()=>`
+      <div class="rec-view-title">Gravando</div>
+      <div class="rec-box" style="border-radius:16px;padding:18px">
+        <div class="rec-active-top">
+          <div class="rec-dot"></div>
+          <div class="rec-timer">00<span class="sep">:</span>52</div>
+        </div>
+        <div class="rec-progress">
+          <div class="rec-progress-fill" style="width:57.7%"></div>
+          <div class="rec-progress-marker min"></div>
+        </div>
+        <div class="rec-wave" style="margin-top:22px">
+          ${Array.from({length:28}).map((_,i)=>`<div class="rec-wave-bar" style="animation-delay:${i*0.04}s;height:${20+Math.random()*60}%"></div>`).join('')}
+        </div>
+      </div>
+      <div class="rec-hint">Completo. Pode <strong>finalizar</strong> ou continuar falando até 01:30.</div>
+      <div style="flex:1"></div>
+      <button class="rec-main-btn primary">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Finalizar gravação
+      </button>
+    `
+  },
+  D:{
+    title:'Pausado aos 00:23',
+    body:'Paciente apertou "Pausar". Badge <strong>EM PAUSA</strong> aparece ao lado do timer. Onda congelada. Botão muda para <strong>Continuar gravando</strong>. A qualquer momento ele pode retomar ou recomeçar (secundário).',
+    render:()=>`
+      <div class="rec-view-title">Gravação em pausa</div>
+      <div class="rec-box" style="border-radius:16px;padding:18px">
+        <div class="rec-active-top">
+          <div class="rec-dot" style="background:#F59E0B;animation:none"></div>
+          <div class="rec-timer" style="color:#92700C">00<span class="sep">:</span>23</div>
+          <div class="rec-paused-badge">Em pausa</div>
+        </div>
+        <div class="rec-progress">
+          <div class="rec-progress-fill" style="width:25.5%;opacity:.5"></div>
+          <div class="rec-progress-marker min"></div>
+        </div>
+        <div class="rec-wave" style="margin-top:22px;opacity:.4">
+          ${Array.from({length:28}).map((_,i)=>`<div class="rec-wave-bar" style="animation:none;height:${20+Math.random()*60}%"></div>`).join('')}
+        </div>
+      </div>
+      <div class="rec-hint">Retome quando quiser. Nada foi perdido.</div>
+      <div style="flex:1"></div>
+      <button class="rec-main-btn primary" style="margin-bottom:10px">
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21"/></svg>
+        Continuar gravando
+      </button>
+      <button class="rec-main-btn secondary">Recomeçar do início</button>
+    `
+  },
+  E:{
+    title:'Exceção — paciente tentou sair/travou tela com menos de 45s',
+    body:'Bottom sheet aparece quando o sistema detecta saída precoce (fechar aba, bloquear celular com gravação abaixo do mínimo, voltar pro link depois). Copy séria, sem incerteza. Nenhuma palavra de erro. Pill de tempo transparente.',
+    render:()=>`
+      <div class="rec-view-title">Gravação em pausa</div>
+      <div class="rec-box" style="border-radius:16px;padding:18px;opacity:.45">
+        <div class="rec-active-top">
+          <div class="rec-dot" style="background:#F59E0B;animation:none"></div>
+          <div class="rec-timer" style="color:#92700C">00<span class="sep">:</span>23</div>
+        </div>
+        <div class="rec-progress">
+          <div class="rec-progress-fill" style="width:25.5%;opacity:.5"></div>
+          <div class="rec-progress-marker min"></div>
+        </div>
+      </div>
+      <div style="flex:1"></div>
+      <div class="sheet-overlay"></div>
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Sua gravação ainda não atingiu o mínimo.</div>
+        <div class="sheet-body">Médicos precisam de pelo menos 45 segundos de áudio para preparar sua consulta com segurança.</div>
+        <div class="sheet-timepill">Você gravou <span class="cur">00:23</span> de 00:45</div>
+        <div class="sheet-btns">
+          <button class="sheet-btn primary">Continuar gravando</button>
+          <button class="sheet-btn secondary">Recomeçar do início</button>
+        </div>
+      </div>
+    `
+  },
+  F:{
+    title:'Silêncio detectado',
+    body:'Paciente chegou aos 45s+ mas o microfone não captou voz (bolso, mic mudo, contexto barulhento sem fala). Única tela de "exceção" — ainda assim sem a palavra "erro". Reexibe o botão de gravar na sequência.',
+    render:()=>`
+      <div class="overlay-center">
+        <div class="overlay-alert">
+          <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </div>
+        <div class="overlay-title">Não captamos sua voz</div>
+        <div class="overlay-body">Pode ser o microfone ou o ambiente. Tente de novo num lugar mais silencioso, próximo ao celular.</div>
+        <button class="overlay-btn">Gravar de novo</button>
+      </div>
+    `
+  },
+  G:{
+    title:'Enviando',
+    body:'Paciente finalizou acima de 45s. Upload em andamento. Botão desabilitado para impedir duplo envio. Fila assíncrona da Sessão 5 garante que não trava se a conexão cair.',
+    render:()=>`
+      <div class="overlay-center">
+        <div class="overlay-spinner"></div>
+        <div class="overlay-title">Enviando para seu médico</div>
+        <div class="overlay-body">Não feche essa tela. Vai levar uns segundos.</div>
+      </div>
+    `
+  },
+  H:{
+    title:'Sucesso',
+    body:'HEAD validation confirmou que o áudio chegou no Supabase. attemptId registrado. Summary entra na fila. Paciente vê confirmação clara e humana. Zero menção a IA/sistema.',
+    render:()=>`
+      <div class="overlay-center">
+        <div class="overlay-check">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="overlay-title">Seu médico já recebeu.</div>
+        <div class="overlay-body">Você pode fechar essa tela. Se precisar, seu médico entra em contato antes da consulta.</div>
+        <button class="overlay-btn">Concluir</button>
+      </div>
+    `
+  }
+};
+
+const recView=document.getElementById('recView');
+const scnExplain=document.getElementById('scnExplain');
+const scnShellSub=document.getElementById('scnShellSub');
+
+function showScenario(k){
+  const s=scenarios[k];
+  recView.innerHTML=s.render();
+  scnExplain.innerHTML=`<div class="se-num">Cenário ${k}</div><div class="se-title">${s.title}</div><div class="se-body">${s.body}</div>`;
+  scnShellSub.textContent=`Cenário ${k} · ${s.title}`;
+  document.querySelectorAll('.scn-btn').forEach(b=>b.classList.toggle('active',b.dataset.scn===k));
+}
+document.querySelectorAll('.scn-btn').forEach(b=>b.addEventListener('click',()=>showScenario(b.dataset.scn)));
+showScenario('A');
+
+// Keyboard nav
+document.addEventListener('keydown',e=>{
+  const keys=['A','B','C','D','E','F','G','H'];
+  if(e.key>='1'&&e.key<='8'){showScenario(keys[parseInt(e.key)-1]);}
+});
+</script>
+
+</body>
+</html>
