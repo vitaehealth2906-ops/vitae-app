@@ -347,7 +347,6 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
     });
     if (!preConsulta) return res.status(404).json({ erro: 'Pre-consulta nao encontrada' });
     if (preConsulta.expiraEm < new Date()) return res.status(410).json({ erro: 'Link expirado' });
-    if (preConsulta.status === 'RESPONDIDA') return res.status(409).json({ erro: 'Pre-consulta ja respondida' });
 
     // FASE 6 — JSON.parse defensivo (evita 500 se corrompido)
     let respostas;
@@ -357,6 +356,24 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
       return res.status(400).json({ erro: 'Formato de respostas invalido. Tente enviar novamente.' });
     }
     const transcricao = req.body.transcricao || '';
+
+    // FASE E (audio-45s) — idempotencia por attemptId
+    // Se ja RESPONDIDA e o attemptId bate com o anterior, retorna 200 duplicate
+    // (cliente perdeu resposta, retentou — backend confirma que ja foi processado)
+    const novoAttemptId = (respostas && respostas.attemptId) || req.body.attemptId || null;
+    if (preConsulta.status === 'RESPONDIDA') {
+      const respostasAnteriores = preConsulta.respostas || {};
+      const attemptIdAnterior = respostasAnteriores && respostasAnteriores.attemptId;
+      if (novoAttemptId && attemptIdAnterior && novoAttemptId === attemptIdAnterior) {
+        return res.status(200).json({
+          sucesso: true,
+          duplicate: true,
+          preConsultaId: preConsulta.id,
+          audioConfirmado: !!preConsulta.audioUrl,
+        });
+      }
+      return res.status(409).json({ erro: 'Pre-consulta ja respondida' });
+    }
 
     // Save audio to storage
     let audioUrl = null;
@@ -644,6 +661,19 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
 // GET / — Listar pre-consultas do medico (autenticado)
 // ---------------------------------------------------------------------------
 
+// FASE E (audio-45s) — calcula conteudoCurto virtualmente a partir da transcricao.
+// Threshold: <80 palavras uteis (zero schema change).
+const CONTEUDO_CURTO_WORD_THRESHOLD = 80;
+function marcarConteudoCurto(pc) {
+  if (!pc) return pc;
+  const t = (pc.transcricao || '').trim();
+  if (!t) { pc.conteudoCurto = false; return pc; }
+  const palavras = t.split(/\s+/).filter(Boolean);
+  pc.conteudoCurto = palavras.length < CONTEUDO_CURTO_WORD_THRESHOLD;
+  pc.palavrasTranscricao = palavras.length;
+  return pc;
+}
+
 router.get('/', verificarAuth, async (req, res, next) => {
   try {
     const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
@@ -660,6 +690,9 @@ router.get('/', verificarAuth, async (req, res, next) => {
         },
       },
     });
+
+    // FASE E — marca virtualmente conteudoCurto
+    preConsultas.forEach(marcarConteudoCurto);
 
     return res.status(200).json({ preConsultas });
   } catch (err) {
@@ -701,6 +734,9 @@ router.get('/:id', verificarAuth, async (req, res, next) => {
         req,
       });
     } catch (_e) { /* auditoria nao pode quebrar response */ }
+
+    // FASE E (audio-45s) — marca virtualmente conteudoCurto
+    marcarConteudoCurto(preConsulta);
 
     return res.status(200).json({ preConsulta });
   } catch (err) {
