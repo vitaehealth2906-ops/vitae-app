@@ -105,7 +105,7 @@
 .resumo-head h1 em{font-style:italic;font-weight:900;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .resumo-head .sub{font-size:13px;color:var(--t3);margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .resumo-head .sub .dot{width:3px;height:3px;border-radius:50%;background:var(--t4,#C4C9D4)}
-.detail-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:28px;align-items:stretch}
+.detail-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:28px;align-items:start}
 @media(max-width:1024px){.detail-grid{grid-template-columns:1fr}}
 .pac-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03)}
 .pac-head{padding:22px 22px 18px;display:flex;gap:14px;align-items:flex-start;border-bottom:1px solid var(--border)}
@@ -312,7 +312,7 @@ body.dark-mode .cfm-disclaimer strong{color:#93C5FD}
 .pc-nivel-badge.pcb-2,.pc-nivel-badge.pcb-1{background:rgba(249,115,22,.12);color:#9A3412;border:1px solid rgba(249,115,22,.3)}
 
 /* Right column */
-.right-cards{display:flex;flex-direction:column;gap:10px;min-height:0}
+.right-cards{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
 
 /* Detail action buttons */
 .detail-actions{display:flex;gap:8px;margin-bottom:16px}
@@ -3788,6 +3788,24 @@ async function pcOpenDetail(pcId){
     if(btnPrivacy && document.body.classList.contains('privacy-mode')) btnPrivacy.classList.add('active');
     pcRenderStickies();
     pcAplicarDismissed();
+
+    // MELHORIA — right-cards casa altura com left-col (exames termina junto com "Suporte a decisao clinica")
+    var pcSyncRightHeight = function(){
+      var leftCol = detailEl.querySelector('.detail-grid > .left-col');
+      var rightCol = detailEl.querySelector('.detail-grid > .right-cards');
+      if(leftCol && rightCol){
+        rightCol.style.maxHeight = leftCol.offsetHeight + 'px';
+      }
+    };
+    requestAnimationFrame(function(){ requestAnimationFrame(pcSyncRightHeight); });
+    if(window.ResizeObserver){
+      var pcLeftColEl = detailEl.querySelector('.detail-grid > .left-col');
+      if(pcLeftColEl){
+        if(pcState._heightObserver) pcState._heightObserver.disconnect();
+        pcState._heightObserver = new ResizeObserver(pcSyncRightHeight);
+        pcState._heightObserver.observe(pcLeftColEl);
+      }
+    }
 
     // Render PDF thumbnails for exames
     if(window.pdfjsLib){
