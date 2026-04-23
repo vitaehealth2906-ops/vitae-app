@@ -1476,6 +1476,15 @@ const MAX_RECORDING_MS = 5 * 60 * 1000;
 let maxDurationTimeout = null;
 
 async function startRecording() {
+    // FASE C — check de ambiente
+    if (window._audioBlocked) {
+        showRecordingUnsupportedOverlay(window._audioBlocked.inApp);
+        return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showRecordingUnsupportedOverlay(null);
+        return;
+    }
     try {
         // Pede permissao pra microfone com contexto audio bom pra voz
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -1607,8 +1616,39 @@ async function startRecording() {
         timerInterval = setInterval(updateTimer, 1000);
         drawWaveform();
         startSpeechRecognition();
+
+        // FASE C — handler de erro do mediaRecorder (bluetooth cai, ligacao interrompe)
+        mediaRecorder.onerror = function(ev) {
+            console.warn('[45s] mediaRecorder.onerror', ev && ev.error);
+            if (isRecording && !isPaused) {
+                // Pausa logica e mostra sheet pro paciente decidir
+                try { mediaRecorder.pause(); } catch(e){}
+                isPaused = true;
+                pauseStartTime = Date.now();
+                if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+                document.getElementById('recDot').classList.add('paused');
+                document.getElementById('recTimer').classList.add('paused');
+                document.getElementById('recPausedBadge').style.display = '';
+                updateButtonState();
+                document.getElementById('recHint').innerHTML = 'Houve uma interrupção. <strong>Continue ou recomece.</strong>';
+            }
+        };
     } catch (err) {
-        alert('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
+        // FASE C — permissao mic negada ou erro generico
+        _micDenyCount++;
+        var errName = (err && err.name) || '';
+        var errMsg = (err && err.message) || '';
+        console.warn('[45s] getUserMedia erro:', errName, errMsg);
+        if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError' || errName === 'SecurityError') {
+            showMicPermissionSheet(_micDenyCount);
+        } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+            alert('Nenhum microfone encontrado no dispositivo. Você pode responder por texto.');
+            switchTab('form');
+        } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+            alert('O microfone está sendo usado por outro app. Feche e tente de novo, ou responda por texto.');
+        } else {
+            showMicPermissionSheet(_micDenyCount);
+        }
     }
 }
 
@@ -2683,9 +2723,103 @@ async function init() {
         }
 
     } catch (e) {
-        showError('Link expirado ou inválido', e.message || 'Solicite um novo link ao seu médico.');
+        // Diferencia 410 (expirado) / 409 (respondida) / 404 (invalido) / outros
+        const msg = String(e && e.message || '');
+        if (msg.indexOf('410') !== -1 || msg.toLowerCase().indexOf('expirado') !== -1) {
+            showError('Este link expirou', 'Peça pro seu médico gerar um novo link de pre-consulta.');
+        } else if (msg.indexOf('409') !== -1 || msg.toLowerCase().indexOf('ja respondida') !== -1 || msg.toLowerCase().indexOf('já respondida') !== -1) {
+            showError('Você já respondeu', 'Seu médico já recebeu. Ele pode entrar em contato antes da consulta se precisar.');
+        } else if (msg.indexOf('404') !== -1 || msg.toLowerCase().indexOf('nao encontrada') !== -1 || msg.toLowerCase().indexOf('não encontrada') !== -1) {
+            showError('Link inválido', 'O link pode ter sido digitado errado. Peça um novo pro seu médico.');
+        } else {
+            showError('Link expirado ou inválido', msg || 'Solicite um novo link ao seu médico.');
+        }
     }
 }
+
+// ══════════════════════════════════════════════════════
+// FASE C — deteccao de ambiente e tratamento de permissao
+// ══════════════════════════════════════════════════════
+function detectInAppBrowser() {
+    var ua = (navigator.userAgent || '').toLowerCase();
+    if (ua.indexOf('wv)') !== -1 && ua.indexOf('whatsapp') !== -1) return 'WhatsApp';
+    if (ua.indexOf('whatsapp') !== -1) return 'WhatsApp';
+    if (ua.indexOf('instagram') !== -1) return 'Instagram';
+    if (ua.indexOf('fban') !== -1 || ua.indexOf('fbav') !== -1 || ua.indexOf('fbios') !== -1) return 'Facebook';
+    if (ua.indexOf('line/') !== -1) return 'Line';
+    if (ua.indexOf('micromessenger') !== -1) return 'WeChat';
+    return null;
+}
+
+function detectBrowserRecordingSupport() {
+    if (typeof MediaRecorder === 'undefined') return { supported: false, reason: 'no-mediarecorder' };
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return { supported: false, reason: 'no-getusermedia' };
+    return { supported: true };
+}
+
+function showRecordingUnsupportedOverlay(inAppName) {
+    var el = document.getElementById('recUnsupportedOverlay');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'recUnsupportedOverlay';
+        el.className = 'overlay-screen active';
+        el.style.cssText = 'display:flex;position:absolute;top:0;left:0;right:0;bottom:0;background:#FFFFFF;z-index:55;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center';
+        var container = document.querySelector('.phone') || document.body;
+        container.appendChild(el);
+    }
+    var title, body;
+    if (inAppName) {
+        title = 'Abra este link no seu navegador';
+        body = 'Pra gravar áudio, abra este link no Chrome ou Safari. Ou responda por texto aqui mesmo.';
+    } else {
+        title = 'Seu navegador não suporta gravação';
+        body = 'Atualize o navegador ou responda por texto.';
+    }
+    el.innerHTML = '<svg class="overlay-icon" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+        '<div class="overlay-title">' + title + '</div>' +
+        '<div class="overlay-sub" style="margin-bottom:24px">' + body + '</div>' +
+        '<button onclick="document.getElementById(\'recUnsupportedOverlay\').remove(); switchTab(\'form\');" style="padding:14px 28px;border-radius:14px;border:none;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#0D0F14;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,229,160,.25)">Responder por texto</button>';
+    el.style.display = 'flex';
+}
+
+// Contador de denials da permissao mic
+var _micDenyCount = 0;
+
+function showMicPermissionSheet(attempts) {
+    var title = attempts >= 2 ? 'Microfone bloqueado' : 'Precisamos do microfone';
+    var body = attempts >= 2
+        ? 'Desbloqueie o microfone nas configurações do seu navegador, ou responda por texto.'
+        : 'Toque em Permitir quando o celular perguntar. Sem o microfone, só podemos receber resposta por texto.';
+    var primaryLabel = attempts >= 2 ? 'Tentar novamente' : 'Permitir microfone';
+    var el = document.getElementById('micPermSheet');
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = 'micPermSheet';
+    el.style.cssText = 'position:absolute;inset:0;z-index:70;display:flex;align-items:flex-end;justify-content:center';
+    el.innerHTML =
+        '<div style="position:absolute;inset:0;background:rgba(13,15,20,0.22)" onclick="document.getElementById(\'micPermSheet\').remove()"></div>' +
+        '<div style="position:relative;width:100%;max-width:393px;background:#FFFFFF;border-radius:24px 24px 0 0;padding:14px 24px 28px;box-shadow:0 -12px 40px rgba(0,0,0,0.15)">' +
+        '<div style="width:42px;height:4px;background:rgba(0,0,0,0.14);border-radius:2px;margin:4px auto 18px"></div>' +
+        '<div style="font-size:18px;font-weight:700;color:#0D0F14;margin-bottom:8px;letter-spacing:-.3px;line-height:1.3">' + title + '</div>' +
+        '<div style="font-size:13.5px;color:#4B5563;line-height:1.55;margin-bottom:18px">' + body + '</div>' +
+        '<button style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#0D0F14;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px" onclick="document.getElementById(\'micPermSheet\').remove(); startRecording();">' + primaryLabel + '</button>' +
+        '<button style="width:100%;padding:14px;border-radius:14px;border:1.5px solid rgba(0,0,0,0.08);background:#FFF;color:#4B5563;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer" onclick="document.getElementById(\'micPermSheet\').remove(); switchTab(\'form\');">Responder por texto</button>' +
+        '</div>';
+    document.body.appendChild(el);
+}
+
+// Check inicial no carregamento da tela
+(function checkEnvOnLoad(){
+    try {
+        var inApp = detectInAppBrowser();
+        var sup = detectBrowserRecordingSupport();
+        if (inApp || !sup.supported) {
+            // Nao bloqueia a tela inteira — so avisa quando for gravar
+            // Flag global pra startRecording checar
+            window._audioBlocked = { inApp: inApp, reason: sup.reason || 'in-app' };
+        }
+    } catch(e){}
+})();
 
 // Pre-fill from the backend pre-consulta response data (existing logic)
 function prefillFromBackendData(data) {
