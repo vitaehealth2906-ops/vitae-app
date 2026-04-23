@@ -576,6 +576,68 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 11 — 23/04/2026 — Audio de 45s minimo (execucao autonoma)
+
+**Contexto:** Lucas reportou frustracao dos medicos com audios de 15s. Pediu feature completa pra garantir minimo de 45 segundos sem criar fricao nova pro paciente. Apos 3 iteracoes de plano (1/10 → 10/10), Lucas aprovou execucao autonoma: "comece e so termine quando fizer deploy de tudo, sem me pedir autorizacao de fase em fase".
+
+**7 fases executadas em sequencia, 7 commits atomicos:**
+
+- **A** `c915bb8` — pre-consulta-slides.html: 3 slides (Confianca, Preparo, Compromisso) com swipe/dots/botao voltar/pular. Redireciona pra pre-consulta.html?skipSlides=1. Lealdade visual 100% ao 02-slides-paciente.html.
+- **B** `e2c195e` — pre-consulta.html estados do botao: 5 estados conforme tempo (Pausar <45s, Finalizar >=45s, Continuar em pausa, etc). Barra de progresso ate 45s+ideal 90s. Pause/resume nativos com compensacao de tempo. Cap 3 pausas. attemptId UUID. Hints por faixa.
+- **C** `e0f4fda` — fluxos de erro: 410/409/404 no load, detector in-app browser (WhatsApp/IG/FB), sheet permissao mic (1a vez vs 2a+), handler mediaRecorder.onerror (bluetooth/ligacao).
+- **D** `8b22579` — sheet <45s em retomada, validacao silencio via RMS sampling (threshold 0.015), overlay "Nao captamos sua voz", visibilitychange auto-pausa.
+- **E** `693ffec` — backend attemptId dedupe (200 duplicate:true em retry) + badge "conteudo curto" no dashboard medico (transcricao <80 palavras). **ZERO schema change** — attemptId persiste em respostas JSON, conteudoCurto calculado virtualmente no GET.
+- **F** `82b0832` — integracao slides: maybeRedirectToSlides no load checa localStorage + IDB raw. Primeira visita => slides. Segunda/retomada => pula. modo=form => formulario ativo.
+- **G** `14b2ad5` — 10 bugs criticos encontrados por 3 code-reviewers em paralelo e corrigidos:
+  - CRIT: visibilitychange e onerror NAO queimam cap de pauseCount (pausa auto != pausa manual)
+  - CRIT: updateButtonState chamado em toda tick (evita estado preso se timer skipa 45s)
+  - CRIT: redirectTo com lock no slides (double-tap nao duplica navegacao)
+  - CRIT: TOKEN vazio redireciona pro splash (nao grava localStorage orfao)
+  - HIGH: restartRecording race — _thisRecorder local ignora onstop de instancia antiga
+  - HIGH: validacao silencio trata _rmsCount=0 como silencio (Safari throttle)
+  - HIGH: audio filename inclui attemptId slice (evita sobrescrita em retry)
+  - HIGH: badge conteudoCurto guarda audioUrl (formulario escrito nao recebe badge)
+  - HIGH: onerror usa pauseRecording(true) pra garantir timeout 90s
+  - MED: attemptId persistido em respostas antes do updateMany
+
+**Decisoes autonomas chaves:**
+- Eliminei dependencia de schema change: conteudoCurto virtual via transcricao.split.
+- Threshold silencio 0.015 conservador (voz baixa passa, bolso/mudo rejeita).
+- Cap pausas manual = 3; auto-pausas nao contam.
+- Slides so na 1a visita (flag localStorage por token + IDB raw check).
+- Todos os commits pushaveis independentemente — rollback granular.
+
+**Arquivos modificados:**
+- Novo: `pre-consulta-slides.html`, `pre-consulta-backup-pre45s.html` (snapshot), `preview-audio-45s.html`
+- Modificado: `pre-consulta.html`, `backend/src/routes/pre-consulta.js`, `20-medico-dashboard.html`
+
+**NAO mexido (por pedido explicito do Lucas):**
+- Qualquer tela do desktop medico (exceto badge novo no dashboard mobile)
+- Schema do banco (Prisma)
+- Fluxo de login/quiz/cadastro
+- Scan de receita
+
+**Skills usadas:** 3 agentes code-reviewer em paralelo na Fase G. TodoWrite pra tracking.
+
+**Como testar no celular real (obrigatorio antes de divulgar pro medico):**
+1. Abre link de pre-consulta novo no iPhone — deve ver os 3 slides primeiro
+2. Grava 30s, clica Pausar, espera — timer para
+3. Continua — timer segue de 30s
+4. Chega aos 45s — botao vira "Finalizar gravacao" verde
+5. Finaliza em 01:00 — chega review normal, envia, medico recebe
+6. Gravar de novo com celular no bolso (silencio) — aos 45s+clique Finalizar tela "Nao captamos sua voz"
+7. Recomecar 3x seguidas — a partir da 2a, link "Prefere responder por texto?" aparece
+8. Abrir link no WhatsApp in-app browser — tela "Abra no seu navegador"
+9. Dashboard medico — pre-consulta com pouca fala deve ter badge amarelo "conteudo curto"
+
+**Pendente pra proxima sessao:**
+- Validar no iPhone real com teste dos 9 cenarios acima
+- Testar dedupe enviando 2x via F12 Network (should return duplicate:true no 2o)
+- Eventualmente calibrar threshold silencio 0.015 com gravacoes reais
+- Se Sentry reportar erro novo pos-deploy: investigar + revert
+
+---
+
 ### Sessao 10 — 17/04/2026 (tarde) — Unificar foto do paciente
 
 **Contexto:** Lucas notou que fotos do paciente vinham de DIFERENTES campos em DIFERENTES telas. Pediu mapeamento exaustivo. Agente Explore achou 2 campos no banco + 5 logicas diferentes de render em 14 telas. Conflito real: paciente fazia upload no perfil mas medico via icone vazio na lista (porque puxava PreConsulta.pacienteFotoUrl que podia estar vazio).
