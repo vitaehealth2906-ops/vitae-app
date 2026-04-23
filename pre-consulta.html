@@ -1224,12 +1224,89 @@ const MIN_RECORDING_S = 45;
 const IDEAL_RECORDING_S = 90;
 const MAX_PAUSE_MS = 90 * 1000;
 const MAX_PAUSES = 3;
+const SILENCE_RMS_THRESHOLD = 0.015; // conservador — voz baixa ainda passa
 let isPaused = false;
 let pauseCount = 0;
 let pauseStartTime = 0;
 let pauseTimeoutId = null;
 let _suppressReview = false;
 let currentAttemptId = null;
+let _rmsAccum = 0;
+let _rmsCount = 0;
+let _rmsSampleInterval = null;
+
+function startRmsSampling() {
+    _rmsAccum = 0; _rmsCount = 0;
+    if (_rmsSampleInterval) clearInterval(_rmsSampleInterval);
+    _rmsSampleInterval = setInterval(function(){
+        if (!analyser || !isRecording || isPaused) return;
+        try {
+            var buf = new Uint8Array(analyser.fftSize);
+            analyser.getByteTimeDomainData(buf);
+            var sumSq = 0;
+            for (var i = 0; i < buf.length; i++) {
+                var v = (buf[i] - 128) / 128;
+                sumSq += v * v;
+            }
+            var rms = Math.sqrt(sumSq / buf.length);
+            _rmsAccum += rms;
+            _rmsCount++;
+        } catch(e){}
+    }, 500);
+}
+
+function stopRmsSampling() {
+    if (_rmsSampleInterval) { clearInterval(_rmsSampleInterval); _rmsSampleInterval = null; }
+}
+
+function getAverageRms() {
+    if (_rmsCount === 0) return 0;
+    return _rmsAccum / _rmsCount;
+}
+
+function showSilenceOverlay() {
+    var el = document.getElementById('silenceOverlay');
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = 'silenceOverlay';
+    el.style.cssText = 'position:absolute;inset:0;background:#FFFFFF;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center';
+    el.innerHTML =
+        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(245,158,11,0.12);border:2px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;margin-bottom:20px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="1" y1="1" x2="23" y2="23"/></svg></div>' +
+        '<div style="font-size:22px;font-weight:800;color:#0D0F14;margin-bottom:8px;letter-spacing:-.3px">Não captamos sua voz</div>' +
+        '<div style="font-size:13.5px;color:#4B5563;line-height:1.6;max-width:280px;margin-bottom:24px">Pode ser o microfone ou o ambiente. Tente novamente num lugar mais silencioso, próximo ao celular.</div>' +
+        '<button style="padding:14px 28px;border-radius:14px;border:none;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#0D0F14;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,229,160,.25)" onclick="document.getElementById(\'silenceOverlay\').remove(); restartRecording();">Gravar de novo</button>';
+    var container = document.querySelector('.phone') || document.body;
+    container.appendChild(el);
+}
+
+function showSub45Sheet(durationS, onContinue, onRestart) {
+    var el = document.getElementById('sub45Sheet');
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = 'sub45Sheet';
+    el.style.cssText = 'position:absolute;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center';
+    var timeStr = String(Math.floor(durationS/60)).padStart(2,'0') + ':' + String(durationS%60).padStart(2,'0');
+    el.innerHTML =
+        '<div style="position:absolute;inset:0;background:rgba(13,15,20,0.22)"></div>' +
+        '<div style="position:relative;width:100%;max-width:393px;background:#FFFFFF;border-radius:24px 24px 0 0;padding:14px 24px 28px;box-shadow:0 -12px 40px rgba(0,0,0,0.15)">' +
+        '<div style="width:42px;height:4px;background:rgba(0,0,0,0.14);border-radius:2px;margin:4px auto 18px"></div>' +
+        '<div style="font-size:18px;font-weight:700;color:#0D0F14;margin-bottom:8px;letter-spacing:-.3px;line-height:1.3">Sua gravação ainda não atingiu o mínimo.</div>' +
+        '<div style="font-size:13.5px;color:#4B5563;line-height:1.55;margin-bottom:14px">Médicos precisam de pelo menos 45 segundos de áudio para preparar sua consulta com segurança.</div>' +
+        '<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(0,0,0,0.05);font-size:12px;font-weight:600;color:#4B5563;margin-bottom:18px">Você gravou <span style="color:#0D0F14;font-weight:700">' + timeStr + '</span> de 00:45</div>' +
+        '<button id="sub45Continue" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#0D0F14;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,229,160,.25);margin-bottom:10px">Continuar gravando</button>' +
+        '<button id="sub45Restart" style="width:100%;padding:14px;border-radius:14px;border:1.5px solid rgba(0,0,0,0.08);background:#FFFFFF;color:#4B5563;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">Recomeçar do início</button>' +
+        '</div>';
+    var container = document.querySelector('.phone') || document.body;
+    container.appendChild(el);
+    document.getElementById('sub45Continue').addEventListener('click', function(){
+        el.remove();
+        if (typeof onContinue === 'function') onContinue();
+    });
+    document.getElementById('sub45Restart').addEventListener('click', function(){
+        el.remove();
+        if (typeof onRestart === 'function') onRestart();
+    });
+}
 
 function generateAttemptId() {
     if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
@@ -1363,14 +1440,27 @@ function resumeRecording() {
 
 function finalizeRecording() {
     const btn = document.getElementById('recMainBtn');
-    if (btn) btn.disabled = true;
     const rb = document.getElementById('recRestartBtn');
+    // Valida silencio ANTES de parar (ainda da pra continuar gravando se for falso alarme)
+    var avgRms = getAverageRms();
+    var s = secondsSinceStart();
+    // So bloqueia se passou dos 45s (ja sabemos que tem duracao) mas ficou silencioso
+    if (s >= MIN_RECORDING_S && avgRms > 0 && avgRms < SILENCE_RMS_THRESHOLD) {
+        console.warn('[45s] silencio detectado — RMS medio:', avgRms.toFixed(4));
+        // Nao finaliza — mostra overlay e descarta. Paciente recomeca.
+        _suppressReview = true;
+        try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch(e){}
+        showSilenceOverlay();
+        return;
+    }
+    if (btn) btn.disabled = true;
     if (rb) rb.disabled = true;
     // Se pausado, resume rapido antes de parar (mediaRecorder precisa estar recording pra stop() fechar chunks)
     if (isPaused && mediaRecorder && mediaRecorder.state === 'paused') {
         try { mediaRecorder.resume(); } catch(e){}
         isPaused = false;
     }
+    stopRmsSampling();
     stopRecording();
 }
 
@@ -1615,6 +1705,7 @@ async function startRecording() {
 
         timerInterval = setInterval(updateTimer, 1000);
         drawWaveform();
+        startRmsSampling();
         startSpeechRecognition();
 
         // FASE C — handler de erro do mediaRecorder (bluetooth cai, ligacao interrompe)
@@ -1658,11 +1749,20 @@ function stopRecording() {
     if (recognition) { recognition.stop(); recognition = null; }
     clearInterval(timerInterval);
     cancelAnimationFrame(animFrameId);
+    stopRmsSampling();
     recordedDuration = document.getElementById('recTimer').textContent;
     if (maxDurationTimeout) { clearTimeout(maxDurationTimeout); maxDurationTimeout = null; }
+    if (pauseTimeoutId) { clearTimeout(pauseTimeoutId); pauseTimeoutId = null; }
     window._needsWakeLock = false;
     releaseWakeLock();
 }
+
+// FASE D — visibilitychange: se aba vai pra background gravando, pausa automatico
+document.addEventListener('visibilitychange', function(){
+    if (document.hidden && isRecording && !isPaused) {
+        try { pauseRecording(); } catch(e){}
+    }
+});
 
 async function showReviewState() {
     document.getElementById('recRecording').classList.remove('active');
@@ -2514,11 +2614,48 @@ function showMainContent() {
 async function checarPendenciasERetomar() {
     if (!token) return;
     try {
-        const [envio, audioSalvo, fotoSalva] = await Promise.all([
+        const [envio, audioSalvo, fotoSalva, recInProgress] = await Promise.all([
             vitaStorage.get('envio_' + token),
             vitaStorage.get('audio_' + token),
             vitaStorage.get('foto_' + token),
+            vitaStorage.get('rec_inprogress_' + token),
         ]);
+
+        // FASE D — gravacao interrompida (<45s): oferece continuar ou recomecar
+        if (!audioSalvo && recInProgress && recInProgress.chunks && recInProgress.chunks.length > 0) {
+            var approxS = recInProgress.chunks.length; // start(1000) = ~1 chunk/s
+            if (approxS < MIN_RECORDING_S) {
+                showSub45Sheet(approxS, function(){
+                    // Continuar: descarta e comeca nova gravacao (mediaRecorder nao da resume apos reload)
+                    // — mas preserva contador de recomeca pra oferecer form mais cedo
+                    vitaStorage.remove('rec_inprogress_' + token).catch(function(){});
+                    startRecording();
+                }, function(){
+                    vitaStorage.remove('rec_inprogress_' + token).catch(function(){});
+                    try {
+                        var k = 'pc_restart_count_' + token;
+                        var prev = parseInt(localStorage.getItem(k) || '0', 10);
+                        localStorage.setItem(k, String(prev + 1));
+                    } catch(e){}
+                    startRecording();
+                });
+                return;
+            } else {
+                // Chunks >=45s: consolida em Blob e salva como audio final
+                try {
+                    var blob = new Blob(recInProgress.chunks, { type: recInProgress.mimeType || 'audio/webm' });
+                    await vitaStorage.put('audio_' + token, {
+                        blob: blob,
+                        mimeType: recInProgress.mimeType,
+                        duracao: String(Math.floor(approxS/60)).padStart(2,'0') + ':' + String(approxS%60).padStart(2,'0'),
+                        token: token,
+                    });
+                    await vitaStorage.remove('rec_inprogress_' + token);
+                    // Re-executa checagem com o audio consolidado
+                    return checarPendenciasERetomar();
+                } catch(e) { console.warn('[retomada] consolidar falhou', e); }
+            }
+        }
 
         // So retoma se tem audio salvo E tinha um envio em andamento
         if (!audioSalvo || !audioSalvo.blob) return;
