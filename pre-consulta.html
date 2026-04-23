@@ -1129,6 +1129,71 @@ try {
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
 
+// FASE F (audio-45s) — redirect para slides de orientacao na primeira visita.
+// Executa ANTES do resto do script pra nao carregar nada em vao.
+(function maybeRedirectToSlides(){
+    try {
+        if (!token) return;
+        var skip = urlParams.get('skipSlides') === '1';
+        var modo = urlParams.get('modo');
+        if (skip) return; // Ja passou pelos slides
+        var visto = null;
+        try { visto = localStorage.getItem('pc_slides_visto_' + token); } catch(e){}
+        if (visto === '1') return; // Ja viu antes
+        // Check se tem audio salvo na IDB — se tiver, retomada, pula slides
+        // (async, mas a gente so redireciona se nao tiver nada — fail-safe: segue fluxo)
+        if (window.indexedDB) {
+            var req;
+            try { req = window.indexedDB.open('vitae_offline_v1', 1); } catch(e) { redirectNow(); return; }
+            req.onsuccess = function(ev){
+                try {
+                    var db = ev.target.result;
+                    if (!db.objectStoreNames.contains('pre_consultas')) { db.close(); redirectNow(); return; }
+                    var tx = db.transaction('pre_consultas', 'readonly');
+                    var store = tx.objectStore('pre_consultas');
+                    // Checa se tem audio finalizado OU gravacao em andamento
+                    var qA = store.get('audio_' + token);
+                    qA.onsuccess = function(){
+                        if (qA.result && qA.result.blob) { db.close(); return; }
+                        var qB = store.get('rec_inprogress_' + token);
+                        qB.onsuccess = function(){
+                            db.close();
+                            if (qB.result && qB.result.chunks && qB.result.chunks.length > 0) return;
+                            redirectNow();
+                        };
+                        qB.onerror = function(){ db.close(); redirectNow(); };
+                    };
+                    qA.onerror = function(){ db.close(); redirectNow(); };
+                } catch(e) { redirectNow(); }
+            };
+            req.onerror = function(){ redirectNow(); };
+            req.onupgradeneeded = function(ev){
+                // Primeira vez — nao tem DB, sem audio salvo, redireciona
+                try { ev.target.transaction.abort(); } catch(e){}
+                redirectNow();
+            };
+            req.onblocked = function(){ /* continua sem slides */ };
+        } else {
+            redirectNow();
+        }
+        function redirectNow() {
+            window.location.replace('pre-consulta-slides.html?token=' + encodeURIComponent(token));
+        }
+    } catch(e) { /* fail-safe: segue fluxo normal */ }
+})();
+
+// Ativa toggle formulario se chegou via slide 3 "Prefiro responder por texto"
+(function maybeForceForm(){
+    try {
+        if (urlParams.get('modo') === 'form') {
+            // Roda depois do DOM montado
+            document.addEventListener('DOMContentLoaded', function(){
+                setTimeout(function(){ try { switchTab('form'); } catch(e){} }, 100);
+            });
+        }
+    } catch(e){}
+})();
+
 // ── Pre-consulta data (loaded once, reused) ──
 let preConsultaData = null;
 let medicoNomeGlobal = '';
