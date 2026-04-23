@@ -227,6 +227,25 @@
         .rec-wave-wrap { width:100%; height:40px; border-radius:8px; overflow:hidden; background:rgba(0,229,160,0.04); }
         .rec-wave-wrap canvas { width:100%; height:100%; display:block; }
 
+        /* ── 45s: barra de progresso, hints, botoes principais ── */
+        .rec-progress-45 { position:relative; width:100%; height:6px; background:rgba(0,0,0,0.06); border-radius:3px; margin-bottom:16px; }
+        .rec-progress-45-fill { position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg,#00E5A0,#00B4D8); border-radius:3px; transition:width .3s ease; width:0% }
+        .rec-progress-45-marker { position:absolute; top:-6px; left:50%; width:2px; height:18px; background:#00E5A0; opacity:.85; border-radius:1px; transform:translateX(-1px); }
+        .rec-progress-45-marker::after { content:'00:45'; position:absolute; top:22px; left:50%; transform:translateX(-50%); font-size:9px; font-weight:700; color:#00E5A0; white-space:nowrap; letter-spacing:.04em; font-family:'Plus Jakarta Sans',sans-serif; }
+        .rec-hint { font-size:12px; color:rgba(13,15,20,0.55); text-align:center; line-height:1.5; margin:14px 0 14px; padding:0 8px; transition:opacity .3s; min-height:36px; display:flex; align-items:center; justify-content:center; }
+        .rec-hint strong { color:#0D0F14; font-weight:700; }
+        .rec-paused-badge { margin-left:auto; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:4px 10px; border-radius:10px; background:rgba(245,158,11,0.12); color:#92700C; border:1px solid rgba(245,158,11,0.25); }
+        .rec-main-btn { width:100%; padding:14px; border-radius:14px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:all .2s; -webkit-appearance:none; appearance:none; margin-top:4px; }
+        .rec-main-btn.primary { background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#0D0F14; box-shadow:0 4px 20px rgba(0,229,160,0.25); }
+        .rec-main-btn.secondary { background:#FFFFFF; border:1.5px solid rgba(0,0,0,0.08); color:#4B5563; }
+        .rec-main-btn:active { transform:scale(.98); }
+        .rec-main-btn[disabled] { opacity:.55; cursor:not-allowed; transform:none; }
+        .rec-main-btn svg { flex-shrink:0; }
+        .rec-dot.paused { background:#F59E0B !important; animation:none !important; }
+        .rec-timer.paused { color:#92700C; }
+        .rec-form-fallback { display:block; text-align:center; margin-top:14px; font-size:13px; font-weight:500; color:rgba(13,15,20,0.5); text-decoration:underline; cursor:pointer; }
+        .rec-form-fallback:hover { color:rgba(13,15,20,0.75); }
+
         /* Review state */
         .rec-review { display:none; width:100%; flex-direction:column; gap:14px; }
         .rec-review.active { display:flex; }
@@ -583,13 +602,22 @@
                 <!-- Recording -->
                 <div class="rec-recording" id="recRecording">
                     <div class="rec-recording-top">
-                        <div class="rec-dot"></div>
+                        <div class="rec-dot" id="recDot"></div>
                         <div class="rec-timer" id="recTimer">00:00</div>
-                        <button class="rec-stop-btn" onclick="stopRecording()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-                        </button>
+                        <div class="rec-paused-badge" id="recPausedBadge" style="display:none" aria-live="polite">Em pausa</div>
+                    </div>
+                    <div class="rec-progress-45" aria-hidden="true">
+                        <div class="rec-progress-45-fill" id="recProgressFill"></div>
+                        <div class="rec-progress-45-marker"></div>
                     </div>
                     <div class="rec-wave-wrap"><canvas id="waveCanvas"></canvas></div>
+                    <div class="rec-hint" id="recHint" aria-live="polite">Fale naturalmente, como uma conversa</div>
+                    <button class="rec-main-btn secondary" id="recMainBtn" onclick="onMainBtnClick()" aria-label="Pausar gravacao">
+                        <svg id="recMainBtnIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                        <span id="recMainBtnLabel">Pausar</span>
+                    </button>
+                    <button class="rec-main-btn secondary" id="recRestartBtn" onclick="onRestartClick()" style="display:none;margin-top:8px" aria-label="Recomecar do inicio">Recomeçar do início</button>
+                    <a class="rec-form-fallback" id="recFormFallback" href="javascript:void(0)" onclick="switchToForm()" style="display:none">Prefere responder por texto?</a>
                 </div>
 
                 <!-- Review -->
@@ -1191,6 +1219,235 @@ let analyser = null;
 let animFrameId = null;
 let recordedDuration = '00:00';
 
+// ── 45s state ──
+const MIN_RECORDING_S = 45;
+const IDEAL_RECORDING_S = 90;
+const MAX_PAUSE_MS = 90 * 1000;
+const MAX_PAUSES = 3;
+let isPaused = false;
+let pauseCount = 0;
+let pauseStartTime = 0;
+let pauseTimeoutId = null;
+let _suppressReview = false;
+let currentAttemptId = null;
+
+function generateAttemptId() {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    return 'a_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+}
+
+function secondsSinceStart() {
+    if (!recordingStartTime) return 0;
+    return Math.floor((Date.now() - recordingStartTime) / 1000);
+}
+
+function updateButtonState() {
+    const btn = document.getElementById('recMainBtn');
+    const label = document.getElementById('recMainBtnLabel');
+    const icon = document.getElementById('recMainBtnIcon');
+    const restartBtn = document.getElementById('recRestartBtn');
+    if (!btn || !label || !icon) return;
+    const s = secondsSinceStart();
+    if (isPaused) {
+        if (s >= MIN_RECORDING_S) {
+            label.textContent = 'Finalizar gravação';
+            btn.className = 'rec-main-btn primary';
+            btn.setAttribute('aria-label', 'Finalizar gravacao');
+            icon.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+        } else {
+            label.textContent = 'Continuar gravando';
+            btn.className = 'rec-main-btn primary';
+            btn.setAttribute('aria-label', 'Continuar gravando');
+            icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/>';
+        }
+        restartBtn.style.display = '';
+    } else {
+        if (s >= MIN_RECORDING_S) {
+            label.textContent = 'Finalizar gravação';
+            btn.className = 'rec-main-btn primary';
+            btn.setAttribute('aria-label', 'Finalizar gravacao');
+            icon.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+            restartBtn.style.display = 'none';
+        } else {
+            label.textContent = 'Pausar';
+            btn.className = 'rec-main-btn secondary';
+            btn.setAttribute('aria-label', 'Pausar gravacao');
+            icon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+            restartBtn.style.display = 'none';
+        }
+    }
+    // Cap de pausas: se ja pausou 3x, esconde botao Pausar quando <45s
+    if (pauseCount >= MAX_PAUSES && !isPaused && s < MIN_RECORDING_S) {
+        btn.style.display = 'none';
+        restartBtn.style.display = '';
+        restartBtn.textContent = 'Recomeçar do início';
+    } else {
+        btn.style.display = '';
+    }
+}
+
+function updateHintText() {
+    const el = document.getElementById('recHint');
+    if (!el) return;
+    if (isPaused) {
+        el.innerHTML = 'Retome quando quiser. <strong>Nada foi perdido.</strong>';
+        return;
+    }
+    const s = secondsSinceStart();
+    if (s < 15) {
+        el.innerHTML = 'Fale naturalmente, como uma conversa';
+    } else if (s < 30) {
+        el.innerHTML = 'Conte também dos <strong>medicamentos</strong> e <strong>alergias</strong>.';
+    } else if (s < MIN_RECORDING_S) {
+        const falta = MIN_RECORDING_S - s;
+        el.innerHTML = 'Faltam <strong>' + falta + ' segundos</strong> para o mínimo';
+    } else if (s < IDEAL_RECORDING_S) {
+        el.innerHTML = 'Completo. Pode <strong>finalizar</strong> ou continuar até 01:30.';
+    } else {
+        el.innerHTML = 'Ótimo tempo. Continue se quiser mais contexto.';
+    }
+}
+
+function updateProgressBar45() {
+    const el = document.getElementById('recProgressFill');
+    if (!el) return;
+    const s = secondsSinceStart();
+    const pct = Math.min(100, (s / IDEAL_RECORDING_S) * 100);
+    el.style.width = pct + '%';
+}
+
+function pauseRecording() {
+    if (!isRecording || isPaused) return;
+    if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
+    try { mediaRecorder.pause(); } catch(e) { console.warn('[45s] pause error', e); }
+    isPaused = true;
+    pauseCount++;
+    pauseStartTime = Date.now();
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    if (pauseTimeoutId) { clearTimeout(pauseTimeoutId); }
+    pauseTimeoutId = setTimeout(function(){
+        if (isPaused) {
+            // Pausa longa: esconde botao principal, forca recomeco
+            document.getElementById('recMainBtn').style.display = 'none';
+            const rb = document.getElementById('recRestartBtn');
+            rb.textContent = 'Pausa longa — Recomeçar';
+            rb.style.display = '';
+        }
+    }, MAX_PAUSE_MS);
+    document.getElementById('recDot').classList.add('paused');
+    document.getElementById('recTimer').classList.add('paused');
+    document.getElementById('recPausedBadge').style.display = '';
+    updateButtonState();
+    updateHintText();
+}
+
+function resumeRecording() {
+    if (!isRecording || !isPaused) return;
+    if (!mediaRecorder || mediaRecorder.state !== 'paused') return;
+    // Compensa tempo de pausa pra nao contar no timer
+    const pausedFor = Date.now() - pauseStartTime;
+    recordingStartTime += pausedFor;
+    try { mediaRecorder.resume(); } catch(e) { console.warn('[45s] resume error', e); }
+    isPaused = false;
+    if (pauseTimeoutId) { clearTimeout(pauseTimeoutId); pauseTimeoutId = null; }
+    timerInterval = setInterval(updateTimer, 250);
+    drawWaveform();
+    window._needsWakeLock = true; requestWakeLock();
+    document.getElementById('recDot').classList.remove('paused');
+    document.getElementById('recTimer').classList.remove('paused');
+    document.getElementById('recPausedBadge').style.display = 'none';
+    updateButtonState();
+    updateHintText();
+}
+
+function finalizeRecording() {
+    const btn = document.getElementById('recMainBtn');
+    if (btn) btn.disabled = true;
+    const rb = document.getElementById('recRestartBtn');
+    if (rb) rb.disabled = true;
+    // Se pausado, resume rapido antes de parar (mediaRecorder precisa estar recording pra stop() fechar chunks)
+    if (isPaused && mediaRecorder && mediaRecorder.state === 'paused') {
+        try { mediaRecorder.resume(); } catch(e){}
+        isPaused = false;
+    }
+    stopRecording();
+}
+
+function onMainBtnClick() {
+    if (!isRecording) return;
+    const btn = document.getElementById('recMainBtn');
+    if (btn && btn.disabled) return;
+    const s = secondsSinceStart();
+    if (isPaused) {
+        if (s >= MIN_RECORDING_S) finalizeRecording();
+        else resumeRecording();
+    } else {
+        if (s >= MIN_RECORDING_S) finalizeRecording();
+        else pauseRecording();
+    }
+}
+
+function onRestartClick() {
+    restartRecording();
+}
+
+async function restartRecording() {
+    _suppressReview = true;
+    const rb = document.getElementById('recRestartBtn');
+    if (rb) rb.disabled = true;
+    try {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            if (mediaRecorder.state === 'paused') { try { mediaRecorder.resume(); } catch(e){} }
+            try { mediaRecorder.stop(); } catch(e){}
+        }
+    } catch(e){}
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    if (pauseTimeoutId) { clearTimeout(pauseTimeoutId); pauseTimeoutId = null; }
+    if (maxDurationTimeout) { clearTimeout(maxDurationTimeout); maxDurationTimeout = null; }
+    try {
+        await vitaStorage.remove('rec_inprogress_' + token);
+        await vitaStorage.remove('audio_' + token);
+    } catch(e){}
+    isRecording = false;
+    isPaused = false;
+    pauseCount = 0;
+    audioChunks = [];
+    audioBlob = null;
+    audioUrl = null;
+    fullTranscript = '';
+    recordingStartTime = null;
+    window._needsWakeLock = false;
+    releaseWakeLock();
+    document.getElementById('recTimer').textContent = '00:00';
+    document.getElementById('recTimer').classList.remove('paused');
+    document.getElementById('recDot').classList.remove('paused');
+    document.getElementById('recPausedBadge').style.display = 'none';
+    document.getElementById('recProgressFill').style.width = '0%';
+    const btn = document.getElementById('recMainBtn');
+    if (btn) { btn.disabled = false; btn.style.display = ''; }
+    if (rb) { rb.disabled = false; rb.style.display = 'none'; rb.textContent = 'Recomeçar do início'; }
+    document.getElementById('recRecording').classList.remove('active');
+    document.getElementById('recIdle').style.display = '';
+    try { document.getElementById('topicList').style.display = ''; } catch(e){}
+    try {
+        const k = 'pc_restart_count_' + token;
+        const prev = parseInt(localStorage.getItem(k) || '0', 10);
+        localStorage.setItem(k, String(prev + 1));
+    } catch(e){}
+    _suppressReview = false;
+    setTimeout(function(){ startRecording(); }, 220);
+}
+
+function switchToForm() {
+    if (isRecording) {
+        _suppressReview = true;
+        try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch(e){}
+    }
+    switchTab('form');
+}
+
 // ── Tab switching ──
 function switchTab(tab) {
     const ap = document.getElementById('audioPanel');
@@ -1202,7 +1459,11 @@ function switchTab(tab) {
         ta.classList.add('active'); ta.style.color='#0D0F14';
         tf.classList.remove('active'); tf.style.color='rgba(13,15,20,0.4)';
     } else {
-        if (isRecording) stopRecording();
+        if (isRecording) {
+            // Troca pra form descarta gravacao parcial sem triggerar review
+            _suppressReview = true;
+            try { stopRecording(); } catch(e){}
+        }
         ap.classList.remove('active'); fp.classList.add('active');
         tf.classList.add('active'); tf.style.color='#0D0F14';
         ta.classList.remove('active'); ta.style.color='rgba(13,15,20,0.4)';
@@ -1266,6 +1527,11 @@ async function startRecording() {
         };
 
         mediaRecorder.onstop = async function() {
+            // Se restart em andamento, ignora onstop (nao triggera review)
+            if (_suppressReview) {
+                try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(e){}
+                return;
+            }
             audioBlob = new Blob(audioChunks, { type: actualMime });
             audioUrl = URL.createObjectURL(audioBlob);
             audioElement = new Audio(audioUrl);
@@ -1293,8 +1559,33 @@ async function startRecording() {
         // start(1000) = ondataavailable dispara a cada 1s com um chunk
         mediaRecorder.start(1000);
         isRecording = true;
+        isPaused = false;
+        pauseCount = 0;
+        currentAttemptId = generateAttemptId();
         fullTranscript = '';
         recordingStartTime = Date.now();
+        // Reset UI 45s
+        _avisoDuracaoMostrado = { '4min': false, '4min30': false };
+        document.getElementById('recTimer').style.color = '';
+        document.getElementById('recTimer').classList.remove('paused');
+        document.getElementById('recDot').classList.remove('paused');
+        document.getElementById('recPausedBadge').style.display = 'none';
+        document.getElementById('recProgressFill').style.width = '0%';
+        const _mb = document.getElementById('recMainBtn');
+        if (_mb) { _mb.disabled = false; _mb.style.display = ''; }
+        const _rb = document.getElementById('recRestartBtn');
+        if (_rb) { _rb.disabled = false; _rb.style.display = 'none'; _rb.textContent = 'Recomeçar do início'; }
+        // Esconde lista de topicos durante gravacao (ja sabe de cor dos slides)
+        try { document.getElementById('topicList').style.display = 'none'; } catch(e){}
+        // Mostra link fallback se paciente ja recomecou 2+ vezes
+        try {
+            const restartCount = parseInt(localStorage.getItem('pc_restart_count_' + token) || '0', 10);
+            const fbEl = document.getElementById('recFormFallback');
+            if (fbEl) fbEl.style.display = restartCount >= 2 ? '' : 'none';
+        } catch(e){}
+        updateButtonState();
+        updateHintText();
+        updateProgressBar45();
 
         // Wake Lock: evita o celular auto-lockar durante gravacao
         window._needsWakeLock = true;
@@ -1374,6 +1665,11 @@ function deleteRecording() {
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     audioBlob = null; audioUrl = null; audioElement = null;
     fullTranscript = '';
+    // Reset 45s state
+    isPaused = false;
+    pauseCount = 0;
+    currentAttemptId = null;
+    if (pauseTimeoutId) { clearTimeout(pauseTimeoutId); pauseTimeoutId = null; }
     // Limpa IDB quando paciente decide deletar
     vitaStorage.remove('audio_' + token).catch(function(){});
     vitaStorage.remove('rec_inprogress_' + token).catch(function(){});
@@ -1385,6 +1681,8 @@ function deleteRecording() {
     document.getElementById('iaBox').className = 'ia-box';
     document.getElementById('sendBtn').style.display = 'none';
     document.getElementById('recTimer').textContent = '00:00';
+    document.getElementById('recTimer').style.color = '';
+    document.getElementById('recProgressFill').style.width = '0%';
     atualizarEstadoBotao();
 }
 
@@ -1413,14 +1711,19 @@ function updateTimer() {
     const s = Math.floor((Date.now() - recordingStartTime) / 1000);
     const el = document.getElementById('recTimer');
     el.textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
-    // Alertas visuais conforme se aproxima do limite
-    if (s >= 270 && !_avisoDuracaoMostrado['4min30']) {  // 4:30
+    // Alertas visuais conforme se aproxima do limite (5min)
+    if (s >= 270 && !_avisoDuracaoMostrado['4min30']) {
         _avisoDuracaoMostrado['4min30'] = true;
         el.style.color = '#EF4444';
-    } else if (s >= 240 && !_avisoDuracaoMostrado['4min']) {  // 4:00
+    } else if (s >= 240 && !_avisoDuracaoMostrado['4min']) {
         _avisoDuracaoMostrado['4min'] = true;
         el.style.color = '#F59E0B';
     }
+    // 45s: atualiza botão + hint + barra
+    updateProgressBar45();
+    updateHintText();
+    // Atualiza botão só quando cruza os 45s (evita reflow constante)
+    if (s === MIN_RECORDING_S) updateButtonState();
 }
 
 // ── Waveform drawing ──
@@ -1647,8 +1950,10 @@ async function enviarAudio() {
                 queixaPrincipal: transcricao || '(áudio sem transcrição)',
                 audioUrl: audioUrl,
                 fotoUrl: fotoUrl,
+                attemptId: currentAttemptId || undefined,
             },
             transcricao: transcricao,
+            attemptId: currentAttemptId || undefined,
         };
         if (audioBase64) body.audioBase64 = audioBase64;
         if (fotoBase64) body.fotoBase64 = fotoBase64;
