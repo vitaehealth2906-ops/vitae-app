@@ -273,6 +273,10 @@ html,body{
 // ══════ Params ══════
 var qs = new URLSearchParams(window.location.search);
 var TOKEN = qs.get('token') || '';
+// Guard: sem token nao faz sentido mostrar slides (nao ha pra onde redirecionar)
+if (!TOKEN) {
+  window.location.replace('01-splash.html');
+}
 
 // ══════ Slides navigation ══════
 var N = 3;
@@ -331,6 +335,8 @@ function markSlidesSeen() {
   try { localStorage.setItem('pc_slides_visto_' + TOKEN, '1'); } catch(e){}
 }
 function redirectTo(url) {
+  if (redirectTo._lock) return;
+  redirectTo._lock = true;
   try {
     document.querySelector('.shell').style.transition = 'opacity .35s';
     document.querySelector('.shell').style.opacity = '0';
@@ -379,7 +385,7 @@ document.addEventListener('touchend', function(e){
 document.addEventListener('keydown', function(e){
   if ((e.key === 'ArrowRight' || e.key === ' ') && cur < N - 1) { e.preventDefault(); goTo(cur + 1); }
   if (e.key === 'ArrowLeft' && cur > 0) { e.preventDefault(); goTo(cur - 1); }
-  if (e.key === 'Enter' && cur === N - 1) { e.preventDefault(); finish(); }
+  if (e.key === 'Enter' && cur === N - 1 && document.activeElement !== ctaBtn) { e.preventDefault(); finish(); }
 });
 </script>
 </body>

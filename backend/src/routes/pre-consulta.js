@@ -376,12 +376,14 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
     }
 
     // Save audio to storage
+    // FASE E — inclui attemptId no filename pra evitar sobrescrita em race de retry
     let audioUrl = null;
     const audioFile = req.files && req.files.audio && req.files.audio[0];
     if (audioFile) {
+      const attSuffix = novoAttemptId ? `-${String(novoAttemptId).replace(/[^a-zA-Z0-9]/g,'').slice(0,8)}` : '';
       audioUrl = await storage.upload({
         buffer: audioFile.buffer,
-        nomeOriginal: `preconsulta-${preConsulta.id}.webm`,
+        nomeOriginal: `preconsulta-${preConsulta.id}${attSuffix}.webm`,
         mimetype: audioFile.mimetype || 'audio/webm',
         pasta: 'audios',
       });
@@ -413,6 +415,11 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
     // Capturar pacienteId logado E tentar auto-link se nao tem (cria AutorizacaoAcesso + Consentimento)
     const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
     const pacienteIdFinal = await vincularPaciente({ preConsulta, pacienteIdLogado, req });
+
+    // FASE E — garante que attemptId fica persistido no JSON respostas pra dedupe futuro
+    if (novoAttemptId && respostas && !respostas.attemptId) {
+      respostas.attemptId = novoAttemptId;
+    }
 
     // FASE 6 — UPDATE atomico: so atualiza se status ainda NAO for RESPONDIDA.
     // Protege contra 2 requests simultaneos (double-submit do paciente).
@@ -666,6 +673,9 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
 const CONTEUDO_CURTO_WORD_THRESHOLD = 80;
 function marcarConteudoCurto(pc) {
   if (!pc) return pc;
+  // Sinal "conteudo curto" so faz sentido pra pre-consulta com AUDIO
+  // Sem audioUrl => resposta via formulario escrito => nao aplica
+  if (!pc.audioUrl) { pc.conteudoCurto = false; return pc; }
   const t = (pc.transcricao || '').trim();
   if (!t) { pc.conteudoCurto = false; return pc; }
   const palavras = t.split(/\s+/).filter(Boolean);

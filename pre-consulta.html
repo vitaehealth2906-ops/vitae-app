@@ -1458,12 +1458,13 @@ function updateProgressBar45() {
     el.style.width = pct + '%';
 }
 
-function pauseRecording() {
+function pauseRecording(fromAuto) {
     if (!isRecording || isPaused) return;
     if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
     try { mediaRecorder.pause(); } catch(e) { console.warn('[45s] pause error', e); }
     isPaused = true;
-    pauseCount++;
+    // Pausa automatica (visibility/onerror) nao conta no cap — so pausa manual conta
+    if (!fromAuto) pauseCount++;
     pauseStartTime = Date.now();
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
@@ -1509,8 +1510,8 @@ function finalizeRecording() {
     // Valida silencio ANTES de parar (ainda da pra continuar gravando se for falso alarme)
     var avgRms = getAverageRms();
     var s = secondsSinceStart();
-    // So bloqueia se passou dos 45s (ja sabemos que tem duracao) mas ficou silencioso
-    if (s >= MIN_RECORDING_S && avgRms > 0 && avgRms < SILENCE_RMS_THRESHOLD) {
+    // So bloqueia se passou dos 45s. Trata 0 amostras como silencio tambem (Safari pode ter throttle)
+    if (s >= MIN_RECORDING_S && (_rmsCount === 0 || avgRms < SILENCE_RMS_THRESHOLD)) {
         console.warn('[45s] silencio detectado — RMS medio:', avgRms.toFixed(4));
         // Nao finaliza — mostra overlay e descarta. Paciente recomeca.
         _suppressReview = true;
@@ -1690,9 +1691,12 @@ async function startRecording() {
             }
         };
 
+        // Captura referencia deste MediaRecorder — se um novo foi criado antes do onstop disparar,
+        // este handler nao deve triggerar review (evita race condition no restart)
+        var _thisRecorder = mediaRecorder;
         mediaRecorder.onstop = async function() {
-            // Se restart em andamento, ignora onstop (nao triggera review)
-            if (_suppressReview) {
+            // Se um novo recorder ja foi criado, esse stop e de instancia antiga — ignora
+            if (_suppressReview || _thisRecorder !== mediaRecorder) {
                 try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(e){}
                 return;
             }
@@ -1777,16 +1781,10 @@ async function startRecording() {
         mediaRecorder.onerror = function(ev) {
             console.warn('[45s] mediaRecorder.onerror', ev && ev.error);
             if (isRecording && !isPaused) {
-                // Pausa logica e mostra sheet pro paciente decidir
-                try { mediaRecorder.pause(); } catch(e){}
-                isPaused = true;
-                pauseStartTime = Date.now();
-                if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-                document.getElementById('recDot').classList.add('paused');
-                document.getElementById('recTimer').classList.add('paused');
-                document.getElementById('recPausedBadge').style.display = '';
-                updateButtonState();
-                document.getElementById('recHint').innerHTML = 'Houve uma interrupção. <strong>Continue ou recomece.</strong>';
+                // pauseRecording(true) cuida de pause + timeout 90s + UI sem queimar pauseCount
+                try { pauseRecording(true); } catch(e){}
+                var hintEl = document.getElementById('recHint');
+                if (hintEl) hintEl.innerHTML = 'Houve uma interrupção. <strong>Continue ou recomece.</strong>';
             }
         };
     } catch (err) {
@@ -1823,9 +1821,10 @@ function stopRecording() {
 }
 
 // FASE D — visibilitychange: se aba vai pra background gravando, pausa automatico
+// Pausa automatica NAO conta no cap de pauseCount (paciente so ta trocando de app)
 document.addEventListener('visibilitychange', function(){
     if (document.hidden && isRecording && !isPaused) {
-        try { pauseRecording(); } catch(e){}
+        try { pauseRecording(true); } catch(e){}
     }
 });
 
@@ -1927,8 +1926,8 @@ function updateTimer() {
     // 45s: atualiza botão + hint + barra
     updateProgressBar45();
     updateHintText();
-    // Atualiza botão só quando cruza os 45s (evita reflow constante)
-    if (s === MIN_RECORDING_S) updateButtonState();
+    // Atualiza botao toda vez — garantia contra skips de tick em background throttling
+    updateButtonState();
 }
 
 // ── Waveform drawing ──
