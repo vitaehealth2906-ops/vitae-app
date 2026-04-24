@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview — Padrões Observados (desktop médico)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --grn:#00E5A0;--cyn:#00B4D8;--grad:linear-gradient(120deg,#00E5A0,#00B4D8);
+  --bg:#F4F6FA;--surface:#FFFFFF;--surface2:#F9FAFC;
+  --border:rgba(0,0,0,0.06);--border2:rgba(0,0,0,0.10);
+  --t1:#0D0F14;--t2:#4B5563;--t3:#6B7280;--t4:#C4C9D4;
+  --info:#3B82F6;--warn:#F59E0B;--bad:#EF4444;--ok:#00C47A;--purple:#8B5CF6;
+  --shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03);
+}
+html,body{width:100%;min-height:100vh;background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;color:var(--t1);-webkit-font-smoothing:antialiased}
+
+/* ── Shell do preview ── */
+.preview-wrap{max-width:1440px;margin:0 auto;padding:40px 32px 80px}
+.preview-header{margin-bottom:36px}
+.preview-header h1{font-size:32px;font-weight:900;letter-spacing:-1px;margin-bottom:6px}
+.preview-header h1 em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:900}
+.preview-header p{font-size:14px;color:var(--t2);max-width:720px;line-height:1.6}
+.preview-note{margin-top:14px;padding:12px 16px;background:rgba(0,180,216,.06);border:1px solid rgba(0,180,216,.18);border-left:3px solid var(--cyn);border-radius:10px;font-size:12.5px;color:var(--t2);line-height:1.55}
+.preview-note strong{color:var(--t1)}
+
+/* ── Simulacao da tela resumo (layout 2 colunas) ── */
+.resumo-shell{background:var(--surface);border-radius:20px;box-shadow:var(--shadow);padding:28px 32px;margin-top:24px;display:grid;grid-template-columns:1fr 380px;gap:32px}
+
+.resumo-head{margin-bottom:24px;grid-column:1/-1}
+.resumo-head h1{font-size:26px;font-weight:900;letter-spacing:-.6px;color:var(--t1);line-height:1.1}
+.resumo-head h1 em{font-style:italic;font-weight:900;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.resumo-head .sub{font-size:13px;color:var(--t3);margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.resumo-head .sub .dot{width:3px;height:3px;border-radius:50%;background:var(--t4)}
+
+/* ── PLAYER (dark) ── */
+.dk-player{background:#1c1c1e;border-radius:16px;padding:18px 20px;margin-bottom:16px}
+.dk-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.dk-rec{width:8px;height:8px;border-radius:50%;background:var(--grn);box-shadow:0 0 12px rgba(0,229,160,.6);animation:dkPulse 1.5s ease-in-out infinite}
+@keyframes dkPulse{0%,100%{opacity:1}50%{opacity:.4}}
+.dk-title{font-size:12px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.08em;text-transform:uppercase}
+.dk-meta{margin-left:auto;font-size:11px;color:rgba(255,255,255,.5)}
+.dk-speed{margin-left:8px;padding:3px 10px;border-radius:12px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);font-size:11px;font-weight:700;cursor:pointer}
+.dk-wave{height:52px;display:flex;align-items:center;justify-content:center;gap:2px;padding:0 2px}
+.dk-wave-bar{width:3px;background:var(--grn);border-radius:2px;opacity:.85}
+.dk-foot{display:flex;align-items:center;gap:14px;margin-top:12px}
+.dk-time{font-size:12px;color:rgba(255,255,255,.55);font-variant-numeric:tabular-nums}
+.dk-ctrls{display:flex;gap:10px;align-items:center;margin:0 auto}
+.dk-ctrl{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.dk-ctrl svg{width:14px;height:14px;fill:rgba(255,255,255,.75)}
+.dk-play{width:42px;height:42px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.dk-play svg{width:14px;height:14px;fill:#1c1c1e}
+
+/* ── Transcricao colapsada ── */
+.trans-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:16px}
+.trans-box-head{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--t2)}
+.trans-box-head svg{width:14px;height:14px;stroke:var(--t3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── Queixa card ── */
+.queixa-card-v2{display:flex;gap:14px;padding:18px 20px;margin-bottom:18px;background:#fff;border:1px solid var(--border);border-left:4px solid var(--cyn);border-radius:14px;box-shadow:var(--shadow)}
+.queixa-card-v2-icon{width:40px;height:40px;border-radius:12px;background:rgba(0,180,216,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.queixa-card-v2-icon svg{width:18px;height:18px;fill:none;stroke:var(--cyn);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.queixa-card-v2-body{flex:1;min-width:0}
+.queixa-card-v2-label{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--cyn);margin-bottom:4px}
+.queixa-card-v2-text{font-size:15px;font-weight:700;color:var(--t1);line-height:1.4}
+
+/* ── Insight cards (pontos de atencao) ── */
+.section-label{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+.section-label .line{flex:1;height:1px;background:var(--border)}
+.ins-card{display:flex;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;position:relative;overflow:hidden;margin-bottom:8px;padding-left:20px}
+.ins-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px}
+.ins-card.atencao::before{background:repeating-linear-gradient(-45deg,#F59E0B 0 2px,#FCD34D 2px 5px)}
+.ins-card.historico::before{background:repeating-linear-gradient(90deg,#8B5CF6 0 2px,#7C3AED 2px 6px)}
+.ins-icon{width:32px;height:32px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.ins-icon.atencao{background:rgba(245,158,11,.1)}
+.ins-icon.historico{background:rgba(139,92,246,.1)}
+.ins-icon svg{width:16px;height:16px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ins-icon.atencao svg{stroke:var(--warn)}
+.ins-icon.historico svg{stroke:var(--purple)}
+.ins-body{flex:1;min-width:0}
+.ins-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.ins-msg{font-size:12.5px;color:var(--t2);line-height:1.45}
+
+/* ═══════════════════════════════════════════════════ */
+/* PADRÕES OBSERVADOS — NOVO COMPONENTE (FOCO DO PREVIEW) */
+/* ═══════════════════════════════════════════════════ */
+.padroes-section{margin-top:22px;padding:20px;background:rgba(139,92,246,.03);border:1px solid rgba(139,92,246,.12);border-radius:16px}
+.padroes-section-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed rgba(139,92,246,.2)}
+.padroes-section-icon{width:34px;height:34px;border-radius:10px;background:rgba(139,92,246,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.padroes-section-icon svg{width:17px;height:17px;fill:none;stroke:var(--purple);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.padroes-section-title{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:2px}
+.padroes-section-desc{font-size:11.5px;color:var(--t3);line-height:1.5}
+
+.padrao-card{background:#fff;border:1px solid rgba(139,92,246,.18);border-radius:12px;padding:12px 14px 10px 18px;margin-bottom:8px;position:relative;overflow:hidden}
+.padrao-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--purple),#7C3AED)}
+
+.padrao-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.padrao-title-wrap{flex:1;min-width:0}
+.padrao-title{font-size:14px;font-weight:800;color:var(--t1);line-height:1.2;letter-spacing:-.2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.padrao-cid{padding:1px 5px;border-radius:3px;background:rgba(139,92,246,.1);color:var(--purple);font-size:9.5px;font-weight:700;letter-spacing:.03em;font-family:monospace}
+.padrao-prev{font-size:11px;color:var(--t3);margin-top:2px;line-height:1.35}
+.padrao-prev strong{color:var(--t2);font-weight:700}
+
+.padrao-score-wrap{flex-shrink:0;text-align:right;display:flex;align-items:baseline;gap:3px}
+.padrao-score{font-size:18px;font-weight:900;color:var(--purple);line-height:1;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+.padrao-score-label{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+
+.padrao-signals{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center}
+.padrao-signals-group{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:11px;line-height:1.35}
+.padrao-signals-icon{font-size:10px;font-weight:800;width:14px;text-align:center;flex-shrink:0}
+.padrao-signals-icon.ok{color:#008F5A}
+.padrao-signals-icon.ab{color:var(--t3)}
+.padrao-signals-text{color:var(--t2)}
+.padrao-signals-text .hit{color:#008F5A;font-weight:600}
+.padrao-signals-text .miss{color:var(--t3);font-weight:500}
+.padrao-signals-text .sep{color:var(--t4);margin:0 3px}
+
+.padrao-next{margin-top:6px;font-size:11.5px;color:var(--t1);line-height:1.4}
+.padrao-next strong{color:var(--info);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-right:5px}
+
+.padrao-foot{margin-top:8px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10px;color:var(--t3);line-height:1.3}
+.padrao-foot-src{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.padrao-foot-src strong{color:var(--t2);font-weight:700}
+.padrao-ev{padding:1px 5px;border-radius:3px;font-size:9px;font-weight:800;letter-spacing:.03em}
+.padrao-ev.a{background:rgba(0,196,122,.12);color:#008F5A}
+.padrao-ev.b{background:rgba(59,130,246,.12);color:var(--info)}
+.padrao-ev.c{background:rgba(107,114,128,.12);color:var(--t3)}
+.padrao-actions{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+.padrao-btn{padding:5px 10px;border-radius:6px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;border:1px solid transparent;transition:all .15s;display:inline-flex;align-items:center;gap:4px;line-height:1}
+.padrao-btn svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.padrao-btn.accept{background:rgba(0,196,122,.08);color:#008F5A;border-color:rgba(0,196,122,.25)}
+.padrao-btn.accept:hover{background:rgba(0,196,122,.18)}
+.padrao-btn.reject{background:transparent;color:var(--t3);border-color:var(--border2)}
+.padrao-btn.reject:hover{background:rgba(239,68,68,.04);color:var(--bad);border-color:rgba(239,68,68,.22)}
+
+.padrao-disclaimer{margin-top:4px;font-size:9.5px;color:var(--t3);line-height:1.35;font-style:italic;opacity:.8}
+
+/* ALERTA FARMACOLÓGICO CRÍTICO — topo absoluto */
+.farmaco-critico{margin:18px 0 14px;padding:18px 20px;background:linear-gradient(135deg,rgba(239,68,68,.08),rgba(239,68,68,.04));border:2px solid rgba(239,68,68,.3);border-radius:16px;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(239,68,68,.12)}
+.farmaco-critico::before{content:'';position:absolute;top:0;left:0;bottom:0;width:6px;background:repeating-linear-gradient(45deg,#EF4444 0 4px,#B91C1C 4px 8px)}
+.farmaco-critico-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px}
+.farmaco-critico-icon{width:42px;height:42px;border-radius:12px;background:rgba(239,68,68,.15);border:1.5px solid rgba(239,68,68,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.farmaco-critico-icon svg{width:20px;height:20px;fill:none;stroke:#B91C1C;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.farmaco-critico-body{flex:1}
+.farmaco-critico-label{font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#B91C1C;margin-bottom:4px}
+.farmaco-critico-title{font-size:16px;font-weight:800;color:var(--t1);line-height:1.3;letter-spacing:-.2px}
+.farmaco-critico-msg{margin-top:10px;font-size:13.5px;color:var(--t1);line-height:1.55}
+.farmaco-critico-msg strong{color:#B91C1C;font-weight:800}
+.farmaco-evidencia{margin-top:12px;padding:10px 12px;background:rgba(255,255,255,.6);border-radius:8px;font-size:12px;color:var(--t2);line-height:1.5}
+.farmaco-evidencia-label{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:3px}
+.farmaco-evidencia-quote{font-style:italic;color:var(--t1);border-left:2px solid rgba(239,68,68,.3);padding-left:10px;margin:6px 0}
+.farmaco-critico-foot{margin-top:12px;padding-top:10px;border-top:1px dashed rgba(239,68,68,.2);display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--t3)}
+.farmaco-critico-foot strong{color:var(--t2);font-weight:700}
+
+/* Auto-medicacao card (amarelo) */
+.auto-med-card{margin:8px 0 18px;padding:14px 18px;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.22);border-radius:12px;display:flex;gap:12px;position:relative;overflow:hidden;padding-left:22px}
+.auto-med-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:repeating-linear-gradient(-45deg,#F59E0B 0 2px,#FCD34D 2px 5px)}
+.auto-med-icon{width:30px;height:30px;border-radius:8px;background:rgba(245,158,11,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.auto-med-icon svg{width:15px;height:15px;fill:none;stroke:#92700C;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.auto-med-body{flex:1}
+.auto-med-label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#92700C;margin-bottom:3px}
+.auto-med-title{font-size:13px;font-weight:700;color:var(--t1);line-height:1.4;margin-bottom:3px}
+.auto-med-msg{font-size:12px;color:var(--t2);line-height:1.45}
+.auto-med-msg em{font-style:italic;color:var(--t1)}
+
+/* ID de auditoria + versão visível em cada card */
+.padrao-audit-strip{font-size:9.5px;color:var(--t3);letter-spacing:.04em;font-family:monospace;padding:2px 6px;background:rgba(0,0,0,.03);border-radius:4px;display:inline-flex;align-items:center;gap:5px}
+
+/* Red flags separate block */
+.redflag-block{margin-top:18px;padding:16px 18px;background:rgba(239,68,68,.03);border:1px solid rgba(239,68,68,.15);border-radius:12px}
+.redflag-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.redflag-icon{width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,.1);display:flex;align-items:center;justify-content:center}
+.redflag-icon svg{width:14px;height:14px;fill:none;stroke:var(--bad);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.redflag-title{font-size:12.5px;font-weight:800;color:#B91C1C;letter-spacing:-.1px}
+.redflag-sub{font-size:11px;color:var(--t3);margin-top:1px;font-weight:500}
+.redflag-list{padding:0 0 0 8px;margin:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+.redflag-item{display:flex;gap:8px;font-size:12px;color:var(--t2);line-height:1.5}
+.redflag-item::before{content:'•';color:var(--bad);font-weight:800}
+.redflag-item strong{color:var(--t1);font-weight:700}
+
+/* Fallback honesto quando contexto insuficiente */
+.padrao-empty{padding:24px 20px;text-align:center;border:1.5px dashed var(--border2);border-radius:12px;background:rgba(0,0,0,.01)}
+.padrao-empty-icon{width:44px;height:44px;border-radius:12px;background:rgba(107,114,128,.06);display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px}
+.padrao-empty-icon svg{width:20px;height:20px;fill:none;stroke:var(--t3);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.padrao-empty-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:3px}
+.padrao-empty-body{font-size:12px;color:var(--t2);line-height:1.5;max-width:320px;margin:0 auto}
+
+/* ── Sticky notes + CFM ── */
+.sticky-note-wrap{margin-top:22px;padding:14px 16px;background:rgba(252,211,77,.08);border:1px solid rgba(252,211,77,.3);border-radius:12px}
+.sticky-label{font-size:11px;font-weight:700;color:#92700C;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.sticky-textarea{width:100%;min-height:60px;background:transparent;border:none;resize:vertical;font-family:inherit;font-size:13px;color:var(--t1);line-height:1.5;outline:none}
+.sticky-textarea::placeholder{color:var(--t3);font-style:italic}
+
+.cfm-disclaimer{margin-top:24px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:11px;color:var(--t3);line-height:1.55}
+.cfm-disclaimer strong{color:var(--t2)}
+
+/* ── Coluna direita (referencia) ── */
+.right-col{display:flex;flex-direction:column;gap:14px}
+.right-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.right-card-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.right-card-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.right-card-icon svg{width:15px;height:15px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.right-card-title{flex:1;font-size:12.5px;font-weight:800;color:var(--t1);letter-spacing:-.1px}
+.right-card-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.04em}
+
+.right-card.meds .right-card-icon{background:rgba(0,196,122,.1)}
+.right-card.meds .right-card-icon svg{stroke:var(--ok)}
+.right-card.meds .right-card-chip{background:rgba(0,196,122,.1);color:#008F5A}
+.right-card.alerg .right-card-icon{background:rgba(239,68,68,.1)}
+.right-card.alerg .right-card-icon svg{stroke:var(--bad)}
+.right-card.alerg .right-card-chip{background:rgba(239,68,68,.1);color:#B91C1C}
+.right-card.exames .right-card-icon{background:rgba(59,130,246,.1)}
+.right-card.exames .right-card-icon svg{stroke:var(--info)}
+.right-card.exames .right-card-chip{background:rgba(59,130,246,.1);color:var(--info)}
+
+.med-pill{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(0,196,122,.05);border:1px solid rgba(0,196,122,.15);border-radius:10px;margin-bottom:6px}
+.med-pill-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);flex-shrink:0}
+.med-pill-name{font-size:12.5px;font-weight:600;color:var(--t1);flex:1}
+.med-pill-dose{font-size:11px;color:var(--t3);font-weight:500}
+.med-pill.highlight{background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.25);box-shadow:0 0 0 3px rgba(245,158,11,.08)}
+.med-pill.highlight .med-pill-dot{background:var(--warn)}
+
+.alerg-pill{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.18);border-radius:10px;margin-bottom:6px}
+.alerg-pill-name{font-size:12.5px;font-weight:700;color:#B91C1C;flex:1}
+.alerg-pill-grav{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:4px;background:rgba(239,68,68,.15);color:#B91C1C}
+
+.exame-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.exame-card{padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s}
+.exame-card:hover{border-color:var(--info);background:#fff}
+.exame-card.relevant{background:rgba(59,130,246,.06);border-color:rgba(59,130,246,.3)}
+.exame-card.relevant::after{content:'relevante';position:absolute;top:4px;right:6px;font-size:9px;font-weight:800;color:var(--info);letter-spacing:.05em;text-transform:uppercase}
+.exame-thumb{height:56px;background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;display:flex;align-items:center;justify-content:center}
+.exame-thumb svg{width:20px;height:20px;stroke:var(--t4);fill:none;stroke-width:1.5}
+.exame-name{font-size:11px;font-weight:700;color:var(--t1);line-height:1.3;margin-bottom:2px}
+.exame-date{font-size:10px;color:var(--t3)}
+
+@media(max-width:1100px){
+  .resumo-shell{grid-template-columns:1fr}
+  .right-col{margin-top:24px}
+}
+</style>
+</head>
+<body>
+
+<div class="preview-wrap">
+
+  <div class="preview-header">
+    <h1>Preview — <em>Padrões Observados</em> redesenhado</h1>
+    <p>Simulação fiel da tela de <strong>Resumo de 1 minuto</strong> do desktop médico (<code>desktop/app.html</code>) com o novo componente integrado. Paciente fictício: Maria S., 34 anos, feminina, queixa de cefaleia há 2 semanas. Foco: seção <em>Padrões Observados</em> redesenhada com evidência rastreável, fonte citada, nível de confiança e proteções CFM/LGPD embutidas.</p>
+    <div class="preview-note">
+      <strong>Como ler:</strong> as seções de cima (player, transcrição, queixa, pontos de atenção) e a coluna direita (medicamentos, alergias, exames) são aproximações do que já existe no produto — valem pra dar contexto. O que é novo e o que você precisa aprovar está na seção <strong>Padrões Observados</strong> (fundo roxo claro). Cada card mostra compatibilidade, sinais bateram, sinais ausentes, fonte, versão da base, nível de evidência e disclaimer obrigatório.
+    </div>
+  </div>
+
+  <div class="resumo-shell">
+
+    <!-- HEADER -->
+    <div class="resumo-head">
+      <h1>Resumo de 1 minuto para <em>Maria Silva</em></h1>
+      <div class="sub">
+        <span>Dermatologia — Dr. Lucas Borelli</span>
+        <span class="dot"></span>
+        <span>Respondido em 23/04/2026, 19:58</span>
+        <span class="dot"></span>
+        <span>Áudio: 01:17</span>
+        <span class="dot"></span>
+        <span>Nível do briefing: <strong style="color:var(--ok)">5 — completo</strong></span>
+      </div>
+    </div>
+
+    <!-- COLUNA ESQUERDA -->
+    <div>
+
+      <!-- Player (placeholder visual) -->
+      <div class="dk-player">
+        <div class="dk-head">
+          <div class="dk-rec"></div>
+          <div class="dk-title">Briefing do paciente</div>
+          <div class="dk-meta">01:17 • recebido há 3 min</div>
+          <div class="dk-speed">1x</div>
+        </div>
+        <div class="dk-wave">
+          <script>document.write(Array.from({length:40}).map((_,i)=>`<div class="dk-wave-bar" style="height:${15+Math.random()*70}%"></div>`).join(''))</script>
+        </div>
+        <div class="dk-foot">
+          <div class="dk-time">00:00</div>
+          <div class="dk-ctrls">
+            <div class="dk-ctrl"><svg viewBox="0 0 24 24"><path d="M12 5V2L7 7l5 5V8c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8zm-1.1 11H10v-3.3L8.7 14l-.7-.7 2.5-2.5 2.5 2.5-.7.7L11 12.7V16zm2.5-.8l-.7-.7L14 13.2V16h-1v-3.3l1.4 1.4.7-.7L13.5 11l-2.5 2.5z"/></svg></div>
+            <div class="dk-play"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21"/></svg></div>
+            <div class="dk-ctrl"><svg viewBox="0 0 24 24"><path d="M12 5V2l5 5-5 5V8c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/></svg></div>
+          </div>
+          <div class="dk-time">01:17</div>
+        </div>
+      </div>
+
+      <!-- Transcricao colapsada -->
+      <div class="trans-box">
+        <div class="trans-box-head">
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          Ver transcrição completa (1 min 17 s, 186 palavras)
+        </div>
+      </div>
+
+      <!-- Queixa Principal -->
+      <div class="queixa-card-v2">
+        <div class="queixa-card-v2-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </div>
+        <div class="queixa-card-v2-body">
+          <div class="queixa-card-v2-label">Queixa principal</div>
+          <div class="queixa-card-v2-text">Dor de cabeça há 2 semanas, pulsátil, unilateral à direita, piora pela manhã. Náusea associada. Tomou dipirona sem melhora.</div>
+        </div>
+      </div>
+
+      <!-- Pontos de atencao (2 insight cards) -->
+      <div class="section-label">
+        Pontos de atenção
+        <span class="line"></span>
+      </div>
+      <div class="ins-card atencao">
+        <div class="ins-icon atencao">
+          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="ins-body">
+          <div class="ins-title">Não responde a AINE comum</div>
+          <div class="ins-msg">Paciente relata uso de dipirona sem melhora. Considerar opção refratária nos diferenciais abaixo.</div>
+        </div>
+      </div>
+      <div class="ins-card historico">
+        <div class="ins-icon historico">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </div>
+        <div class="ins-body">
+          <div class="ins-title">Histórico familiar relevante</div>
+          <div class="ins-msg">Mãe com enxaqueca crônica — aumenta pré-teste para enxaqueca hereditária.</div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- ALERTA FARMACOLÓGICO CRÍTICO (topo absoluto)         -->
+      <!-- Aparece quando medicamento mencionado no audio bate  -->
+      <!-- com alergia registrada no perfil                     -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="farmaco-critico">
+        <div class="farmaco-critico-head">
+          <div class="farmaco-critico-icon">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="farmaco-critico-body">
+            <div class="farmaco-critico-label">Alerta farmacológico · crítico</div>
+            <div class="farmaco-critico-title">Paciente mencionou <strong style="color:#B91C1C">Dipirona</strong> no áudio — alergia registrada no perfil</div>
+            <div class="farmaco-critico-msg">
+              <strong>Não prescrever dipirona, metamizol ou pirazolônicos.</strong> Risco de reação cruzada — alergia classe pirazolônica confirmada no cadastro do paciente. Considere paracetamol ou AINE não-pirazolônico como alternativa.
+            </div>
+            <div class="farmaco-evidencia">
+              <div class="farmaco-evidencia-label">Evidência do áudio (00:42)</div>
+              <div class="farmaco-evidencia-quote">"...tomei uma novalgina ontem de noite e não melhorou nada a dor..."</div>
+              <div class="farmaco-evidencia-label" style="margin-top:8px">Evidência do perfil</div>
+              <div style="font-size:12px;color:var(--t1);margin-top:3px">Alergia <strong>Dipirona</strong> · gravidade <strong>Grave</strong> · cadastrada em 14/04/2026</div>
+            </div>
+            <div class="farmaco-critico-foot">
+              <span><strong>Base:</strong> farmacologia/classes_v1.0 (CMED + ANVISA)</span>
+              <span>·</span>
+              <span><strong>Match:</strong> Novalgina → Dipirona → classe pirazolônica → alergia registrada</span>
+              <span>·</span>
+              <span class="padrao-audit-strip">AUD-20260423-195801-A1</span>
+            </div>
+          </div>
+        </div>
+        <div class="padrao-actions">
+          <button class="padrao-btn accept" style="background:rgba(239,68,68,.08);color:#B91C1C;border-color:rgba(239,68,68,.25)">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Alerta registrado
+          </button>
+          <button class="padrao-btn reject">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Rejeitar (falso positivo)
+          </button>
+        </div>
+        <div class="padrao-disclaimer">
+          Alerta baseado em cruzamento determinístico entre transcrição e perfil. Não constitui diagnóstico. Ato médico privativo.
+        </div>
+      </div>
+
+      <!-- Auto-medicação (amarelo, abaixo do crítico) -->
+      <div class="auto-med-card">
+        <div class="auto-med-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="auto-med-body">
+          <div class="auto-med-label">Auto-medicação detectada</div>
+          <div class="auto-med-title">Paciente mencionou <em>Dipirona</em> no áudio — não consta no perfil como uso regular</div>
+          <div class="auto-med-msg">Sugerimos atualizar o cadastro de medicamentos com informação atual de uso antes da consulta.</div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- PADROES OBSERVADOS — COMPONENTE DIFERENCIAL          -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="section-label">
+        Padrões observados
+        <span class="line"></span>
+      </div>
+
+      <div class="padroes-section">
+
+        <div class="padroes-section-head">
+          <div class="padroes-section-icon">
+            <svg viewBox="0 0 24 24"><path d="M2 12h4l3-9 6 18 3-9h4"/></svg>
+          </div>
+          <div>
+            <div class="padroes-section-title">Diferenciais mais compatíveis com este quadro</div>
+            <div class="padroes-section-desc">Ordenado por prevalência nesta combinação idade/sexo/sinais. Cada sugestão é rastreável até a diretriz fonte. <strong>Apoio à decisão — não constitui diagnóstico.</strong></div>
+          </div>
+        </div>
+
+        <!-- CARD 1 — Enxaqueca sem aura (compacto) -->
+        <div class="padrao-card">
+          <div class="padrao-head">
+            <div class="padrao-title-wrap">
+              <div class="padrao-title">Enxaqueca sem aura <span class="padrao-cid">G43.0</span></div>
+              <div class="padrao-prev"><strong>18%</strong> em mulheres 30–40a com esse padrão</div>
+            </div>
+            <div class="padrao-score-wrap">
+              <span class="padrao-score">82%</span>
+              <span class="padrao-score-label">compat</span>
+            </div>
+          </div>
+
+          <div class="padrao-signals">
+            <div class="padrao-signals-group">
+              <span class="padrao-signals-icon ok">✓</span>
+              <span class="padrao-signals-text">
+                <span class="hit">pulsátil</span><span class="sep">·</span><span class="hit">unilateral</span><span class="sep">·</span><span class="hit">náusea</span><span class="sep">·</span><span class="hit">duração 2 sem</span><span class="sep">·</span><span class="hit">hist. familiar</span>
+              </span>
+            </div>
+          </div>
+          <div class="padrao-signals">
+            <div class="padrao-signals-group">
+              <span class="padrao-signals-icon ab">?</span>
+              <span class="padrao-signals-text">
+                <span class="miss">investigar: fotofobia</span><span class="sep">·</span><span class="miss">fonofobia</span><span class="sep">·</span><span class="miss">piora c/ esforço</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="padrao-next"><strong>Próximo:</strong>Aplicar ICHD-3. Considerar diário da cefaleia 4 semanas. Triptano se crise atual.</div>
+
+          <div class="padrao-foot">
+            <div class="padrao-foot-src"><strong>SBCef 2022</strong> pg 14 · base <strong>enxaqueca_v2</strong></div>
+            <span class="padrao-ev a">Ev.A</span>
+            <div class="padrao-actions">
+              <button class="padrao-btn accept" title="Marcar como relevante">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Aceitar
+              </button>
+              <button class="padrao-btn reject" title="Rejeitar sugestão">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rejeitar
+              </button>
+            </div>
+          </div>
+
+          <div class="padrao-disclaimer">Apoio à decisão baseado em SBCef 2022. Não constitui diagnóstico.</div>
+        </div>
+
+        <!-- CARD 2 — Cefaleia tensional (compacto) -->
+        <div class="padrao-card">
+          <div class="padrao-head">
+            <div class="padrao-title-wrap">
+              <div class="padrao-title">Cefaleia tensional crônica <span class="padrao-cid">G44.2</span></div>
+              <div class="padrao-prev"><strong>35%</strong> em mulheres adultas — causa mais comum de cefaleia recorrente</div>
+            </div>
+            <div class="padrao-score-wrap">
+              <span class="padrao-score">61%</span>
+              <span class="padrao-score-label">compat</span>
+            </div>
+          </div>
+
+          <div class="padrao-signals">
+            <div class="padrao-signals-group">
+              <span class="padrao-signals-icon ok">✓</span>
+              <span class="padrao-signals-text">
+                <span class="hit">≥15 dias/mês potencial</span><span class="sep">·</span><span class="hit">sem déficit neurológico</span><span class="sep">·</span><span class="hit">falha de AINE</span>
+              </span>
+            </div>
+          </div>
+          <div class="padrao-signals">
+            <div class="padrao-signals-group">
+              <span class="padrao-signals-icon ab">?</span>
+              <span class="padrao-signals-text">
+                <span class="miss">investigar: dor bilateral</span><span class="sep">·</span><span class="miss">qualidade opressiva</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="padrao-next"><strong>Próximo:</strong>Investigar gatilhos (estresse, sono, ergonomia). Amitriptilina 25 mg noturna se ≥15 dias/mês.</div>
+
+          <div class="padrao-foot">
+            <div class="padrao-foot-src"><strong>PCDT Cefaleias 2020</strong> (MS) · base <strong>tensional_cronica_v2</strong></div>
+            <span class="padrao-ev b">Ev.B</span>
+            <div class="padrao-actions">
+              <button class="padrao-btn accept" title="Marcar como relevante">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Aceitar
+              </button>
+              <button class="padrao-btn reject" title="Rejeitar sugestão">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rejeitar
+              </button>
+            </div>
+          </div>
+
+          <div class="padrao-disclaimer">Apoio à decisão baseado em PCDT Cefaleias 2020. Não constitui diagnóstico.</div>
+        </div>
+
+        <!-- BLOCO SEPARADO — Red flags (só aparece se detectado) -->
+        <div class="redflag-block">
+          <div class="redflag-head">
+            <div class="redflag-icon">
+              <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div>
+              <div class="redflag-title">Considerar se quadro piorar</div>
+              <div class="redflag-sub">Diferenciais raros mas críticos — investigar se surgir sinal de alarme</div>
+            </div>
+          </div>
+          <ul class="redflag-list">
+            <li class="redflag-item"><span><strong>Hipertensão intracraniana idiopática</strong> — investigar se papiledema, visão turva ou zumbido pulsátil aparecerem. Fonte: SBCef 2022.</span></li>
+            <li class="redflag-item"><span><strong>Arterite temporal</strong> — muito raro em 34 anos, mas considerar se sensibilidade no couro cabeludo ou claudicação mandibular. Fonte: Reumato BR 2021.</span></li>
+            <li class="redflag-item"><span><strong>Meningite</strong> — investigar imediatamente se febre, rigidez de nuca ou alteração de consciência. Fonte: PCDT MS 2022.</span></li>
+          </ul>
+        </div>
+
+        <!-- Fallback honesto (mostrado como exemplo secundario) -->
+        <details style="margin-top:16px">
+          <summary style="cursor:pointer;font-size:11.5px;color:var(--t3);font-weight:600">Ver como o componente se comporta quando contexto é insuficiente</summary>
+          <div style="margin-top:10px">
+            <div class="padrao-empty">
+              <div class="padrao-empty-icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <div class="padrao-empty-title">Contexto insuficiente para sugestões específicas</div>
+              <div class="padrao-empty-body">Dados do paciente ou áudio não atingiram os critérios mínimos de confiança. Confie no seu julgamento clínico.</div>
+            </div>
+          </div>
+        </details>
+
+      </div>
+
+      <!-- Sticky notes + Disclaimer CFM -->
+      <div class="sticky-note-wrap">
+        <div class="sticky-label">Minhas anotações</div>
+        <textarea class="sticky-textarea" placeholder="Anotações privadas — salvas só no seu dispositivo."></textarea>
+      </div>
+
+      <div class="cfm-disclaimer">
+        <strong>Aviso CFM.</strong> Este resumo é ferramenta de apoio à decisão clínica. Nenhuma das sugestões apresentadas constitui diagnóstico ou prescrição. O exercício da Medicina é privativo do médico habilitado (CFM Resolução 2.299/2021). Todo o raciocínio acima é auditável via <em>Log de Sugestões</em> desta pre-consulta.
+      </div>
+
+    </div>
+
+    <!-- COLUNA DIREITA -->
+    <div class="right-col">
+
+      <div class="right-card meds">
+        <div class="right-card-head">
+          <div class="right-card-icon">
+            <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          </div>
+          <div class="right-card-title">Medicamentos em uso</div>
+          <div class="right-card-chip">1 ativo</div>
+        </div>
+        <div class="med-pill">
+          <div class="med-pill-dot"></div>
+          <div class="med-pill-name">Losartana</div>
+          <div class="med-pill-dose">50 mg · 1x/dia</div>
+        </div>
+        <div class="med-pill highlight">
+          <div class="med-pill-dot"></div>
+          <div class="med-pill-name">Dipirona</div>
+          <div class="med-pill-dose">mencionada no áudio · não registrada</div>
+        </div>
+      </div>
+
+      <div class="right-card alerg">
+        <div class="right-card-head">
+          <div class="right-card-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/></svg>
+          </div>
+          <div class="right-card-title">Alergias registradas</div>
+          <div class="right-card-chip">1 grave</div>
+        </div>
+        <div class="alerg-pill">
+          <div class="alerg-pill-name">Penicilina</div>
+          <div class="alerg-pill-grav">Grave</div>
+        </div>
+      </div>
+
+      <div class="right-card exames">
+        <div class="right-card-head">
+          <div class="right-card-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12l3 3 5-6"/></svg>
+          </div>
+          <div class="right-card-title">Exames recentes</div>
+          <div class="right-card-chip">3 de 90d</div>
+        </div>
+        <div class="exame-grid">
+          <div class="exame-card" style="position:relative">
+            <div class="exame-thumb"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="exame-name">Hemograma</div>
+            <div class="exame-date">12 abr 2026</div>
+          </div>
+          <div class="exame-card" style="position:relative">
+            <div class="exame-thumb"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="exame-name">Colesterol</div>
+            <div class="exame-date">05 abr 2026</div>
+          </div>
+          <div class="exame-card" style="position:relative">
+            <div class="exame-thumb"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="exame-name">TSH</div>
+            <div class="exame-date">05 abr 2026</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- LEGENDA / o que cada peça representa -->
+  <div class="preview-note" style="margin-top:32px">
+    <div style="font-weight:800;margin-bottom:10px;color:var(--t1);font-size:13.5px">O que cada elemento do novo componente representa:</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 28px">
+      <div><strong>CID-10</strong> ao lado do nome — código oficial da doença (ex: G43.0). Reconhecido internacionalmente, usado em prontuário.</div>
+      <div><strong>Compatibilidade %</strong> — quanto dos critérios da diretriz bateram. Acima de 60% o card aparece. Nunca é "certeza", é "quanto combina".</div>
+      <div><strong>Prevalência demográfica</strong> — frequência daquela condição na faixa etária/sexo do paciente. Evita sugerir doença rara como se fosse comum.</div>
+      <div><strong>Sinais que bateram (pills verdes)</strong> — cada um vem da fala do paciente ou do perfil. Auditável até a origem.</div>
+      <div><strong>Sinais ausentes (pills cinza)</strong> — o que a diretriz pede que o médico investigue pra confirmar. Convite a perguntar, não afirmação.</div>
+      <div><strong>Próximo passo</strong> — ação clínica sugerida pela diretriz. Nunca prescrição direta. Sempre exame/avaliação/critério.</div>
+      <div><strong>Fonte + versão da base</strong> — rastreabilidade ANVISA/CFM. Dá pra auditar 20 anos depois qual protocolo gerou qual card.</div>
+      <div><strong>Evidência A/B/C</strong> — qualidade da literatura (A=ECR; B=coorte/observacional; C=opinião de especialista).</div>
+      <div><strong>Aceito / Rejeitar</strong> — feedback do médico gera dado pra calibração contínua + log de auditoria.</div>
+      <div><strong>Red flags em bloco separado</strong> — diferenciais graves ficam abaixo, nunca misturados com prevalentes. Evita alarme desnecessário.</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
