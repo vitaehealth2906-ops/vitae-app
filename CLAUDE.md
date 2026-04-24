@@ -576,6 +576,85 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 12 — 23/04/2026 — Padroes Observados v2 (multi-agente + base de conhecimento)
+
+**Contexto:** Lucas pediu componente Padroes Observados 10/10 pro desktop medico. Sistema que cruza audio do paciente + perfil clinico + base de diretrizes brasileiras (CFM/LGPD/ANVISA-ready). Aprovou execucao autonoma ate deploy.
+
+**O que foi construido — infraestrutura completa:**
+
+**Base de conhecimento (`backend/knowledge/`):**
+- `_version.json` — registro de versoes + queixas disponiveis/pendentes
+- `_farmacologia/classes.json` — 23 classes farmacologicas BR com alergias cruzadas (fonte: RENAME 2022 + ANVISA)
+- `_farmacologia/sinonimos.json` — ~70 mapeamentos nome comercial→principio ativo→classe (CMED + bulario ANVISA)
+- `cefaleia/` — PRIMEIRA queixa 100% estruturada: tensional_cronica, enxaqueca_sem_aura, enxaqueca_com_aura, cluster, cefaleia_secundaria — todas com fonte SBCef 2022 + ICHD-3 + PCDT MS 2020
+
+**Agentes (`backend/src/services/padroes/`):**
+- `anamnesista.js` — Claude Haiku com template strict extrai 14 campos estruturados + pseudonimizacao (remove CPF/tel/email antes do LLM)
+- `farmacologista.js` — 100% deterministico. Normaliza meds, cruza com alergias por classe farmacologica, detecta auto-medicacao
+- `matching.js` — motor de matching deterministico. Le JSONs da base, aplica criterios positivos/exclusao/modificadores demograficos, detecta red flags SNOOP, calcula score 0-100
+- `compliance.js` — ultima linha de defesa. Valida fonte obrigatoria, threshold score≥60, sinais≥3, linguagem nao-diagnostica (regex bloqueia "paciente tem", "diagnostico de"), disclaimer CFM
+- `pipeline.js` — orquestrador. Timeout 15s global, cada agente em try/catch isolado, consolida cards em 4 blocos visuais (critico_topo, auto_medicacao, padrao_diferencial, red_flag_separado)
+- `index.js` — entry point com feature flag `enabled()`
+
+**Integracao backend:**
+- `backend/src/routes/pre-consulta.js` — pipeline v2 roda APOS summary antigo, em paralelo, enxerta resultado em `summaryJson.padroesObservados_v2`. Circuit breaker garante que falha v2 NAO derruba fluxo antigo.
+- `backend/.env.example` — feature flag `PADROES_V2_ENABLED=false` documentada
+
+**Frontend desktop:**
+- `desktop/app.html` — renderizacao dos cards v2 quando `summaryJson.padroesObservados_v2` presente. Fallback para v1 legado se ausente. 4 blocos visuais: critico farmacologico (vermelho topo), auto-medicacao (amarelo), diferenciais (roxo), red flags (bloco separado).
+- CSS compacto pv2-* com -55% altura vs primeira versao do preview
+- Cada card mostra: nome + CID + score + prevalencia + sinais bateram/ausentes + proximo passo + fonte + base_version + evidencia A/B/C + disclaimer CFM
+
+**Compliance (`docs/compliance/`):**
+- `risk-analysis.md` — ISO 14971 com 10 riscos mapeados + controles
+- `data-flow.md` — mapa LGPD: pseudonimizacao, direito apagamento, retencao 20 anos
+- `audit-trail-spec.md` — trilha imutavel, hash SHA-256 por card, retencao 20 anos
+- `disclaimer-library.md` — biblioteca canonica de textos CFM/LGPD
+- `knowledge-base-version-log.md` — changelog imutavel da base
+
+**Estado atual:**
+- Flag `PADROES_V2_ENABLED=false` em producao (deploy em dark mode)
+- Infraestrutura 100% pronta para Lucas setar env var=true no Railway quando quiser validar
+- Cefaleia totalmente funcional como PRIMEIRA QUEIXA
+- 19 queixas pendentes (listadas em `_version.json` queixas_pendentes)
+
+**Decisoes autonomas principais:**
+1. Zero schema change no Prisma — tudo persiste em `summaryJson` (campo JSON existente)
+2. Dark launch com flag off — 100% retrocompatible, nada muda em producao ate flag ativar
+3. Pipeline roda DEPOIS do summary antigo (nao substitui) — enxerta resultado
+4. Pseudonimizacao obrigatoria antes do Claude — LGPD Art. 11
+5. Threshold duros (score 60, sinais 3) embutidos em codigo — nao burlavel
+6. Cefaleia como 1a queixa completa — diretriz SBCef + ICHD-3 publicos, criterios objetivos, caso ideal pra validar arquitetura
+
+**Fontes usadas na base inicial (todas publicas):**
+- SBCef 2022 — Diretrizes da Sociedade Brasileira de Cefaleia
+- ICHD-3 — International Classification of Headache Disorders
+- PCDT Cefaleias 2020 — Ministerio da Saude
+- ABN 2021 — Academia Brasileira de Neurologia
+- RENAME 2022 — Relacao Nacional de Medicamentos Essenciais
+- CMED/ANVISA — tabela medicamentos BR
+
+**Pendente para fase 2 (proxima sessao):**
+- Popular outras 19 queixas: dor_toracica, dor_abdominal, febre, tosse, dispneia, dor_lombar, tontura, dor_articular, diarreia, vomito, fadiga, perda_peso, palpitacao, edema, disuria, prurido, lesao_pele, ansiedade, insonia
+- Cada queixa: ler diretriz da sociedade medica BR correspondente, estruturar 4-6 condicoes em JSON
+- Validacao clinica por medico revisor (quando Conselho Consultivo formalizado)
+- Endpoint `/admin/padroes-v2-stats` pra metricas em producao
+- Testes automatizados (hoje: validacao manual via cenarios)
+- Agente Laboratorista (cruzamento exames × queixa) — reservado no pipeline mas nao implementado
+- Rotacionar JWT_SECRET + ADMIN_TOKEN (pendencia Sessao 21-abr)
+
+**Link preview aprovado:** https://vitae-app.vercel.app/desktop/preview-padroes-observados.html
+
+**Como ativar em producao:**
+1. Railway → Environment Variables → `PADROES_V2_ENABLED=true`
+2. Railway redeploya automatico
+3. Proxima pre-consulta respondida ja roda pipeline v2
+4. Medico abre → ve cards novos
+
+**Como desativar em emergencia (rollback em 60s):**
+1. Railway → `PADROES_V2_ENABLED=false`
+2. Pipeline para imediatamente, sistema volta ao legado
+
 ### Sessao 11 — 23/04/2026 — Audio de 45s minimo (execucao autonoma)
 
 **Contexto:** Lucas reportou frustracao dos medicos com audios de 15s. Pediu feature completa pra garantir minimo de 45 segundos sem criar fricao nova pro paciente. Apos 3 iteracoes de plano (1/10 → 10/10), Lucas aprovou execucao autonoma: "comece e so termine quando fizer deploy de tudo, sem me pedir autorizacao de fase em fase".

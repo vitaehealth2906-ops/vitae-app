@@ -412,6 +412,66 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
       console.error('[PRE-CONSULTA] Erro ao gerar summary IA:', aiErr.message);
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // PADROES OBSERVADOS v2 — pipeline multi-agente (flag-gated)
+    // Roda em paralelo sem atrapalhar o summary antigo.
+    // Se falhar ou flag off, summary antigo continua funcionando 100%.
+    // ═══════════════════════════════════════════════════════════
+    try {
+      const padroesV2 = require('../services/padroes');
+      if (padroesV2.enabled()) {
+        // Busca perfil clinico minimo pro pipeline
+        let perfilClinico = {};
+        try {
+          if (pacienteIdLogado || preConsulta.pacienteId) {
+            const pid = pacienteIdLogado || preConsulta.pacienteId;
+            const perfilDb = await prisma.perfilSaude.findUnique({ where: { usuarioId: pid } });
+            const alergias = await prisma.alergia.findMany({ where: { usuarioId: pid } });
+            const meds = await prisma.medicamento.findMany({ where: { usuarioId: pid, ativo: true } });
+            perfilClinico = {
+              alergias: alergias.map(a => ({ nome: a.nome, gravidade: a.gravidade })),
+              medicamentos: meds.map(m => ({ nome: m.nome, dosagem: m.dosagem })),
+              condicoes: perfilDb?.condicoes ? (Array.isArray(perfilDb.condicoes) ? perfilDb.condicoes : []) : [],
+              gestante: perfilDb?.gestante || false,
+            };
+          }
+        } catch (perfilErr) {
+          console.warn('[PADROES_V2] nao foi possivel carregar perfil clinico:', perfilErr.message);
+        }
+
+        const idade = preConsulta.pacienteDataNascimento
+          ? Math.floor((Date.now() - new Date(preConsulta.pacienteDataNascimento).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+          : null;
+
+        const resultadoV2 = await padroesV2.rodar({
+          transcricao,
+          respostas,
+          perfil: perfilClinico,
+          idade,
+          sexo: preConsulta.pacienteGenero ? String(preConsulta.pacienteGenero).toLowerCase() : null,
+        });
+
+        if (resultadoV2.sucesso) {
+          // Enxerta no summaryJson sem substituir nada existente
+          summaryJson = summaryJson || {};
+          summaryJson.padroesObservados_v2 = resultadoV2.padroesObservados_v2;
+          summaryJson.alertasFarmacologicos = resultadoV2.alertasFarmacologicos;
+          summaryJson.pipeline_version = resultadoV2.pipeline_version;
+          summaryJson.base_versions = resultadoV2.base_versions;
+          summaryJson.auditoria_padroes_v2 = resultadoV2.auditoria;
+          console.log('[PADROES_V2] pipeline ok — cards:', resultadoV2.padroesObservados_v2.length, 'tempo:', resultadoV2.tempo_ms + 'ms');
+        } else {
+          console.warn('[PADROES_V2] pipeline retornou sem sucesso:', resultadoV2.motivo, resultadoV2.erro);
+          // Nao falha o request — so loga
+          summaryJson = summaryJson || {};
+          summaryJson.padroesObservados_v2_falhou = { motivo: resultadoV2.motivo, erro: resultadoV2.erro };
+        }
+      }
+    } catch (v2Err) {
+      // Circuit breaker: erro no v2 nao derruba o fluxo antigo
+      console.error('[PADROES_V2] circuit breaker acionado:', v2Err.message);
+    }
+
     // Capturar pacienteId logado E tentar auto-link se nao tem (cria AutorizacaoAcesso + Consentimento)
     const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
     const pacienteIdFinal = await vincularPaciente({ preConsulta, pacienteIdLogado, req });
