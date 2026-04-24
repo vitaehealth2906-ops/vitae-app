@@ -883,9 +883,59 @@ router.post('/:id/regenerar', verificarAuth, async (req, res, next) => {
       pc.pacienteNome, respostasEnriq, pc.transcricao || '', pc.templatePerguntas
     );
 
+    // PADROES V2 tambem roda na regeneracao (flag-gated)
+    let summaryJsonFinal = resultado;
+    try {
+      const padroesV2 = require('../services/padroes');
+      if (padroesV2.enabled()) {
+        let perfilClinico = {};
+        try {
+          if (pc.pacienteId) {
+            const perfilDb = await prisma.perfilSaude.findUnique({ where: { usuarioId: pc.pacienteId } });
+            const alergias = await prisma.alergia.findMany({ where: { usuarioId: pc.pacienteId } });
+            const meds = await prisma.medicamento.findMany({ where: { usuarioId: pc.pacienteId, ativo: true } });
+            perfilClinico = {
+              alergias: alergias.map(a => ({ nome: a.nome, gravidade: a.gravidade })),
+              medicamentos: meds.map(m => ({ nome: m.nome, dosagem: m.dosagem })),
+              condicoes: perfilDb?.condicoes ? (Array.isArray(perfilDb.condicoes) ? perfilDb.condicoes : []) : [],
+              gestante: perfilDb?.gestante || false,
+            };
+          }
+        } catch (pErr) { console.warn('[REGEN-V2] perfil falhou:', pErr.message); }
+
+        const idade = pc.pacienteDataNascimento
+          ? Math.floor((Date.now() - new Date(pc.pacienteDataNascimento).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+          : null;
+
+        const resultadoV2 = await padroesV2.rodar({
+          transcricao: pc.transcricao || '',
+          respostas: respostasEnriq,
+          perfil: perfilClinico,
+          idade,
+          sexo: pc.pacienteGenero ? String(pc.pacienteGenero).toLowerCase() : null,
+        });
+
+        if (resultadoV2.sucesso) {
+          summaryJsonFinal = {
+            ...resultado,
+            padroesObservados_v2: resultadoV2.padroesObservados_v2,
+            alertasFarmacologicos: resultadoV2.alertasFarmacologicos,
+            pipeline_version: resultadoV2.pipeline_version,
+            base_versions: resultadoV2.base_versions,
+            auditoria_padroes_v2: resultadoV2.auditoria,
+          };
+          console.log('[REGEN-V2] ok, cards:', resultadoV2.padroesObservados_v2.length, 'tempo:', resultadoV2.tempo_ms + 'ms');
+        } else {
+          console.warn('[REGEN-V2] falhou:', resultadoV2.motivo, resultadoV2.erro);
+        }
+      }
+    } catch (v2Err) {
+      console.error('[REGEN-V2] circuit breaker:', v2Err.message);
+    }
+
     await prisma.preConsulta.update({
       where: { id: pc.id },
-      data: { summaryIA: resultado.summaryTexto, summaryJson: resultado },
+      data: { summaryIA: resultado.summaryTexto, summaryJson: summaryJsonFinal },
     });
 
     // TTS em background
