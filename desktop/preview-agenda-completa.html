@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview — Agenda completa + Finalização + Retorno</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --grn:#00E5A0;--cyn:#00B4D8;--grad:linear-gradient(120deg,#00E5A0,#00B4D8);
+  --bg:#F4F6FA;--surf:#FFFFFF;--surf2:#F9FAFC;
+  --border:rgba(0,0,0,0.06);--border2:rgba(0,0,0,0.10);--border3:rgba(0,0,0,0.14);
+  --t1:#0D0F14;--t2:#4B5563;--t3:#6B7280;--t4:#9CA3AF;--t5:#C4C9D4;
+  --info:#3B82F6;--warn:#F59E0B;--bad:#EF4444;--ok:#00C47A;--purple:#8B5CF6;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04);
+  --shadow:0 2px 16px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+}
+html,body{width:100%;min-height:100vh;background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;color:var(--t1);-webkit-font-smoothing:antialiased}
+
+/* ═══ SHELL DO PREVIEW ═══ */
+.wrap{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.sidenav{background:#0D0F14;color:#fff;padding:24px 16px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidenav h1{font-size:16px;font-weight:800;margin-bottom:4px}
+.sidenav h1 em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:900}
+.sidenav .sub{font-size:11.5px;color:rgba(255,255,255,.5);line-height:1.45;margin-bottom:24px}
+.nav-section{font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.12em;margin:22px 0 8px;padding-left:10px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13px;color:rgba(255,255,255,.75);cursor:pointer;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-item.active{background:rgba(0,229,160,.12);color:var(--grn);font-weight:700}
+.nav-item .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0}
+.nav-item .num{margin-left:auto;font-size:10px;opacity:.5;font-weight:700}
+
+.main{padding:24px 32px 80px;overflow-x:hidden}
+.head{margin-bottom:24px}
+.head .crumb{font-size:11px;font-weight:700;color:var(--t4);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+.head h2{font-size:26px;font-weight:900;letter-spacing:-.5px;margin-bottom:6px}
+.head h2 em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.head p{font-size:13.5px;color:var(--t2);line-height:1.5;max-width:780px}
+
+.scene{background:#E8EBF2;border-radius:14px;padding:24px;min-height:580px;position:relative;overflow:hidden;box-shadow:inset 0 2px 8px rgba(0,0,0,.05)}
+
+/* ═══ APP SHELL SIMULADO (medico desktop) ═══ */
+.app{background:var(--surf);border-radius:10px;overflow:hidden;box-shadow:var(--shadow-lg);min-height:640px;display:grid;grid-template-columns:180px 1fr}
+.app-side{background:#0D0F14;color:#fff;padding:18px 10px}
+.app-logo{display:flex;align-items:center;gap:6px;padding:6px 10px 20px;font-size:15px;font-weight:800}
+.app-logo .grd{background:var(--grad);color:#0D0F14;padding:2px 5px;border-radius:4px;font-weight:800}
+.asn-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;padding:12px 10px 6px}
+.asn-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;font-size:12px;color:rgba(255,255,255,.65);cursor:pointer;margin-bottom:2px}
+.asn-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.asn-item.active{background:rgba(0,229,160,.1);color:var(--grn);font-weight:700}
+.asn-item svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.asn-badge{margin-left:auto;font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8)}
+.asn-badge.grn{background:rgba(0,229,160,.15);color:var(--grn)}
+
+.app-main{padding:22px 28px;overflow:auto;max-height:700px}
+.app-top{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.app-h1{font-size:20px;font-weight:800;letter-spacing:-.3px;flex:1}
+.app-top-btn{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;border:1px solid var(--border2);background:#fff;color:var(--t2);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.app-top-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.app-top-btn.primary{background:var(--grad);color:#0D0F14;border:0;box-shadow:0 2px 10px rgba(0,229,160,.3)}
+
+/* ═══ AGENDA — SEMANA ═══ */
+.cal-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.cal-nav-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border2);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.cal-nav-btn svg{width:12px;height:12px;fill:none;stroke:var(--t2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cal-range{font-size:14px;font-weight:700;color:var(--t1)}
+.cal-today{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid var(--border2);background:#fff;color:var(--t2);cursor:pointer}
+.cal-views{display:inline-flex;background:var(--bg);border-radius:8px;padding:2px;margin-left:auto}
+.cal-view{padding:6px 12px;font-size:11.5px;font-weight:700;color:var(--t3);cursor:pointer;border-radius:6px}
+.cal-view.active{background:#fff;color:var(--t1);box-shadow:var(--shadow-sm)}
+.cal-stat{font-size:11px;color:var(--t3);padding-left:12px;border-left:1px solid var(--border);margin-left:4px}
+.cal-stat b{color:var(--t1);font-weight:700}
+.cal-gcal{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:6px;font-size:10.5px;font-weight:600;background:rgba(0,196,122,.08);color:#008F5A;border:1px solid rgba(0,196,122,.2)}
+.cal-gcal .gdot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+.cal-grid{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.cal-days-hdr{display:grid;grid-template-columns:50px repeat(7,1fr);background:var(--surf2);border-bottom:1px solid var(--border)}
+.cal-days-hdr > div{padding:8px 6px;font-size:11px;font-weight:700;text-align:center;color:var(--t2);border-right:1px solid var(--border)}
+.cal-days-hdr > div:last-child{border-right:0}
+.cal-days-hdr .daynum{font-size:16px;font-weight:800;color:var(--t1);margin-top:2px}
+.cal-days-hdr .today .daynum{color:var(--grn)}
+.cal-days-hdr .today::after{content:'';display:block;width:6px;height:6px;background:var(--grn);border-radius:50%;margin:2px auto 0}
+
+.cal-body{display:grid;grid-template-columns:50px repeat(7,1fr);position:relative;max-height:420px;overflow-y:auto}
+.hour-col{background:var(--surf2);border-right:1px solid var(--border)}
+.hour-slot{height:38px;border-bottom:1px solid var(--border);padding:2px 6px;font-size:9.5px;font-weight:700;color:var(--t4);text-align:right}
+.day-col{position:relative;border-right:1px solid var(--border)}
+.day-col:last-child{border-right:0}
+.day-col .slot{height:38px;border-bottom:1px dashed rgba(0,0,0,.04)}
+.apt{position:absolute;left:3px;right:3px;border-radius:6px;padding:5px 7px;font-size:10.5px;line-height:1.2;overflow:hidden;cursor:pointer;box-shadow:var(--shadow-sm)}
+.apt.confirmada{background:rgba(0,196,122,.14);border-left:3px solid var(--ok);color:#005B36}
+.apt.pendente{background:rgba(0,196,122,.08);border-left:3px solid var(--ok);color:#005B36;opacity:.75;background-image:repeating-linear-gradient(45deg,transparent 0 4px,rgba(0,196,122,.08) 4px 8px)}
+.apt.online{background:rgba(139,92,246,.12);border-left:3px solid var(--purple);color:#5B3FB0}
+.apt.atraso{background:rgba(245,158,11,.12);border-left:3px solid var(--warn);color:#92700C;background-image:repeating-linear-gradient(-45deg,transparent 0 3px,rgba(245,158,11,.1) 3px 6px)}
+.apt.bloqueio{background:rgba(59,130,246,.1);border-left:3px solid var(--info);color:#1E3A8A}
+.apt .n{font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.apt .t{font-size:9px;opacity:.7;display:block;margin-top:1px}
+
+/* ═══ SIDEBAR CONSULTA (painel lateral) ═══ */
+.app-main-with-side{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
+.det-panel{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow-sm)}
+.det-head{display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.det-av{width:40px;height:40px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#0D0F14;font-weight:800;font-size:14px}
+.det-name{font-size:13.5px;font-weight:800;color:var(--t1);line-height:1.2}
+.det-meta{font-size:10.5px;color:var(--t3);margin-top:2px}
+.det-close{margin-left:auto;width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t4)}
+.det-close:hover{background:var(--bg);color:var(--t1)}
+.det-row{display:flex;gap:10px;padding:8px 0;font-size:11.5px;border-bottom:1px solid rgba(0,0,0,.03)}
+.det-row:last-child{border-bottom:0}
+.det-row .lbl{color:var(--t4);font-weight:600;min-width:70px;font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding-top:2px}
+.det-row .val{color:var(--t1);font-weight:500;flex:1}
+.det-row .val.chip{display:inline-block;padding:2px 7px;border-radius:4px;font-weight:700;font-size:10px;background:rgba(0,196,122,.12);color:#008F5A;width:fit-content}
+.det-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.det-btn{padding:7px 10px;border-radius:7px;font-size:10.5px;font-weight:700;border:1px solid var(--border2);background:#fff;color:var(--t2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.det-btn svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.det-btn.primary{background:var(--grad);color:#0D0F14;border:0;grid-column:1/-1;padding:9px;font-size:11.5px}
+.det-btn.danger:hover{background:rgba(239,68,68,.06);color:var(--bad);border-color:rgba(239,68,68,.25)}
+
+/* ═══ FINALIZAR MODAIS ═══ */
+.modal-overlay{position:absolute;inset:0;background:rgba(13,15,20,.4);display:flex;align-items:center;justify-content:center;border-radius:10px}
+.modal{background:#fff;border-radius:14px;width:440px;max-width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden}
+.modal-head{padding:22px 24px 0}
+.modal-head h3{font-size:18px;font-weight:800;letter-spacing:-.3px;color:var(--t1);margin-bottom:6px}
+.modal-head p{font-size:13px;color:var(--t2);line-height:1.55}
+.modal-body{padding:18px 24px}
+.modal-foot{padding:14px 24px 22px;display:flex;flex-direction:column;gap:8px}
+.m-btn{padding:12px;border-radius:10px;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;border:0;width:100%;display:flex;align-items:center;justify-content:center;gap:6px}
+.m-btn.primary{background:var(--grad);color:#0D0F14;box-shadow:0 4px 16px rgba(0,229,160,.25)}
+.m-btn.secondary{background:#fff;border:1.5px solid var(--border2);color:var(--t2)}
+.m-btn.link{background:transparent;color:var(--t4);font-size:12px;font-weight:500;padding:8px}
+
+.retorno-opts{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.retorno-opt{padding:14px 10px;border:1.5px solid var(--border2);border-radius:10px;text-align:center;cursor:pointer;background:#fff;transition:all .15s}
+.retorno-opt:hover{border-color:var(--grn);background:rgba(0,229,160,.04)}
+.retorno-opt.active{border-color:var(--grn);background:rgba(0,229,160,.08);box-shadow:0 0 0 3px rgba(0,229,160,.08)}
+.retorno-opt .n{font-size:18px;font-weight:900;color:var(--t1);letter-spacing:-.3px}
+.retorno-opt .u{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-top:2px}
+.retorno-opt.active .n{color:var(--grn)}
+.f-field{margin-top:12px}
+.f-field label{display:block;font-size:10px;font-weight:700;color:var(--t4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
+.f-select{width:100%;padding:10px 12px;border:1.5px solid var(--border2);border-radius:9px;font-family:inherit;font-size:13px;color:var(--t1);background:#fff}
+
+/* ═══ ONBOARDING ═══ */
+.onb{background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow-lg);max-width:620px;margin:20px auto;padding:0}
+.onb-hdr{background:var(--grad);padding:28px;color:#0D0F14}
+.onb-hdr .step{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+.onb-hdr h3{font-size:22px;font-weight:900;margin:6px 0 8px;letter-spacing:-.4px}
+.onb-hdr p{font-size:13px;line-height:1.55;opacity:.8}
+.onb-body{padding:28px}
+.onb-row{display:flex;gap:14px;margin-bottom:16px;padding:14px 16px;background:var(--surf2);border:1px solid var(--border);border-radius:10px}
+.onb-icon{width:36px;height:36px;border-radius:9px;background:rgba(0,229,160,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.onb-icon svg{width:17px;height:17px;fill:none;stroke:var(--grn);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.onb-row-body h4{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.onb-row-body p{font-size:12px;color:var(--t2);line-height:1.5}
+.onb-foot{padding:18px 28px;border-top:1px solid var(--border);display:flex;align-items:center;gap:14px;background:var(--surf2)}
+.onb-dots{display:flex;gap:5px}
+.onb-dot{width:6px;height:6px;border-radius:3px;background:var(--t5)}
+.onb-dot.active{width:20px;background:var(--grn)}
+.onb-next{padding:10px 18px;border-radius:8px;background:var(--grad);color:#0D0F14;font-size:12.5px;font-weight:700;border:0;cursor:pointer;margin-left:auto}
+.onb-skip{padding:8px 14px;background:0;border:0;color:var(--t3);font-size:12px;font-weight:600;cursor:pointer}
+
+/* ═══ CONFIG INICIAL ═══ */
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.cfg-field{background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.cfg-field .lbl{font-size:10px;font-weight:700;color:var(--t4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;display:block}
+.cfg-field input,.cfg-field select{width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:7px;font-family:inherit;font-size:13px;color:var(--t1);background:#fff}
+.cfg-field .hint{font-size:10.5px;color:var(--t4);margin-top:5px;line-height:1.4}
+.cfg-days{display:flex;gap:5px;margin-top:6px}
+.cfg-day{flex:1;padding:7px;border:1px solid var(--border2);border-radius:6px;background:#fff;font-size:11px;font-weight:600;color:var(--t3);text-align:center;cursor:pointer}
+.cfg-day.active{background:rgba(0,229,160,.12);border-color:var(--grn);color:#005B36}
+.cfg-gcal{margin-top:18px;padding:18px;border:1.5px solid rgba(0,196,122,.25);background:rgba(0,196,122,.03);border-radius:12px;display:flex;gap:14px;align-items:center}
+.cfg-gcal-icon{width:46px;height:46px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);flex-shrink:0}
+.cfg-gcal-body{flex:1}
+.cfg-gcal-body h4{font-size:13.5px;font-weight:800;color:var(--t1);margin-bottom:3px}
+.cfg-gcal-body p{font-size:11.5px;color:var(--t2);line-height:1.45}
+.cfg-gcal-btn{padding:8px 14px;border-radius:8px;background:#fff;border:1.5px solid rgba(0,196,122,.35);color:#008F5A;font-size:11.5px;font-weight:700;cursor:pointer}
+
+/* ═══ TOAST ═══ */
+.toast{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:#0D0F14;color:#fff;padding:12px 18px;border-radius:10px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,.3);font-size:13px;font-weight:600;z-index:10}
+.toast svg{width:16px;height:16px;stroke:var(--grn);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.toast-undo{background:rgba(255,255,255,.1);padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;margin-left:8px;border:0}
+
+/* ═══ BOTAO FINALIZAR DENTRO DO BRIEFING ═══ */
+.brief-footer{margin-top:18px;padding:14px;background:var(--surf2);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;gap:14px}
+.brief-footer-lbl{flex:1;font-size:12px;color:var(--t2);line-height:1.4}
+.brief-footer-lbl b{color:var(--t1);font-weight:700}
+
+.btn-fin{padding:11px 18px;border-radius:10px;background:var(--grad);color:#0D0F14;border:0;font-size:13px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 12px rgba(0,229,160,.25)}
+.btn-fin svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+
+/* ═══ ABA FINALIZADAS ═══ */
+.tabs-row{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab{padding:10px 18px;font-size:12.5px;font-weight:700;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:var(--t1);border-color:var(--grn)}
+.tab-count{margin-left:5px;font-size:10px;font-weight:800;padding:1px 6px;border-radius:8px;background:var(--bg);color:var(--t3)}
+.tab.active .tab-count{background:rgba(0,229,160,.15);color:var(--grn)}
+
+.fin-row{display:grid;grid-template-columns:40px 1.5fr 1fr 1fr 100px;gap:14px;padding:11px 14px;background:#fff;border:1px solid var(--border);border-radius:10px;align-items:center;margin-bottom:6px;font-size:12.5px}
+.fin-av{width:36px;height:36px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#0D0F14;font-weight:800;font-size:13px}
+.fin-n{font-weight:700;color:var(--t1)}
+.fin-sub{font-size:11px;color:var(--t4);margin-top:1px}
+.fin-chip{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:800;letter-spacing:.04em}
+.fin-chip.done{background:rgba(107,114,128,.12);color:var(--t3)}
+.fin-chip.ret{background:rgba(0,180,216,.12);color:#00829F}
+.fin-chip.none{background:rgba(0,0,0,.04);color:var(--t4)}
+
+/* ═══ CONFLITO ═══ */
+.conflict-modal .modal-head h3{color:var(--warn)}
+.conflict-show{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:#92700C;line-height:1.45}
+.conflict-show b{color:#5C4306;font-weight:800}
+
+/* ═══ MOBILE PREVIEW (paciente proxima consulta) ═══ */
+.mobile-frame{width:280px;height:560px;border-radius:32px;background:#0D0F14;padding:10px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.mobile-inner{width:100%;height:100%;background:var(--bg);border-radius:24px;padding:24px 18px;overflow:hidden}
+.mob-logo{font-size:14px;font-weight:800;margin-bottom:18px}
+.mob-greet{font-size:12px;color:var(--t3);margin-bottom:3px}
+.mob-name{font-size:18px;font-weight:800;margin-bottom:16px}
+.mob-next{background:var(--grad);border-radius:14px;padding:16px;color:#0D0F14;margin-bottom:12px;box-shadow:0 4px 20px rgba(0,229,160,.3)}
+.mob-next-label{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.6}
+.mob-next-title{font-size:15px;font-weight:800;margin:4px 0 6px}
+.mob-next-time{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.mob-next-sub{font-size:11px;opacity:.75}
+.mob-next-actions{display:flex;gap:6px;margin-top:12px}
+.mob-next-btn{flex:1;padding:8px;border-radius:8px;font-size:10.5px;font-weight:700;cursor:pointer;border:0}
+.mob-next-btn.primary{background:#0D0F14;color:#fff}
+.mob-next-btn.secondary{background:rgba(255,255,255,.25);color:#0D0F14}
+.mob-card{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid var(--border)}
+.mob-card-t{font-size:11.5px;font-weight:700;color:var(--t2)}
+.mob-card-s{font-size:10.5px;color:var(--t4);margin-top:2px}
+
+/* ═══ MOBILE LEMBRETE ═══ */
+.msg-bubble{max-width:270px;background:#fff;border-radius:16px 16px 16px 4px;padding:14px;box-shadow:var(--shadow);font-size:12.5px;line-height:1.5;margin:20px 0}
+.msg-bubble b{font-weight:700;color:var(--t1)}
+.msg-bubble .emoji{font-size:14px}
+.msg-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.msg-actions button{flex:1;padding:7px;border-radius:7px;font-size:11px;font-weight:700;border:0;cursor:pointer}
+.msg-actions .yes{background:var(--grn);color:#0D0F14}
+.msg-actions .no{background:var(--bg);color:var(--t2)}
+
+/* ═══ LISTA DE ESPERA ═══ */
+.espera-card{background:#fff;border:1px dashed var(--border3);border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;font-size:12px}
+.espera-av{width:32px;height:32px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;color:var(--t3);font-weight:700;font-size:12px;border:1px solid var(--border)}
+.espera-n{flex:1;font-weight:700;color:var(--t1)}
+.espera-sub{font-size:10.5px;color:var(--t4);margin-top:1px;font-weight:500}
+.espera-tempo{font-size:10px;font-weight:700;color:var(--warn);background:rgba(245,158,11,.1);padding:3px 8px;border-radius:5px}
+
+/* ═══ STATS MENSAIS ═══ */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;box-shadow:var(--shadow-sm)}
+.stat-v{font-size:24px;font-weight:900;letter-spacing:-.5px;color:var(--t1);margin-bottom:2px}
+.stat-v.grn{color:var(--grn)}
+.stat-v.bad{color:var(--bad)}
+.stat-l{font-size:10px;font-weight:700;color:var(--t4);letter-spacing:.06em;text-transform:uppercase}
+.stat-d{font-size:10px;color:var(--t3);margin-top:5px;line-height:1.4}
+
+/* helpers */
+.scene-hint{background:rgba(0,180,216,.08);border:1px solid rgba(0,180,216,.22);border-left:3px solid var(--cyn);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--t2);margin-top:14px;line-height:1.5}
+.scene-hint b{color:var(--t1)}
+
+.section{display:none}
+.section.active{display:block}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ═══ SIDENAV DO PREVIEW ═══ -->
+  <nav class="sidenav">
+    <h1>Preview <em>agenda</em> completa</h1>
+    <div class="sub">20 telas + fluxos do novo módulo: finalização, retorno, agenda completa, Google Calendar, onboarding.</div>
+
+    <div class="nav-section">Onboarding</div>
+    <div class="nav-item active" data-sec="s1"><span class="dot"></span>Config inicial (1ª vez)<span class="num">01</span></div>
+    <div class="nav-item" data-sec="s2"><span class="dot"></span>Tour — 4 telas<span class="num">02</span></div>
+
+    <div class="nav-section">Finalização do atendimento</div>
+    <div class="nav-item" data-sec="s3"><span class="dot"></span>Botão no briefing<span class="num">03</span></div>
+    <div class="nav-item" data-sec="s4"><span class="dot"></span>Modal: finalizar?<span class="num">04</span></div>
+    <div class="nav-item" data-sec="s5"><span class="dot"></span>Modal: quando voltar?<span class="num">05</span></div>
+
+    <div class="nav-section">Agenda</div>
+    <div class="nav-item" data-sec="s6"><span class="dot"></span>Visão semana<span class="num">06</span></div>
+    <div class="nav-item" data-sec="s7"><span class="dot"></span>Detalhe da consulta<span class="num">07</span></div>
+    <div class="nav-item" data-sec="s8"><span class="dot"></span>Aberta p/ marcar retorno<span class="num">08</span></div>
+    <div class="nav-item" data-sec="s9"><span class="dot"></span>Marcar nova (modal)<span class="num">09</span></div>
+    <div class="nav-item" data-sec="s10"><span class="dot"></span>Conflito de horário<span class="num">10</span></div>
+    <div class="nav-item" data-sec="s11"><span class="dot"></span>Toast: desfazer<span class="num">11</span></div>
+    <div class="nav-item" data-sec="s12"><span class="dot"></span>Lista de espera<span class="num">12</span></div>
+
+    <div class="nav-section">Dashboard</div>
+    <div class="nav-item" data-sec="s13"><span class="dot"></span>Aba "Finalizadas"<span class="num">13</span></div>
+    <div class="nav-item" data-sec="s14"><span class="dot"></span>Estatísticas mensais<span class="num">14</span></div>
+
+    <div class="nav-section">Paciente</div>
+    <div class="nav-item" data-sec="s15"><span class="dot"></span>Próxima consulta (app)<span class="num">15</span></div>
+    <div class="nav-item" data-sec="s16"><span class="dot"></span>Lembrete 24h (push)<span class="num">16</span></div>
+
+    <div style="margin-top:40px;padding:12px;background:rgba(255,255,255,.04);border-radius:8px;font-size:10.5px;color:rgba(255,255,255,.55);line-height:1.5">
+      <b style="color:#fff">Todas as telas</b> seguem o design system vita id atual. Nada decorativo. Cada elemento tem função.
+    </div>
+  </nav>
+
+  <!-- ═══ CONTEÚDO PRINCIPAL ═══ -->
+  <main class="main">
+
+    <!-- 01 - CONFIG INICIAL -->
+    <section class="section active" id="s1">
+      <div class="head">
+        <div class="crumb">01 · Onboarding</div>
+        <h2>Configuração <em>inicial</em> da agenda</h2>
+        <p>Primeira vez que o médico entra na aba Agenda. Só depois dessa config a agenda fica utilizável. 90 segundos, pulável em campos opcionais, mas preenche defaults inteligentes se ele pular.</p>
+      </div>
+      <div class="scene" style="display:flex;align-items:center;justify-content:center;padding:40px">
+        <div class="onb" style="max-width:560px;width:100%">
+          <div class="onb-hdr">
+            <div class="step">Passo 1 de 1 · Configurar sua agenda</div>
+            <h3>Como é seu dia de trabalho?</h3>
+            <p>Nada disso é definitivo. Você ajusta quando quiser nas configurações.</p>
+          </div>
+          <div class="onb-body">
+            <div class="cfg-grid">
+              <div class="cfg-field">
+                <span class="lbl">Duração padrão</span>
+                <select><option>30 minutos</option><option>15</option><option>45</option><option>50</option><option>60</option></select>
+                <div class="hint">Você pode mudar consulta a consulta.</div>
+              </div>
+              <div class="cfg-field">
+                <span class="lbl">Horário de atendimento</span>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <input type="time" value="08:00" style="flex:1"/><span style="color:var(--t4)">até</span><input type="time" value="18:00" style="flex:1"/>
+                </div>
+                <div class="hint">Fora desse horário aparece bloqueado.</div>
+              </div>
+              <div class="cfg-field" style="grid-column:1/-1">
+                <span class="lbl">Dias da semana</span>
+                <div class="cfg-days">
+                  <div class="cfg-day">Seg<br><span style="font-weight:500;font-size:9px;color:var(--t4)">ativo</span></div>
+                  <div class="cfg-day active">Ter</div>
+                  <div class="cfg-day active">Qua</div>
+                  <div class="cfg-day active">Qui</div>
+                  <div class="cfg-day active">Sex</div>
+                  <div class="cfg-day">Sáb</div>
+                  <div class="cfg-day">Dom</div>
+                </div>
+              </div>
+              <div class="cfg-field">
+                <span class="lbl">Intervalo de almoço</span>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <input type="time" value="12:00" style="flex:1"/><span style="color:var(--t4)">até</span><input type="time" value="13:30" style="flex:1"/>
+                </div>
+              </div>
+              <div class="cfg-field">
+                <span class="lbl">Estado (feriados)</span>
+                <select><option>São Paulo</option><option>Rio de Janeiro</option><option>Minas Gerais</option></select>
+                <div class="hint">Feriados nacionais + estaduais aplicam automático.</div>
+              </div>
+            </div>
+
+            <div class="cfg-gcal">
+              <div class="cfg-gcal-icon"><svg width="26" height="26" viewBox="0 0 48 48"><rect width="48" height="48" rx="10" fill="#fff"/><rect x="8" y="8" width="32" height="32" rx="4" fill="#4285F4"/><rect x="8" y="20" width="32" height="20" fill="#fff"/><text x="24" y="33" text-anchor="middle" font-size="11" font-weight="700" fill="#1F2937">15</text><rect x="8" y="8" width="32" height="12" fill="#4285F4"/></svg></div>
+              <div class="cfg-gcal-body">
+                <h4>Sincronizar com Google Calendar?</h4>
+                <p>Consultas marcadas aqui aparecem no seu Google Calendar automaticamente. Totalmente reversível depois.</p>
+              </div>
+              <button class="cfg-gcal-btn">Conectar</button>
+            </div>
+          </div>
+          <div class="onb-foot">
+            <button class="onb-skip">Pular e usar padrões</button>
+            <div style="flex:1"></div>
+            <button class="onb-next">Salvar e começar</button>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Regra:</b> esta tela só aparece 1x. Depois, as configurações ficam em Configurações → Agenda. Valores padrão: seg-sex 8h-18h, 30min, almoço 12h-13h30, feriados São Paulo.</div>
+    </section>
+
+    <!-- 02 - TOUR -->
+    <section class="section" id="s2">
+      <div class="head">
+        <div class="crumb">02 · Onboarding</div>
+        <h2>Tour <em>rápido</em> — 4 telas puláveis</h2>
+        <p>Logo depois da config inicial, o médico passa por 4 telas curtas explicando o ciclo (pre-consulta → briefing → finalizar → retorno → agenda). Cada tela tem botão Pular.</p>
+      </div>
+      <div class="scene" style="display:flex;align-items:center;justify-content:center">
+        <div class="onb">
+          <div class="onb-hdr" style="background:linear-gradient(135deg,#00B4D8 0%,#0056A3 100%);color:#fff">
+            <div class="step">2 de 4</div>
+            <h3>Um ciclo que se fecha</h3>
+            <p>Você finaliza uma consulta, marca retorno, e na data o paciente recebe uma nova pre-consulta automática. Zero trabalho manual.</p>
+          </div>
+          <div class="onb-body">
+            <div class="onb-row">
+              <div class="onb-icon"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg></div>
+              <div class="onb-row-body"><h4>Finaliza em 2 cliques</h4><p>Ao final do briefing do paciente, você clica Finalizar. Se quiser marcar retorno, escolhe quando.</p></div>
+            </div>
+            <div class="onb-row">
+              <div class="onb-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <div class="onb-row-body"><h4>Agenda abre no dia certo</h4><p>Não precisa folhear o mês inteiro. Abre direto centrada na data sugerida. Você clica e pronto.</p></div>
+            </div>
+            <div class="onb-row">
+              <div class="onb-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+              <div class="onb-row-body"><h4>Paciente recebe sozinho</h4><p>Um dia antes do retorno, o paciente recebe lembrete com tudo (local, horário, link se online). Você não precisa mandar nada.</p></div>
+            </div>
+          </div>
+          <div class="onb-foot">
+            <div class="onb-dots"><div class="onb-dot"></div><div class="onb-dot active"></div><div class="onb-dot"></div><div class="onb-dot"></div></div>
+            <button class="onb-skip">Pular</button>
+            <button class="onb-next">Próximo →</button>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>As 4 telas:</b> 1) Sua agenda, sua forma · 2) Um ciclo que se fecha · 3) Google sincroniza · 4) Tudo seu (exportar, zero lock-in).</div>
+    </section>
+
+    <!-- 03 - BOTAO NO BRIEFING -->
+    <section class="section" id="s3">
+      <div class="head">
+        <div class="crumb">03 · Finalização</div>
+        <h2>Botão <em>Finalizar</em> no briefing</h2>
+        <p>Aparece no final do 1-minute-summary do desktop. Fica fixo no rodapé quando o médico scrolla — nunca some. Cor verde-ciano pra chamar ação sem gritar.</p>
+      </div>
+      <div class="scene">
+        <div class="app">
+          <div class="app-side">
+            <div class="app-logo">vita<span class="grd">id</span></div>
+            <div class="asn-label">Principal</div>
+            <div class="asn-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</div>
+            <div class="asn-item active"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>Pre-Consultas<span class="asn-badge grn">4</span></div>
+            <div class="asn-item"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Agenda<span class="asn-badge">8</span></div>
+            <div class="asn-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Pacientes</div>
+          </div>
+          <div class="app-main">
+            <div class="app-top">
+              <div style="flex:1">
+                <div style="font-size:10px;color:var(--t4);letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin-bottom:2px">Resumo do paciente</div>
+                <div class="app-h1">Maria Silva, 34 anos</div>
+              </div>
+              <div style="font-size:11px;color:var(--t3)">respondida 22:09, qui 23</div>
+            </div>
+
+            <div style="padding:14px 16px;background:rgba(0,180,216,.05);border-left:3px solid var(--cyn);border-radius:10px;margin-bottom:12px">
+              <div style="font-size:10px;font-weight:700;color:var(--cyn);letter-spacing:.14em;text-transform:uppercase;margin-bottom:3px">Queixa principal</div>
+              <div style="font-size:13.5px;font-weight:600;color:var(--t1);line-height:1.45">Dor de cabeça pulsátil lado direito há 2 semanas. Náusea associada. Dipirona não melhorou.</div>
+            </div>
+            <div style="padding:12px 16px;background:rgba(245,158,11,.05);border-left:3px solid var(--warn);border-radius:10px;margin-bottom:12px">
+              <div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:2px">Histórico familiar relevante</div>
+              <div style="font-size:11.5px;color:var(--t2);line-height:1.4">Mãe com enxaqueca crônica.</div>
+            </div>
+            <div style="padding:12px 16px;background:rgba(139,92,246,.05);border-left:3px solid var(--purple);border-radius:10px;margin-bottom:18px">
+              <div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:2px">Padrão observado</div>
+              <div style="font-size:11.5px;color:var(--t2);line-height:1.4">Enxaqueca sem aura (82% compat) — SBCef 2022</div>
+            </div>
+
+            <!-- BOTÃO FINALIZAR -->
+            <div class="brief-footer">
+              <div class="brief-footer-lbl">
+                <b>Pronto pra finalizar?</b><br>
+                Marque o atendimento como concluído e, se quiser, já deixe retorno agendado.
+              </div>
+              <button class="btn-fin">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                Finalizar atendimento
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Comportamento:</b> botão fica sticky no rodapé da tela. Nunca some enquanto médico está no briefing. Se ele scrollar pra cima, o botão acompanha.</div>
+    </section>
+
+    <!-- 04 - MODAL FINALIZAR -->
+    <section class="section" id="s4">
+      <div class="head">
+        <div class="crumb">04 · Finalização</div>
+        <h2>Modal <em>"Finalizar este atendimento?"</em></h2>
+        <p>Aparece ao clicar no botão verde. Curto, direto, sem enrolar. Duas opções visuais óbvias: com retorno ou sem retorno. Cancelar como link discreto.</p>
+      </div>
+      <div class="scene">
+        <div class="app" style="position:relative">
+          <div class="app-side"><div class="app-logo">vita<span class="grd">id</span></div></div>
+          <div class="app-main" style="filter:blur(2px);opacity:.6">
+            <div style="height:400px"></div>
+          </div>
+          <div class="modal-overlay">
+            <div class="modal">
+              <div class="modal-head">
+                <h3>Finalizar este atendimento?</h3>
+                <p>Confirma que você atendeu <b>Maria Silva</b>. A pre-consulta vai pra aba <b>Finalizadas</b>.</p>
+              </div>
+              <div class="modal-foot">
+                <button class="m-btn primary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+                  Finalizar e marcar retorno
+                </button>
+                <button class="m-btn secondary">Finalizar sem retorno</button>
+                <button class="m-btn link">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Quando "sem retorno":</b> pre-consulta fecha status FINALIZADA, sai da aba Respondidas, vai pra Finalizadas. Toast discreto confirma. Tempo total: 2 cliques, 3 segundos.</div>
+    </section>
+
+    <!-- 05 - MODAL QUANDO VOLTAR -->
+    <section class="section" id="s5">
+      <div class="head">
+        <div class="crumb">05 · Finalização</div>
+        <h2>Modal <em>"Quando voltar?"</em></h2>
+        <p>Aparece só se escolheu "com retorno". 4 opções rápidas (7/15/30 dias + data livre). Motivo do retorno opcional. Ao clicar "Ir pra agenda", abre agenda na data certa.</p>
+      </div>
+      <div class="scene">
+        <div class="app" style="position:relative">
+          <div class="app-side"><div class="app-logo">vita<span class="grd">id</span></div></div>
+          <div class="app-main" style="filter:blur(2px);opacity:.6"><div style="height:400px"></div></div>
+          <div class="modal-overlay">
+            <div class="modal">
+              <div class="modal-head">
+                <h3>Quando Maria volta?</h3>
+                <p>Você pode escolher um prazo rápido ou data específica. Depois a agenda abre pra você marcar o horário.</p>
+              </div>
+              <div class="modal-body">
+                <div class="retorno-opts">
+                  <div class="retorno-opt"><div class="n">7</div><div class="u">dias</div></div>
+                  <div class="retorno-opt active"><div class="n">15</div><div class="u">dias</div></div>
+                  <div class="retorno-opt"><div class="n">30</div><div class="u">dias</div></div>
+                  <div class="retorno-opt"><div class="n">—</div><div class="u">outra</div></div>
+                </div>
+                <div class="f-field">
+                  <label>Motivo do retorno (opcional)</label>
+                  <select class="f-select"><option>Acompanhamento</option><option>Revisar exames</option><option>Reavaliar tratamento</option><option>Retorno pós-procedimento</option></select>
+                </div>
+              </div>
+              <div class="modal-foot">
+                <button class="m-btn primary">
+                  Ir pra agenda →
+                </button>
+                <button class="m-btn link">Voltar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Próximo passo:</b> ao clicar "Ir pra agenda", ela abre centrada na semana de +15 dias, com slots compatíveis destacados em verde claro.</div>
+    </section>
+
+    <!-- 06 - AGENDA SEMANA -->
+    <section class="section" id="s6">
+      <div class="head">
+        <div class="crumb">06 · Agenda</div>
+        <h2>Agenda — visão <em>semana</em> (padrão)</h2>
+        <p>Visão principal. 7 colunas (dias), linhas de 30min. Consultas como cartões coloridos. Arrastar pra remarcar. Clicar slot livre pra marcar. Google Calendar conectado aparece como "ocupado" neutro.</p>
+      </div>
+      <div class="scene">
+        <div class="app">
+          <div class="app-side">
+            <div class="app-logo">vita<span class="grd">id</span></div>
+            <div class="asn-label">Principal</div>
+            <div class="asn-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</div>
+            <div class="asn-item"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>Pre-Consultas<span class="asn-badge">4</span></div>
+            <div class="asn-item active"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Agenda<span class="asn-badge grn">28</span></div>
+            <div class="asn-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Pacientes</div>
+            <div class="asn-label">Workspace</div>
+            <div class="asn-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Templates</div>
+            <div class="asn-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a6 6 0 0 1 12 0v2"/></svg>Meu perfil</div>
+          </div>
+          <div class="app-main">
+            <div class="app-top">
+              <div class="app-h1">Agenda</div>
+              <button class="app-top-btn">
+                <svg viewBox="0 0 24 24"><path d="M3 9a9 9 0 0 1 9-9 9 9 0 0 1 6 2"/><polyline points="21 3 21 9 15 9"/></svg>
+                Importar
+              </button>
+              <button class="app-top-btn primary">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Marcar consulta
+              </button>
+            </div>
+
+            <div class="cal-head">
+              <button class="cal-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <div class="cal-range">Abr 21 — Abr 27, 2026</div>
+              <button class="cal-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+              <button class="cal-today">Hoje</button>
+              <div class="cal-gcal"><span class="gdot"></span>Google sincr.</div>
+              <div class="cal-views">
+                <span class="cal-view">Dia</span>
+                <span class="cal-view active">Semana</span>
+                <span class="cal-view">Mês</span>
+              </div>
+              <div class="cal-stat"><b>28</b> consultas · <b>3</b> livres</div>
+            </div>
+
+            <div class="cal-grid">
+              <div class="cal-days-hdr">
+                <div style="padding-top:10px"></div>
+                <div><div>Seg</div><div class="daynum">21</div></div>
+                <div><div>Ter</div><div class="daynum">22</div></div>
+                <div class="today"><div>Qua</div><div class="daynum">23</div></div>
+                <div><div>Qui</div><div class="daynum">24</div></div>
+                <div><div>Sex</div><div class="daynum">25</div></div>
+                <div style="opacity:.4"><div>Sáb</div><div class="daynum">26</div></div>
+                <div style="opacity:.4"><div>Dom</div><div class="daynum">27</div></div>
+              </div>
+              <div class="cal-body">
+                <div class="hour-col">
+                  <div class="hour-slot">08:00</div><div class="hour-slot">09:00</div><div class="hour-slot">10:00</div><div class="hour-slot">11:00</div><div class="hour-slot">12:00</div><div class="hour-slot">13:00</div><div class="hour-slot">14:00</div><div class="hour-slot">15:00</div><div class="hour-slot">16:00</div><div class="hour-slot">17:00</div>
+                </div>
+                <div class="day-col">
+                  <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+                  <div class="apt confirmada" style="top:38px;height:36px"><span class="n">Maria Silva</span><span class="t">09:00 · 30min</span></div>
+                  <div class="apt confirmada" style="top:152px;height:36px"><span class="n">Pedro Lima</span><span class="t">12:00 · 30min</span></div>
+                  <div class="apt bloqueio" style="top:190px;height:72px"><span class="n">Almoço</span></div>
+                  <div class="apt confirmada" style="top:266px;height:54px"><span class="n">Fernanda C.</span><span class="t">15:00 · 45min</span></div>
+                </div>
+                <div class="day-col">
+                  <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+                  <div class="apt confirmada" style="top:0px;height:36px"><span class="n">João P.</span><span class="t">08:00</span></div>
+                  <div class="apt pendente" style="top:38px;height:36px"><span class="n">Ana R.</span><span class="t">09:00 · aguardando</span></div>
+                  <div class="apt online" style="top:114px;height:54px"><span class="n">Lucas B.</span><span class="t">🎥 11:00</span></div>
+                  <div class="apt bloqueio" style="top:190px;height:72px"></div>
+                  <div class="apt confirmada" style="top:266px;height:36px"><span class="n">Jorge A.</span><span class="t">15:00</span></div>
+                  <div class="apt confirmada" style="top:304px;height:36px"><span class="n">Sabrina V.</span><span class="t">16:00</span></div>
+                </div>
+                <div class="day-col" style="background:rgba(0,229,160,.02)">
+                  <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+                  <div class="apt confirmada" style="top:0;height:36px"><span class="n">Daniela M.</span><span class="t">08:00</span></div>
+                  <div class="apt confirmada" style="top:76px;height:36px"><span class="n">Rafael T.</span><span class="t">10:00</span></div>
+                  <div class="apt atraso" style="top:152px;height:36px"><span class="n">Marcos V.</span><span class="t">12:00 · confirmar</span></div>
+                  <div class="apt bloqueio" style="top:190px;height:72px"></div>
+                  <div class="apt online" style="top:266px;height:54px"><span class="n">Beatriz O.</span><span class="t">🎥 15:00</span></div>
+                </div>
+                <div class="day-col">
+                  <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+                  <div class="apt confirmada" style="top:38px;height:36px"><span class="n">Paulo R.</span><span class="t">09:00</span></div>
+                  <div class="apt confirmada" style="top:76px;height:36px"><span class="n">Helena S.</span><span class="t">10:00</span></div>
+                  <div class="apt bloqueio" style="top:190px;height:72px"></div>
+                  <div class="apt confirmada" style="top:266px;height:72px"><span class="n">Carlos M.</span><span class="t">15:00 · 1h</span></div>
+                </div>
+                <div class="day-col">
+                  <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+                  <div class="apt confirmada" style="top:0;height:36px"><span class="n">Isabela R.</span><span class="t">08:00</span></div>
+                  <div class="apt confirmada" style="top:38px;height:36px"><span class="n">Felipe C.</span><span class="t">09:00</span></div>
+                  <div class="apt online" style="top:114px;height:54px"><span class="n">Taís N.</span><span class="t">🎥 11:00</span></div>
+                  <div class="apt bloqueio" style="top:190px;height:72px"></div>
+                </div>
+                <div class="day-col" style="background:var(--surf2);opacity:.5">
+                  <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+                </div>
+                <div class="day-col" style="background:var(--surf2);opacity:.5">
+                  <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Cores e padrões:</b> verde pleno = confirmada · verde com listras = aguardando confirmação · amarelo listrado = paciente com histórico de falta · roxo com ícone vídeo = online · azul = bloqueio (almoço, férias, plantão).</div>
+    </section>
+
+    <!-- 07 - DETALHE CONSULTA -->
+    <section class="section" id="s7">
+      <div class="head">
+        <div class="crumb">07 · Agenda</div>
+        <h2>Detalhe da <em>consulta selecionada</em></h2>
+        <p>Ao clicar num cartão, abre painel lateral direito com dados completos e ações. Médico pode ver pre-consulta, remarcar, cancelar, marcar como falta, iniciar videochamada (se online) ou já finalizar.</p>
+      </div>
+      <div class="scene">
+        <div class="app">
+          <div class="app-side"><div class="app-logo">vita<span class="grd">id</span></div></div>
+          <div class="app-main">
+            <div class="app-top"><div class="app-h1">Agenda</div></div>
+            <div class="app-main-with-side">
+              <div>
+                <div class="cal-head" style="margin-bottom:8px">
+                  <div class="cal-range" style="font-size:13px">Qua, 23 de abril</div>
+                </div>
+                <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;min-height:380px">
+                  <div style="font-size:11px;color:var(--t4);margin-bottom:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:700">hoje · 5 consultas</div>
+                  <div class="apt confirmada" style="position:static;margin-bottom:6px;padding:10px 12px"><span class="n">Maria Silva — 09:00</span><span class="t">Enxaqueca (retorno)</span></div>
+                  <div class="apt confirmada" style="position:static;margin-bottom:6px;padding:10px 12px;box-shadow:0 0 0 3px rgba(0,180,216,.3);border-left-color:var(--cyn)"><span class="n">Pedro Lima — 10:30 ◄ selecionada</span><span class="t">Consulta nova</span></div>
+                  <div class="apt bloqueio" style="position:static;margin-bottom:6px;padding:10px 12px"><span class="n">Almoço — 12:00 até 13:30</span></div>
+                  <div class="apt online" style="position:static;margin-bottom:6px;padding:10px 12px"><span class="n">Fernanda C. — 14:00 🎥</span><span class="t">Online · 45min</span></div>
+                  <div class="apt confirmada" style="position:static;padding:10px 12px"><span class="n">Jorge A. — 15:30</span></div>
+                </div>
+              </div>
+
+              <div class="det-panel">
+                <div class="det-head">
+                  <div class="det-av">PL</div>
+                  <div>
+                    <div class="det-name">Pedro Lima</div>
+                    <div class="det-meta">34 anos · (11) 98765-4321</div>
+                  </div>
+                  <div class="det-close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+                </div>
+                <div class="det-row"><span class="lbl">Horário</span><span class="val">Hoje · 10:30 — 11:00</span></div>
+                <div class="det-row"><span class="lbl">Tipo</span><span class="val">Presencial</span></div>
+                <div class="det-row"><span class="lbl">Local</span><span class="val">Clínica Vida+</span></div>
+                <div class="det-row"><span class="lbl">Motivo</span><span class="val">Consulta nova — dor torácica</span></div>
+                <div class="det-row"><span class="lbl">Status</span><span class="val chip">Confirmada</span></div>
+                <div class="det-row"><span class="lbl">Última</span><span class="val">Primeira vez aqui</span></div>
+                <div class="det-actions">
+                  <button class="det-btn primary">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    Ver pre-consulta
+                  </button>
+                  <button class="det-btn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Remarcar</button>
+                  <button class="det-btn danger"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Cancelar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Ações disponíveis:</b> ver pre-consulta · remarcar (abre picker de data) · cancelar (com confirmação) · marcar como falta · iniciar videochamada (se online) · copiar link (se online) · finalizar atendimento (se já aconteceu).</div>
+    </section>
+
+    <!-- 08 - AGENDA ABERTA P/ RETORNO -->
+    <section class="section" id="s8">
+      <div class="head">
+        <div class="crumb">08 · Agenda</div>
+        <h2>Agenda aberta <em>centrada na data de retorno</em></h2>
+        <p>Fluxo mágico: após finalizar com retorno em 15 dias, agenda abre na semana correta, com slots sugeridos em verde claro (horário comercial + não-bloqueados + compatíveis com perfil do paciente).</p>
+      </div>
+      <div class="scene">
+        <div class="app">
+          <div class="app-side"><div class="app-logo">vita<span class="grd">id</span></div></div>
+          <div class="app-main">
+            <div class="app-top">
+              <div class="app-h1">Marcar retorno · Maria Silva</div>
+              <button class="app-top-btn">Cancelar</button>
+            </div>
+
+            <div style="background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+              <div style="width:36px;height:36px;border-radius:50%;background:rgba(0,229,160,.2);display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--grn)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:800;color:var(--t1)">Escolha o horário do retorno</div>
+                <div style="font-size:11.5px;color:var(--t2);margin-top:1px">Destaquei em verde claro os slots disponíveis na semana sugerida (+15 dias). Clique pra marcar.</div>
+              </div>
+            </div>
+
+            <div class="cal-head">
+              <button class="cal-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <div class="cal-range">Mai 05 — Mai 11, 2026 <span style="font-size:10px;font-weight:700;color:var(--grn);background:rgba(0,229,160,.15);padding:2px 8px;border-radius:4px;margin-left:8px">+15 DIAS</span></div>
+              <button class="cal-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+            </div>
+
+            <div class="cal-grid">
+              <div class="cal-days-hdr">
+                <div></div>
+                <div><div>Seg</div><div class="daynum">05</div></div>
+                <div><div>Ter</div><div class="daynum">06</div></div>
+                <div><div>Qua</div><div class="daynum">07</div></div>
+                <div><div>Qui</div><div class="daynum">08</div></div>
+                <div><div>Sex</div><div class="daynum">09</div></div>
+                <div style="opacity:.4"><div>Sáb</div><div class="daynum">10</div></div>
+                <div style="opacity:.4"><div>Dom</div><div class="daynum">11</div></div>
+              </div>
+              <div class="cal-body">
+                <div class="hour-col">
+                  <div class="hour-slot">08:00</div><div class="hour-slot">09:00</div><div class="hour-slot">10:00</div><div class="hour-slot">11:00</div><div class="hour-slot">12:00</div><div class="hour-slot">13:00</div><div class="hour-slot">14:00</div><div class="hour-slot">15:00</div><div class="hour-slot">16:00</div>
+                </div>
+                <div class="day-col">
+                  <div class="slot" style="background:rgba(0,229,160,.08);border:1px dashed rgba(0,229,160,.3)"></div>
+                  <div class="apt confirmada" style="top:38px;height:36px"><span class="n">João P.</span></div>
+                  <div class="slot" style="background:rgba(0,229,160,.08);border:1px dashed rgba(0,229,160,.3)"></div>
+                  <div class="slot" style="background:rgba(0,229,160,.08);border:1px dashed rgba(0,229,160,.3)"></div>
+                  <div class="apt bloqueio" style="top:152px;height:72px"></div>
+                  <div class="slot" style="background:rgba(0,229,160,.08);border:1px dashed rgba(0,229,160,.3);margin-top:72px"></div>
+                </div>
+                <div class="day-col">
+                  <div class="slot" style="background:rgba(0,229,160,.08);border:1px dashed rgba(0,229,160,.3)"></div>
+                  <div class="slot" style="background:rgba(0,229,160,.08);border:1px dashed rgba(0,229,160,.3)"></div>
+                  <div class="apt confirmada" style="top:76px;height:36px"><span class="n">Ana R.</span></div>
+                  <div class="apt confirmada" style="top:114px;height:36px"><span class="n">Lucas B.</span></div>
+                  <div class="apt bloqueio" style="top:152px;height:72px"></div>
+                </div>
+                <div class="day-col">
+                  <div class="apt confirmada" style="top:0;height:36px"><span class="n">Daniela</span></div>
+                  <div class="slot" style="background:rgba(0,229,160,.12);border:2px solid var(--grn);margin:2px;border-radius:6px;position:relative"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--grn);font-size:9px;font-weight:800">09:00 ✓</div></div>
+                  <div class="slot" style="background:rgba(0,229,160,.08);border:1px dashed rgba(0,229,160,.3)"></div>
+                </div>
+                <div class="day-col">
+                  <div class="slot" style="background:rgba(0,229,160,.08);border:1px dashed rgba(0,229,160,.3)"></div>
+                  <div class="apt confirmada" style="top:38px;height:36px"><span class="n">Paulo</span></div>
+                  <div class="slot" style="background:rgba(0,229,160,.08);border:1px dashed rgba(0,229,160,.3)"></div>
+                </div>
+                <div class="day-col">
+                  <div class="apt confirmada" style="top:0;height:36px"><span class="n">Isabela</span></div>
+                  <div class="apt confirmada" style="top:38px;height:36px"><span class="n">Felipe</span></div>
+                  <div class="slot" style="background:rgba(0,229,160,.08);border:1px dashed rgba(0,229,160,.3)"></div>
+                </div>
+                <div class="day-col" style="background:var(--surf2);opacity:.5"></div>
+                <div class="day-col" style="background:var(--surf2);opacity:.5"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Interação:</b> slots tracejados verdes = disponíveis. Clique → consulta marcada com 1 toque. Clique no slot com borda verde sólida → "09:00 ✓" = horário com melhor encaixe (sugerido automaticamente).</div>
+    </section>
+
+    <!-- 09 - MARCAR NOVA (MODAL) -->
+    <section class="section" id="s9">
+      <div class="head">
+        <div class="crumb">09 · Agenda</div>
+        <h2>Modal <em>"Marcar consulta"</em></h2>
+        <p>Aparece ao clicar "Marcar consulta" no topo ou num slot livre. Busca paciente existente ou cria novo. Define tipo (presencial/online), duração, motivo.</p>
+      </div>
+      <div class="scene">
+        <div class="app" style="position:relative">
+          <div class="app-side"><div class="app-logo">vita<span class="grd">id</span></div></div>
+          <div class="app-main" style="filter:blur(2px);opacity:.6"><div style="height:400px"></div></div>
+          <div class="modal-overlay">
+            <div class="modal" style="width:480px">
+              <div class="modal-head">
+                <h3>Nova consulta</h3>
+                <p>Quarta, 23 de abril · 14:30 — 15:00</p>
+              </div>
+              <div class="modal-body">
+                <div class="f-field"><label>Paciente</label>
+                  <div style="position:relative">
+                    <input class="f-select" placeholder="Digite 2 letras do nome..." value="Maria Silva" style="padding-left:36px"/>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t4)" stroke-width="2" stroke-linecap="round" style="position:absolute;left:12px;top:13px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  </div>
+                  <div style="font-size:10.5px;color:var(--t4);margin-top:4px">Paciente não existe? <a href="#" style="color:var(--grn);font-weight:700">Criar novo</a></div>
+                </div>
+                <div class="f-field" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div><label>Tipo</label><select class="f-select"><option>Presencial</option><option>Online</option></select></div>
+                  <div><label>Duração</label><select class="f-select"><option>30 min</option><option>15</option><option>45</option><option>60</option></select></div>
+                </div>
+                <div class="f-field"><label>Motivo (opcional)</label><select class="f-select"><option>Retorno</option><option>Consulta nova</option><option>Emergência</option><option>Revisar exame</option></select></div>
+              </div>
+              <div class="modal-foot">
+                <button class="m-btn primary">Marcar consulta</button>
+                <button class="m-btn link">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Busca inteligente:</b> 2 letras já retornam pacientes existentes. Ao escolher "Maria Silva", sistema preenche telefone, última consulta, e sugere motivo baseado no histórico.</div>
+    </section>
+
+    <!-- 10 - CONFLITO -->
+    <section class="section" id="s10">
+      <div class="head">
+        <div class="crumb">10 · Agenda</div>
+        <h2>Alerta de <em>conflito</em></h2>
+        <p>Aparece quando médico tenta marcar em horário já ocupado. Mostra o conflito claramente, sugere 3 alternativas próximas. Se ele insistir no encaixe duplo, precisa confirmar explicitamente.</p>
+      </div>
+      <div class="scene">
+        <div class="app" style="position:relative">
+          <div class="app-side"><div class="app-logo">vita<span class="grd">id</span></div></div>
+          <div class="app-main" style="filter:blur(2px);opacity:.6"><div style="height:400px"></div></div>
+          <div class="modal-overlay">
+            <div class="modal conflict-modal" style="width:480px">
+              <div class="modal-head">
+                <h3>Horário já ocupado</h3>
+                <p>Você já tem consulta marcada neste horário.</p>
+              </div>
+              <div class="modal-body">
+                <div class="conflict-show">
+                  <b>Quarta, 23/04 às 14:30</b><br>
+                  Já ocupado por <b>Pedro Lima</b> (consulta nova, 30min).
+                </div>
+                <div style="font-size:11px;color:var(--t3);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Horários próximos disponíveis</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button style="padding:10px 14px;border:1.5px solid var(--grn);background:rgba(0,229,160,.06);color:var(--t1);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Qua 23/04 · 15:00</button>
+                  <button style="padding:10px 14px;border:1.5px solid var(--border2);background:#fff;color:var(--t1);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Qua 23/04 · 16:00</button>
+                  <button style="padding:10px 14px;border:1.5px solid var(--border2);background:#fff;color:var(--t1);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Qui 24/04 · 09:00</button>
+                </div>
+              </div>
+              <div class="modal-foot">
+                <button class="m-btn secondary">Marcar encaixe duplo mesmo assim</button>
+                <button class="m-btn link">Voltar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Proteção:</b> encaixe duplo exige confirmação explícita. Médico nunca marca dois pacientes no mesmo slot por engano. Se for intencional (ex: procedimento rápido no meio de consulta longa), ele confirma.</div>
+    </section>
+
+    <!-- 11 - TOAST -->
+    <section class="section" id="s11">
+      <div class="head">
+        <div class="crumb">11 · Feedback visual</div>
+        <h2>Toast com <em>desfazer</em></h2>
+        <p>Toda ação destrutiva (cancelar, deletar, marcar falta) tem janela de 10 segundos pra desfazer. Reduz fricção de medo e de erro.</p>
+      </div>
+      <div class="scene">
+        <div class="app">
+          <div class="app-side"><div class="app-logo">vita<span class="grd">id</span></div></div>
+          <div class="app-main" style="position:relative;min-height:500px">
+            <div class="app-top"><div class="app-h1">Agenda</div></div>
+            <div style="padding:40px;text-align:center;color:var(--t4);font-size:13px;line-height:1.6">(agenda aparece atrás do toast)</div>
+            <div class="toast">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              Consulta cancelada. Paciente foi notificado.
+              <button class="toast-undo">Desfazer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Comportamento:</b> toast aparece 10s, depois some. Se clicar "Desfazer": consulta restaurada, paciente recebe contra-notificação ("foi um engano, sua consulta continua"). Zero trauma.</div>
+    </section>
+
+    <!-- 12 - LISTA DE ESPERA -->
+    <section class="section" id="s12">
+      <div class="head">
+        <div class="crumb">12 · Agenda</div>
+        <h2>Lista de <em>espera</em></h2>
+        <p>Pacientes que querem consulta mas não acharam horário disponível. Quando abre vaga (cancelamento), sistema avisa o médico e o paciente automaticamente.</p>
+      </div>
+      <div class="scene">
+        <div class="app">
+          <div class="app-side"><div class="app-logo">vita<span class="grd">id</span></div></div>
+          <div class="app-main">
+            <div class="app-top"><div class="app-h1">Agenda</div>
+              <div class="tabs-row" style="border:0;margin:0;flex:0 0 auto">
+                <span class="tab">Consultas</span>
+                <span class="tab active">Espera<span class="tab-count">5</span></span>
+                <span class="tab">Bloqueios</span>
+              </div>
+            </div>
+
+            <div style="font-size:12.5px;color:var(--t3);margin-bottom:12px;line-height:1.5">
+              <b style="color:var(--t1)">5 pacientes aguardando</b> — sistema avisa automaticamente quando abrir vaga compatível com o critério de cada um.
+            </div>
+
+            <div class="espera-card">
+              <div class="espera-av">CR</div>
+              <div style="flex:1">
+                <div class="espera-n">Carla Ramos</div>
+                <div class="espera-sub">Retorno · qualquer horário manhã · há 4 dias esperando</div>
+              </div>
+              <div class="espera-tempo">Prioridade alta</div>
+              <button class="det-btn" style="width:auto">Oferecer horário</button>
+            </div>
+            <div class="espera-card">
+              <div class="espera-av">JF</div>
+              <div style="flex:1">
+                <div class="espera-n">Juliana Freitas</div>
+                <div class="espera-sub">Consulta nova · online · prefere tarde · há 2 dias esperando</div>
+              </div>
+              <button class="det-btn" style="width:auto">Oferecer horário</button>
+            </div>
+            <div class="espera-card">
+              <div class="espera-av">RO</div>
+              <div style="flex:1">
+                <div class="espera-n">Roberto Oliveira</div>
+                <div class="espera-sub">Urgência · hoje se possível · há 2 horas esperando</div>
+              </div>
+              <div class="espera-tempo" style="background:rgba(239,68,68,.1);color:var(--bad)">Urgente</div>
+              <button class="det-btn primary" style="width:auto">Encaixar agora</button>
+            </div>
+            <div class="espera-card">
+              <div class="espera-av">ME</div>
+              <div style="flex:1">
+                <div class="espera-n">Matheus Esteves</div>
+                <div class="espera-sub">Retorno pós-exame · qualquer dia · há 1 semana esperando</div>
+              </div>
+              <button class="det-btn" style="width:auto">Oferecer horário</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Fluxo automático:</b> paciente liga/WhatsApp pedindo horário. Médico (ou secretária) adiciona na lista com critério (manhã/tarde, urgência, tipo). Quando alguém cancela, sistema cruza: envia oferta automática ao paciente certo.</div>
+    </section>
+
+    <!-- 13 - ABA FINALIZADAS -->
+    <section class="section" id="s13">
+      <div class="head">
+        <div class="crumb">13 · Dashboard</div>
+        <h2>Nova aba <em>"Finalizadas"</em></h2>
+        <p>Separa pre-consultas já atendidas das pendentes. Dashboard do médico fica limpo: ele vê só o que precisa ação. Histórico continua acessível por 1 clique.</p>
+      </div>
+      <div class="scene">
+        <div class="app">
+          <div class="app-side"><div class="app-logo">vita<span class="grd">id</span></div></div>
+          <div class="app-main">
+            <div class="app-top"><div class="app-h1">Pre-Consultas</div><button class="app-top-btn primary">+ Nova pre-consulta</button></div>
+            <div class="tabs-row">
+              <span class="tab">Pendentes<span class="tab-count">2</span></span>
+              <span class="tab">Respondidas<span class="tab-count">4</span></span>
+              <span class="tab active">Finalizadas<span class="tab-count">47</span></span>
+            </div>
+
+            <div class="fin-row">
+              <div class="fin-av">MS</div>
+              <div><div class="fin-n">Maria Silva</div><div class="fin-sub">Cefaleia · enxaqueca sem aura</div></div>
+              <div><span class="fin-chip done">Finalizada</span></div>
+              <div><span class="fin-chip ret">Retorno 08/05</span></div>
+              <div style="font-size:10.5px;color:var(--t3);text-align:right">há 2 horas<br><button class="det-btn" style="margin-top:4px;padding:4px 8px">Ver</button></div>
+            </div>
+            <div class="fin-row">
+              <div class="fin-av" style="background:linear-gradient(120deg,#8B5CF6,#7C3AED)">PL</div>
+              <div><div class="fin-n">Pedro Lima</div><div class="fin-sub">Dor torácica · investigação SCA</div></div>
+              <div><span class="fin-chip done">Finalizada</span></div>
+              <div><span class="fin-chip ret">Retorno 30/04</span></div>
+              <div style="font-size:10.5px;color:var(--t3);text-align:right">ontem<br><button class="det-btn" style="margin-top:4px;padding:4px 8px">Ver</button></div>
+            </div>
+            <div class="fin-row">
+              <div class="fin-av" style="background:linear-gradient(120deg,#F59E0B,#F97316)">FC</div>
+              <div><div class="fin-n">Fernanda Campos</div><div class="fin-sub">Lombalgia crônica</div></div>
+              <div><span class="fin-chip done">Finalizada</span></div>
+              <div><span class="fin-chip none">Sem retorno</span></div>
+              <div style="font-size:10.5px;color:var(--t3);text-align:right">há 2 dias<br><button class="det-btn" style="margin-top:4px;padding:4px 8px">Ver</button></div>
+            </div>
+            <div class="fin-row">
+              <div class="fin-av" style="background:linear-gradient(120deg,#EF4444,#DC2626)">JA</div>
+              <div><div class="fin-n">Jorge Almeida</div><div class="fin-sub">Alergia medicamento</div></div>
+              <div><span class="fin-chip done">Finalizada</span></div>
+              <div><span class="fin-chip ret">Retorno 15/05</span></div>
+              <div style="font-size:10.5px;color:var(--t3);text-align:right">há 3 dias<br><button class="det-btn" style="margin-top:4px;padding:4px 8px">Ver</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Filtro fácil:</b> busca por nome, filtro por período (últimos 7, 30, 90 dias), filtro por "com retorno marcado" ou "sem retorno". Exportar tudo como CSV em 1 clique.</div>
+    </section>
+
+    <!-- 14 - STATS -->
+    <section class="section" id="s14">
+      <div class="head">
+        <div class="crumb">14 · Dashboard</div>
+        <h2>Estatísticas <em>mensais</em> do médico</h2>
+        <p>Aparece na home do dashboard do médico. Mostra valor real em número concreto. Cria vínculo emocional com a ferramenta. Base pra justificar assinatura futura.</p>
+      </div>
+      <div class="scene">
+        <div class="app">
+          <div class="app-side"><div class="app-logo">vita<span class="grd">id</span></div></div>
+          <div class="app-main">
+            <div class="app-top"><div class="app-h1">Abril 2026 · seu mês</div></div>
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-v">87</div>
+                <div class="stat-l">Consultas realizadas</div>
+                <div class="stat-d">vs 72 em março · +21%</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-v grn">94%</div>
+                <div class="stat-l">Taxa de presença</div>
+                <div class="stat-d">Média BR: 78%</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-v">42%</div>
+                <div class="stat-l">Retornos marcados</div>
+                <div class="stat-d">de 87 consultas, 37 viraram retorno</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-v grn">R$ 2.400</div>
+                <div class="stat-l">Valor de no-show evitado</div>
+                <div class="stat-d">5 confirmações salvaram slots</div>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;align-items:center;gap:14px">
+              <div style="width:44px;height:44px;border-radius:12px;background:rgba(0,229,160,.1);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--grn)" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div>
+              <div style="flex:1">
+                <div style="font-size:14px;font-weight:800;margin-bottom:3px">Relatório mensal completo no e-mail</div>
+                <div style="font-size:11.5px;color:var(--t2);line-height:1.5">Todo dia 1º você recebe PDF com número de consultas, presença, retornos, faltas e comparativo com meses anteriores.</div>
+              </div>
+              <button class="det-btn">Ver exemplo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Por que o card R$ 2.400 importa:</b> mostra ROI concreto. Médico pensa: "R$ 2.400 salvos num mês. Se vita id cobrasse R$ 100/mês, ainda economizaria R$ 2.300." Base racional pra assinatura.</div>
+    </section>
+
+    <!-- 15 - PACIENTE PROX CONSULTA -->
+    <section class="section" id="s15">
+      <div class="head">
+        <div class="crumb">15 · Paciente (mobile)</div>
+        <h2>Paciente vê <em>próxima consulta</em></h2>
+        <p>No app do paciente (mobile), a próxima consulta marcada vai pro topo do perfil. Confirma ou remarca em 1 clique (janela de 4h antes).</p>
+      </div>
+      <div class="scene" style="display:flex;align-items:center;justify-content:center;min-height:640px">
+        <div class="mobile-frame">
+          <div class="mobile-inner">
+            <div class="mob-logo">vita<span style="background:var(--grad);color:#0D0F14;padding:2px 5px;border-radius:4px">id</span></div>
+            <div class="mob-greet">Olá,</div>
+            <div class="mob-name">Maria Silva</div>
+
+            <div class="mob-next">
+              <div class="mob-next-label">Próxima consulta</div>
+              <div class="mob-next-title">Dra. Ana Costa</div>
+              <div class="mob-next-time">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Qui, 8 de maio · 14:00
+              </div>
+              <div class="mob-next-sub">Clínica Vida+ · Rua X, 123</div>
+              <div class="mob-next-actions">
+                <button class="mob-next-btn primary">Confirmar presença</button>
+                <button class="mob-next-btn secondary">Remarcar</button>
+              </div>
+            </div>
+
+            <div class="mob-card">
+              <div class="mob-card-t">Sua saúde está em dia ✓</div>
+              <div class="mob-card-s">Último check-in: ontem</div>
+            </div>
+            <div class="mob-card">
+              <div class="mob-card-t">2 exames recentes</div>
+              <div class="mob-card-s">Hemograma e colesterol</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Respeito ao paciente:</b> remarcação pelo app permitida até 4h antes. Depois disso, só contato com médico. Cancelamento tem janela de 2h (curta) pra desincentivar cancelamento fácil.</div>
+    </section>
+
+    <!-- 16 - LEMBRETE PUSH -->
+    <section class="section" id="s16">
+      <div class="head">
+        <div class="crumb">16 · Notificação</div>
+        <h2>Lembrete <em>24h antes</em> — push + e-mail</h2>
+        <p>Linguagem clara, sem burocracia. Inclui local/link, médico, dia/hora, botões de ação diretos. Disclaimer discreto sobre emergência.</p>
+      </div>
+      <div class="scene" style="display:flex;align-items:center;justify-content:center;min-height:540px;padding:30px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:800px;width:100%">
+
+          <div style="background:#f0f0f0;border-radius:16px;padding:24px;min-height:360px">
+            <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:14px;text-transform:uppercase;letter-spacing:.1em">Notificação push · celular</div>
+            <div class="msg-bubble">
+              <div style="font-size:11px;color:var(--t3);margin-bottom:5px"><b>vita id</b> · agora</div>
+              Olá Maria, sua consulta com <b>Dra. Ana Costa</b> é amanhã, quinta 8 de maio, às <b>14:00</b>.<br><br>
+              📍 Clínica Vida+, Rua X nº 123.<br><br>
+              Pode vir?
+              <div class="msg-actions">
+                <button class="yes">Sim, confirmo</button>
+                <button class="no">Preciso remarcar</button>
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--t4);text-align:center;line-height:1.5;margin-top:10px">Em emergência, ligue 192 ou seu médico direto. Este lembrete é auxiliar.</div>
+          </div>
+
+          <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;min-height:360px;box-shadow:var(--shadow)">
+            <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:14px;text-transform:uppercase;letter-spacing:.1em">E-mail paralelo · backup</div>
+            <div style="font-size:11px;color:var(--t4);margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:10px">De: vita id &lt;oi@vitaid.com.br&gt;<br>Para: maria@email.com<br>Assunto: Lembrete de consulta — amanhã 14h</div>
+            <div style="font-size:13.5px;font-weight:800;margin-bottom:10px">Sua consulta é amanhã</div>
+            <div style="font-size:12.5px;color:var(--t2);line-height:1.6">
+              Olá Maria,<br><br>
+              Você tem consulta com <b style="color:var(--t1)">Dra. Ana Costa</b> (Cardiologia) amanhã, quinta 8 de maio, às <b style="color:var(--t1)">14:00</b>.<br><br>
+              📍 Clínica Vida+ · Rua X nº 123, São Paulo<br><br>
+              <a href="#" style="display:inline-block;padding:10px 18px;background:var(--grad);color:#0D0F14;border-radius:8px;text-decoration:none;font-weight:700;margin:6px 0">Confirmar presença</a><br>
+              <a href="#" style="color:var(--t3);font-size:11px">Preciso remarcar</a>
+              <div style="font-size:10px;color:var(--t4);margin-top:20px;padding-top:12px;border-top:1px solid var(--border);line-height:1.5">Em emergência, ligue 192. Este lembrete é auxiliar e não substitui contato direto com seu médico.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="scene-hint"><b>Canais simultâneos:</b> push é canal primário (instantâneo). E-mail é backup automático (chega mesmo se paciente desinstalou app). Ambos com links rastreáveis pra atualizar status "confirmado/remarcar".</div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+document.querySelectorAll('.nav-item').forEach(function(el){
+  el.addEventListener('click', function(){
+    document.querySelectorAll('.nav-item').forEach(function(x){x.classList.remove('active')});
+    document.querySelectorAll('.section').forEach(function(x){x.classList.remove('active')});
+    el.classList.add('active');
+    var sec = document.getElementById(el.dataset.sec);
+    if(sec) sec.classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+});
+</script>
+</body>
+</html>
