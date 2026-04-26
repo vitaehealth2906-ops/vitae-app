@@ -21,10 +21,176 @@ html,body{overflow:auto !important}
 body{padding-top:44px}
 .app{height:calc(100vh - 44px)}
 .scene{display:none}
-.scene.on{display:block;width:100%}
+.scene.on{display:flex;flex-direction:column;width:100%;min-height:100%}
 .scene > .cfg-wrap,.scene > .bf-wrap,.scene > .st-wrap{width:100%}
 
-/* ====== AGENDA (refeita) ====== */
+/* ====== AGENDA — GOOGLE CALENDAR STYLE com ID vita id ====== */
+.gcal{display:grid;grid-template-columns:256px 1fr;background:#fff;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);min-height:680px}
+
+/* Sub-sidebar interna (estilo GCal) */
+.gcal-sb{border-right:1px solid var(--border);padding:18px 16px 24px;background:#fff;overflow-y:auto}
+.gcal-create{display:inline-flex;align-items:center;gap:10px;padding:14px 22px 14px 16px;border-radius:28px;background:#fff;border:1px solid var(--border3,rgba(0,0,0,.14));font-family:inherit;font-size:13.5px;font-weight:600;color:var(--t1);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.08);transition:box-shadow .2s,background .15s;margin-bottom:22px}
+.gcal-create:hover{box-shadow:0 2px 6px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.10);background:var(--bg)}
+.gcal-create .plus{width:32px;height:32px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.gcal-create .plus svg{width:14px;height:14px;stroke:var(--dark);fill:none;stroke-width:2.5;stroke-linecap:round}
+.gcal-create .arr{margin-left:auto;width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--t3)}
+.gcal-create .arr svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2}
+
+/* Mini calendário */
+.gmini{margin-bottom:24px}
+.gmini-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 8px 8px;font-size:13px;font-weight:600;color:var(--t1)}
+.gmini-nav{display:flex;gap:0}
+.gmini-nav button{width:24px;height:24px;border-radius:50%;border:0;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2)}
+.gmini-nav button:hover{background:var(--bg)}
+.gmini-nav svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.gmini-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;padding:0 6px}
+.gmini-dn{font-size:10px;font-weight:500;color:var(--t3);text-align:center;padding:4px 0;text-transform:uppercase;letter-spacing:.04em}
+.gmini-d{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--t1);cursor:pointer;border-radius:50%;font-weight:500;width:26px;height:26px;margin:0 auto;font-family:inherit;border:0;background:transparent}
+.gmini-d:hover{background:var(--bg)}
+.gmini-d.muted{color:var(--t4)}
+.gmini-d.tod{background:var(--grad);color:var(--dark);font-weight:700}
+.gmini-d.has{position:relative}
+.gmini-d.has::after{content:'';position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--green)}
+.gmini-d.tod.has::after{background:var(--dark)}
+
+/* Search */
+.gsr{display:flex;align-items:center;gap:8px;background:var(--s2);border-radius:24px;padding:8px 14px;margin-bottom:16px}
+.gsr svg{width:14px;height:14px;fill:none;stroke:var(--t2);stroke-width:2}
+.gsr input{flex:1;border:0;background:transparent;font-family:inherit;font-size:12.5px;color:var(--t1);outline:none}
+.gsr input::placeholder{color:var(--t3)}
+
+/* Lista de agendas */
+.glist-h{display:flex;align-items:center;gap:6px;padding:10px 8px 4px;font-size:12.5px;font-weight:500;color:var(--t1);cursor:pointer}
+.glist-h svg{width:11px;height:11px;fill:none;stroke:var(--t3);stroke-width:2;stroke-linecap:round}
+.glist-h .add{margin-left:auto;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--t3);background:transparent;border:0;cursor:pointer}
+.glist-h .add:hover{background:var(--bg)}
+.glist-h .add svg{width:14px;height:14px;stroke-width:2}
+.glist-row{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12.5px;color:var(--t1)}
+.glist-row:hover{background:var(--bg)}
+.glist-row .cb{width:14px;height:14px;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--green)}
+.glist-row .cb.on{background:var(--green)}
+.glist-row .cb.on::after{content:'';width:6px;height:3px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg);margin-top:-1px}
+.glist-row .cb.cy{border-color:var(--cyan)}.glist-row .cb.cy.on{background:var(--cyan)}
+.glist-row .cb.pu{border-color:#8B5CF6}.glist-row .cb.pu.on{background:#8B5CF6}
+.glist-row .cb.gy{border-color:var(--t3)}.glist-row .cb.gy.on{background:var(--t3)}
+.glist-row .cb.bl{border-color:#3B82F6}.glist-row .cb.bl.on{background:#3B82F6}
+.glist-row .cb.gg{border-color:#0F9D58}.glist-row .cb.gg.on{background:#0F9D58}
+
+/* Main da agenda */
+.gcal-main{display:flex;flex-direction:column;background:#fff;min-height:680px}
+.gtbar{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.gtoday{padding:7px 16px;border-radius:6px;border:1px solid var(--border3,rgba(0,0,0,.14));background:#fff;font-family:inherit;font-size:13px;font-weight:500;color:var(--t1);cursor:pointer}
+.gtoday:hover{background:var(--bg)}
+.gnav{display:flex;gap:0}
+.gnav-btn{width:34px;height:34px;border-radius:50%;border:0;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2)}
+.gnav-btn:hover{background:var(--bg);color:var(--t1)}
+.gnav-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.gtitle{font-size:22px;font-weight:400;color:var(--t1);letter-spacing:-.2px}
+.gview{margin-left:auto;display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:6px;border:1px solid var(--border3,rgba(0,0,0,.14));background:#fff;font-family:inherit;font-size:13px;font-weight:500;color:var(--t1);cursor:pointer}
+.gview:hover{background:var(--bg)}
+.gview svg{width:12px;height:12px;fill:none;stroke:var(--t2);stroke-width:2}
+
+/* MÊS — Google Calendar style */
+.gm-grid{flex:1;display:grid;grid-template-rows:auto repeat(5,1fr)}
+.gm-dnames{display:grid;grid-template-columns:repeat(7,1fr);background:#fff}
+.gm-dnames > div{padding:8px 12px;font-size:11px;font-weight:500;color:var(--t2);letter-spacing:.04em;text-transform:uppercase;border-right:1px solid var(--border);text-align:center}
+.gm-dnames > div:last-child{border-right:0}
+.gm-row{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--border);min-height:120px}
+.gm-cell{border-right:1px solid var(--border);padding:6px 6px 4px;position:relative;cursor:pointer;transition:background .12s;display:flex;flex-direction:column}
+.gm-cell:last-child{border-right:0}
+.gm-cell:hover{background:var(--bg)}
+.gm-cell.muted{background:#FAFBFC}
+.gm-cell.muted .gm-num{color:var(--t4)}
+.gm-num{font-size:12px;font-weight:500;color:var(--t1);width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:2px}
+.gm-cell.tod .gm-num{background:var(--grad);color:var(--dark);font-weight:700}
+.gm-evs{flex:1;display:flex;flex-direction:column;gap:1px;overflow:hidden}
+.gm-ev{font-size:11px;line-height:1.4;padding:2px 6px;border-radius:3px;color:#fff;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.gm-ev.gn{background:linear-gradient(120deg,#00B58A,#00A0BF);color:#fff}
+.gm-ev.cy{background:#00B4D8;color:#fff}
+.gm-ev.pu{background:#8B5CF6;color:#fff}
+.gm-ev.gy{background:transparent;color:var(--t2);font-weight:500}
+.gm-ev.gy::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--t4);margin-right:6px;vertical-align:middle}
+.gm-ev.bl{background:#3B82F6;color:#fff;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.15) 0 4px,transparent 4px 8px)}
+.gm-ev.feriado{background:#0F9D58;color:#fff;font-weight:600}
+.gm-ev.holiday-pill{background:transparent;color:#0F9D58;font-weight:600;padding:2px 0}
+.gm-ev.holiday-pill::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:#0F9D58;margin-right:6px;vertical-align:middle}
+.gm-more{font-size:11px;color:var(--t3);font-weight:500;padding:1px 6px;cursor:pointer}
+.gm-more:hover{color:var(--t1)}
+
+/* SEMANA — Google Calendar style */
+.gw-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.gw-allday{display:grid;grid-template-columns:64px repeat(7,1fr);border-bottom:1px solid var(--border);min-height:36px;background:#fff}
+.gw-allday-lbl{font-size:10px;color:var(--t3);padding:8px 4px;text-align:right;border-right:1px solid var(--border);text-transform:uppercase;letter-spacing:.04em}
+.gw-allday-c{border-right:1px solid var(--border);padding:4px 4px;min-height:28px;display:flex;flex-direction:column;gap:2px}
+.gw-allday-c:last-child{border-right:0}
+.gw-allday-ev{font-size:10.5px;padding:2px 6px;border-radius:3px;color:#fff;background:#0F9D58;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.gw-dhdr{display:grid;grid-template-columns:64px repeat(7,1fr);border-bottom:1px solid var(--border);background:#fff;flex-shrink:0}
+.gw-dhdr > div{padding:8px 4px 10px;text-align:center;border-right:1px solid var(--border)}
+.gw-dhdr > div:last-child{border-right:0}
+.gw-dhdr .dn{font-size:10px;font-weight:500;color:var(--t2);letter-spacing:.04em;text-transform:uppercase}
+.gw-dhdr .dnum{font-size:24px;font-weight:400;color:var(--t1);margin-top:2px;letter-spacing:-.4px}
+.gw-dhdr .tod .dnum{width:40px;height:40px;border-radius:50%;background:var(--grad);color:var(--dark);font-weight:600;display:flex;align-items:center;justify-content:center;margin:2px auto 0}
+.gw-dhdr .tod .dn{color:var(--green);font-weight:600}
+
+.gw-body{flex:1;display:grid;grid-template-columns:64px repeat(7,1fr);overflow-y:auto;position:relative}
+.gw-hcol{border-right:1px solid var(--border)}
+.gw-hslot{height:48px;border-bottom:1px solid var(--border);padding:0 6px;font-size:10px;color:var(--t3);text-align:right;position:relative;line-height:1}
+.gw-hslot span{position:absolute;top:-6px;right:6px;background:#fff;padding:0 4px}
+.gw-dcol{position:relative;border-right:1px solid var(--border)}
+.gw-dcol:last-child{border-right:0}
+.gw-dcol .gw-sl{height:48px;border-bottom:1px solid var(--border)}
+.gw-dcol .gw-sl.half{border-bottom:1px dashed rgba(0,0,0,.04);height:24px}
+
+/* Eventos semana — barras grandes */
+.gw-ev{position:absolute;left:2px;right:2px;border-radius:5px;padding:6px 8px;font-size:11.5px;line-height:1.25;overflow:hidden;cursor:pointer;color:#fff;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.06);transition:opacity .15s}
+.gw-ev:hover{opacity:.92;box-shadow:0 2px 6px rgba(0,0,0,.12);z-index:5}
+.gw-ev.gn{background:linear-gradient(135deg,#00B58A,#00A0BF)}
+.gw-ev.cy{background:#00B4D8}
+.gw-ev.pu{background:#8B5CF6}
+.gw-ev.gy{background:#fff;border:1px solid var(--border);color:var(--t2)}
+.gw-ev.bl{background:#3B82F6;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.15) 0 5px,transparent 5px 10px)}
+.gw-ev.suga{background:transparent;border:2px dashed var(--green);color:var(--green);font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.gw-ev .nm{font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gw-ev .tm{font-size:10px;opacity:.92;display:block;margin-top:2px}
+
+/* Linha do "agora" */
+.gw-now{position:absolute;left:64px;right:0;height:2px;background:#EA4335;z-index:6;pointer-events:none}
+.gw-now::before{content:'';position:absolute;left:-6px;top:-5px;width:12px;height:12px;border-radius:50%;background:#EA4335}
+
+/* Banner de retorno */
+.gbnr{display:flex;align-items:center;gap:12px;padding:10px 16px;background:linear-gradient(135deg,rgba(0,229,160,.08),rgba(0,180,216,.06));border-bottom:1px solid var(--border);flex-shrink:0}
+.gbnr-ic{width:32px;height:32px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.gbnr-ic svg{width:14px;height:14px;fill:none;stroke:var(--dark);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.gbnr-tx{flex:1;font-size:12.5px;color:var(--t2)}
+.gbnr-tx b{color:var(--t1);font-weight:700}
+.gbnr-sel{padding:6px 12px;border-radius:6px;border:1px solid var(--border3,rgba(0,0,0,.14));background:#fff;font-size:12px;font-weight:500;color:var(--t1);font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.gbnr-sel:hover{background:var(--bg)}
+.gbnr-sel svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2}
+.gbnr-x{padding:6px 12px;border-radius:6px;background:transparent;border:0;font-size:12px;font-weight:500;color:var(--t3);font-family:inherit;cursor:pointer}
+.gbnr-x:hover{color:var(--t1);background:var(--bg)}
+
+/* Dropdown de criar */
+.gcreate-menu{position:absolute;top:60px;left:14px;background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.04);padding:8px 0;min-width:240px;z-index:10}
+.gcreate-it{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:13px;color:var(--t1);cursor:pointer;font-family:inherit}
+.gcreate-it:hover{background:var(--bg)}
+.gcreate-it .ic{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.gcreate-it .ic svg{width:12px;height:12px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* DIA — Google Calendar style */
+.gd-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.gd-hdr{display:grid;grid-template-columns:64px 1fr;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0;padding-bottom:6px}
+.gd-hdr > div:first-child{border-right:1px solid var(--border)}
+.gd-hdr-day{padding:10px 16px;text-align:center}
+.gd-hdr-day .dn{font-size:11px;font-weight:600;color:var(--green);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
+.gd-hdr-day .dnum{width:46px;height:46px;border-radius:50%;background:var(--grad);color:var(--dark);font-weight:600;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:24px;letter-spacing:-.3px}
+.gd-body{flex:1;display:grid;grid-template-columns:64px 1fr;overflow-y:auto}
+.gd-dcol{position:relative}
+.gd-dcol .gw-sl{height:48px;border-bottom:1px solid var(--border)}
+.gd-dcol .gw-ev{left:8px;right:30%;font-size:13px;padding:8px 12px}
+.gd-dcol .gw-ev.gn,.gd-dcol .gw-ev.cy,.gd-dcol .gw-ev.pu{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+
+/* Old aggregate — keep for screens that still use */
 .ag-toprow{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
 .ag-nav{display:flex;gap:4px}
 .ag-nav-btn{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer}
@@ -560,274 +726,452 @@ body{padding-top:44px}
         </div>
       </div>
 
-      <!-- ═══ 6. AGENDA SEMANA (refeita — calendar protagonista) ═══ -->
+      <!-- ═══ 6. AGENDA SEMANA (Google Calendar style) ═══ -->
       <div class="scene" id="sc-agsem">
-        <div class="ph">
-          <div><h1>Agenda</h1><p>28 consultas esta semana · 3 slots livres · Google Calendar conectado</p></div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-s"><svg viewBox="0 0 24 24"><path d="M3 9a9 9 0 0 1 9-9 9 9 0 0 1 6 2"/><polyline points="21 3 21 9 15 9"/></svg>Importar</button>
-            <button class="btn btn-p"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Marcar consulta</button>
-          </div>
-        </div>
+        <div class="gcal">
+          <!-- ── Sub-sidebar ── -->
+          <aside class="gcal-sb">
+            <button class="gcal-create">
+              <span class="plus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+              Criar
+              <span class="arr"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="gmini">
+              <div class="gmini-hdr">Abril 2026
+                <div class="gmini-nav"><button><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+              </div>
+              <div class="gmini-grid">
+                <div class="gmini-dn">D</div><div class="gmini-dn">S</div><div class="gmini-dn">T</div><div class="gmini-dn">Q</div><div class="gmini-dn">Q</div><div class="gmini-dn">S</div><div class="gmini-dn">S</div>
+                <button class="gmini-d muted">29</button><button class="gmini-d muted">30</button><button class="gmini-d muted">31</button><button class="gmini-d">1</button><button class="gmini-d">2</button><button class="gmini-d">3</button><button class="gmini-d">4</button>
+                <button class="gmini-d">5</button><button class="gmini-d">6</button><button class="gmini-d has">7</button><button class="gmini-d has">8</button><button class="gmini-d">9</button><button class="gmini-d">10</button><button class="gmini-d">11</button>
+                <button class="gmini-d">12</button><button class="gmini-d has">13</button><button class="gmini-d has">14</button><button class="gmini-d has">15</button><button class="gmini-d">16</button><button class="gmini-d">17</button><button class="gmini-d">18</button>
+                <button class="gmini-d">19</button><button class="gmini-d">20</button><button class="gmini-d has">21</button><button class="gmini-d has">22</button><button class="gmini-d tod has">23</button><button class="gmini-d has">24</button><button class="gmini-d has">25</button>
+                <button class="gmini-d">26</button><button class="gmini-d">27</button><button class="gmini-d has">28</button><button class="gmini-d has">29</button><button class="gmini-d has">30</button><button class="gmini-d muted">1</button><button class="gmini-d muted">2</button>
+              </div>
+            </div>
+            <div class="gsr"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Buscar paciente"></div>
+            <div class="glist-h"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>Minhas agendas<button class="add"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+            <div class="glist-row"><div class="cb on"></div>Consultas presenciais</div>
+            <div class="glist-row"><div class="cb cy on"></div>Consultas online</div>
+            <div class="glist-row"><div class="cb pu on"></div>Retornos</div>
+            <div class="glist-row"><div class="cb gy on"></div>Bloqueios e folgas</div>
+            <div class="glist-h" style="margin-top:8px"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>Outras agendas<button class="add"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+            <div class="glist-row"><div class="cb gg on"></div>Feriados no Brasil</div>
+            <div class="glist-row"><div class="cb bl on"></div>Google Calendar (Lucas)</div>
+          </aside>
 
-        <div class="ag-toprow">
-          <div class="ag-nav"><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
-          <div class="ag-range">Abr 21 — Abr 27, 2026</div>
-          <button class="ag-today">Hoje</button>
-          <div class="ag-views"><button class="ag-view">Dia</button><button class="ag-view on">Semana</button><button class="ag-view">Mês</button></div>
-          <div class="ag-stat"><b>28</b> consultas · <b>3</b> livres</div>
-          <div class="ag-gcal"><span class="dd"></span>Google sincronizado</div>
-        </div>
+          <!-- ── Main: toolbar + grid semana ── -->
+          <main class="gcal-main">
+            <div class="gtbar">
+              <button class="gtoday">Hoje</button>
+              <div class="gnav"><button class="gnav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="gnav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+              <div class="gtitle">21 – 27 de abril, 2026</div>
+              <button class="gview">Semana <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+            </div>
 
-        <div class="ag-grid">
-          <div class="ag-dhdr">
-            <div></div>
-            <div>Seg<div class="dn">21</div></div>
-            <div>Ter<div class="dn">22</div></div>
-            <div class="tod">Qua<div class="dn">23</div></div>
-            <div>Qui<div class="dn">24</div></div>
-            <div>Sex<div class="dn">25</div></div>
-            <div style="opacity:.45">Sáb<div class="dn">26</div></div>
-            <div style="opacity:.45">Dom<div class="dn">27</div></div>
-          </div>
-          <div class="ag-body">
-            <div class="ag-hcol">
-              <div class="ag-hslot">08:00</div><div class="ag-hslot">09:00</div><div class="ag-hslot">10:00</div><div class="ag-hslot">11:00</div><div class="ag-hslot">12:00</div><div class="ag-hslot">13:00</div><div class="ag-hslot">14:00</div><div class="ag-hslot">15:00</div><div class="ag-hslot">16:00</div><div class="ag-hslot">17:00</div>
+            <div class="gw-wrap">
+              <div class="gw-allday">
+                <div class="gw-allday-lbl">DIA INT.</div>
+                <div class="gw-allday-c"></div>
+                <div class="gw-allday-c"></div>
+                <div class="gw-allday-c"><div class="gw-allday-ev">Tiradentes</div></div>
+                <div class="gw-allday-c"></div>
+                <div class="gw-allday-c"></div>
+                <div class="gw-allday-c"></div>
+                <div class="gw-allday-c"></div>
+              </div>
+              <div class="gw-dhdr">
+                <div></div>
+                <div><div class="dn">SEG</div><div class="dnum">21</div></div>
+                <div><div class="dn">TER</div><div class="dnum">22</div></div>
+                <div class="tod"><div class="dn">QUA</div><div class="dnum">23</div></div>
+                <div><div class="dn">QUI</div><div class="dnum">24</div></div>
+                <div><div class="dn">SEX</div><div class="dnum">25</div></div>
+                <div><div class="dn">SÁB</div><div class="dnum">26</div></div>
+                <div><div class="dn">DOM</div><div class="dnum">27</div></div>
+              </div>
+              <div class="gw-body">
+                <div class="gw-hcol">
+                  <div class="gw-hslot"><span>08</span></div>
+                  <div class="gw-hslot"><span>09</span></div>
+                  <div class="gw-hslot"><span>10</span></div>
+                  <div class="gw-hslot"><span>11</span></div>
+                  <div class="gw-hslot"><span>12</span></div>
+                  <div class="gw-hslot"><span>13</span></div>
+                  <div class="gw-hslot"><span>14</span></div>
+                  <div class="gw-hslot"><span>15</span></div>
+                  <div class="gw-hslot"><span>16</span></div>
+                  <div class="gw-hslot"><span>17</span></div>
+                  <div class="gw-hslot"><span>18</span></div>
+                </div>
+                <!-- SEG 21 -->
+                <div class="gw-dcol">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                  <div class="gw-ev gy" style="top:48px;height:42px"><span class="nm">Maria Silva</span><span class="tm">09:00 — 09:30</span></div>
+                  <div class="gw-ev gy" style="top:192px;height:42px"><span class="nm">Pedro Lima</span><span class="tm">12:00 — 12:30</span></div>
+                  <div class="gw-ev bl" style="top:240px;height:90px"><span class="nm">Almoço</span><span class="tm">12:00 — 13:30</span></div>
+                  <div class="gw-ev gy" style="top:336px;height:62px"><span class="nm">Fernanda Campos</span><span class="tm">15:00 — 15:45</span></div>
+                </div>
+                <!-- TER 22 -->
+                <div class="gw-dcol">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                  <div class="gw-ev gy" style="top:0;height:42px"><span class="nm">João Pereira</span><span class="tm">08:00</span></div>
+                  <div class="gw-ev gy" style="top:48px;height:42px"><span class="nm">Ana Rodrigues</span><span class="tm">09:00</span></div>
+                  <div class="gw-ev gy" style="top:144px;height:62px"><span class="nm">Lucas Borelli</span><span class="tm">11:00 — 11:45</span></div>
+                  <div class="gw-ev bl" style="top:240px;height:90px"><span class="nm">Almoço</span></div>
+                  <div class="gw-ev gy" style="top:336px;height:42px"><span class="nm">Jorge Almeida</span><span class="tm">15:00</span></div>
+                  <div class="gw-ev gy" style="top:384px;height:42px"><span class="nm">Sabrina Vieira</span><span class="tm">16:00</span></div>
+                </div>
+                <!-- QUA 23 (HOJE) -->
+                <div class="gw-dcol">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                  <div class="gw-ev gn" style="top:0;height:42px"><span class="nm">Daniela Mendes</span><span class="tm">08:00 — 08:30</span></div>
+                  <div class="gw-ev gn" style="top:96px;height:42px"><span class="nm">Rafael Tavares</span><span class="tm">10:00 — 10:30</span></div>
+                  <div class="gw-ev pu" style="top:192px;height:42px"><span class="nm">Marcos Vieira</span><span class="tm">12:00 · retorno</span></div>
+                  <div class="gw-ev bl" style="top:240px;height:90px"><span class="nm">Almoço</span></div>
+                  <div class="gw-ev cy" style="top:336px;height:62px"><span class="nm">Beatriz Oliveira</span><span class="tm">15:00 · online</span></div>
+                  <!-- linha do agora -->
+                  <div class="gw-now" style="top:213px;left:0;right:0"></div>
+                </div>
+                <!-- QUI 24 -->
+                <div class="gw-dcol">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                  <div class="gw-ev gn" style="top:48px;height:42px"><span class="nm">Paulo Ribeiro</span><span class="tm">09:00 — 09:30</span></div>
+                  <div class="gw-ev gn" style="top:96px;height:42px"><span class="nm">Helena Santos</span><span class="tm">10:00 — 10:30</span></div>
+                  <div class="gw-ev bl" style="top:240px;height:90px"><span class="nm">Almoço</span></div>
+                  <div class="gw-ev gn" style="top:336px;height:90px"><span class="nm">Carlos Martins</span><span class="tm">15:00 — 16:00</span></div>
+                </div>
+                <!-- SEX 25 -->
+                <div class="gw-dcol">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                  <div class="gw-ev gn" style="top:0;height:42px"><span class="nm">Isabela Rocha</span><span class="tm">08:00 — 08:30</span></div>
+                  <div class="gw-ev gn" style="top:48px;height:42px"><span class="nm">Felipe Costa</span><span class="tm">09:00</span></div>
+                  <div class="gw-ev cy" style="top:144px;height:62px"><span class="nm">Taís Nascimento</span><span class="tm">11:00 · online</span></div>
+                  <div class="gw-ev bl" style="top:240px;height:90px"><span class="nm">Almoço</span></div>
+                </div>
+                <!-- SAB 26 -->
+                <div class="gw-dcol" style="background:#FAFBFC">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                </div>
+                <!-- DOM 27 -->
+                <div class="gw-dcol" style="background:#FAFBFC">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                </div>
+              </div>
             </div>
-            <!-- SEG 21 -->
-            <div class="ag-dcol">
-              <div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div>
-              <div class="apt past" style="top:54px;height:50px"><span class="nm">Maria Silva</span><span class="tm">09:00 · 30min</span></div>
-              <div class="apt past" style="top:216px;height:50px"><span class="nm">Pedro Lima</span><span class="tm">12:00 · 30min</span></div>
-              <div class="apt block" style="top:270px;height:100px"><span class="nm">Almoço</span><span class="tm">12:00 — 13:30</span></div>
-              <div class="apt past" style="top:378px;height:76px"><span class="nm">Fernanda Campos</span><span class="tm">15:00 · 45min</span></div>
-            </div>
-            <!-- TER 22 -->
-            <div class="ag-dcol">
-              <div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div>
-              <div class="apt past" style="top:0;height:50px"><span class="nm">João Pereira</span><span class="tm">08:00 · 30min</span></div>
-              <div class="apt past" style="top:54px;height:50px"><span class="nm">Ana Rodrigues</span><span class="tm">09:00 · 30min</span></div>
-              <div class="apt past" style="top:162px;height:76px"><span class="nm">Lucas Borelli</span><span class="tm">11:00 · 45min</span></div>
-              <div class="apt block" style="top:270px;height:100px"><span class="nm">Almoço</span></div>
-              <div class="apt past" style="top:378px;height:50px"><span class="nm">Jorge Almeida</span><span class="tm">15:00</span></div>
-              <div class="apt past" style="top:432px;height:50px"><span class="nm">Sabrina V.</span><span class="tm">16:00</span></div>
-            </div>
-            <!-- QUA 23 (HOJE) -->
-            <div class="ag-dcol" style="background:rgba(0,229,160,.025)">
-              <div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div>
-              <div class="apt ok" style="top:0;height:50px"><span class="nm">Daniela Mendes</span><span class="tm">08:00 · 30min</span></div>
-              <div class="apt ok" style="top:108px;height:50px"><span class="nm">Rafael Tavares</span><span class="tm">10:00 · 30min</span></div>
-              <div class="apt warn" style="top:216px;height:50px"><span class="nm">Marcos Vieira</span><span class="tm">12:00 · aguardando confirmar</span></div>
-              <div class="apt block" style="top:270px;height:100px"><span class="nm">Almoço</span></div>
-              <div class="apt ok" style="top:378px;height:76px"><span class="nm">Beatriz Oliveira</span><span class="tm">15:00 · 45min</span></div>
-            </div>
-            <!-- QUI 24 -->
-            <div class="ag-dcol">
-              <div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div>
-              <div class="apt ok" style="top:54px;height:50px"><span class="nm">Paulo Ribeiro</span><span class="tm">09:00 · 30min</span></div>
-              <div class="apt ok" style="top:108px;height:50px"><span class="nm">Helena Santos</span><span class="tm">10:00 · 30min</span></div>
-              <div class="apt block" style="top:270px;height:100px"><span class="nm">Almoço</span></div>
-              <div class="apt ok" style="top:378px;height:108px"><span class="nm">Carlos Martins</span><span class="tm">15:00 · 60min</span></div>
-            </div>
-            <!-- SEX 25 -->
-            <div class="ag-dcol">
-              <div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div>
-              <div class="apt ok" style="top:0;height:50px"><span class="nm">Isabela Rocha</span><span class="tm">08:00 · 30min</span></div>
-              <div class="apt ok" style="top:54px;height:50px"><span class="nm">Felipe Costa</span><span class="tm">09:00 · 30min</span></div>
-              <div class="apt ok" style="top:162px;height:76px"><span class="nm">Taís Nascimento</span><span class="tm">11:00 · 45min</span></div>
-              <div class="apt block" style="top:270px;height:100px"><span class="nm">Almoço</span></div>
-            </div>
-            <div class="ag-dcol" style="background:var(--s2);opacity:.5"></div>
-            <div class="ag-dcol" style="background:var(--s2);opacity:.5"></div>
-          </div>
-        </div>
-
-        <div class="ag-leg">
-          <div class="ag-leg-it"><div class="ag-leg-sw ok"></div>Confirmada</div>
-          <div class="ag-leg-it"><div class="ag-leg-sw warn"></div>Aguardando confirmação ou histórico de falta</div>
-          <div class="ag-leg-it"><div class="ag-leg-sw past"></div>Já aconteceu</div>
-          <div class="ag-leg-it"><div class="ag-leg-sw block"></div>Bloqueio (almoço, férias, plantão, evento Google)</div>
+          </main>
         </div>
       </div>
 
-      <!-- ═══ 7. AGENDA DIA (NOVA) ═══ -->
+      <!-- ═══ 7. AGENDA DIA (Google Calendar style) ═══ -->
       <div class="scene" id="sc-agdia">
-        <div class="ph">
-          <div><h1>Agenda</h1><p>Quarta, 23 de abril · 5 consultas · Google Calendar conectado</p></div>
-          <button class="btn btn-p"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Marcar consulta</button>
-        </div>
-        <div class="ag-toprow">
-          <div class="ag-nav"><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
-          <div class="ag-range">Quarta · 23 de abril</div>
-          <button class="ag-today">Hoje</button>
-          <div class="ag-views"><button class="ag-view on">Dia</button><button class="ag-view">Semana</button><button class="ag-view">Mês</button></div>
-          <div class="ag-stat"><b>5</b> consultas · próxima: 12:00</div>
-        </div>
+        <div class="gcal">
+          <!-- ── Sub-sidebar (idêntica) ── -->
+          <aside class="gcal-sb">
+            <button class="gcal-create">
+              <span class="plus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+              Criar
+              <span class="arr"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="gmini">
+              <div class="gmini-hdr">Abril 2026
+                <div class="gmini-nav"><button><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+              </div>
+              <div class="gmini-grid">
+                <div class="gmini-dn">D</div><div class="gmini-dn">S</div><div class="gmini-dn">T</div><div class="gmini-dn">Q</div><div class="gmini-dn">Q</div><div class="gmini-dn">S</div><div class="gmini-dn">S</div>
+                <button class="gmini-d muted">29</button><button class="gmini-d muted">30</button><button class="gmini-d muted">31</button><button class="gmini-d">1</button><button class="gmini-d">2</button><button class="gmini-d">3</button><button class="gmini-d">4</button>
+                <button class="gmini-d">5</button><button class="gmini-d">6</button><button class="gmini-d has">7</button><button class="gmini-d has">8</button><button class="gmini-d">9</button><button class="gmini-d">10</button><button class="gmini-d">11</button>
+                <button class="gmini-d">12</button><button class="gmini-d has">13</button><button class="gmini-d has">14</button><button class="gmini-d has">15</button><button class="gmini-d">16</button><button class="gmini-d">17</button><button class="gmini-d">18</button>
+                <button class="gmini-d">19</button><button class="gmini-d">20</button><button class="gmini-d has">21</button><button class="gmini-d has">22</button><button class="gmini-d tod has">23</button><button class="gmini-d has">24</button><button class="gmini-d has">25</button>
+                <button class="gmini-d">26</button><button class="gmini-d">27</button><button class="gmini-d has">28</button><button class="gmini-d has">29</button><button class="gmini-d has">30</button><button class="gmini-d muted">1</button><button class="gmini-d muted">2</button>
+              </div>
+            </div>
+            <div class="gsr"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Buscar paciente"></div>
+            <div class="glist-h"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>Minhas agendas<button class="add"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+            <div class="glist-row"><div class="cb on"></div>Consultas presenciais</div>
+            <div class="glist-row"><div class="cb cy on"></div>Consultas online</div>
+            <div class="glist-row"><div class="cb pu on"></div>Retornos</div>
+            <div class="glist-row"><div class="cb gy on"></div>Bloqueios e folgas</div>
+            <div class="glist-h" style="margin-top:8px"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>Outras agendas<button class="add"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+            <div class="glist-row"><div class="cb gg on"></div>Feriados no Brasil</div>
+            <div class="glist-row"><div class="cb bl on"></div>Google Calendar (Lucas)</div>
+          </aside>
 
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:0;overflow:hidden">
-          <div style="padding:14px 18px;background:var(--s2);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:800;color:var(--t3);letter-spacing:.14em;text-transform:uppercase">manhã</div>
-          <div style="padding:8px">
-            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;cursor:pointer" class="apt past" onmouseover="this.style.background='rgba(0,0,0,.05)'" onmouseout="this.style.background='rgba(0,0,0,.03)'">
-              <div style="font-size:14px;font-weight:800;color:var(--t1);min-width:62px">08:00</div>
-              <div style="flex:1;border-left:3px solid var(--t4);padding-left:14px">
-                <div style="font-size:14px;font-weight:700;color:var(--t1)">Daniela Mendes</div>
-                <div style="font-size:11.5px;color:var(--t3);margin-top:2px">Consulta nova · 30min · presencial</div>
-              </div>
-              <div style="font-size:11px;font-weight:700;color:var(--t3);padding:4px 10px;border-radius:6px;background:rgba(0,0,0,.05)">já aconteceu</div>
+          <!-- ── Main: toolbar + grid dia ── -->
+          <main class="gcal-main">
+            <div class="gtbar">
+              <button class="gtoday">Hoje</button>
+              <div class="gnav"><button class="gnav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="gnav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+              <div class="gtitle">Quarta-feira, 23 de abril, 2026</div>
+              <button class="gview">Dia <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
             </div>
-            <div class="apt ok" style="position:static;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;margin-top:6px;left:auto;right:auto">
-              <div style="font-size:14px;font-weight:800;min-width:62px;color:#005B36">10:00</div>
-              <div style="flex:1;padding-left:14px;border-left:3px solid var(--ok)">
-                <div style="font-size:14px;font-weight:700;color:var(--t1)">Rafael Tavares</div>
-                <div style="font-size:11.5px;color:var(--t2);margin-top:2px">Consulta nova · 30min · presencial</div>
+
+            <div class="gd-wrap">
+              <div class="gw-allday">
+                <div class="gw-allday-lbl">DIA INT.</div>
+                <div class="gw-allday-c" style="grid-column:span 7"></div>
               </div>
-              <div class="list-chip done" style="background:rgba(0,196,122,.15);color:#005B36">Confirmada</div>
-            </div>
-            <div class="apt warn" style="position:static;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;margin-top:6px;left:auto;right:auto">
-              <div style="font-size:14px;font-weight:800;min-width:62px;color:#7D5500">12:00</div>
-              <div style="flex:1;padding-left:14px;border-left:3px solid var(--warn)">
-                <div style="font-size:14px;font-weight:700;color:var(--t1)">Marcos Vieira</div>
-                <div style="font-size:11.5px;color:var(--t2);margin-top:2px">Retorno · 30min · presencial</div>
+              <div class="gd-hdr">
+                <div></div>
+                <div class="gd-hdr-day"><div class="dn">QUA</div><div class="dnum">23</div></div>
               </div>
-              <div class="list-chip warn">Aguardando confirmação</div>
-            </div>
-          </div>
-          <div style="padding:14px 18px;background:var(--s2);border-bottom:1px solid var(--border);border-top:1px solid var(--border);font-size:10.5px;font-weight:800;color:var(--t3);letter-spacing:.14em;text-transform:uppercase">tarde</div>
-          <div style="padding:8px">
-            <div class="apt block" style="position:static;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;left:auto;right:auto">
-              <div style="font-size:14px;font-weight:800;min-width:62px;color:#1E40AF">12:00</div>
-              <div style="flex:1;padding-left:14px;border-left:3px solid var(--info)">
-                <div style="font-size:14px;font-weight:700;color:var(--t1)">Almoço</div>
-                <div style="font-size:11.5px;color:var(--t2);margin-top:2px">Bloqueio · 90min</div>
+              <div class="gd-body">
+                <div class="gw-hcol">
+                  <div class="gw-hslot"><span>08</span></div>
+                  <div class="gw-hslot"><span>09</span></div>
+                  <div class="gw-hslot"><span>10</span></div>
+                  <div class="gw-hslot"><span>11</span></div>
+                  <div class="gw-hslot"><span>12</span></div>
+                  <div class="gw-hslot"><span>13</span></div>
+                  <div class="gw-hslot"><span>14</span></div>
+                  <div class="gw-hslot"><span>15</span></div>
+                  <div class="gw-hslot"><span>16</span></div>
+                  <div class="gw-hslot"><span>17</span></div>
+                  <div class="gw-hslot"><span>18</span></div>
+                </div>
+                <div class="gd-dcol">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                  <div class="gw-ev gn" style="top:0;height:42px"><span class="nm">Daniela Mendes · consulta nova</span><span class="tm">08:00 — 08:30 · presencial</span></div>
+                  <div class="gw-ev gn" style="top:96px;height:42px"><span class="nm">Rafael Tavares · consulta nova</span><span class="tm">10:00 — 10:30 · presencial</span></div>
+                  <div class="gw-ev pu" style="top:192px;height:42px"><span class="nm">Marcos Vieira · retorno</span><span class="tm">12:00 — 12:30 · aguardando confirmação</span></div>
+                  <div class="gw-ev bl" style="top:240px;height:90px"><span class="nm">Almoço</span><span class="tm">12:00 — 13:30</span></div>
+                  <div class="gw-ev cy" style="top:336px;height:62px"><span class="nm">Beatriz Oliveira · retorno</span><span class="tm">15:00 — 15:45 · online (Jitsi)</span></div>
+                  <div class="gw-now" style="top:213px;left:0;right:0"></div>
+                </div>
               </div>
             </div>
-            <div class="apt ok" style="position:static;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;margin-top:6px;left:auto;right:auto">
-              <div style="font-size:14px;font-weight:800;min-width:62px;color:#005B36">15:00</div>
-              <div style="flex:1;padding-left:14px;border-left:3px solid var(--ok)">
-                <div style="font-size:14px;font-weight:700;color:var(--t1)">Beatriz Oliveira</div>
-                <div style="font-size:11.5px;color:var(--t2);margin-top:2px">Retorno · 45min · presencial</div>
-              </div>
-              <div class="list-chip done" style="background:rgba(0,196,122,.15);color:#005B36">Confirmada</div>
-            </div>
-          </div>
+          </main>
         </div>
       </div>
 
-      <!-- ═══ 8. AGENDA MÊS ═══ -->
+      <!-- ═══ 8. AGENDA MÊS (Google Calendar style) ═══ -->
       <div class="scene" id="sc-agmes">
-        <div class="ph">
-          <div><h1>Agenda</h1><p>Abril 2026 · 87 consultas no mês · planejamento mensal</p></div>
-          <button class="btn btn-p"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Marcar consulta</button>
-        </div>
-        <div class="ag-toprow">
-          <div class="ag-nav"><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
-          <div class="ag-range">Abril 2026</div>
-          <button class="ag-today">Hoje</button>
-          <div class="ag-views"><button class="ag-view">Dia</button><button class="ag-view">Semana</button><button class="ag-view on">Mês</button></div>
-        </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-          <div style="display:grid;grid-template-columns:repeat(7,1fr);background:var(--s2);border-bottom:1px solid var(--border)">
-            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t3);border-right:1px solid var(--border)">SEG</div>
-            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t3);border-right:1px solid var(--border)">TER</div>
-            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t3);border-right:1px solid var(--border)">QUA</div>
-            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t3);border-right:1px solid var(--border)">QUI</div>
-            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t3);border-right:1px solid var(--border)">SEX</div>
-            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t4);border-right:1px solid var(--border)">SÁB</div>
-            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t4)">DOM</div>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:110px">
-            <!-- linha 1 -->
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);opacity:.4"><div style="font-size:13px;font-weight:700;color:var(--t3)">31</div></div>
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">1</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px;margin-bottom:3px">3 consultas</div></div>
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">2</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px">4 consultas</div></div>
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">3</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px">5 consultas</div></div>
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">4</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px">3 consultas</div></div>
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--s2)"><div style="font-size:13px;font-weight:700;color:var(--t4)">5</div></div>
-            <div style="padding:8px;border-bottom:1px solid var(--border);background:var(--s2)"><div style="font-size:13px;font-weight:700;color:var(--t4)">6</div></div>
-            <!-- linha hoje -->
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">21</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px;margin-bottom:3px">3 consultas</div></div>
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">22</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px;margin-bottom:3px">6 consultas</div></div>
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(0,229,160,.04);position:relative"><div style="font-size:13px;font-weight:900;color:var(--green);margin-bottom:6px">23 ●</div><div style="font-size:10.5px;color:var(--green);background:rgba(0,229,160,.12);padding:2px 6px;border-radius:4px;margin-bottom:3px;font-weight:700">Hoje · 5 consultas</div><div style="font-size:10px;color:var(--t3);margin-top:4px">próxima 12:00</div></div>
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">24</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px">4 consultas</div></div>
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">25</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px">3 consultas</div></div>
-            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--s2)"><div style="font-size:13px;font-weight:700;color:var(--t4)">26</div></div>
-            <div style="padding:8px;border-bottom:1px solid var(--border);background:var(--s2)"><div style="font-size:13px;font-weight:700;color:var(--t4)">27</div></div>
-          </div>
+        <div class="gcal">
+          <!-- ── Sub-sidebar (idêntica) ── -->
+          <aside class="gcal-sb">
+            <button class="gcal-create">
+              <span class="plus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+              Criar
+              <span class="arr"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="gmini">
+              <div class="gmini-hdr">Abril 2026
+                <div class="gmini-nav"><button><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+              </div>
+              <div class="gmini-grid">
+                <div class="gmini-dn">D</div><div class="gmini-dn">S</div><div class="gmini-dn">T</div><div class="gmini-dn">Q</div><div class="gmini-dn">Q</div><div class="gmini-dn">S</div><div class="gmini-dn">S</div>
+                <button class="gmini-d muted">29</button><button class="gmini-d muted">30</button><button class="gmini-d muted">31</button><button class="gmini-d">1</button><button class="gmini-d">2</button><button class="gmini-d">3</button><button class="gmini-d">4</button>
+                <button class="gmini-d">5</button><button class="gmini-d">6</button><button class="gmini-d has">7</button><button class="gmini-d has">8</button><button class="gmini-d">9</button><button class="gmini-d">10</button><button class="gmini-d">11</button>
+                <button class="gmini-d">12</button><button class="gmini-d has">13</button><button class="gmini-d has">14</button><button class="gmini-d has">15</button><button class="gmini-d">16</button><button class="gmini-d">17</button><button class="gmini-d">18</button>
+                <button class="gmini-d">19</button><button class="gmini-d">20</button><button class="gmini-d has">21</button><button class="gmini-d has">22</button><button class="gmini-d tod has">23</button><button class="gmini-d has">24</button><button class="gmini-d has">25</button>
+                <button class="gmini-d">26</button><button class="gmini-d">27</button><button class="gmini-d has">28</button><button class="gmini-d has">29</button><button class="gmini-d has">30</button><button class="gmini-d muted">1</button><button class="gmini-d muted">2</button>
+              </div>
+            </div>
+            <div class="gsr"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Buscar paciente"></div>
+            <div class="glist-h"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>Minhas agendas<button class="add"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+            <div class="glist-row"><div class="cb on"></div>Consultas presenciais</div>
+            <div class="glist-row"><div class="cb cy on"></div>Consultas online</div>
+            <div class="glist-row"><div class="cb pu on"></div>Retornos</div>
+            <div class="glist-row"><div class="cb gy on"></div>Bloqueios e folgas</div>
+            <div class="glist-h" style="margin-top:8px"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>Outras agendas<button class="add"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+            <div class="glist-row"><div class="cb gg on"></div>Feriados no Brasil</div>
+            <div class="glist-row"><div class="cb bl on"></div>Google Calendar (Lucas)</div>
+          </aside>
+
+          <!-- ── Main: toolbar + grid mês ── -->
+          <main class="gcal-main">
+            <div class="gtbar">
+              <button class="gtoday">Hoje</button>
+              <div class="gnav"><button class="gnav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="gnav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+              <div class="gtitle">Abril de 2026</div>
+              <button class="gview">Mês <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+            </div>
+
+            <div class="gm-grid">
+              <div class="gm-dnames">
+                <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+              </div>
+              <!-- Semana 1: 29 mar – 4 abr -->
+              <div class="gm-row">
+                <div class="gm-cell muted"><div class="gm-num">29</div></div>
+                <div class="gm-cell muted"><div class="gm-num">30</div></div>
+                <div class="gm-cell muted"><div class="gm-num">31</div></div>
+                <div class="gm-cell"><div class="gm-num">1</div><div class="gm-evs"><div class="gm-ev gn">10:00 Larissa M.</div><div class="gm-ev gn">14:00 Renata B.</div><div class="gm-ev cy">15:30 Online</div></div></div>
+                <div class="gm-cell"><div class="gm-num">2</div><div class="gm-evs"><div class="gm-ev gn">09:00 Otávio</div><div class="gm-ev pu">11:00 retorno</div><div class="gm-ev gn">15:00 Vinícius</div><div class="gm-more">+1 mais</div></div></div>
+                <div class="gm-cell"><div class="gm-num">3</div><div class="gm-evs"><div class="gm-ev gn">08:00 Camila</div><div class="gm-ev gn">10:00 Bruno</div><div class="gm-ev cy">14:00 Online</div></div></div>
+                <div class="gm-cell muted"><div class="gm-num">4</div></div>
+              </div>
+              <!-- Semana 2: 5 – 11 abr -->
+              <div class="gm-row">
+                <div class="gm-cell muted"><div class="gm-num">5</div></div>
+                <div class="gm-cell"><div class="gm-num">6</div><div class="gm-evs"><div class="gm-ev gn">09:00 Eduardo</div><div class="gm-ev gn">11:00 Patrícia</div></div></div>
+                <div class="gm-cell"><div class="gm-num">7</div><div class="gm-evs"><div class="gm-ev gn">08:30 Tiago</div><div class="gm-ev pu">10:00 retorno</div><div class="gm-ev cy">14:00 Online</div></div></div>
+                <div class="gm-cell"><div class="gm-num">8</div><div class="gm-evs"><div class="gm-ev gn">09:00 Joana</div><div class="gm-ev gn">11:00 Henrique</div><div class="gm-ev gn">15:00 Sofia</div></div></div>
+                <div class="gm-cell"><div class="gm-num">9</div><div class="gm-evs"><div class="gm-ev gn">10:00 Diego</div><div class="gm-ev pu">14:30 retorno</div></div></div>
+                <div class="gm-cell"><div class="gm-num">10</div><div class="gm-evs"><div class="gm-ev gn">08:00 Mariana</div><div class="gm-ev gn">11:00 Felipe</div></div></div>
+                <div class="gm-cell muted"><div class="gm-num">11</div></div>
+              </div>
+              <!-- Semana 3: 12 – 18 abr -->
+              <div class="gm-row">
+                <div class="gm-cell muted"><div class="gm-num">12</div></div>
+                <div class="gm-cell"><div class="gm-num">13</div><div class="gm-evs"><div class="gm-ev gn">09:30 Rodrigo</div><div class="gm-ev gn">11:00 Vanessa</div><div class="gm-ev cy">15:00 Online</div></div></div>
+                <div class="gm-cell"><div class="gm-num">14</div><div class="gm-evs"><div class="gm-ev gn">08:00 Roberto</div><div class="gm-ev gn">10:30 Letícia</div><div class="gm-ev pu">14:00 retorno</div></div></div>
+                <div class="gm-cell"><div class="gm-num">15</div><div class="gm-evs"><div class="gm-ev gn">09:00 Amanda</div><div class="gm-ev gn">11:00 Gabriel</div><div class="gm-ev gn">15:30 Carla</div><div class="gm-more">+2 mais</div></div></div>
+                <div class="gm-cell"><div class="gm-num">16</div><div class="gm-evs"><div class="gm-ev gn">08:30 Mateus</div><div class="gm-ev cy">10:00 Online</div><div class="gm-ev gn">14:00 Júlia</div></div></div>
+                <div class="gm-cell"><div class="gm-num">17</div><div class="gm-evs"><div class="gm-ev gn">09:00 Pedro H.</div><div class="gm-ev pu">11:30 retorno</div></div></div>
+                <div class="gm-cell muted"><div class="gm-num">18</div></div>
+              </div>
+              <!-- Semana 4: 19 – 25 abr (HOJE = 23) -->
+              <div class="gm-row">
+                <div class="gm-cell muted"><div class="gm-num">19</div></div>
+                <div class="gm-cell"><div class="gm-num">20</div><div class="gm-evs"><div class="gm-ev gn">09:00 Adriano</div><div class="gm-ev gn">14:00 Cristina</div></div></div>
+                <div class="gm-cell"><div class="gm-num">21</div><div class="gm-evs"><div class="gm-ev gy">Maria Silva 09:00</div><div class="gm-ev gy">Pedro Lima 12:00</div><div class="gm-ev gy">Fernanda 15:00</div></div></div>
+                <div class="gm-cell"><div class="gm-num">22</div><div class="gm-evs"><div class="gm-ev holiday-pill">Tiradentes</div><div class="gm-ev gy">João P. 08:00</div><div class="gm-ev gy">Ana R. 09:00</div><div class="gm-more">+3 mais</div></div></div>
+                <div class="gm-cell tod"><div class="gm-num">23</div><div class="gm-evs"><div class="gm-ev gn">08:00 Daniela M.</div><div class="gm-ev gn">10:00 Rafael T.</div><div class="gm-ev pu">12:00 retorno</div><div class="gm-ev cy">15:00 Online</div></div></div>
+                <div class="gm-cell"><div class="gm-num">24</div><div class="gm-evs"><div class="gm-ev gn">09:00 Paulo R.</div><div class="gm-ev gn">10:00 Helena</div><div class="gm-ev gn">15:00 Carlos</div></div></div>
+                <div class="gm-cell"><div class="gm-num">25</div><div class="gm-evs"><div class="gm-ev gn">08:00 Isabela</div><div class="gm-ev gn">09:00 Felipe C.</div><div class="gm-ev cy">11:00 Online</div></div></div>
+              </div>
+              <!-- Semana 5: 26 abr – 2 mai -->
+              <div class="gm-row">
+                <div class="gm-cell muted"><div class="gm-num">26</div></div>
+                <div class="gm-cell"><div class="gm-num">27</div><div class="gm-evs"><div class="gm-ev gn">09:00 Beatriz O.</div><div class="gm-ev pu">14:00 retorno</div></div></div>
+                <div class="gm-cell"><div class="gm-num">28</div><div class="gm-evs"><div class="gm-ev gn">08:30 Marcelo</div><div class="gm-ev gn">11:00 Sandra</div><div class="gm-ev gn">15:00 Lúcia</div></div></div>
+                <div class="gm-cell"><div class="gm-num">29</div><div class="gm-evs"><div class="gm-ev gn">09:00 Túlio</div><div class="gm-ev cy">10:30 Online</div><div class="gm-ev pu">14:00 retorno</div></div></div>
+                <div class="gm-cell"><div class="gm-num">30</div><div class="gm-evs"><div class="gm-ev gn">08:00 Igor</div><div class="gm-ev gn">11:00 Alice</div></div></div>
+                <div class="gm-cell muted"><div class="gm-num">1</div><div class="gm-evs"><div class="gm-ev holiday-pill">Trabalho</div></div></div>
+                <div class="gm-cell muted"><div class="gm-num">2</div></div>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
 
-      <!-- ═══ 9. MARCAR RETORNO (refeita — só calendário grande + banner) ═══ -->
+      <!-- ═══ 9. MARCAR RETORNO (Google Calendar style com banner) ═══ -->
       <div class="scene" id="sc-agret">
-        <div class="ag-bnr">
-          <div class="ag-bnr-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-          <div class="ag-bnr-tx">Marcando retorno de <b>Maria Silva</b> · sugestão <b>+15 dias</b> · slots livres em destaque</div>
-          <button class="ag-bnr-sel">Alterar prazo <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
-          <button class="ag-bnr-x">Cancelar</button>
-        </div>
+        <div class="gcal">
+          <!-- ── Sub-sidebar (idêntica) ── -->
+          <aside class="gcal-sb">
+            <button class="gcal-create">
+              <span class="plus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+              Criar
+              <span class="arr"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="gmini">
+              <div class="gmini-hdr">Maio 2026
+                <div class="gmini-nav"><button><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+              </div>
+              <div class="gmini-grid">
+                <div class="gmini-dn">D</div><div class="gmini-dn">S</div><div class="gmini-dn">T</div><div class="gmini-dn">Q</div><div class="gmini-dn">Q</div><div class="gmini-dn">S</div><div class="gmini-dn">S</div>
+                <button class="gmini-d muted">26</button><button class="gmini-d muted">27</button><button class="gmini-d muted">28</button><button class="gmini-d muted">29</button><button class="gmini-d muted">30</button><button class="gmini-d">1</button><button class="gmini-d">2</button>
+                <button class="gmini-d">3</button><button class="gmini-d has">4</button><button class="gmini-d has">5</button><button class="gmini-d has">6</button><button class="gmini-d has">7</button><button class="gmini-d tod has">8</button><button class="gmini-d">9</button>
+                <button class="gmini-d">10</button><button class="gmini-d has">11</button><button class="gmini-d has">12</button><button class="gmini-d has">13</button><button class="gmini-d has">14</button><button class="gmini-d has">15</button><button class="gmini-d">16</button>
+                <button class="gmini-d">17</button><button class="gmini-d has">18</button><button class="gmini-d has">19</button><button class="gmini-d has">20</button><button class="gmini-d has">21</button><button class="gmini-d has">22</button><button class="gmini-d">23</button>
+                <button class="gmini-d">24</button><button class="gmini-d has">25</button><button class="gmini-d has">26</button><button class="gmini-d has">27</button><button class="gmini-d has">28</button><button class="gmini-d has">29</button><button class="gmini-d">30</button>
+                <button class="gmini-d">31</button><button class="gmini-d muted">1</button><button class="gmini-d muted">2</button><button class="gmini-d muted">3</button><button class="gmini-d muted">4</button><button class="gmini-d muted">5</button><button class="gmini-d muted">6</button>
+              </div>
+            </div>
+            <div class="gsr"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Buscar paciente"></div>
+            <div class="glist-h"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>Minhas agendas<button class="add"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+            <div class="glist-row"><div class="cb on"></div>Consultas presenciais</div>
+            <div class="glist-row"><div class="cb cy on"></div>Consultas online</div>
+            <div class="glist-row"><div class="cb pu on"></div>Retornos</div>
+            <div class="glist-row"><div class="cb gy on"></div>Bloqueios e folgas</div>
+            <div class="glist-h" style="margin-top:8px"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>Outras agendas<button class="add"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+            <div class="glist-row"><div class="cb gg on"></div>Feriados no Brasil</div>
+            <div class="glist-row"><div class="cb bl on"></div>Google Calendar (Lucas)</div>
+          </aside>
 
-        <div class="ag-toprow">
-          <div class="ag-nav"><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
-          <div class="ag-range">Mai 05 — Mai 11, 2026</div>
-          <button class="ag-today">Hoje</button>
-          <div class="ag-views"><button class="ag-view">Dia</button><button class="ag-view on">Semana</button><button class="ag-view">Mês</button></div>
-          <div class="ag-stat"><b>14</b> slots disponíveis</div>
-        </div>
+          <!-- ── Main: banner retorno + toolbar + grid semana ── -->
+          <main class="gcal-main">
+            <div class="gbnr">
+              <div class="gbnr-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+              <div class="gbnr-tx">Marcando retorno de <b>Maria Silva</b> · sugestão <b>+15 dias</b> · clique num slot livre pra confirmar</div>
+              <button class="gbnr-sel">Alterar prazo <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+              <button class="gbnr-x">Cancelar</button>
+            </div>
+            <div class="gtbar">
+              <button class="gtoday">Hoje</button>
+              <div class="gnav"><button class="gnav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="gnav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+              <div class="gtitle">5 – 11 de maio, 2026</div>
+              <button class="gview">Semana <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+            </div>
 
-        <div class="ag-grid">
-          <div class="ag-dhdr">
-            <div></div>
-            <div>Seg<div class="dn">05</div></div>
-            <div>Ter<div class="dn">06</div></div>
-            <div>Qua<div class="dn">07</div></div>
-            <div>Qui<div class="dn">08</div></div>
-            <div>Sex<div class="dn">09</div></div>
-            <div style="opacity:.45">Sáb<div class="dn">10</div></div>
-            <div style="opacity:.45">Dom<div class="dn">11</div></div>
-          </div>
-          <div class="ag-body">
-            <div class="ag-hcol">
-              <div class="ag-hslot">08:00</div><div class="ag-hslot">09:00</div><div class="ag-hslot">10:00</div><div class="ag-hslot">11:00</div><div class="ag-hslot">12:00</div><div class="ag-hslot">13:00</div><div class="ag-hslot">14:00</div><div class="ag-hslot">15:00</div>
+            <div class="gw-wrap">
+              <div class="gw-allday">
+                <div class="gw-allday-lbl">DIA INT.</div>
+                <div class="gw-allday-c"></div><div class="gw-allday-c"></div><div class="gw-allday-c"></div><div class="gw-allday-c"></div><div class="gw-allday-c"></div><div class="gw-allday-c"></div><div class="gw-allday-c"></div>
+              </div>
+              <div class="gw-dhdr">
+                <div></div>
+                <div><div class="dn">SEG</div><div class="dnum">5</div></div>
+                <div><div class="dn">TER</div><div class="dnum">6</div></div>
+                <div><div class="dn">QUA</div><div class="dnum">7</div></div>
+                <div class="tod"><div class="dn">QUI</div><div class="dnum">8</div></div>
+                <div><div class="dn">SEX</div><div class="dnum">9</div></div>
+                <div><div class="dn">SÁB</div><div class="dnum">10</div></div>
+                <div><div class="dn">DOM</div><div class="dnum">11</div></div>
+              </div>
+              <div class="gw-body">
+                <div class="gw-hcol">
+                  <div class="gw-hslot"><span>08</span></div>
+                  <div class="gw-hslot"><span>09</span></div>
+                  <div class="gw-hslot"><span>10</span></div>
+                  <div class="gw-hslot"><span>11</span></div>
+                  <div class="gw-hslot"><span>12</span></div>
+                  <div class="gw-hslot"><span>13</span></div>
+                  <div class="gw-hslot"><span>14</span></div>
+                  <div class="gw-hslot"><span>15</span></div>
+                  <div class="gw-hslot"><span>16</span></div>
+                  <div class="gw-hslot"><span>17</span></div>
+                  <div class="gw-hslot"><span>18</span></div>
+                </div>
+                <!-- SEG 5 -->
+                <div class="gw-dcol">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                  <div class="gw-ev gn" style="top:48px;height:42px"><span class="nm">João Pereira</span><span class="tm">09:00</span></div>
+                  <div class="gw-ev bl" style="top:240px;height:90px"><span class="nm">Almoço</span></div>
+                  <div class="gw-ev gn" style="top:336px;height:62px"><span class="nm">Carla Mendes</span><span class="tm">15:00 — 15:45</span></div>
+                </div>
+                <!-- TER 6 -->
+                <div class="gw-dcol">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                  <div class="gw-ev gn" style="top:96px;height:42px"><span class="nm">Ana Rodrigues</span><span class="tm">10:00</span></div>
+                  <div class="gw-ev gn" style="top:144px;height:42px"><span class="nm">Lucas B.</span><span class="tm">11:00</span></div>
+                  <div class="gw-ev bl" style="top:240px;height:90px"><span class="nm">Almoço</span></div>
+                </div>
+                <!-- QUA 7 -->
+                <div class="gw-dcol">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                  <div class="gw-ev gn" style="top:0;height:42px"><span class="nm">Daniela M.</span><span class="tm">08:00</span></div>
+                  <div class="gw-ev bl" style="top:240px;height:90px"><span class="nm">Almoço</span></div>
+                  <div class="gw-ev gn" style="top:432px;height:42px"><span class="nm">Roberto S.</span><span class="tm">17:00</span></div>
+                </div>
+                <!-- QUI 8 (sugerido) -->
+                <div class="gw-dcol" style="background:rgba(0,229,160,.025)">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                  <div class="gw-ev suga" style="top:48px;height:42px"><span class="nm">★ Sugerido</span><span class="tm">09:00 — 09:30</span></div>
+                  <div class="gw-ev gn" style="top:144px;height:42px"><span class="nm">Paulo R.</span><span class="tm">11:00</span></div>
+                  <div class="gw-ev bl" style="top:240px;height:90px"><span class="nm">Almoço</span></div>
+                  <div class="gw-ev gn" style="top:384px;height:42px"><span class="nm">Helena Santos</span><span class="tm">16:00</span></div>
+                </div>
+                <!-- SEX 9 -->
+                <div class="gw-dcol">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                  <div class="gw-ev gn" style="top:0;height:42px"><span class="nm">Isabela R.</span><span class="tm">08:00</span></div>
+                  <div class="gw-ev gn" style="top:48px;height:42px"><span class="nm">Felipe C.</span><span class="tm">09:00</span></div>
+                  <div class="gw-ev bl" style="top:240px;height:90px"><span class="nm">Almoço</span></div>
+                </div>
+                <!-- SAB 10 -->
+                <div class="gw-dcol" style="background:#FAFBFC">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                </div>
+                <!-- DOM 11 -->
+                <div class="gw-dcol" style="background:#FAFBFC">
+                  <div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div><div class="gw-sl"></div>
+                </div>
+              </div>
             </div>
-            <div class="ag-dcol sug-mode">
-              <div class="sl"></div>
-              <div class="apt ok" style="top:54px;height:50px"><span class="nm">João Pereira</span><span class="tm">09:00</span></div>
-              <div class="sl"></div><div class="sl"></div>
-              <div class="apt block" style="top:216px;height:100px"><span class="nm">Almoço</span></div>
-              <div class="sl"></div><div class="sl"></div>
-            </div>
-            <div class="ag-dcol sug-mode">
-              <div class="sl"></div><div class="sl"></div>
-              <div class="apt ok" style="top:108px;height:50px"><span class="nm">Ana Rodrigues</span><span class="tm">10:00</span></div>
-              <div class="apt ok" style="top:162px;height:50px"><span class="nm">Lucas B.</span><span class="tm">11:00</span></div>
-              <div class="apt block" style="top:216px;height:100px"><span class="nm">Almoço</span></div>
-              <div class="sl"></div><div class="sl"></div>
-            </div>
-            <div class="ag-dcol sug-mode">
-              <div class="apt ok" style="top:0;height:50px"><span class="nm">Daniela M.</span><span class="tm">08:00</span></div>
-              <div class="sl"></div><div class="sl"></div>
-              <div class="apt block" style="top:216px;height:100px"><span class="nm">Almoço</span></div>
-            </div>
-            <!-- QUI 08 com slot sugerido -->
-            <div class="ag-dcol sug-mode">
-              <div class="sl"></div>
-              <div class="apt suga" style="top:54px;height:50px"><span style="font-size:14px;line-height:1">★ 09:00</span><span style="font-size:9px;font-weight:600;opacity:.7">sugerido</span></div>
-              <div class="sl"></div>
-              <div class="apt ok" style="top:162px;height:50px"><span class="nm">Paulo R.</span><span class="tm">11:00</span></div>
-              <div class="apt block" style="top:216px;height:100px"><span class="nm">Almoço</span></div>
-            </div>
-            <div class="ag-dcol sug-mode">
-              <div class="apt ok" style="top:0;height:50px"><span class="nm">Isabela R.</span><span class="tm">08:00</span></div>
-              <div class="apt ok" style="top:54px;height:50px"><span class="nm">Felipe C.</span><span class="tm">09:00</span></div>
-              <div class="sl"></div><div class="sl"></div>
-              <div class="apt block" style="top:216px;height:100px"><span class="nm">Almoço</span></div>
-            </div>
-            <div class="ag-dcol" style="background:var(--s2);opacity:.5"></div>
-            <div class="ag-dcol" style="background:var(--s2);opacity:.5"></div>
-          </div>
-        </div>
-
-        <div style="font-size:11.5px;color:var(--t3);text-align:center;padding:8px;line-height:1.5">
-          <b style="color:var(--t1)">★ Slot sugerido:</b> melhor encaixe pelo seu padrão de retornos. <b>Slots tracejados:</b> disponíveis. Clique em qualquer um pra marcar Maria Silva ali.
+          </main>
         </div>
       </div>
 
