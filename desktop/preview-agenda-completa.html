@@ -3,13 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Preview — Agenda + Finalização + Retorno (fiel ao sistema atual)</title>
+<title>Preview — Agenda + Finalização + Retorno (refeito)</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="desktop-core.css">
 <style>
-/* ======================================================
-   PREVIEW SELECTOR (flutuante no topo)
-   ====================================================== */
+/* Selector flutuante */
 html,body{overflow:auto !important}
 .prev-sel{position:fixed;top:0;left:0;right:0;background:#0D0F14;border-bottom:1px solid rgba(255,255,255,.08);z-index:9999;padding:8px 16px;display:flex;align-items:center;gap:8px;overflow-x:auto;white-space:nowrap}
 .prev-sel::-webkit-scrollbar{height:4px}
@@ -22,102 +20,96 @@ html,body{overflow:auto !important}
 
 body{padding-top:44px}
 .app{height:calc(100vh - 44px)}
-
 .scene{display:none}
 .scene.on{display:flex;height:100%}
 
-/* ======================================================
-   AGENDA (views novas)
-   ====================================================== */
-.ag-hdr{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+/* ====== AGENDA (refeita) ====== */
+.ag-toprow{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
 .ag-nav{display:flex;gap:4px}
 .ag-nav-btn{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .ag-nav-btn svg{width:12px;height:12px;fill:none;stroke:var(--t2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.ag-range{font-size:14px;font-weight:700;color:var(--t1)}
-.ag-today{padding:6px 12px;border-radius:7px;font-size:11.5px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--t2);cursor:pointer}
+.ag-range{font-size:14px;font-weight:700;color:var(--t1);min-width:170px}
+.ag-today{padding:6px 12px;border-radius:7px;font-size:11.5px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--t2);cursor:pointer;font-family:inherit}
 .ag-views{display:inline-flex;background:var(--s2);border-radius:8px;padding:3px}
 .ag-view{padding:6px 14px;font-size:11.5px;font-weight:600;color:var(--t3);cursor:pointer;border-radius:6px;border:0;background:transparent;font-family:inherit}
 .ag-view.on{background:var(--surface);color:var(--t1);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.ag-stat{font-size:11.5px;color:var(--t3);padding-left:14px;border-left:1px solid var(--border);margin-left:4px}
+.ag-stat{font-size:11.5px;color:var(--t3);padding-left:14px;border-left:1px solid var(--border)}
 .ag-stat b{color:var(--t1);font-weight:700}
 .ag-gcal{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;background:var(--ok-bg);color:var(--ok);border:1px solid rgba(0,196,122,.18);margin-left:auto}
 .ag-gcal .dd{width:6px;height:6px;border-radius:50%;background:currentColor}
 
-.ag-grid{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:18px}
-.ag-dhdr{display:grid;grid-template-columns:56px repeat(7,1fr);background:var(--s2);border-bottom:1px solid var(--border)}
-.ag-dhdr > div{padding:10px 8px;font-size:11px;font-weight:700;text-align:center;color:var(--t2);border-right:1px solid var(--border)}
+.ag-grid{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.ag-dhdr{display:grid;grid-template-columns:64px repeat(7,1fr);background:var(--s2);border-bottom:1px solid var(--border)}
+.ag-dhdr > div{padding:10px 8px;font-size:11.5px;font-weight:700;text-align:center;color:var(--t3);border-right:1px solid var(--border)}
 .ag-dhdr > div:last-child{border-right:0}
-.ag-dhdr .dn{font-size:17px;font-weight:800;color:var(--t1);margin-top:2px}
+.ag-dhdr .dn{font-size:18px;font-weight:800;color:var(--t1);margin-top:2px;letter-spacing:-.4px}
 .ag-dhdr .tod .dn{color:var(--green)}
 .ag-dhdr .tod::after{content:'';display:block;width:6px;height:6px;background:var(--green);border-radius:50%;margin:3px auto 0}
 
-.ag-body{display:grid;grid-template-columns:56px repeat(7,1fr);max-height:480px;overflow-y:auto;position:relative}
+.ag-body{display:grid;grid-template-columns:64px repeat(7,1fr);max-height:540px;overflow-y:auto;position:relative}
 .ag-hcol{background:var(--s2);border-right:1px solid var(--border)}
-.ag-hslot{height:42px;border-bottom:1px solid var(--border);padding:3px 8px;font-size:10px;font-weight:700;color:var(--t3);text-align:right}
+.ag-hslot{height:54px;border-bottom:1px solid var(--border);padding:5px 10px;font-size:10.5px;font-weight:700;color:var(--t3);text-align:right;letter-spacing:.04em}
 .ag-dcol{position:relative;border-right:1px solid var(--border)}
 .ag-dcol:last-child{border-right:0}
-.ag-dcol .sl{height:42px;border-bottom:1px dashed rgba(0,0,0,.035)}
-.ag-dcol:hover .sl:hover{background:rgba(0,229,160,.04)}
+.ag-dcol .sl{height:54px;border-bottom:1px dashed rgba(0,0,0,.04)}
+.ag-dcol:hover .sl:hover{background:rgba(0,229,160,.04);cursor:pointer}
 
-.apt{position:absolute;left:4px;right:4px;border-radius:6px;padding:6px 8px;font-size:11px;line-height:1.25;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:transform .12s}
-.apt:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.10)}
-.apt.ok{background:var(--ok-bg);border-left:3px solid var(--ok);color:#005B36}
-.apt.pending{background:rgba(0,196,122,.04);border-left:3px solid var(--ok);color:#005B36;opacity:.78;background-image:repeating-linear-gradient(45deg,transparent 0 5px,rgba(0,196,122,.06) 5px 10px)}
-.apt.online{background:rgba(139,92,246,.1);border-left:3px solid #8B5CF6;color:#5B3FB0}
-.apt.warn{background:var(--warn-bg);border-left:3px solid var(--warn);color:#8B5A00;background-image:repeating-linear-gradient(-45deg,transparent 0 4px,rgba(245,158,11,.08) 4px 8px)}
-.apt.block{background:var(--info-bg);border-left:3px solid var(--info);color:#1E3A8A}
-.apt.sel{box-shadow:0 0 0 2px var(--green),0 4px 12px rgba(0,229,160,.25);z-index:2}
-.apt.sug{background:rgba(0,229,160,.08);border:2px dashed var(--green);color:var(--green);font-weight:700;text-align:center;display:flex;align-items:center;justify-content:center}
-.apt .nm{font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.apt .tm{font-size:9.5px;opacity:.75;display:block;margin-top:1px}
+/* Cartões — só 4 cores semânticas */
+.apt{position:absolute;left:5px;right:5px;border-radius:7px;padding:7px 9px;font-size:11.5px;line-height:1.25;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:transform .12s}
+.apt:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.10);z-index:3}
+.apt.ok{background:rgba(0,196,122,.14);border-left:3px solid var(--ok);color:#005B36}
+.apt.warn{background:rgba(245,158,11,.12);border-left:3px solid var(--warn);color:#7D5500;background-image:repeating-linear-gradient(-45deg,transparent 0 4px,rgba(245,158,11,.07) 4px 8px)}
+.apt.past{background:rgba(0,0,0,.03);border-left:3px solid var(--t4);color:var(--t3)}
+.apt.block{background:rgba(59,130,246,.08);border-left:3px solid var(--info);color:#1E40AF;background-image:repeating-linear-gradient(45deg,transparent 0 4px,rgba(59,130,246,.06) 4px 8px)}
+.apt.sel{box-shadow:0 0 0 2px var(--green),0 4px 12px rgba(0,229,160,.25);z-index:5}
+.apt.suga{background:transparent;border:2px dashed var(--green);color:var(--green);font-weight:700;text-align:center;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px}
+.apt .nm{font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.apt .tm{font-size:10px;opacity:.75;display:flex;align-items:center;gap:4px;margin-top:2px}
+.apt .tm svg{width:9px;height:9px;fill:none;stroke:currentColor;stroke-width:2}
 
-/* Detalhe lateral */
-.ag-split{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
-.det{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.03)}
-.det-hd{display:flex;align-items:center;gap:11px;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:12px}
-.det-av{width:42px;height:42px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--dark);flex-shrink:0}
-.det-nm{font-size:14px;font-weight:800;color:var(--t1);line-height:1.2}
-.det-sub{font-size:11px;color:var(--t3);margin-top:2px}
-.det-x{margin-left:auto;width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t4);background:transparent;border:0}
-.det-x:hover{background:var(--s2);color:var(--t1)}
-.det-row{display:flex;gap:10px;padding:9px 0;font-size:12px;border-bottom:1px solid rgba(0,0,0,.04)}
-.det-row:last-child{border-bottom:0}
-.det-row .l{color:var(--t3);font-weight:600;min-width:76px;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding-top:1px}
-.det-row .v{color:var(--t1);font-weight:500;flex:1}
-.det-row .v.chip{display:inline-block;padding:3px 8px;border-radius:5px;font-weight:700;font-size:10.5px;width:fit-content}
-.det-row .v.chip.ok{background:var(--ok-bg);color:var(--ok)}
-.det-acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
-.det-b{padding:8px 10px;border-radius:7px;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--surface);color:var(--t2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit}
-.det-b svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.det-b:hover{background:var(--s2)}
-.det-b.primary{background:var(--grad);color:var(--dark);border:0;grid-column:1/-1;padding:10px;font-size:12px}
-.det-b.danger:hover{background:var(--bad-bg);color:var(--bad);border-color:rgba(239,68,68,.22)}
+/* Slot livre destacado (modo retorno) */
+.ag-dcol.sug-mode .sl{background:rgba(0,229,160,.04);border:1px dashed rgba(0,229,160,.25);margin:1px}
 
-/* Lista do dia (split esquerdo) */
-.ag-daylist{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;min-height:420px}
-.ag-daylist-hdr{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:12px}
-.ag-dayrow{background:var(--s2);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .15s}
-.ag-dayrow:hover{background:var(--s3)}
-.ag-dayrow.sel{background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.3)}
-.ag-dayrow .tm{font-size:12.5px;font-weight:800;color:var(--t1);min-width:48px}
-.ag-dayrow .nm{flex:1;font-size:12.5px;font-weight:600;color:var(--t1)}
-.ag-dayrow .tp{font-size:10.5px;color:var(--t3);font-weight:500}
+/* Banner de retorno */
+.ag-bnr{display:flex;align-items:center;gap:14px;padding:12px 16px;background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.22);border-left:3px solid var(--green);border-radius:9px;margin-bottom:14px}
+.ag-bnr-ic{width:32px;height:32px;border-radius:8px;background:rgba(0,229,160,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ag-bnr-ic svg{width:15px;height:15px;fill:none;stroke:var(--green);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ag-bnr-tx{flex:1;font-size:12.5px;color:var(--t2)}
+.ag-bnr-tx b{color:var(--t1);font-weight:800}
+.ag-bnr-sel{padding:6px 12px;border-radius:7px;border:1.5px solid rgba(0,229,160,.35);background:#fff;font-size:11.5px;font-weight:700;color:var(--ok);font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.ag-bnr-sel svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2}
+.ag-bnr-x{padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:#fff;font-size:11.5px;font-weight:600;color:var(--t3);font-family:inherit;cursor:pointer}
 
-/* ======================================================
-   BOTÃO FINALIZAR no briefing
-   ====================================================== */
-.fin-footer{margin-top:20px;padding:16px;background:rgba(0,229,160,.04);border:1px solid rgba(0,229,160,.18);border-radius:12px;display:flex;align-items:center;gap:14px}
-.fin-footer-t{flex:1;font-size:12.5px;color:var(--t2);line-height:1.4}
-.fin-footer-t b{color:var(--t1);font-weight:800;display:block;font-size:13px;margin-bottom:2px}
-.btn-fin{background:var(--grad);color:var(--dark);border:0;padding:11px 20px;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:7px;box-shadow:0 2px 10px rgba(0,229,160,.3);font-family:inherit}
-.btn-fin svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+/* Legenda */
+.ag-leg{display:flex;gap:18px;font-size:11px;color:var(--t3);padding:4px 2px}
+.ag-leg-it{display:flex;align-items:center;gap:6px}
+.ag-leg-sw{width:14px;height:10px;border-radius:3px;flex-shrink:0}
+.ag-leg-sw.ok{background:rgba(0,196,122,.14);border-left:3px solid var(--ok)}
+.ag-leg-sw.warn{background:rgba(245,158,11,.12);border-left:3px solid var(--warn);background-image:repeating-linear-gradient(-45deg,transparent 0 2px,rgba(245,158,11,.1) 2px 4px)}
+.ag-leg-sw.past{background:rgba(0,0,0,.03);border-left:3px solid var(--t4)}
+.ag-leg-sw.block{background:rgba(59,130,246,.08);border-left:3px solid var(--info);background-image:repeating-linear-gradient(45deg,transparent 0 2px,rgba(59,130,246,.08) 2px 4px)}
 
-/* Briefing mock (reprodução simplificada do 1-minute-summary) */
-.bf-head{display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:16px}
+/* ====== BRIEFING — header com 2 botões novos ====== */
+.bf-wrap{max-width:1320px;margin:0 auto;width:100%}
+.bf-top{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.bf-back{height:36px;padding:0 14px;border-radius:8px;background:#fff;border:1px solid var(--border);font-family:inherit;font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.bf-back svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bf-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.bf-btn{height:36px;padding:0 14px;border-radius:8px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.bf-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bf-btn.icl{background:rgba(21,101,192,.08);color:#1565C0;border:1px solid rgba(21,101,192,.18)}
+.bf-btn.fin-s{background:#fff;color:var(--t1);border:1px solid var(--border3,rgba(0,0,0,.14))}
+.bf-btn.fin-s:hover{background:var(--s2)}
+.bf-btn.fin-p{background:var(--grad);color:var(--dark);border:0;box-shadow:0 2px 10px rgba(0,229,160,.28)}
+.bf-btn.fin-p:hover{opacity:.92}
+.bf-time{font-size:11.5px;color:var(--t3);font-weight:600;padding-left:10px;border-left:1px solid var(--border)}
+
+.bf-head{display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:18px}
 .bf-av{width:48px;height:48px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--dark)}
-.bf-nm{font-size:17px;font-weight:800;letter-spacing:-.2px}
-.bf-sb{font-size:11px;color:var(--t3);margin-top:2px}
-.bf-lbl{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3)}
+.bf-nm{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.bf-nm em{font-style:italic;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.bf-sb{font-size:11.5px;color:var(--t3);margin-top:2px}
+
 .bf-card{padding:14px 16px;border-radius:10px;margin-bottom:10px}
 .bf-card.queixa{background:rgba(0,180,216,.05);border-left:3px solid var(--cyan)}
 .bf-card.aten{background:rgba(245,158,11,.05);border-left:3px solid var(--warn)}
@@ -128,22 +120,20 @@ body{padding-top:44px}
 .bf-card.padrao .bf-card-lbl{color:#8B5CF6}
 .bf-card-tx{font-size:13px;color:var(--t1);line-height:1.45;font-weight:500}
 
-/* ======================================================
-   ONBOARDING POPUP (fiel ao tpl-onb do 20-medico-dashboard)
-   ====================================================== */
-.onb-overlay{position:absolute;inset:0;background:rgba(13,15,20,0.22);backdrop-filter:blur(10px) saturate(140%);-webkit-backdrop-filter:blur(10px) saturate(140%);display:none;align-items:center;justify-content:center;z-index:200;animation:fadeIn .25s;padding:20px}
+/* ====== ONBOARDING POPUP (mantido) ====== */
+.onb-overlay{position:absolute;inset:0;background:rgba(13,15,20,.22);backdrop-filter:blur(10px) saturate(140%);-webkit-backdrop-filter:blur(10px) saturate(140%);display:none;align-items:center;justify-content:center;z-index:200;animation:fadeIn .25s;padding:20px}
 .onb-overlay.show{display:flex}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.onb-sheet{width:100%;max-width:380px;background:#FFFFFF;border-radius:24px;padding:28px 26px 22px;position:relative;animation:popIn .35s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 20px 60px rgba(0,0,0,0.18)}
+.onb-sheet{width:100%;max-width:380px;background:#FFFFFF;border-radius:24px;padding:28px 26px 22px;position:relative;animation:popIn .35s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 20px 60px rgba(0,0,0,.18)}
 @keyframes popIn{from{transform:scale(0.92);opacity:0}to{transform:scale(1);opacity:1}}
-.onb-close{position:absolute;top:18px;right:18px;width:32px;height:32px;border-radius:9px;background:rgba(0,0,0,0.05);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.onb-close{position:absolute;top:18px;right:18px;width:32px;height:32px;border-radius:9px;background:rgba(0,0,0,.05);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .onb-close svg{width:14px;height:14px;stroke:#6B7280;fill:none;stroke-width:2;stroke-linecap:round}
 .onb-dots{display:flex;gap:8px;justify-content:center;margin:6px 0 24px}
 .onb-dot{width:8px;height:8px;border-radius:50%;background:#E5E7EB;transition:all .25s}
 .onb-dot.on{background:linear-gradient(120deg,#00E5A0,#00B4D8);width:24px;border-radius:4px}
-.onb-illust{display:flex;justify-content:center;align-items:center;margin:0 auto 22px;width:110px;height:110px;border-radius:22px;background:rgba(0,229,160,0.08)}
+.onb-illust{display:flex;justify-content:center;align-items:center;margin:0 auto 22px;width:110px;height:110px;border-radius:22px;background:rgba(0,229,160,.08)}
 .onb-illust svg{width:50px;height:50px;stroke:#00E5A0;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.onb-ttl{font-size:22px;font-weight:900;letter-spacing:-0.5px;color:#0D0F14;text-align:center;margin-bottom:10px;line-height:1.15}
+.onb-ttl{font-size:22px;font-weight:900;letter-spacing:-.5px;color:#0D0F14;text-align:center;margin-bottom:10px;line-height:1.15}
 .onb-ttl em{color:#00E5A0;font-style:italic;font-weight:900}
 .onb-desc{font-size:13.5px;color:#4B5563;text-align:center;line-height:1.55;max-width:320px;margin:0 auto 24px}
 .onb-ex{background:#F4F6FA;border-radius:12px;padding:12px 14px;margin:0 0 18px;font-size:12px;color:var(--t2);line-height:1.5;display:flex;gap:10px;align-items:flex-start}
@@ -155,18 +145,15 @@ body{padding-top:44px}
 .onb-skip{display:block;text-align:center;font-size:12px;color:#9CA3AF;background:none;border:none;cursor:pointer;width:100%;padding:8px;font-family:inherit}
 .onb-skip:hover{color:#6B7280}
 
-/* ======================================================
-   CONFIG INICIAL (tela inteira dentro do content, NÃO popup)
-   ====================================================== */
+/* ====== CONFIG INICIAL ====== */
 .cfg-wrap{max-width:760px;margin:0 auto}
 .cfg-head{text-align:center;margin-bottom:28px}
 .cfg-head .step{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--green);background:rgba(0,229,160,.1);padding:4px 12px;border-radius:20px;margin-bottom:14px}
 .cfg-head h1{font-size:28px;font-weight:900;letter-spacing:-.6px;color:var(--t1);margin-bottom:8px}
 .cfg-head h1 em{font-style:italic;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .cfg-head p{font-size:13.5px;color:var(--t3);line-height:1.55;max-width:520px;margin:0 auto}
-
 .cfg-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:14px}
-.cfg-sec-t{font-size:12px;font-weight:800;color:var(--t1);margin-bottom:4px;letter-spacing:-.2px}
+.cfg-sec-t{font-size:13px;font-weight:800;color:var(--t1);margin-bottom:4px;letter-spacing:-.2px}
 .cfg-sec-d{font-size:11.5px;color:var(--t3);margin-bottom:14px;line-height:1.5}
 .cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
 .cfg-field{position:relative}
@@ -174,6 +161,9 @@ body{padding-top:44px}
 .cfg-field input,.cfg-field select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--t1);background:var(--surface);outline:none;transition:border-color .15s,box-shadow .15s}
 .cfg-field input:focus,.cfg-field select:focus{border-color:rgba(0,229,160,.45);box-shadow:0 0 0 3px rgba(0,229,160,.07)}
 .cfg-hint{font-size:10.5px;color:var(--t4);margin-top:5px;line-height:1.4}
+.cfg-num-row{display:flex;align-items:center;gap:8px}
+.cfg-num-row input{flex:1;text-align:center;font-weight:800;font-size:18px;letter-spacing:-.4px}
+.cfg-num-row .un{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em}
 .cfg-time-row{display:flex;gap:6px;align-items:center}
 .cfg-time-row input{flex:1}
 .cfg-time-row span{font-size:11.5px;color:var(--t3)}
@@ -181,14 +171,25 @@ body{padding-top:44px}
 .cfg-day{padding:9px 4px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);font-size:11.5px;font-weight:700;color:var(--t3);text-align:center;cursor:pointer;font-family:inherit;transition:all .15s}
 .cfg-day:hover{border-color:var(--t4)}
 .cfg-day.on{background:rgba(0,229,160,.08);border-color:var(--green);color:var(--green)}
+.cfg-views-pick{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.cfg-vp{padding:14px 10px;border:1.5px solid var(--border);border-radius:9px;background:#fff;text-align:center;cursor:pointer;font-family:inherit;transition:all .15s}
+.cfg-vp:hover{border-color:var(--t4)}
+.cfg-vp.on{border-color:var(--green);background:rgba(0,229,160,.05)}
+.cfg-vp svg{width:22px;height:22px;stroke:var(--t3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-bottom:6px}
+.cfg-vp.on svg{stroke:var(--green)}
+.cfg-vp-t{font-size:12.5px;font-weight:700;color:var(--t1)}
+.cfg-vp-d{font-size:10.5px;color:var(--t3);margin-top:2px;line-height:1.35}
 
-.cfg-gcal{background:linear-gradient(135deg,rgba(0,196,122,.04),rgba(59,130,246,.03));border:1.5px dashed rgba(0,196,122,.3);border-radius:12px;padding:18px;display:flex;gap:14px;align-items:center;margin-bottom:14px}
+.cfg-gcal{background:linear-gradient(135deg,rgba(0,196,122,.04),rgba(59,130,246,.03));border:1.5px dashed rgba(0,196,122,.3);border-radius:12px;padding:18px;margin-bottom:14px}
+.cfg-gcal-row{display:flex;gap:14px;align-items:center;margin-bottom:12px}
 .cfg-gcal-ic{width:48px;height:48px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.08);flex-shrink:0}
 .cfg-gcal-bd{flex:1}
 .cfg-gcal-bd h4{font-size:13.5px;font-weight:800;color:var(--t1);margin-bottom:3px}
 .cfg-gcal-bd p{font-size:11.5px;color:var(--t2);line-height:1.45}
-.cfg-gcal-btn{padding:9px 16px;border-radius:8px;background:#fff;border:1.5px solid rgba(0,196,122,.4);color:var(--ok);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
-.cfg-gcal-btn:hover{background:var(--ok-bg)}
+.cfg-gcal-btn{padding:9px 16px;border-radius:8px;background:#fff;border:1.5px solid rgba(0,196,122,.4);color:var(--ok);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0}
+.cfg-gcal-promise{padding:10px 12px;background:rgba(0,196,122,.06);border-radius:8px;font-size:11px;color:var(--t2);line-height:1.55;display:flex;gap:8px}
+.cfg-gcal-promise svg{width:13px;height:13px;stroke:var(--ok);fill:none;stroke-width:2;flex-shrink:0;margin-top:1px}
+.cfg-gcal-promise b{color:var(--t1);font-weight:800}
 
 .cfg-actions{display:flex;align-items:center;gap:12px;margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
 .cfg-skip{padding:8px 14px;background:transparent;border:0;color:var(--t3);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
@@ -197,133 +198,108 @@ body{padding-top:44px}
 .cfg-save{padding:11px 22px;border-radius:9px;background:var(--grad);color:var(--dark);border:0;font-size:13px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-family:inherit;box-shadow:0 2px 10px rgba(0,229,160,.25)}
 .cfg-save svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 
-/* ======================================================
-   MODAL RETORNO (estilo tpl-onb mas com opções)
-   ====================================================== */
-.ret-opts{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:18px}
-.ret-opt{padding:16px 8px;border:1.5px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;background:var(--surface);transition:all .15s;font-family:inherit}
-.ret-opt:hover{border-color:var(--green);background:rgba(0,229,160,.04)}
-.ret-opt.on{border-color:var(--green);background:rgba(0,229,160,.08);box-shadow:0 0 0 3px rgba(0,229,160,.08)}
-.ret-opt .n{font-size:22px;font-weight:900;color:var(--t1);letter-spacing:-.4px;line-height:1}
-.ret-opt .u{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-top:3px}
-.ret-opt.on .n{color:var(--green)}
-.ret-field{margin-bottom:16px}
-.ret-field label{display:block;font-size:10.5px;font-weight:700;color:var(--t3);letter-spacing:.04em;margin-bottom:6px}
-.ret-field select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:13px;color:var(--t1);background:var(--surface)}
-
-/* ======================================================
-   TOAST
-   ====================================================== */
+/* ====== TOAST ====== */
 .toast{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);background:#0D0F14;color:#fff;padding:13px 18px;border-radius:10px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,.3);font-size:13px;font-weight:600;z-index:50;animation:slideUp .3s ease-out}
 @keyframes slideUp{from{transform:translate(-50%,20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 .toast svg{width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .toast-undo{background:rgba(255,255,255,.12);padding:5px 11px;border-radius:6px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;margin-left:8px;border:0;font-family:inherit}
 .toast-undo:hover{background:rgba(255,255,255,.2)}
 
-/* ======================================================
-   ABA FINALIZADAS (reutiliza estilo do pc-list-item real)
-   ====================================================== */
+/* ====== ABA FINALIZADAS — LISTA VERTICAL ====== */
 .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px}
 .tb-tab{padding:10px 18px;font-size:12.5px;font-weight:700;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;border-left:0;border-right:0;border-top:0;font-family:inherit}
 .tb-tab.on{color:var(--t1);border-bottom-color:var(--green)}
 .tb-tab-c{margin-left:6px;font-size:10px;font-weight:800;padding:1px 6px;border-radius:8px;background:var(--s2);color:var(--t3)}
 .tb-tab.on .tb-tab-c{background:rgba(0,229,160,.15);color:var(--green)}
 
-.fin-item{display:grid;grid-template-columns:40px 1.4fr 110px 120px auto;gap:14px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;align-items:center;margin-bottom:6px;font-size:12.5px;cursor:pointer}
-.fin-item:hover{background:var(--bg)}
-.fin-av{width:38px;height:38px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--dark)}
-.fin-nm{font-weight:700;color:var(--t1)}
-.fin-mt{font-size:11px;color:var(--t3);margin-top:1px}
-.fin-chip{display:inline-block;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:800;letter-spacing:.04em}
-.fin-chip.done{background:var(--s2);color:var(--t3)}
-.fin-chip.ret{background:rgba(0,180,216,.1);color:var(--cyan)}
-.fin-chip.none{background:rgba(0,0,0,.03);color:var(--t4)}
-.fin-date{font-size:11px;color:var(--t3);text-align:right}
+.list-row{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer;transition:background .15s}
+.list-row:hover{background:var(--bg)}
+.list-av{width:42px;height:42px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--dark);flex-shrink:0}
+.list-av.b{background:linear-gradient(135deg,#8B5CF6,#6D28D9)}
+.list-av.c{background:linear-gradient(135deg,#F59E0B,#D97706)}
+.list-av.d{background:linear-gradient(135deg,#EF4444,#B91C1C)}
+.list-av.e{background:linear-gradient(135deg,#3B82F6,#1D4ED8)}
+.list-bd{flex:1;min-width:0}
+.list-nm{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.list-mt{font-size:11.5px;color:var(--t3);line-height:1.4}
+.list-chips{display:flex;gap:6px;flex-shrink:0}
+.list-chip{display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.02em}
+.list-chip.done{background:var(--s2);color:var(--t3)}
+.list-chip.ret{background:rgba(0,180,216,.1);color:var(--cyan)}
+.list-chip.none{background:rgba(0,0,0,.03);color:var(--t4)}
+.list-chip.warn{background:var(--warn-bg);color:var(--warn)}
+.list-chip.urg{background:var(--bad-bg);color:var(--bad)}
+.list-chip.def{background:var(--s2);color:var(--t3)}
+.list-date{font-size:11.5px;color:var(--t3);text-align:right;min-width:60px;flex-shrink:0}
+.list-act{padding:7px 13px;border-radius:8px;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--t2);flex-shrink:0}
+.list-act:hover{background:var(--s2)}
+.list-act.p{background:var(--grad);color:var(--dark);border:0}
 
-/* ======================================================
-   STATS MENSAIS (cards)
-   ====================================================== */
-.st-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+/* ====== STATS — HERO + SECUNDÁRIOS ====== */
+.st-wrap{max-width:1100px;margin:0 auto}
+.st-hero{background:var(--dark);border-radius:18px;padding:36px 38px;color:#fff;margin-bottom:14px;position:relative;overflow:hidden}
+.st-hero::before{content:'';position:absolute;top:-40%;right:-10%;width:60%;height:160%;background:radial-gradient(circle,rgba(0,229,160,.18) 0%,transparent 60%);pointer-events:none}
+.st-hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),var(--cyan),transparent)}
+.st-hero-lbl{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:14px;position:relative}
+.st-hero-num{font-size:64px;font-weight:900;letter-spacing:-2.5px;line-height:1;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;position:relative;display:inline-block}
+.st-hero-cap{font-size:14.5px;color:#fff;font-weight:700;line-height:1.4;position:relative;margin-bottom:6px}
+.st-hero-sub{font-size:12.5px;color:rgba(255,255,255,.55);line-height:1.5;position:relative;max-width:520px}
+.st-secrow{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.st-sec{background:#fff;border:1px solid var(--border);border-radius:14px;padding:22px}
+.st-sec-num{font-size:40px;font-weight:900;letter-spacing:-1.2px;line-height:1;color:var(--t1);margin-bottom:6px}
+.st-sec-num.gn{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.st-sec-num.cy{color:var(--cyan)}
+.st-sec-l{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px}
+.st-sec-d{font-size:11.5px;color:var(--t3);line-height:1.45}
+.st-sec-d .ok{color:var(--ok);font-weight:700}
 
-/* ======================================================
-   MOBILE FRAME (paciente)
-   ====================================================== */
-.mob-wrap{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:30px;gap:14px}
-.mob-frm{width:290px;height:580px;border-radius:36px;background:#0D0F14;padding:12px;box-shadow:0 30px 60px rgba(0,0,0,.3);position:relative}
-.mob-in{width:100%;height:100%;background:var(--bg);border-radius:26px;padding:26px 20px;overflow:auto}
-.mob-in::-webkit-scrollbar{display:none}
-.mob-lg{font-size:15px;font-weight:800;margin-bottom:20px}
-.mob-lg .ib{background:var(--grad);color:var(--dark);padding:2px 6px;border-radius:5px}
-.mob-gr{font-size:12px;color:var(--t3);margin-bottom:3px}
-.mob-nm{font-size:19px;font-weight:900;letter-spacing:-.4px;margin-bottom:18px}
-.mob-next{background:var(--grad);border-radius:16px;padding:18px;color:var(--dark);margin-bottom:12px;box-shadow:0 6px 24px rgba(0,229,160,.35)}
-.mob-nx-lb{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.65}
-.mob-nx-t{font-size:16px;font-weight:900;margin:5px 0 7px;letter-spacing:-.2px}
-.mob-nx-tm{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:3px}
-.mob-nx-tm svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
-.mob-nx-sb{font-size:11.5px;opacity:.78;line-height:1.4}
-.mob-nx-ac{display:flex;gap:6px;margin-top:14px}
-.mob-nx-bt{flex:1;padding:9px;border-radius:9px;font-size:11px;font-weight:800;cursor:pointer;border:0;font-family:inherit}
-.mob-nx-bt.prim{background:var(--dark);color:#fff}
-.mob-nx-bt.sec{background:rgba(255,255,255,.3);color:var(--dark)}
-.mob-cd{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid var(--border)}
-.mob-cd-t{font-size:11.5px;font-weight:700;color:var(--t2)}
-.mob-cd-s{font-size:10.5px;color:var(--t4);margin-top:2px}
-.mob-cap{font-size:10.5px;color:var(--t4);text-align:center;margin-top:4px}
+.st-pdf{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:14px}
+.st-pdf-ic{width:42px;height:42px;border-radius:11px;background:rgba(0,229,160,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.st-pdf-ic svg{width:18px;height:18px;stroke:var(--green);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.st-pdf-bd{flex:1}
+.st-pdf-t{font-size:13.5px;font-weight:800;color:var(--t1);margin-bottom:2px}
+.st-pdf-s{font-size:11.5px;color:var(--t2);line-height:1.4}
 
-/* Conflito */
+/* ====== MARCAR / CONFLITO MODAIS (mantidos) ====== */
+.ret-field{margin-bottom:14px}
+.ret-field label{display:block;font-size:10.5px;font-weight:700;color:var(--t3);letter-spacing:.04em;margin-bottom:6px}
+.ret-field select,.ret-field input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:13px;color:var(--t1);background:var(--surface)}
+
 .cnf-show{background:var(--warn-bg);border:1px solid rgba(245,158,11,.28);border-left:3px solid var(--warn);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#7a5200;line-height:1.5}
 .cnf-show b{color:#4a3200;font-weight:800}
-.cnf-opts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.cnf-opts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;justify-content:center}
 .cnf-opt{padding:9px 13px;border:1.5px solid var(--border);background:var(--surface);color:var(--t1);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
 .cnf-opt:hover{border-color:var(--green);background:rgba(0,229,160,.04)}
 .cnf-opt.on{border-color:var(--green);background:rgba(0,229,160,.08);color:var(--green)}
-
-/* Lista de espera */
-.wt-row{background:var(--surface);border:1px dashed var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px;font-size:12px;transition:background .15s}
-.wt-row:hover{background:var(--bg)}
-.wt-av{width:34px;height:34px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;color:var(--t2);font-weight:800;font-size:12px;border:1px solid var(--border)}
-.wt-nm{font-weight:700;color:var(--t1)}
-.wt-mt{font-size:10.5px;color:var(--t4);margin-top:2px}
-.wt-tg{font-size:10px;font-weight:800;padding:3px 9px;border-radius:5px}
-.wt-tg.warn{background:var(--warn-bg);color:var(--warn)}
-.wt-tg.urg{background:var(--bad-bg);color:var(--bad)}
-.wt-tg.def{background:var(--s2);color:var(--t3)}
 </style>
 </head>
 <body>
 
-<!-- ═══ NAVEGAÇÃO DO PREVIEW ═══ -->
+<!-- ═══ NAVEGAÇÃO ═══ -->
 <div class="prev-sel">
   <span class="lbl">Telas</span>
   <button class="prev-btn on" data-sc="cfg">1. Config inicial</button>
-  <button class="prev-btn" data-sc="tour1">2. Tour popup 1</button>
-  <button class="prev-btn" data-sc="tour2">3. Tour popup 2</button>
-  <button class="prev-btn" data-sc="tour3">4. Tour popup 3</button>
+  <button class="prev-btn" data-sc="tour1">2. Tour 1</button>
+  <button class="prev-btn" data-sc="tour2">3. Tour 2</button>
+  <button class="prev-btn" data-sc="tour3">4. Tour 3</button>
   <div class="prev-group"></div>
-  <button class="prev-btn" data-sc="brief">5. Briefing + Finalizar</button>
-  <button class="prev-btn" data-sc="mfin">6. Modal finalizar</button>
-  <button class="prev-btn" data-sc="mret">7. Modal retorno</button>
+  <button class="prev-btn" data-sc="brief">5. Briefing + 2 botões</button>
   <div class="prev-group"></div>
-  <button class="prev-btn" data-sc="agsem">8. Agenda semana</button>
-  <button class="prev-btn" data-sc="agdet">9. Detalhe consulta</button>
-  <button class="prev-btn" data-sc="agret">10. Agenda p/ retorno</button>
-  <button class="prev-btn" data-sc="agmarc">11. Marcar consulta</button>
-  <button class="prev-btn" data-sc="agconf">12. Conflito</button>
-  <button class="prev-btn" data-sc="agtoast">13. Toast desfazer</button>
-  <button class="prev-btn" data-sc="agesp">14. Lista de espera</button>
+  <button class="prev-btn" data-sc="agsem">6. Agenda semana</button>
+  <button class="prev-btn" data-sc="agdia">7. Agenda dia</button>
+  <button class="prev-btn" data-sc="agmes">8. Agenda mês</button>
+  <button class="prev-btn" data-sc="agret">9. Marcar retorno</button>
+  <button class="prev-btn" data-sc="agmarc">10. Marcar consulta</button>
+  <button class="prev-btn" data-sc="agconf">11. Conflito</button>
+  <button class="prev-btn" data-sc="agtoast">12. Toast desfazer</button>
+  <button class="prev-btn" data-sc="agesp">13. Lista de espera</button>
   <div class="prev-group"></div>
-  <button class="prev-btn" data-sc="final">15. Aba Finalizadas</button>
-  <button class="prev-btn" data-sc="stat">16. Stats mensais</button>
-  <div class="prev-group"></div>
-  <button class="prev-btn" data-sc="mob">17. Paciente mobile</button>
-  <button class="prev-btn" data-sc="mob2">18. Lembrete push</button>
+  <button class="prev-btn" data-sc="final">14. Aba Finalizadas</button>
+  <button class="prev-btn" data-sc="stat">15. Stats mensais</button>
 </div>
 
-<!-- ═══ SHELL DO APP (real) ═══ -->
-<div class="app" id="app">
-
-  <!-- Sidebar real -->
+<!-- ═══ SHELL ═══ -->
+<div class="app">
   <aside class="sidebar">
     <div class="sb-logo">
       <div class="logo">vita<span class="ib">id</span></div>
@@ -331,37 +307,14 @@ body{padding-top:44px}
     </div>
     <nav class="sb-nav">
       <div class="sb-g">Principal</div>
-      <div class="nl" data-route="dashboard">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        <span>Dashboard</span>
-      </div>
-      <div class="nl" data-route="pc">
-        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
-        <span>Pré-consultas</span>
-        <span class="pip pip-r">4</span>
-      </div>
-      <div class="nl on" data-route="ag">
-        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span>Agenda</span>
-        <span class="pip pip-g">28</span>
-      </div>
-      <div class="nl">
-        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-        <span>Pacientes</span>
-      </div>
-      <div class="nl">
-        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/></svg>
-        <span>CRM & Retornos</span>
-      </div>
+      <div class="nl"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Dashboard</span></div>
+      <div class="nl"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg><span>Pré-consultas</span><span class="pip pip-r">4</span></div>
+      <div class="nl on"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Agenda</span><span class="pip pip-g">28</span></div>
+      <div class="nl"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Pacientes</span></div>
+      <div class="nl"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/></svg><span>CRM & Retornos</span></div>
       <div class="sb-g">Workspace</div>
-      <div class="nl">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
-        <span>Templates</span>
-      </div>
-      <div class="nl">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <span>Configurações</span>
-      </div>
+      <div class="nl"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg><span>Templates</span></div>
+      <div class="nl"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Configurações</span></div>
     </nav>
     <div class="sb-user">
       <div class="sb-av">LB</div>
@@ -369,49 +322,47 @@ body{padding-top:44px}
         <div class="sb-name">Dr. Lucas Borelli</div>
         <div class="sb-crm">CRM 123456 · SP</div>
       </div>
-      <div class="sb-logout">
-        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      </div>
+      <div class="sb-logout"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
     </div>
   </aside>
 
-  <!-- Main -->
   <main class="main">
     <div class="topbar">
       <div class="tb-title" id="tb-t">Agenda</div>
       <div class="tb-sep"></div>
-      <div class="tb-sub" id="tb-s">Qua, 23 de abril</div>
+      <div class="tb-sub" id="tb-s">Configuração inicial</div>
       <div class="tb-space"></div>
-      <div class="tb-search">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input placeholder="Buscar paciente...">
-      </div>
+      <div class="tb-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Buscar paciente..."></div>
       <div class="tb-notif"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="tb-dot"></div></div>
     </div>
 
     <div class="content" style="position:relative">
 
-      <!-- ═══ 1. CONFIG INICIAL (TELA dentro do content) ═══ -->
+      <!-- ═══ 1. CONFIG INICIAL (refinada) ═══ -->
       <div class="scene on" id="sc-cfg">
         <div class="cfg-wrap" style="width:100%">
           <div class="cfg-head">
-            <div class="step">Passo único · Bem-vindo à sua agenda</div>
+            <div class="step">Bem-vindo à sua agenda</div>
             <h1>Como é seu <em>dia de trabalho</em>?</h1>
-            <p>Nada disso é definitivo. Você ajusta a qualquer momento depois em Configurações. Se quiser pular, a agenda nasce com valores padrão e funciona igual.</p>
+            <p>Nada disso é definitivo. Você ajusta a qualquer momento em Configurações. Se quiser pular, a agenda nasce com valores padrão.</p>
           </div>
 
           <div class="cfg-card">
             <div class="cfg-sec-t">Consultas</div>
-            <div class="cfg-sec-d">Duração padrão e horário de atendimento. Aparece vazio fora desse horário.</div>
+            <div class="cfg-sec-d">Quanto dura uma consulta sua, em média? Você muda consulta a consulta também.</div>
             <div class="cfg-grid">
               <div class="cfg-field">
                 <label class="cfg-lbl">Duração padrão</label>
-                <select><option>30 minutos</option><option>15 min</option><option>45 min</option><option>50 min</option><option>60 min</option></select>
-                <div class="cfg-hint">Você muda consulta a consulta depois.</div>
+                <div class="cfg-num-row">
+                  <input type="number" min="10" max="120" value="30">
+                  <span class="un">minutos</span>
+                </div>
+                <div class="cfg-hint">Entre 10 e 120 minutos. Comum: 15min (pediatria), 30min (clínico geral), 50min (psiquiatria).</div>
               </div>
               <div class="cfg-field">
                 <label class="cfg-lbl">Horário de atendimento</label>
                 <div class="cfg-time-row"><input type="time" value="08:00"><span>até</span><input type="time" value="18:00"></div>
+                <div class="cfg-hint">Fora desse horário aparece bloqueado.</div>
               </div>
             </div>
           </div>
@@ -431,8 +382,30 @@ body{padding-top:44px}
           </div>
 
           <div class="cfg-card">
+            <div class="cfg-sec-t">Como você quer ver sua agenda?</div>
+            <div class="cfg-sec-d">Quando você abrir o vita id, qual visão deve aparecer primeiro?</div>
+            <div class="cfg-views-pick">
+              <button class="cfg-vp">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="10" x2="12" y2="22"/></svg>
+                <div class="cfg-vp-t">Dia</div>
+                <div class="cfg-vp-d">só hoje, foco total</div>
+              </button>
+              <button class="cfg-vp on">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <div class="cfg-vp-t">Semana</div>
+                <div class="cfg-vp-d">visão geral, equilibrada</div>
+              </button>
+              <button class="cfg-vp">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="10" x2="9" y2="22"/><line x1="15" y1="10" x2="15" y2="22"/></svg>
+                <div class="cfg-vp-t">Mês</div>
+                <div class="cfg-vp-d">planejamento longo</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="cfg-card">
             <div class="cfg-sec-t">Intervalo e feriados</div>
-            <div class="cfg-sec-d">Almoço bloqueado automaticamente · feriados carregados da base do IBGE.</div>
+            <div class="cfg-sec-d">Almoço bloqueado automaticamente · feriados nacionais e estaduais carregados sozinhos (base IBGE).</div>
             <div class="cfg-grid">
               <div class="cfg-field">
                 <label class="cfg-lbl">Almoço</label>
@@ -440,54 +413,50 @@ body{padding-top:44px}
               </div>
               <div class="cfg-field">
                 <label class="cfg-lbl">Estado (feriados regionais)</label>
-                <select><option>São Paulo</option><option>Rio de Janeiro</option><option>Minas Gerais</option><option>Rio Grande do Sul</option></select>
+                <select><option>São Paulo</option><option>Rio de Janeiro</option><option>Minas Gerais</option></select>
               </div>
             </div>
           </div>
 
           <div class="cfg-gcal">
-            <div class="cfg-gcal-ic">
-              <svg width="26" height="26" viewBox="0 0 48 48"><rect x="6" y="8" width="36" height="34" rx="5" fill="#4285F4"/><rect x="6" y="18" width="36" height="24" fill="#fff"/><text x="24" y="35" text-anchor="middle" font-size="12" font-weight="800" fill="#1F2937">15</text></svg>
+            <div class="cfg-gcal-row">
+              <div class="cfg-gcal-ic">
+                <svg width="26" height="26" viewBox="0 0 48 48"><rect x="6" y="8" width="36" height="34" rx="5" fill="#4285F4"/><rect x="6" y="18" width="36" height="24" fill="#fff"/><text x="24" y="35" text-anchor="middle" font-size="12" font-weight="800" fill="#1F2937">15</text></svg>
+              </div>
+              <div class="cfg-gcal-bd">
+                <h4>Sincronizar com Google Calendar?</h4>
+                <p>Eventos do seu Google aparecem aqui como "ocupado". Sua agenda pessoal fica intacta — independente do layout que você usa lá.</p>
+              </div>
+              <button class="cfg-gcal-btn">Conectar</button>
             </div>
-            <div class="cfg-gcal-bd">
-              <h4>Sincronizar com Google Calendar?</h4>
-              <p>Consultas marcadas aqui aparecem no seu Google automaticamente. 100% reversível — você desconecta quando quiser.</p>
+            <div class="cfg-gcal-promise">
+              <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+              <div><b>Só leitura, por padrão.</b> vita id mostra seus eventos como ocupado, mas <b>nunca escreve, edita ou apaga</b> nada no seu Google. Você ativa a escrita consulta a consulta se quiser.</div>
             </div>
-            <button class="cfg-gcal-btn">Conectar agora</button>
           </div>
 
           <div class="cfg-actions">
             <button class="cfg-skip">Pular e usar padrões</button>
             <div class="cfg-space"></div>
-            <button class="cfg-save">
-              Salvar e começar
-              <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
+            <button class="cfg-save">Salvar e começar <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
           </div>
         </div>
       </div>
 
-      <!-- ═══ 2-4. TOUR POPUPS (sobre a agenda) ═══ -->
+      <!-- ═══ 2. TOUR 1 ═══ -->
       <div class="scene" id="sc-tour1">
         <div style="width:100%;position:relative;height:100%;min-height:600px">
-          <!-- Fundo: agenda mockup blurred -->
           <div style="filter:blur(3px);opacity:.5">
-            <div class="ag-hdr">
-              <div class="ag-nav"><button class="ag-nav-btn">‹</button><button class="ag-nav-btn">›</button></div>
-              <div class="ag-range">Abril 2026</div>
-              <button class="ag-today">Hoje</button>
-            </div>
-            <div class="ag-grid" style="height:320px"></div>
+            <div class="ag-toprow"><div class="ag-range">Abril 2026</div></div>
+            <div class="ag-grid" style="height:340px"></div>
           </div>
           <div class="onb-overlay show">
             <div class="onb-sheet">
               <div class="onb-close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-              <div class="onb-dots"><div class="onb-dot on"></div><div class="onb-dot"></div><div class="onb-dot"></div><div class="onb-dot"></div></div>
-              <div class="onb-illust">
-                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              </div>
+              <div class="onb-dots"><div class="onb-dot on"></div><div class="onb-dot"></div><div class="onb-dot"></div></div>
+              <div class="onb-illust"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
               <div class="onb-ttl">Sua <em>agenda</em>, sua forma</div>
-              <div class="onb-desc">Você configura duração, horários e bloqueios. Nada é imposto. A agenda se adapta ao seu jeito de trabalhar.</div>
+              <div class="onb-desc">Você configura duração, horário, dias e bloqueios. Nada é imposto. Tudo se adapta ao seu jeito de trabalhar.</div>
               <button class="onb-btn">Próximo</button>
               <button class="onb-skip">Pular tour</button>
             </div>
@@ -495,21 +464,22 @@ body{padding-top:44px}
         </div>
       </div>
 
+      <!-- ═══ 3. TOUR 2 ═══ -->
       <div class="scene" id="sc-tour2">
         <div style="width:100%;position:relative;height:100%;min-height:600px">
           <div style="filter:blur(3px);opacity:.5">
-            <div class="ag-hdr"><div class="ag-range">Abril 2026</div></div>
-            <div class="ag-grid" style="height:320px"></div>
+            <div class="ag-toprow"><div class="ag-range">Abril 2026</div></div>
+            <div class="ag-grid" style="height:340px"></div>
           </div>
           <div class="onb-overlay show">
             <div class="onb-sheet">
               <div class="onb-close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-              <div class="onb-dots"><div class="onb-dot"></div><div class="onb-dot on"></div><div class="onb-dot"></div><div class="onb-dot"></div></div>
+              <div class="onb-dots"><div class="onb-dot"></div><div class="onb-dot on"></div><div class="onb-dot"></div></div>
               <div class="onb-illust" style="background:rgba(0,180,216,.08)">
                 <svg viewBox="0 0 24 24" style="stroke:var(--cyan)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <div class="onb-ttl">Um ciclo que <em>se fecha</em></div>
-              <div class="onb-desc">Finaliza consulta, marca retorno. Na data combinada, paciente recebe nova pre-consulta automática.</div>
+              <div class="onb-desc">Finaliza atendimento, marca retorno. Na data, paciente recebe nova pré-consulta automática.</div>
               <div class="onb-ex">
                 <div class="onb-ex-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
                 <div><b>2 cliques pra finalizar</b>Você nunca perde tempo. Sistema faz o resto.</div>
@@ -521,18 +491,19 @@ body{padding-top:44px}
         </div>
       </div>
 
+      <!-- ═══ 4. TOUR 3 ═══ -->
       <div class="scene" id="sc-tour3">
         <div style="width:100%;position:relative;height:100%;min-height:600px">
           <div style="filter:blur(3px);opacity:.5">
-            <div class="ag-hdr"><div class="ag-range">Abril 2026</div></div>
-            <div class="ag-grid" style="height:320px"></div>
+            <div class="ag-toprow"><div class="ag-range">Abril 2026</div></div>
+            <div class="ag-grid" style="height:340px"></div>
           </div>
           <div class="onb-overlay show">
             <div class="onb-sheet">
               <div class="onb-close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-              <div class="onb-dots"><div class="onb-dot"></div><div class="onb-dot"></div><div class="onb-dot"></div><div class="onb-dot on"></div></div>
+              <div class="onb-dots"><div class="onb-dot"></div><div class="onb-dot"></div><div class="onb-dot on"></div></div>
               <div class="onb-illust" style="background:rgba(139,92,246,.1)">
-                <svg viewBox="0 0 24 24" style="stroke:#8B5CF6"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                <svg viewBox="0 0 24 24" style="stroke:#8B5CF6"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>
               </div>
               <div class="onb-ttl">Tudo <em>seu</em></div>
               <div class="onb-desc">Seus dados pertencem a você. Exporta quando quiser, em formato padrão. Sem lock-in, sem letra miúda.</div>
@@ -542,133 +513,69 @@ body{padding-top:44px}
         </div>
       </div>
 
-      <!-- ═══ 5. BRIEFING + BOTÃO FINALIZAR ═══ -->
+      <!-- ═══ 5. BRIEFING + 2 BOTÕES NO HEADER (sem modais!) ═══ -->
       <div class="scene" id="sc-brief">
-        <div style="max-width:900px;margin:0 auto;width:100%">
+        <div class="bf-wrap">
+          <!-- Header com Voltar + Exportar iClinic + 2 botões novos + timestamp -->
+          <div class="bf-top">
+            <button class="bf-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>
+            <div class="bf-actions">
+              <button class="bf-btn icl">Exportar iClinic</button>
+              <button class="bf-btn fin-s">Finalizar atendimento</button>
+              <button class="bf-btn fin-p">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+                Finalizar e marcar retorno
+              </button>
+              <div class="bf-time">21/04/2026 15:31</div>
+            </div>
+          </div>
+
+          <!-- Identificação do paciente -->
           <div class="bf-head">
             <div class="bf-av">MS</div>
             <div style="flex:1">
-              <div class="bf-nm">Maria Silva, 34 anos</div>
-              <div class="bf-sb">Pre-consulta respondida às 22:09 de quarta, 23 de abril</div>
+              <div class="bf-nm">Resumo do <em>paciente</em></div>
+              <div class="bf-sb">Maria Silva, 34 anos · Respondida em 21/04/2026 15:31</div>
             </div>
-            <button class="btn btn-s">
-              <svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
-              Copiar resumo
-            </button>
           </div>
 
+          <!-- Cards do briefing -->
           <div class="bf-card queixa">
             <div class="bf-card-lbl">Queixa principal</div>
             <div class="bf-card-tx">Dor de cabeça pulsátil lado direito há 2 semanas. Náusea associada. Dipirona não melhorou.</div>
           </div>
-
           <div class="bf-card aten">
             <div class="bf-card-lbl">Ponto de atenção</div>
             <div class="bf-card-tx">Histórico familiar relevante — mãe com enxaqueca crônica.</div>
           </div>
-
           <div class="bf-card padrao">
             <div class="bf-card-lbl">Padrão observado</div>
             <div class="bf-card-tx">Enxaqueca sem aura (compatibilidade 82%) — fonte SBCef 2022 · base enxaqueca_v2</div>
           </div>
 
-          <div class="fin-footer">
-            <div class="fin-footer-t">
-              <b>Pronto pra finalizar?</b>
-              Marque o atendimento como concluído. Se quiser, já agenda retorno.
-            </div>
-            <button class="btn-fin" onclick="goScene('mfin')">
-              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-              Finalizar atendimento
-            </button>
+          <div style="background:var(--bg);border:1px dashed var(--border);border-radius:10px;padding:14px 16px;margin-top:14px;font-size:11.5px;color:var(--t3);line-height:1.5">
+            <b style="color:var(--t1)">Como funciona:</b> "Finalizar atendimento" marca a pré-consulta como atendida (sem retorno). "Finalizar e marcar retorno" marca a pré-consulta E abre a agenda na semana sugerida (+15 dias). Você pode mudar a data na própria agenda. Tudo desfazível por 10 segundos.
           </div>
         </div>
       </div>
 
-      <!-- ═══ 6. MODAL FINALIZAR ═══ -->
-      <div class="scene" id="sc-mfin">
-        <div style="width:100%;position:relative;height:100%;min-height:600px">
-          <!-- Fundo: briefing blurred -->
-          <div style="filter:blur(3px);opacity:.5;max-width:900px;margin:0 auto">
-            <div class="bf-head">
-              <div class="bf-av">MS</div>
-              <div style="flex:1"><div class="bf-nm">Maria Silva, 34 anos</div></div>
-            </div>
-            <div class="bf-card queixa"><div class="bf-card-tx">Dor de cabeça pulsátil há 2 semanas...</div></div>
-            <div class="bf-card aten"><div class="bf-card-tx">Histórico familiar relevante...</div></div>
-          </div>
-          <div class="onb-overlay show">
-            <div class="onb-sheet" style="max-width:400px">
-              <div class="onb-illust">
-                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <div class="onb-ttl">Finalizar este <em>atendimento</em>?</div>
-              <div class="onb-desc">Confirma que você atendeu <b style="color:var(--t1)">Maria Silva</b>. A pre-consulta vai pra aba Finalizadas.</div>
-              <button class="onb-btn" onclick="goScene('mret')">
-                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
-                Finalizar e marcar retorno
-              </button>
-              <button class="onb-btn" style="background:var(--s2);color:var(--t1);box-shadow:none">Finalizar sem retorno</button>
-              <button class="onb-skip">Cancelar</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ 7. MODAL QUANDO VOLTAR ═══ -->
-      <div class="scene" id="sc-mret">
-        <div style="width:100%;position:relative;height:100%;min-height:600px">
-          <div style="filter:blur(3px);opacity:.5;max-width:900px;margin:0 auto">
-            <div class="bf-head"><div class="bf-av">MS</div><div style="flex:1"><div class="bf-nm">Maria Silva, 34 anos</div></div></div>
-            <div class="bf-card queixa"><div class="bf-card-tx">...</div></div>
-          </div>
-          <div class="onb-overlay show">
-            <div class="onb-sheet" style="max-width:400px">
-              <div class="onb-illust" style="background:rgba(0,180,216,.08)">
-                <svg viewBox="0 0 24 24" style="stroke:var(--cyan)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-              <div class="onb-ttl">Quando <em>Maria</em> volta?</div>
-              <div class="onb-desc">Escolha um prazo rápido ou data específica. A agenda abre pra você marcar o horário.</div>
-              <div class="ret-opts">
-                <div class="ret-opt"><div class="n">7</div><div class="u">dias</div></div>
-                <div class="ret-opt on"><div class="n">15</div><div class="u">dias</div></div>
-                <div class="ret-opt"><div class="n">30</div><div class="u">dias</div></div>
-                <div class="ret-opt"><div class="n">—</div><div class="u">outra</div></div>
-              </div>
-              <div class="ret-field">
-                <label>Motivo do retorno (opcional)</label>
-                <select><option>Acompanhamento</option><option>Revisar exames</option><option>Reavaliar tratamento</option></select>
-              </div>
-              <button class="onb-btn" onclick="goScene('agret')">
-                Ir pra agenda
-                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
-              <button class="onb-skip">Voltar</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ 8. AGENDA SEMANA ═══ -->
+      <!-- ═══ 6. AGENDA SEMANA (refeita — calendar protagonista) ═══ -->
       <div class="scene" id="sc-agsem">
         <div class="ph">
-          <div>
-            <h1>Agenda</h1>
-            <p>28 consultas esta semana · 3 slots livres · Google Calendar sincronizado</p>
-          </div>
+          <div><h1>Agenda</h1><p>28 consultas esta semana · 3 slots livres · Google Calendar conectado</p></div>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-s"><svg viewBox="0 0 24 24"><path d="M3 9a9 9 0 0 1 9-9 9 9 0 0 1 6 2"/><polyline points="21 3 21 9 15 9"/></svg>Importar agenda</button>
+            <button class="btn btn-s"><svg viewBox="0 0 24 24"><path d="M3 9a9 9 0 0 1 9-9 9 9 0 0 1 6 2"/><polyline points="21 3 21 9 15 9"/></svg>Importar</button>
             <button class="btn btn-p"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Marcar consulta</button>
           </div>
         </div>
 
-        <div class="ag-hdr">
+        <div class="ag-toprow">
           <div class="ag-nav"><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
           <div class="ag-range">Abr 21 — Abr 27, 2026</div>
           <button class="ag-today">Hoje</button>
           <div class="ag-views"><button class="ag-view">Dia</button><button class="ag-view on">Semana</button><button class="ag-view">Mês</button></div>
           <div class="ag-stat"><b>28</b> consultas · <b>3</b> livres</div>
-          <div class="ag-gcal"><span class="dd"></span>Google sincr.</div>
+          <div class="ag-gcal"><span class="dd"></span>Google sincronizado</div>
         </div>
 
         <div class="ag-grid">
@@ -679,122 +586,190 @@ body{padding-top:44px}
             <div class="tod">Qua<div class="dn">23</div></div>
             <div>Qui<div class="dn">24</div></div>
             <div>Sex<div class="dn">25</div></div>
-            <div style="opacity:.4">Sáb<div class="dn">26</div></div>
-            <div style="opacity:.4">Dom<div class="dn">27</div></div>
+            <div style="opacity:.45">Sáb<div class="dn">26</div></div>
+            <div style="opacity:.45">Dom<div class="dn">27</div></div>
           </div>
           <div class="ag-body">
             <div class="ag-hcol">
               <div class="ag-hslot">08:00</div><div class="ag-hslot">09:00</div><div class="ag-hslot">10:00</div><div class="ag-hslot">11:00</div><div class="ag-hslot">12:00</div><div class="ag-hslot">13:00</div><div class="ag-hslot">14:00</div><div class="ag-hslot">15:00</div><div class="ag-hslot">16:00</div><div class="ag-hslot">17:00</div>
             </div>
+            <!-- SEG 21 -->
             <div class="ag-dcol">
               <div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div>
-              <div class="apt ok" style="top:42px;height:40px"><span class="nm">Maria Silva</span><span class="tm">09:00 · 30min</span></div>
-              <div class="apt ok" style="top:168px;height:40px"><span class="nm">Pedro Lima</span><span class="tm">12:00 · 30min</span></div>
-              <div class="apt block" style="top:210px;height:80px"><span class="nm">Almoço</span></div>
-              <div class="apt ok" style="top:294px;height:60px"><span class="nm">Fernanda C.</span><span class="tm">15:00 · 45min</span></div>
+              <div class="apt past" style="top:54px;height:50px"><span class="nm">Maria Silva</span><span class="tm">09:00 · 30min</span></div>
+              <div class="apt past" style="top:216px;height:50px"><span class="nm">Pedro Lima</span><span class="tm">12:00 · 30min</span></div>
+              <div class="apt block" style="top:270px;height:100px"><span class="nm">Almoço</span><span class="tm">12:00 — 13:30</span></div>
+              <div class="apt past" style="top:378px;height:76px"><span class="nm">Fernanda Campos</span><span class="tm">15:00 · 45min</span></div>
             </div>
+            <!-- TER 22 -->
             <div class="ag-dcol">
               <div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div>
-              <div class="apt ok" style="top:0;height:40px"><span class="nm">João P.</span><span class="tm">08:00</span></div>
-              <div class="apt pending" style="top:42px;height:40px"><span class="nm">Ana R.</span><span class="tm">09:00 · aguardando</span></div>
-              <div class="apt online" style="top:126px;height:60px"><span class="nm">Lucas B.</span><span class="tm">🎥 11:00</span></div>
-              <div class="apt block" style="top:210px;height:80px"></div>
-              <div class="apt ok" style="top:294px;height:40px"><span class="nm">Jorge A.</span><span class="tm">15:00</span></div>
-              <div class="apt ok" style="top:336px;height:40px"><span class="nm">Sabrina V.</span><span class="tm">16:00</span></div>
+              <div class="apt past" style="top:0;height:50px"><span class="nm">João Pereira</span><span class="tm">08:00 · 30min</span></div>
+              <div class="apt past" style="top:54px;height:50px"><span class="nm">Ana Rodrigues</span><span class="tm">09:00 · 30min</span></div>
+              <div class="apt past" style="top:162px;height:76px"><span class="nm">Lucas Borelli</span><span class="tm">11:00 · 45min</span></div>
+              <div class="apt block" style="top:270px;height:100px"><span class="nm">Almoço</span></div>
+              <div class="apt past" style="top:378px;height:50px"><span class="nm">Jorge Almeida</span><span class="tm">15:00</span></div>
+              <div class="apt past" style="top:432px;height:50px"><span class="nm">Sabrina V.</span><span class="tm">16:00</span></div>
             </div>
-            <div class="ag-dcol" style="background:rgba(0,229,160,.02)">
+            <!-- QUA 23 (HOJE) -->
+            <div class="ag-dcol" style="background:rgba(0,229,160,.025)">
               <div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div>
-              <div class="apt ok" style="top:0;height:40px"><span class="nm">Daniela M.</span><span class="tm">08:00</span></div>
-              <div class="apt ok" style="top:84px;height:40px"><span class="nm">Rafael T.</span><span class="tm">10:00</span></div>
-              <div class="apt warn" style="top:168px;height:40px"><span class="nm">Marcos V.</span><span class="tm">12:00 · confirmar</span></div>
-              <div class="apt block" style="top:210px;height:80px"></div>
-              <div class="apt online" style="top:294px;height:60px"><span class="nm">Beatriz O.</span><span class="tm">🎥 15:00</span></div>
+              <div class="apt ok" style="top:0;height:50px"><span class="nm">Daniela Mendes</span><span class="tm">08:00 · 30min</span></div>
+              <div class="apt ok" style="top:108px;height:50px"><span class="nm">Rafael Tavares</span><span class="tm">10:00 · 30min</span></div>
+              <div class="apt warn" style="top:216px;height:50px"><span class="nm">Marcos Vieira</span><span class="tm">12:00 · aguardando confirmar</span></div>
+              <div class="apt block" style="top:270px;height:100px"><span class="nm">Almoço</span></div>
+              <div class="apt ok" style="top:378px;height:76px"><span class="nm">Beatriz Oliveira</span><span class="tm">15:00 · 45min</span></div>
             </div>
+            <!-- QUI 24 -->
             <div class="ag-dcol">
               <div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div>
-              <div class="apt ok" style="top:42px;height:40px"><span class="nm">Paulo R.</span><span class="tm">09:00</span></div>
-              <div class="apt ok" style="top:84px;height:40px"><span class="nm">Helena S.</span><span class="tm">10:00</span></div>
-              <div class="apt block" style="top:210px;height:80px"></div>
-              <div class="apt ok" style="top:294px;height:80px"><span class="nm">Carlos M.</span><span class="tm">15:00 · 1h</span></div>
+              <div class="apt ok" style="top:54px;height:50px"><span class="nm">Paulo Ribeiro</span><span class="tm">09:00 · 30min</span></div>
+              <div class="apt ok" style="top:108px;height:50px"><span class="nm">Helena Santos</span><span class="tm">10:00 · 30min</span></div>
+              <div class="apt block" style="top:270px;height:100px"><span class="nm">Almoço</span></div>
+              <div class="apt ok" style="top:378px;height:108px"><span class="nm">Carlos Martins</span><span class="tm">15:00 · 60min</span></div>
             </div>
+            <!-- SEX 25 -->
             <div class="ag-dcol">
               <div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div><div class="sl"></div>
-              <div class="apt ok" style="top:0;height:40px"><span class="nm">Isabela R.</span><span class="tm">08:00</span></div>
-              <div class="apt ok" style="top:42px;height:40px"><span class="nm">Felipe C.</span><span class="tm">09:00</span></div>
-              <div class="apt online" style="top:126px;height:60px"><span class="nm">Taís N.</span><span class="tm">🎥 11:00</span></div>
-              <div class="apt block" style="top:210px;height:80px"></div>
+              <div class="apt ok" style="top:0;height:50px"><span class="nm">Isabela Rocha</span><span class="tm">08:00 · 30min</span></div>
+              <div class="apt ok" style="top:54px;height:50px"><span class="nm">Felipe Costa</span><span class="tm">09:00 · 30min</span></div>
+              <div class="apt ok" style="top:162px;height:76px"><span class="nm">Taís Nascimento</span><span class="tm">11:00 · 45min</span></div>
+              <div class="apt block" style="top:270px;height:100px"><span class="nm">Almoço</span></div>
             </div>
             <div class="ag-dcol" style="background:var(--s2);opacity:.5"></div>
             <div class="ag-dcol" style="background:var(--s2);opacity:.5"></div>
           </div>
         </div>
 
-        <div style="display:flex;gap:16px;font-size:11px;color:var(--t3);padding:10px 0">
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--ok-bg);border-left:3px solid var(--ok);margin-right:4px"></span>Confirmada</span>
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(0,196,122,.04);border-left:3px solid var(--ok);background-image:repeating-linear-gradient(45deg,transparent 0 3px,rgba(0,196,122,.08) 3px 6px);margin-right:4px"></span>Aguardando confirmação</span>
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(139,92,246,.1);border-left:3px solid #8B5CF6;margin-right:4px"></span>Online</span>
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--warn-bg);border-left:3px solid var(--warn);margin-right:4px"></span>Atenção (histórico falta)</span>
-          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--info-bg);border-left:3px solid var(--info);margin-right:4px"></span>Bloqueio</span>
+        <div class="ag-leg">
+          <div class="ag-leg-it"><div class="ag-leg-sw ok"></div>Confirmada</div>
+          <div class="ag-leg-it"><div class="ag-leg-sw warn"></div>Aguardando confirmação ou histórico de falta</div>
+          <div class="ag-leg-it"><div class="ag-leg-sw past"></div>Já aconteceu</div>
+          <div class="ag-leg-it"><div class="ag-leg-sw block"></div>Bloqueio (almoço, férias, plantão, evento Google)</div>
         </div>
       </div>
 
-      <!-- ═══ 9. DETALHE DA CONSULTA ═══ -->
-      <div class="scene" id="sc-agdet">
+      <!-- ═══ 7. AGENDA DIA (NOVA) ═══ -->
+      <div class="scene" id="sc-agdia">
         <div class="ph">
-          <div><h1>Agenda</h1><p>Qua, 23 de abril · 5 consultas</p></div>
+          <div><h1>Agenda</h1><p>Quarta, 23 de abril · 5 consultas · Google Calendar conectado</p></div>
+          <button class="btn btn-p"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Marcar consulta</button>
         </div>
-        <div class="ag-split">
-          <div class="ag-daylist">
-            <div class="ag-daylist-hdr">Hoje · 5 consultas</div>
-            <div class="ag-dayrow"><div class="tm">08:00</div><div><div class="nm">João Pereira</div><div class="tp">Consulta nova</div></div></div>
-            <div class="ag-dayrow"><div class="tm">09:00</div><div><div class="nm">Maria Silva</div><div class="tp">Enxaqueca (retorno)</div></div></div>
-            <div class="ag-dayrow sel"><div class="tm">10:30</div><div><div class="nm">Pedro Lima ◄</div><div class="tp">Consulta nova · Dor torácica</div></div></div>
-            <div class="ag-dayrow" style="opacity:.6"><div class="tm">12:00</div><div><div class="nm">— almoço —</div><div class="tp">até 13:30</div></div></div>
-            <div class="ag-dayrow"><div class="tm">14:00</div><div><div class="nm">Fernanda Campos</div><div class="tp">🎥 Online · 45min</div></div></div>
-            <div class="ag-dayrow"><div class="tm">15:30</div><div><div class="nm">Jorge Almeida</div><div class="tp">Retorno pós-exame</div></div></div>
-          </div>
-          <div class="det">
-            <div class="det-hd">
-              <div class="det-av">PL</div>
-              <div>
-                <div class="det-nm">Pedro Lima</div>
-                <div class="det-sub">34 anos · (11) 98765-4321</div>
+        <div class="ag-toprow">
+          <div class="ag-nav"><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+          <div class="ag-range">Quarta · 23 de abril</div>
+          <button class="ag-today">Hoje</button>
+          <div class="ag-views"><button class="ag-view on">Dia</button><button class="ag-view">Semana</button><button class="ag-view">Mês</button></div>
+          <div class="ag-stat"><b>5</b> consultas · próxima: 12:00</div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:0;overflow:hidden">
+          <div style="padding:14px 18px;background:var(--s2);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:800;color:var(--t3);letter-spacing:.14em;text-transform:uppercase">manhã</div>
+          <div style="padding:8px">
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;cursor:pointer" class="apt past" onmouseover="this.style.background='rgba(0,0,0,.05)'" onmouseout="this.style.background='rgba(0,0,0,.03)'">
+              <div style="font-size:14px;font-weight:800;color:var(--t1);min-width:62px">08:00</div>
+              <div style="flex:1;border-left:3px solid var(--t4);padding-left:14px">
+                <div style="font-size:14px;font-weight:700;color:var(--t1)">Daniela Mendes</div>
+                <div style="font-size:11.5px;color:var(--t3);margin-top:2px">Consulta nova · 30min · presencial</div>
               </div>
-              <button class="det-x"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              <div style="font-size:11px;font-weight:700;color:var(--t3);padding:4px 10px;border-radius:6px;background:rgba(0,0,0,.05)">já aconteceu</div>
             </div>
-            <div class="det-row"><span class="l">Horário</span><span class="v">Hoje · 10:30 — 11:00</span></div>
-            <div class="det-row"><span class="l">Tipo</span><span class="v">Presencial</span></div>
-            <div class="det-row"><span class="l">Local</span><span class="v">Clínica Vida+</span></div>
-            <div class="det-row"><span class="l">Motivo</span><span class="v">Dor torácica — investigação</span></div>
-            <div class="det-row"><span class="l">Status</span><span class="v chip ok">Confirmada</span></div>
-            <div class="det-row"><span class="l">Última</span><span class="v">Primeira vez aqui</span></div>
-            <div class="det-acts">
-              <button class="det-b primary"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Ver pre-consulta</button>
-              <button class="det-b"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Remarcar</button>
-              <button class="det-b danger"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Cancelar</button>
+            <div class="apt ok" style="position:static;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;margin-top:6px;left:auto;right:auto">
+              <div style="font-size:14px;font-weight:800;min-width:62px;color:#005B36">10:00</div>
+              <div style="flex:1;padding-left:14px;border-left:3px solid var(--ok)">
+                <div style="font-size:14px;font-weight:700;color:var(--t1)">Rafael Tavares</div>
+                <div style="font-size:11.5px;color:var(--t2);margin-top:2px">Consulta nova · 30min · presencial</div>
+              </div>
+              <div class="list-chip done" style="background:rgba(0,196,122,.15);color:#005B36">Confirmada</div>
+            </div>
+            <div class="apt warn" style="position:static;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;margin-top:6px;left:auto;right:auto">
+              <div style="font-size:14px;font-weight:800;min-width:62px;color:#7D5500">12:00</div>
+              <div style="flex:1;padding-left:14px;border-left:3px solid var(--warn)">
+                <div style="font-size:14px;font-weight:700;color:var(--t1)">Marcos Vieira</div>
+                <div style="font-size:11.5px;color:var(--t2);margin-top:2px">Retorno · 30min · presencial</div>
+              </div>
+              <div class="list-chip warn">Aguardando confirmação</div>
+            </div>
+          </div>
+          <div style="padding:14px 18px;background:var(--s2);border-bottom:1px solid var(--border);border-top:1px solid var(--border);font-size:10.5px;font-weight:800;color:var(--t3);letter-spacing:.14em;text-transform:uppercase">tarde</div>
+          <div style="padding:8px">
+            <div class="apt block" style="position:static;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;left:auto;right:auto">
+              <div style="font-size:14px;font-weight:800;min-width:62px;color:#1E40AF">12:00</div>
+              <div style="flex:1;padding-left:14px;border-left:3px solid var(--info)">
+                <div style="font-size:14px;font-weight:700;color:var(--t1)">Almoço</div>
+                <div style="font-size:11.5px;color:var(--t2);margin-top:2px">Bloqueio · 90min</div>
+              </div>
+            </div>
+            <div class="apt ok" style="position:static;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;margin-top:6px;left:auto;right:auto">
+              <div style="font-size:14px;font-weight:800;min-width:62px;color:#005B36">15:00</div>
+              <div style="flex:1;padding-left:14px;border-left:3px solid var(--ok)">
+                <div style="font-size:14px;font-weight:700;color:var(--t1)">Beatriz Oliveira</div>
+                <div style="font-size:11.5px;color:var(--t2);margin-top:2px">Retorno · 45min · presencial</div>
+              </div>
+              <div class="list-chip done" style="background:rgba(0,196,122,.15);color:#005B36">Confirmada</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ═══ 10. AGENDA ABERTA P/ RETORNO ═══ -->
-      <div class="scene" id="sc-agret">
+      <!-- ═══ 8. AGENDA MÊS ═══ -->
+      <div class="scene" id="sc-agmes">
         <div class="ph">
-          <div><h1>Marcar retorno · Maria Silva</h1><p>Escolha o horário — destaquei slots compatíveis na semana sugerida</p></div>
-          <button class="btn btn-s">Cancelar</button>
+          <div><h1>Agenda</h1><p>Abril 2026 · 87 consultas no mês · planejamento mensal</p></div>
+          <button class="btn btn-p"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Marcar consulta</button>
         </div>
-
-        <div style="background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.25);border-left:3px solid var(--green);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <div style="flex:1;font-size:12.5px;color:var(--t2)">
-            <b style="color:var(--t1)">Semana sugerida:</b> +15 dias (5 a 9 de maio). Slots em verde claro estão disponíveis. Clique pra marcar.
+        <div class="ag-toprow">
+          <div class="ag-nav"><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+          <div class="ag-range">Abril 2026</div>
+          <button class="ag-today">Hoje</button>
+          <div class="ag-views"><button class="ag-view">Dia</button><button class="ag-view">Semana</button><button class="ag-view on">Mês</button></div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);background:var(--s2);border-bottom:1px solid var(--border)">
+            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t3);border-right:1px solid var(--border)">SEG</div>
+            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t3);border-right:1px solid var(--border)">TER</div>
+            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t3);border-right:1px solid var(--border)">QUA</div>
+            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t3);border-right:1px solid var(--border)">QUI</div>
+            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t3);border-right:1px solid var(--border)">SEX</div>
+            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t4);border-right:1px solid var(--border)">SÁB</div>
+            <div style="padding:10px;font-size:11px;font-weight:700;text-align:center;color:var(--t4)">DOM</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:110px">
+            <!-- linha 1 -->
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);opacity:.4"><div style="font-size:13px;font-weight:700;color:var(--t3)">31</div></div>
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">1</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px;margin-bottom:3px">3 consultas</div></div>
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">2</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px">4 consultas</div></div>
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">3</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px">5 consultas</div></div>
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">4</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px">3 consultas</div></div>
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--s2)"><div style="font-size:13px;font-weight:700;color:var(--t4)">5</div></div>
+            <div style="padding:8px;border-bottom:1px solid var(--border);background:var(--s2)"><div style="font-size:13px;font-weight:700;color:var(--t4)">6</div></div>
+            <!-- linha hoje -->
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">21</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px;margin-bottom:3px">3 consultas</div></div>
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">22</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px;margin-bottom:3px">6 consultas</div></div>
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(0,229,160,.04);position:relative"><div style="font-size:13px;font-weight:900;color:var(--green);margin-bottom:6px">23 ●</div><div style="font-size:10.5px;color:var(--green);background:rgba(0,229,160,.12);padding:2px 6px;border-radius:4px;margin-bottom:3px;font-weight:700">Hoje · 5 consultas</div><div style="font-size:10px;color:var(--t3);margin-top:4px">próxima 12:00</div></div>
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">24</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px">4 consultas</div></div>
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px">25</div><div style="font-size:10.5px;color:var(--t3);background:var(--ok-bg);padding:2px 6px;border-radius:4px">3 consultas</div></div>
+            <div style="padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--s2)"><div style="font-size:13px;font-weight:700;color:var(--t4)">26</div></div>
+            <div style="padding:8px;border-bottom:1px solid var(--border);background:var(--s2)"><div style="font-size:13px;font-weight:700;color:var(--t4)">27</div></div>
           </div>
         </div>
+      </div>
 
-        <div class="ag-hdr">
+      <!-- ═══ 9. MARCAR RETORNO (refeita — só calendário grande + banner) ═══ -->
+      <div class="scene" id="sc-agret">
+        <div class="ag-bnr">
+          <div class="ag-bnr-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="ag-bnr-tx">Marcando retorno de <b>Maria Silva</b> · sugestão <b>+15 dias</b> · slots livres em destaque</div>
+          <button class="ag-bnr-sel">Alterar prazo <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <button class="ag-bnr-x">Cancelar</button>
+        </div>
+
+        <div class="ag-toprow">
           <div class="ag-nav"><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="ag-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
           <div class="ag-range">Mai 05 — Mai 11, 2026</div>
-          <span class="badge b-gr" style="margin-left:6px">+15 dias</span>
+          <button class="ag-today">Hoje</button>
+          <div class="ag-views"><button class="ag-view">Dia</button><button class="ag-view on">Semana</button><button class="ag-view">Mês</button></div>
+          <div class="ag-stat"><b>14</b> slots disponíveis</div>
         </div>
 
         <div class="ag-grid">
@@ -805,77 +780,79 @@ body{padding-top:44px}
             <div>Qua<div class="dn">07</div></div>
             <div>Qui<div class="dn">08</div></div>
             <div>Sex<div class="dn">09</div></div>
-            <div style="opacity:.4">Sáb<div class="dn">10</div></div>
-            <div style="opacity:.4">Dom<div class="dn">11</div></div>
+            <div style="opacity:.45">Sáb<div class="dn">10</div></div>
+            <div style="opacity:.45">Dom<div class="dn">11</div></div>
           </div>
           <div class="ag-body">
             <div class="ag-hcol">
               <div class="ag-hslot">08:00</div><div class="ag-hslot">09:00</div><div class="ag-hslot">10:00</div><div class="ag-hslot">11:00</div><div class="ag-hslot">12:00</div><div class="ag-hslot">13:00</div><div class="ag-hslot">14:00</div><div class="ag-hslot">15:00</div>
             </div>
-            <div class="ag-dcol">
-              <div class="sl" style="background:rgba(0,229,160,.06);border:1px dashed rgba(0,229,160,.3);height:41px"></div>
-              <div class="apt ok" style="top:42px;height:40px"><span class="nm">João P.</span></div>
-              <div class="sl" style="background:rgba(0,229,160,.06);border:1px dashed rgba(0,229,160,.3);height:41px"></div>
-              <div class="sl" style="background:rgba(0,229,160,.06);border:1px dashed rgba(0,229,160,.3);height:41px"></div>
-              <div class="apt block" style="top:168px;height:80px"></div>
+            <div class="ag-dcol sug-mode">
+              <div class="sl"></div>
+              <div class="apt ok" style="top:54px;height:50px"><span class="nm">João Pereira</span><span class="tm">09:00</span></div>
+              <div class="sl"></div><div class="sl"></div>
+              <div class="apt block" style="top:216px;height:100px"><span class="nm">Almoço</span></div>
+              <div class="sl"></div><div class="sl"></div>
             </div>
-            <div class="ag-dcol">
-              <div class="sl" style="background:rgba(0,229,160,.06);border:1px dashed rgba(0,229,160,.3);height:41px"></div>
-              <div class="sl" style="background:rgba(0,229,160,.06);border:1px dashed rgba(0,229,160,.3);height:41px"></div>
-              <div class="apt ok" style="top:84px;height:40px"><span class="nm">Ana R.</span></div>
-              <div class="apt ok" style="top:126px;height:40px"><span class="nm">Lucas B.</span></div>
-              <div class="apt block" style="top:168px;height:80px"></div>
+            <div class="ag-dcol sug-mode">
+              <div class="sl"></div><div class="sl"></div>
+              <div class="apt ok" style="top:108px;height:50px"><span class="nm">Ana Rodrigues</span><span class="tm">10:00</span></div>
+              <div class="apt ok" style="top:162px;height:50px"><span class="nm">Lucas B.</span><span class="tm">11:00</span></div>
+              <div class="apt block" style="top:216px;height:100px"><span class="nm">Almoço</span></div>
+              <div class="sl"></div><div class="sl"></div>
             </div>
-            <div class="ag-dcol">
-              <div class="apt ok" style="top:0;height:40px"><span class="nm">Daniela</span></div>
-              <div class="sl" style="background:rgba(0,229,160,.06);border:1px dashed rgba(0,229,160,.3);height:41px"></div>
-              <div class="sl" style="background:rgba(0,229,160,.06);border:1px dashed rgba(0,229,160,.3);height:41px"></div>
+            <div class="ag-dcol sug-mode">
+              <div class="apt ok" style="top:0;height:50px"><span class="nm">Daniela M.</span><span class="tm">08:00</span></div>
+              <div class="sl"></div><div class="sl"></div>
+              <div class="apt block" style="top:216px;height:100px"><span class="nm">Almoço</span></div>
             </div>
-            <div class="ag-dcol" style="background:rgba(0,229,160,.02)">
-              <div class="sl" style="background:rgba(0,229,160,.06);border:1px dashed rgba(0,229,160,.3);height:41px"></div>
-              <div class="apt sug" style="top:42px;height:40px"><span class="nm">✓ Sugerido · 09:00</span></div>
-              <div class="sl" style="background:rgba(0,229,160,.06);border:1px dashed rgba(0,229,160,.3);height:41px"></div>
-              <div class="apt ok" style="top:126px;height:40px"><span class="nm">Paulo</span></div>
-              <div class="apt block" style="top:168px;height:80px"></div>
+            <!-- QUI 08 com slot sugerido -->
+            <div class="ag-dcol sug-mode">
+              <div class="sl"></div>
+              <div class="apt suga" style="top:54px;height:50px"><span style="font-size:14px;line-height:1">★ 09:00</span><span style="font-size:9px;font-weight:600;opacity:.7">sugerido</span></div>
+              <div class="sl"></div>
+              <div class="apt ok" style="top:162px;height:50px"><span class="nm">Paulo R.</span><span class="tm">11:00</span></div>
+              <div class="apt block" style="top:216px;height:100px"><span class="nm">Almoço</span></div>
             </div>
-            <div class="ag-dcol">
-              <div class="apt ok" style="top:0;height:40px"><span class="nm">Isabela</span></div>
-              <div class="apt ok" style="top:42px;height:40px"><span class="nm">Felipe</span></div>
-              <div class="sl" style="background:rgba(0,229,160,.06);border:1px dashed rgba(0,229,160,.3);height:41px"></div>
-              <div class="apt block" style="top:168px;height:80px"></div>
+            <div class="ag-dcol sug-mode">
+              <div class="apt ok" style="top:0;height:50px"><span class="nm">Isabela R.</span><span class="tm">08:00</span></div>
+              <div class="apt ok" style="top:54px;height:50px"><span class="nm">Felipe C.</span><span class="tm">09:00</span></div>
+              <div class="sl"></div><div class="sl"></div>
+              <div class="apt block" style="top:216px;height:100px"><span class="nm">Almoço</span></div>
             </div>
             <div class="ag-dcol" style="background:var(--s2);opacity:.5"></div>
             <div class="ag-dcol" style="background:var(--s2);opacity:.5"></div>
           </div>
         </div>
+
+        <div style="font-size:11.5px;color:var(--t3);text-align:center;padding:8px;line-height:1.5">
+          <b style="color:var(--t1)">★ Slot sugerido:</b> melhor encaixe pelo seu padrão de retornos. <b>Slots tracejados:</b> disponíveis. Clique em qualquer um pra marcar Maria Silva ali.
+        </div>
       </div>
 
-      <!-- ═══ 11. MODAL MARCAR CONSULTA ═══ -->
+      <!-- ═══ 10. MARCAR CONSULTA (popup mantido) ═══ -->
       <div class="scene" id="sc-agmarc">
         <div style="width:100%;position:relative;height:100%;min-height:600px">
           <div style="filter:blur(3px);opacity:.5">
-            <div class="ph"><div><h1>Agenda</h1><p>Clique num slot livre</p></div></div>
-            <div class="ag-grid" style="height:300px"></div>
+            <div class="ph"><div><h1>Agenda</h1></div></div>
+            <div class="ag-grid" style="height:340px"></div>
           </div>
           <div class="onb-overlay show">
             <div class="onb-sheet" style="max-width:420px">
               <div class="onb-close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
               <div style="font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--green);background:rgba(0,229,160,.08);padding:4px 10px;border-radius:20px;display:inline-block;margin-bottom:10px">Quarta · 23 de abril</div>
-              <div class="onb-ttl" style="font-size:20px">Nova consulta — <em>14:30</em></div>
+              <div class="onb-ttl" style="font-size:20px;margin-bottom:6px">Nova consulta — <em>14:30</em></div>
               <div style="font-size:12.5px;color:var(--t3);text-align:center;margin-bottom:20px">30 minutos · até 15:00</div>
               <div class="ret-field">
                 <label>Paciente</label>
-                <div style="position:relative">
-                  <input type="text" value="Maria Silva" style="width:100%;padding:10px 12px 10px 34px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:13px;color:var(--t1)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" style="position:absolute;left:11px;top:12px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                </div>
+                <input type="text" value="Maria Silva" placeholder="Digite 2 letras pra buscar...">
                 <div style="font-size:11px;color:var(--t4);margin-top:4px">Paciente novo? <a href="#" style="color:var(--green);font-weight:700;text-decoration:none">Cadastrar agora</a></div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
                 <div class="ret-field" style="margin:0"><label>Tipo</label><select><option>Presencial</option><option>Online</option></select></div>
-                <div class="ret-field" style="margin:0"><label>Duração</label><select><option>30 min</option><option>15 min</option><option>45 min</option><option>60 min</option></select></div>
+                <div class="ret-field" style="margin:0"><label>Duração</label><select><option>30 min</option><option>15</option><option>45</option><option>60</option></select></div>
               </div>
-              <div class="ret-field"><label>Motivo (opcional)</label><select><option>Retorno</option><option>Consulta nova</option><option>Emergência</option><option>Revisar exame</option></select></div>
+              <div class="ret-field"><label>Motivo (opcional)</label><select><option>Retorno</option><option>Consulta nova</option><option>Revisar exame</option></select></div>
               <button class="onb-btn">Marcar consulta</button>
               <button class="onb-skip">Cancelar</button>
             </div>
@@ -883,7 +860,7 @@ body{padding-top:44px}
         </div>
       </div>
 
-      <!-- ═══ 12. CONFLITO ═══ -->
+      <!-- ═══ 11. CONFLITO ═══ -->
       <div class="scene" id="sc-agconf">
         <div style="width:100%;position:relative;height:100%;min-height:600px">
           <div style="filter:blur(3px);opacity:.5">
@@ -892,17 +869,12 @@ body{padding-top:44px}
           </div>
           <div class="onb-overlay show">
             <div class="onb-sheet" style="max-width:420px">
-              <div class="onb-illust" style="background:rgba(245,158,11,.1)">
-                <svg viewBox="0 0 24 24" style="stroke:var(--warn)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              </div>
+              <div class="onb-illust" style="background:rgba(245,158,11,.1)"><svg viewBox="0 0 24 24" style="stroke:var(--warn)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
               <div class="onb-ttl">Horário <em>já ocupado</em></div>
               <div class="onb-desc">Você já tem consulta neste horário.</div>
-              <div class="cnf-show">
-                <b>Quarta, 23/04 às 14:30</b><br>
-                Ocupado por <b>Pedro Lima</b> — consulta nova, 30min
-              </div>
+              <div class="cnf-show"><b>Quarta, 23/04 às 14:30</b><br>Ocupado por <b>Pedro Lima</b> — consulta nova, 30min</div>
               <div style="font-size:10.5px;font-weight:700;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px;text-align:center">Horários próximos disponíveis</div>
-              <div class="cnf-opts" style="justify-content:center">
+              <div class="cnf-opts">
                 <button class="cnf-opt on">Qua · 15:00</button>
                 <button class="cnf-opt">Qua · 16:00</button>
                 <button class="cnf-opt">Qui · 09:00</button>
@@ -914,25 +886,25 @@ body{padding-top:44px}
         </div>
       </div>
 
-      <!-- ═══ 13. TOAST ═══ -->
+      <!-- ═══ 12. TOAST ═══ -->
       <div class="scene" id="sc-agtoast">
         <div style="width:100%;position:relative;min-height:500px">
-          <div class="ph"><div><h1>Agenda</h1><p>Consulta cancelada há 3 segundos...</p></div></div>
+          <div class="ph"><div><h1>Agenda</h1><p>Consulta cancelada · ainda dá pra desfazer</p></div></div>
           <div style="padding:60px 40px;text-align:center;color:var(--t4);font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:14px">
-            (agenda fica por trás — nada muda visualmente, só aparece o toast temporariamente)
+            (a agenda fica como estava — toast aparece em baixo por 10 segundos)
           </div>
           <div class="toast">
             <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-            Consulta cancelada. Paciente foi notificado.
+            Consulta de Pedro Lima cancelada. Paciente foi notificado.
             <button class="toast-undo">Desfazer</button>
           </div>
         </div>
       </div>
 
-      <!-- ═══ 14. LISTA DE ESPERA ═══ -->
+      <!-- ═══ 13. LISTA DE ESPERA (LISTA VERTICAL) ═══ -->
       <div class="scene" id="sc-agesp">
         <div class="ph">
-          <div><h1>Agenda</h1><p>5 pacientes na lista de espera — sistema avisa quando abrir vaga compatível</p></div>
+          <div><h1>Lista de espera</h1><p>5 pacientes aguardando · sistema avisa quando abrir vaga compatível</p></div>
           <button class="btn btn-p"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Adicionar à espera</button>
         </div>
         <div class="tabs">
@@ -941,42 +913,57 @@ body{padding-top:44px}
           <button class="tb-tab">Bloqueios<span class="tb-tab-c">3</span></button>
         </div>
 
-        <div class="wt-row">
-          <div class="wt-av">CR</div>
-          <div style="flex:1"><div class="wt-nm">Carla Ramos</div><div class="wt-mt">Retorno · qualquer horário manhã · esperando há 4 dias</div></div>
-          <span class="wt-tg warn">Prioridade alta</span>
-          <button class="btn btn-s">Oferecer horário</button>
+        <div class="list-row" style="border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.02)">
+          <div class="list-av d">RO</div>
+          <div class="list-bd">
+            <div class="list-nm">Roberto Oliveira</div>
+            <div class="list-mt">Urgência · hoje se possível · esperando há 2 horas · (11) 98765-1234</div>
+          </div>
+          <div class="list-chips"><span class="list-chip urg">Urgente</span></div>
+          <button class="list-act p">Encaixar agora</button>
         </div>
-        <div class="wt-row">
-          <div class="wt-av">JF</div>
-          <div style="flex:1"><div class="wt-nm">Juliana Freitas</div><div class="wt-mt">Consulta nova · online · prefere tarde · esperando há 2 dias</div></div>
-          <span class="wt-tg def">Normal</span>
-          <button class="btn btn-s">Oferecer horário</button>
+        <div class="list-row">
+          <div class="list-av c">CR</div>
+          <div class="list-bd">
+            <div class="list-nm">Carla Ramos</div>
+            <div class="list-mt">Retorno · prefere manhã · esperando há 4 dias · (11) 98123-4567</div>
+          </div>
+          <div class="list-chips"><span class="list-chip warn">Prioridade alta</span></div>
+          <button class="list-act">Oferecer horário</button>
         </div>
-        <div class="wt-row" style="border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.02)">
-          <div class="wt-av">RO</div>
-          <div style="flex:1"><div class="wt-nm">Roberto Oliveira</div><div class="wt-mt">Urgência · hoje se possível · esperando há 2 horas</div></div>
-          <span class="wt-tg urg">Urgente</span>
-          <button class="btn btn-p">Encaixar agora</button>
+        <div class="list-row">
+          <div class="list-av">JF</div>
+          <div class="list-bd">
+            <div class="list-nm">Juliana Freitas</div>
+            <div class="list-mt">Consulta nova · online · prefere tarde · esperando há 2 dias</div>
+          </div>
+          <div class="list-chips"><span class="list-chip def">Normal</span></div>
+          <button class="list-act">Oferecer horário</button>
         </div>
-        <div class="wt-row">
-          <div class="wt-av">ME</div>
-          <div style="flex:1"><div class="wt-nm">Matheus Esteves</div><div class="wt-mt">Retorno pós-exame · qualquer dia · esperando há 1 semana</div></div>
-          <span class="wt-tg def">Normal</span>
-          <button class="btn btn-s">Oferecer horário</button>
+        <div class="list-row">
+          <div class="list-av e">ME</div>
+          <div class="list-bd">
+            <div class="list-nm">Matheus Esteves</div>
+            <div class="list-mt">Retorno pós-exame · qualquer dia · esperando há 1 semana</div>
+          </div>
+          <div class="list-chips"><span class="list-chip def">Normal</span></div>
+          <button class="list-act">Oferecer horário</button>
         </div>
-        <div class="wt-row">
-          <div class="wt-av">SL</div>
-          <div style="flex:1"><div class="wt-nm">Sandra Lima</div><div class="wt-mt">Consulta nova · presencial · manhã · esperando há 5 dias</div></div>
-          <span class="wt-tg def">Normal</span>
-          <button class="btn btn-s">Oferecer horário</button>
+        <div class="list-row">
+          <div class="list-av b">SL</div>
+          <div class="list-bd">
+            <div class="list-nm">Sandra Lima</div>
+            <div class="list-mt">Consulta nova · presencial · manhã · esperando há 5 dias</div>
+          </div>
+          <div class="list-chips"><span class="list-chip def">Normal</span></div>
+          <button class="list-act">Oferecer horário</button>
         </div>
       </div>
 
-      <!-- ═══ 15. ABA FINALIZADAS ═══ -->
+      <!-- ═══ 14. ABA FINALIZADAS (LISTA VERTICAL) ═══ -->
       <div class="scene" id="sc-final">
         <div class="ph">
-          <div><h1>Pré-consultas</h1><p>47 finalizadas nos últimos 30 dias</p></div>
+          <div><h1>Pré-consultas</h1><p>47 finalizadas nos últimos 30 dias · histórico completo</p></div>
           <button class="btn btn-p"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova pré-consulta</button>
         </div>
         <div class="tabs">
@@ -984,120 +971,109 @@ body{padding-top:44px}
           <button class="tb-tab">Respondidas<span class="tb-tab-c">4</span></button>
           <button class="tb-tab on">Finalizadas<span class="tb-tab-c">47</span></button>
         </div>
-        <div class="fin-item">
-          <div class="fin-av">MS</div>
-          <div><div class="fin-nm">Maria Silva</div><div class="fin-mt">Cefaleia · enxaqueca sem aura</div></div>
-          <span class="fin-chip done">Finalizada</span>
-          <span class="fin-chip ret">Retorno 08/05</span>
-          <div class="fin-date">há 2h</div>
+
+        <div class="list-row">
+          <div class="list-av">MS</div>
+          <div class="list-bd">
+            <div class="list-nm">Maria Silva</div>
+            <div class="list-mt">Cefaleia · enxaqueca sem aura · finalizada por Dr. Lucas</div>
+          </div>
+          <div class="list-chips">
+            <span class="list-chip done">Finalizada</span>
+            <span class="list-chip ret">Retorno 08/05</span>
+          </div>
+          <div class="list-date">há 2h</div>
         </div>
-        <div class="fin-item">
-          <div class="fin-av" style="background:linear-gradient(135deg,#8B5CF6,#6D28D9)">PL</div>
-          <div><div class="fin-nm">Pedro Lima</div><div class="fin-mt">Dor torácica · investigação SCA</div></div>
-          <span class="fin-chip done">Finalizada</span>
-          <span class="fin-chip ret">Retorno 30/04</span>
-          <div class="fin-date">ontem</div>
+        <div class="list-row">
+          <div class="list-av b">PL</div>
+          <div class="list-bd">
+            <div class="list-nm">Pedro Lima</div>
+            <div class="list-mt">Dor torácica · investigação SCA · finalizada por Dr. Lucas</div>
+          </div>
+          <div class="list-chips">
+            <span class="list-chip done">Finalizada</span>
+            <span class="list-chip ret">Retorno 30/04</span>
+          </div>
+          <div class="list-date">ontem</div>
         </div>
-        <div class="fin-item">
-          <div class="fin-av" style="background:linear-gradient(135deg,#F59E0B,#D97706)">FC</div>
-          <div><div class="fin-nm">Fernanda Campos</div><div class="fin-mt">Lombalgia crônica</div></div>
-          <span class="fin-chip done">Finalizada</span>
-          <span class="fin-chip none">Sem retorno</span>
-          <div class="fin-date">2 dias</div>
+        <div class="list-row">
+          <div class="list-av c">FC</div>
+          <div class="list-bd">
+            <div class="list-nm">Fernanda Campos</div>
+            <div class="list-mt">Lombalgia crônica · finalizada por Dr. Lucas</div>
+          </div>
+          <div class="list-chips">
+            <span class="list-chip done">Finalizada</span>
+            <span class="list-chip none">Sem retorno</span>
+          </div>
+          <div class="list-date">2 dias</div>
         </div>
-        <div class="fin-item">
-          <div class="fin-av" style="background:linear-gradient(135deg,#EF4444,#B91C1C)">JA</div>
-          <div><div class="fin-nm">Jorge Almeida</div><div class="fin-mt">Alergia a medicamento</div></div>
-          <span class="fin-chip done">Finalizada</span>
-          <span class="fin-chip ret">Retorno 15/05</span>
-          <div class="fin-date">3 dias</div>
+        <div class="list-row">
+          <div class="list-av d">JA</div>
+          <div class="list-bd">
+            <div class="list-nm">Jorge Almeida</div>
+            <div class="list-mt">Alergia a medicamento · finalizada por Dr. Lucas</div>
+          </div>
+          <div class="list-chips">
+            <span class="list-chip done">Finalizada</span>
+            <span class="list-chip ret">Retorno 15/05</span>
+          </div>
+          <div class="list-date">3 dias</div>
         </div>
-        <div class="fin-item">
-          <div class="fin-av">HS</div>
-          <div><div class="fin-nm">Helena Silva</div><div class="fin-mt">Check-up anual</div></div>
-          <span class="fin-chip done">Finalizada</span>
-          <span class="fin-chip none">Sem retorno</span>
-          <div class="fin-date">4 dias</div>
+        <div class="list-row">
+          <div class="list-av e">HS</div>
+          <div class="list-bd">
+            <div class="list-nm">Helena Santos</div>
+            <div class="list-mt">Check-up anual · finalizada por Dr. Lucas</div>
+          </div>
+          <div class="list-chips">
+            <span class="list-chip done">Finalizada</span>
+            <span class="list-chip none">Sem retorno</span>
+          </div>
+          <div class="list-date">4 dias</div>
         </div>
       </div>
 
-      <!-- ═══ 16. STATS MENSAIS ═══ -->
+      <!-- ═══ 15. STATS MENSAIS (HERO + 3) ═══ -->
       <div class="scene" id="sc-stat">
-        <div class="ph">
-          <div><h1>Abril 2026 · seu mês</h1><p>Resumo automático · enviado também pro seu e-mail todo dia 1º</p></div>
-        </div>
-        <div class="st-grid">
-          <div class="stat"><div class="stat-n gn">87</div><div class="stat-l">Consultas realizadas</div><div class="delta du">+21% vs março (72)</div></div>
-          <div class="stat"><div class="stat-n gn">94%</div><div class="stat-l">Taxa de presença</div><div class="delta du">+16% vs média BR (78%)</div></div>
-          <div class="stat"><div class="stat-n" style="color:var(--cyan)">42%</div><div class="stat-l">Retornos marcados</div><div class="delta">37 de 87 consultas</div></div>
-          <div class="stat"><div class="stat-n gn">R$ 2.400</div><div class="stat-l">No-show evitado</div><div class="delta du">5 confirmações salvaram slots</div></div>
-        </div>
-
-        <div class="card" style="padding:20px;display:flex;align-items:center;gap:16px">
-          <div style="width:48px;height:48px;border-radius:12px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+        <div class="st-wrap" style="width:100%">
+          <div class="ph">
+            <div><h1>Abril 2026 · seu mês</h1><p>Resumo automático do seu desempenho · também por e-mail no dia 1º</p></div>
           </div>
-          <div style="flex:1">
-            <div style="font-size:14px;font-weight:800;margin-bottom:3px">Seu mês em PDF</div>
-            <div style="font-size:12px;color:var(--t2);line-height:1.5">Relatório completo com gráficos, comparativos, lista de pacientes atendidos e retornos agendados. Chega no seu e-mail todo dia 1º.</div>
-          </div>
-          <button class="btn btn-s">Baixar abril agora</button>
-        </div>
-      </div>
 
-      <!-- ═══ 17. PACIENTE MOBILE ═══ -->
-      <div class="scene" id="sc-mob">
-        <div class="ph"><div><h1>App do paciente</h1><p>Próxima consulta aparece no topo do perfil</p></div></div>
-        <div class="mob-wrap">
-          <div class="mob-frm">
-            <div class="mob-in">
-              <div class="mob-lg">vita<span class="ib">id</span></div>
-              <div class="mob-gr">Olá,</div>
-              <div class="mob-nm">Maria Silva</div>
-              <div class="mob-next">
-                <div class="mob-nx-lb">Próxima consulta</div>
-                <div class="mob-nx-t">Dra. Ana Costa</div>
-                <div class="mob-nx-tm">
-                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  Qui, 8 de maio · 14:00
-                </div>
-                <div class="mob-nx-sb">Clínica Vida+ · Rua X, 123</div>
-                <div class="mob-nx-ac">
-                  <button class="mob-nx-bt prim">Confirmar</button>
-                  <button class="mob-nx-bt sec">Remarcar</button>
-                </div>
-              </div>
-              <div class="mob-cd"><div class="mob-cd-t">Sua saúde em dia ✓</div><div class="mob-cd-s">Último check-in: ontem</div></div>
-              <div class="mob-cd"><div class="mob-cd-t">2 exames recentes</div><div class="mob-cd-s">Hemograma · Colesterol</div></div>
+          <div class="st-hero">
+            <div class="st-hero-lbl">No-show evitado em abril</div>
+            <div class="st-hero-num">R$ 2.400</div>
+            <div class="st-hero-cap">5 confirmações que salvaram slots de paciente faltoso</div>
+            <div class="st-hero-sub">vita id avisou esses pacientes 24h e 2h antes. Eles confirmaram, vieram, você não perdeu o slot. Cada lembrete enviado economizou em média R$ 480 pra você.</div>
+          </div>
+
+          <div class="st-secrow">
+            <div class="st-sec">
+              <div class="st-sec-num gn">87</div>
+              <div class="st-sec-l">Consultas realizadas</div>
+              <div class="st-sec-d"><span class="ok">+21%</span> em relação a março (72)</div>
+            </div>
+            <div class="st-sec">
+              <div class="st-sec-num gn">94%</div>
+              <div class="st-sec-l">Taxa de presença</div>
+              <div class="st-sec-d"><span class="ok">16 pontos</span> acima da média BR (78%)</div>
+            </div>
+            <div class="st-sec">
+              <div class="st-sec-num cy">42%</div>
+              <div class="st-sec-l">Retornos marcados</div>
+              <div class="st-sec-d">37 das 87 consultas viraram retorno</div>
             </div>
           </div>
-          <div class="mob-cap">Remarcação permitida até 4h antes · Cancelamento até 2h antes</div>
-        </div>
-      </div>
 
-      <!-- ═══ 18. LEMBRETE PUSH ═══ -->
-      <div class="scene" id="sc-mob2">
-        <div class="ph"><div><h1>Lembrete 24h antes</h1><p>Push notification + e-mail de backup</p></div></div>
-        <div class="mob-wrap">
-          <div class="mob-frm">
-            <div class="mob-in" style="background:#e5e5e5">
-              <div style="font-size:9.5px;font-weight:700;color:var(--t3);text-align:center;margin-bottom:16px;letter-spacing:.1em">NOTIFICAÇÕES</div>
-              <div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);font-size:12.5px;line-height:1.5;animation:popIn .4s cubic-bezier(0.34,1.56,0.64,1)">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
-                  <div style="width:24px;height:24px;border-radius:5px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--dark)">vi</div>
-                  <div style="font-size:11px;font-weight:700">vita id</div>
-                  <div style="font-size:10px;color:var(--t4);margin-left:auto">agora</div>
-                </div>
-                <div style="color:var(--t1)">Olá Maria, sua consulta com <b>Dra. Ana Costa</b> é amanhã, quinta 8 de maio, às <b>14:00</b>.<br><br>📍 Clínica Vida+, Rua X nº 123.</div>
-                <div style="display:flex;gap:6px;margin-top:12px">
-                  <button style="flex:1;padding:8px;background:var(--green);color:var(--dark);border:0;border-radius:7px;font-size:11px;font-weight:800;font-family:inherit">Sim, confirmo</button>
-                  <button style="flex:1;padding:8px;background:var(--s2);color:var(--t2);border:0;border-radius:7px;font-size:11px;font-weight:700;font-family:inherit">Remarcar</button>
-                </div>
-              </div>
-              <div style="font-size:10px;color:var(--t4);text-align:center;line-height:1.5;margin-top:14px;padding:0 10px">Em emergência, ligue 192 ou seu médico direto.<br>Este lembrete é auxiliar.</div>
+          <div class="st-pdf">
+            <div class="st-pdf-ic"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div>
+            <div class="st-pdf-bd">
+              <div class="st-pdf-t">Seu mês em PDF</div>
+              <div class="st-pdf-s">Relatório completo com gráficos, comparativos e lista de pacientes. Chega no seu e-mail todo dia 1º.</div>
             </div>
+            <button class="btn btn-s">Baixar abril agora</button>
           </div>
-          <div class="mob-cap">Lembretes enviados 24h e 2h antes (este último só pra consultas online)</div>
         </div>
       </div>
 
@@ -1106,35 +1082,31 @@ body{padding-top:44px}
 </div>
 
 <script>
-function goScene(id){
+function go(id){
   document.querySelectorAll('.scene').forEach(function(s){s.classList.remove('on')});
   document.querySelectorAll('.prev-btn').forEach(function(b){b.classList.remove('on')});
   var sc = document.getElementById('sc-'+id);
   if(sc){
     sc.classList.add('on');
     var btn = document.querySelector('[data-sc="'+id+'"]');
-    if(btn){btn.classList.add('on')}
+    if(btn) btn.classList.add('on');
     window.scrollTo({top:0,behavior:'smooth'});
-    // Atualiza topbar
     var titles = {
-      cfg:['Primeiro acesso à agenda','Configuração inicial'],
-      tour1:['Agenda','Tour · 1 de 4'],
-      tour2:['Agenda','Tour · 2 de 4'],
-      tour3:['Agenda','Tour · 4 de 4'],
-      brief:['Pre-consulta','Resumo de Maria Silva'],
-      mfin:['Pre-consulta','Finalizar atendimento'],
-      mret:['Pre-consulta','Marcar retorno'],
-      agsem:['Agenda','Qua, 23 de abril'],
-      agdet:['Agenda','Detalhe da consulta'],
-      agret:['Agenda','Marcar retorno de Maria'],
+      cfg:['Agenda','Configuração inicial'],
+      tour1:['Agenda','Tour · 1 de 3'],
+      tour2:['Agenda','Tour · 2 de 3'],
+      tour3:['Agenda','Tour · 3 de 3'],
+      brief:['Resumo do paciente','Maria Silva'],
+      agsem:['Agenda','Semana de 21 abr'],
+      agdia:['Agenda','Quarta, 23 abril'],
+      agmes:['Agenda','Abril 2026'],
+      agret:['Agenda','Marcar retorno · Maria Silva'],
       agmarc:['Agenda','Nova consulta'],
       agconf:['Agenda','Conflito de horário'],
-      agtoast:['Agenda','Ação desfazível'],
+      agtoast:['Agenda','Cancelamento desfazível'],
       agesp:['Agenda','Lista de espera'],
       final:['Pré-consultas','Finalizadas'],
-      stat:['Dashboard','Abril 2026'],
-      mob:['Paciente (mobile)','Tela inicial'],
-      mob2:['Paciente (mobile)','Lembrete push']
+      stat:['Dashboard','Abril 2026']
     };
     if(titles[id]){
       document.getElementById('tb-t').textContent = titles[id][0];
@@ -1143,7 +1115,7 @@ function goScene(id){
   }
 }
 document.querySelectorAll('.prev-btn').forEach(function(b){
-  b.addEventListener('click',function(){ goScene(b.dataset.sc); });
+  b.addEventListener('click',function(){go(b.dataset.sc)});
 });
 </script>
 </body>
