@@ -14,101 +14,107 @@ datasource db {
 
 // ---- USUARIOS ----
 model Usuario {
-  id              String   @id @default(uuid())
-  nome            String
-  email           String   @unique
-  celular         String?  @unique
-  senhaHash       String?  @map("senha_hash")
-  provider        String?
-  providerId      String?  @map("provider_id")
-  fotoUrl         String?  @map("foto_url")
-  tipo            String   @default("PACIENTE") // PACIENTE ou MEDICO
-  status          String   @default("PENDENTE")
-  criadoEm        DateTime @default(now()) @map("criado_em")
-  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
-  ultimoLogin     DateTime? @map("ultimo_login")
+  id           String    @id @default(uuid())
+  nome         String
+  email        String    @unique
+  celular      String?   @unique
+  senhaHash    String?   @map("senha_hash")
+  provider     String?
+  providerId   String?   @map("provider_id")
+  fotoUrl      String?   @map("foto_url")
+  tipo         String    @default("PACIENTE") // PACIENTE ou MEDICO
+  status       String    @default("PENDENTE")
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  ultimoLogin  DateTime? @map("ultimo_login")
 
-  perfilSaude     PerfilSaude?
-  medico          Medico?
-  exames          Exame[]
-  medicamentos    Medicamento[]
-  alergias        Alergia[]
-  healthScores    HealthScore[]
-  checkins        CheckinSemanal[]
-  notificacoes    Notificacao[]
-  refreshTokens   RefreshToken[]
-  autorizacoesComoP  AutorizacaoAcesso[] @relation("paciente_autorizacoes")
-  agendamentos       Agendamento[]
-  consentimentos     Consentimento[]
-  preConsultasComoP  PreConsulta[]       @relation("paciente_pre_consultas")
+  perfilSaude       PerfilSaude?
+  medico            Medico?
+  exames            Exame[]
+  medicamentos      Medicamento[]
+  alergias          Alergia[]
+  healthScores      HealthScore[]
+  checkins          CheckinSemanal[]
+  notificacoes      Notificacao[]
+  refreshTokens     RefreshToken[]
+  autorizacoesComoP AutorizacaoAcesso[] @relation("paciente_autorizacoes")
+  agendamentos      Agendamento[]
+  consentimentos    Consentimento[]
+  preConsultasComoP PreConsulta[]       @relation("paciente_pre_consultas")
+
+  // ---- Modulo Agenda v1 ----
+  slotsComoPaciente  AgendaSlot[]        @relation("slot_paciente")
+  esperasComoP       ListaEspera[]       @relation("espera_paciente")
+  pushSubscriptions  PushSubscription[]
+  secretariaVinculos SecretariaVinculo[] @relation("secretaria_usuario")
 
   @@map("usuarios")
 }
 
 // ---- PERFIL DE SAUDE ----
 model PerfilSaude {
-  id                String   @id @default(uuid())
-  usuarioId         String   @unique @map("usuario_id")
-  genero            String?
-  dataNascimento    DateTime? @map("data_nascimento") @db.Date
-  alturaCm          Int?     @map("altura_cm")
-  pesoKg            Decimal? @map("peso_kg") @db.Decimal(5, 2)
-  tipoSanguineo     String?  @map("tipo_sanguineo")
-  historicoFamiliar String[] @map("historico_familiar")
-  nivelAtividade    String?  @map("nivel_atividade")
-  horasSono         Decimal? @map("horas_sono") @db.Decimal(3, 1)
-  fuma              Boolean?
-  alcool            String?
-  contatoEmergenciaNome    String?  @map("contato_emergencia_nome")
-  contatoEmergenciaTel     String?  @map("contato_emergencia_tel")
-  nomeMae           String?  @map("nome_mae")
-  telMae            String?  @map("tel_mae")
-  nomePai           String?  @map("nome_pai")
-  telPai            String?  @map("tel_pai")
-  condicoes         String?
-  cpf               String?  @unique
-  cirurgias         String[] @default([])
-  planoSaude        String?  @map("plano_saude")
-  carteirinhaPlano  String?  @map("carteirinha_plano")
-  apelido           String?
-  nomeSocial        String?  @map("nome_social")
-  estadoCivil       String?  @map("estado_civil")
-  corEtnia          String?  @map("cor_etnia")
-  limitacoesAcessibilidade Json? @map("limitacoes_acessibilidade")
-  atualizadoEm      DateTime @updatedAt @map("atualizado_em")
+  id                       String    @id @default(uuid())
+  usuarioId                String    @unique @map("usuario_id")
+  genero                   String?
+  dataNascimento           DateTime? @map("data_nascimento") @db.Date
+  alturaCm                 Int?      @map("altura_cm")
+  pesoKg                   Decimal?  @map("peso_kg") @db.Decimal(5, 2)
+  tipoSanguineo            String?   @map("tipo_sanguineo")
+  historicoFamiliar        String[]  @map("historico_familiar")
+  nivelAtividade           String?   @map("nivel_atividade")
+  horasSono                Decimal?  @map("horas_sono") @db.Decimal(3, 1)
+  fuma                     Boolean?
+  alcool                   String?
+  contatoEmergenciaNome    String?   @map("contato_emergencia_nome")
+  contatoEmergenciaTel     String?   @map("contato_emergencia_tel")
+  nomeMae                  String?   @map("nome_mae")
+  telMae                   String?   @map("tel_mae")
+  nomePai                  String?   @map("nome_pai")
+  telPai                   String?   @map("tel_pai")
+  condicoes                String?
+  cpf                      String?   @unique
+  cirurgias                String[]  @default([])
+  planoSaude               String?   @map("plano_saude")
+  carteirinhaPlano         String?   @map("carteirinha_plano")
+  apelido                  String?
+  nomeSocial               String?   @map("nome_social")
+  estadoCivil              String?   @map("estado_civil")
+  corEtnia                 String?   @map("cor_etnia")
+  limitacoesAcessibilidade Json?     @map("limitacoes_acessibilidade")
+  atualizadoEm             DateTime  @updatedAt @map("atualizado_em")
 
-  usuario           Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("perfil_saude")
 }
 
 // ---- EXAMES ----
 model Exame {
-  id                    String   @id @default(uuid())
-  usuarioId             String   @map("usuario_id")
-  nomeArquivo           String?  @map("nome_arquivo")
-  tipoArquivo           String?  @map("tipo_arquivo")
-  tamanhoBytes          Int?     @map("tamanho_bytes")
-  arquivoUrl            String?  @map("arquivo_url")
-  tipoExame             String?  @map("tipo_exame")
-  laboratorio           String?
-  medicoSolicitante     String?  @map("medico_solicitante")
-  dataExame             DateTime? @map("data_exame") @db.Date
-  status                String   @default("ENVIADO")
-  statusGeral           String?  @map("status_geral")
-  textoExtraido         String?  @map("texto_extraido") @db.Text
-  dadosEstruturados     Json?    @map("dados_estruturados")
-  resumoIA              String?  @map("resumo_ia") @db.Text
-  impactosIA            Json?    @map("impactos_ia")
-  melhoriasIA           Json?    @map("melhorias_ia")
-  scoreContribuicao     Decimal? @map("score_contribuicao") @db.Decimal(5, 2)
-  erroProcessamento     String?  @map("erro_processamento") @db.Text
-  processadoEm          DateTime? @map("processado_em")
-  criadoEm              DateTime @default(now()) @map("criado_em")
-  atualizadoEm          DateTime @updatedAt @map("atualizado_em")
+  id                String    @id @default(uuid())
+  usuarioId         String    @map("usuario_id")
+  nomeArquivo       String?   @map("nome_arquivo")
+  tipoArquivo       String?   @map("tipo_arquivo")
+  tamanhoBytes      Int?      @map("tamanho_bytes")
+  arquivoUrl        String?   @map("arquivo_url")
+  tipoExame         String?   @map("tipo_exame")
+  laboratorio       String?
+  medicoSolicitante String?   @map("medico_solicitante")
+  dataExame         DateTime? @map("data_exame") @db.Date
+  status            String    @default("ENVIADO")
+  statusGeral       String?   @map("status_geral")
+  textoExtraido     String?   @map("texto_extraido") @db.Text
+  dadosEstruturados Json?     @map("dados_estruturados")
+  resumoIA          String?   @map("resumo_ia") @db.Text
+  impactosIA        Json?     @map("impactos_ia")
+  melhoriasIA       Json?     @map("melhorias_ia")
+  scoreContribuicao Decimal?  @map("score_contribuicao") @db.Decimal(5, 2)
+  erroProcessamento String?   @map("erro_processamento") @db.Text
+  processadoEm      DateTime? @map("processado_em")
+  criadoEm          DateTime  @default(now()) @map("criado_em")
+  atualizadoEm      DateTime  @updatedAt @map("atualizado_em")
 
-  usuario               Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  parametros            ParametroExame[]
+  usuario    Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  parametros ParametroExame[]
 
   @@map("exames")
 }
@@ -129,130 +135,130 @@ model ParametroExame {
   classificacao   String   @default("NORMAL")
   percentualFaixa Decimal? @map("percentual_faixa") @db.Decimal(5, 2)
 
-  exame           Exame    @relation(fields: [exameId], references: [id], onDelete: Cascade)
+  exame Exame @relation(fields: [exameId], references: [id], onDelete: Cascade)
 
   @@map("exame_parametros")
 }
 
 // ---- MEDICAMENTOS ----
 model Medicamento {
-  id                 String    @id @default(uuid())
-  usuarioId          String    @map("usuario_id")
-  nome               String
-  dosagem            String?
-  frequencia         String?
-  horario            String?
-  motivo             String?
-  dataInicio         DateTime? @map("data_inicio") @db.Date
-  dataFim            DateTime? @map("data_fim") @db.Date
-  duracaoDias        Int?      @map("duracao_dias")
-  quantidadeEstoque  Int?      @map("quantidade_estoque")
-  quantidadePorDose  Int?      @default(1) @map("quantidade_por_dose")
-  medicoPrescritor   String?   @map("medico_prescritor")
-  observacao         String?
-  ativo              Boolean   @default(true)
-  fonte              String    @default("manual")
-  criadoEm           DateTime  @default(now()) @map("criado_em")
+  id                String    @id @default(uuid())
+  usuarioId         String    @map("usuario_id")
+  nome              String
+  dosagem           String?
+  frequencia        String?
+  horario           String?
+  motivo            String?
+  dataInicio        DateTime? @map("data_inicio") @db.Date
+  dataFim           DateTime? @map("data_fim") @db.Date
+  duracaoDias       Int?      @map("duracao_dias")
+  quantidadeEstoque Int?      @map("quantidade_estoque")
+  quantidadePorDose Int?      @default(1) @map("quantidade_por_dose")
+  medicoPrescritor  String?   @map("medico_prescritor")
+  observacao        String?
+  ativo             Boolean   @default(true)
+  fonte             String    @default("manual")
+  criadoEm          DateTime  @default(now()) @map("criado_em")
 
-  usuario            Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("medicamentos")
 }
 
 // ---- ALERGIAS ----
 model Alergia {
-  id          String   @id @default(uuid())
-  usuarioId   String   @map("usuario_id")
-  nome        String
-  tipo        String?
-  gravidade   String?
-  fonte       String   @default("manual")
-  criadoEm    DateTime @default(now()) @map("criado_em")
+  id        String   @id @default(uuid())
+  usuarioId String   @map("usuario_id")
+  nome      String
+  tipo      String?
+  gravidade String?
+  fonte     String   @default("manual")
+  criadoEm  DateTime @default(now()) @map("criado_em")
 
-  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("alergias")
 }
 
 // ---- HEALTH SCORES (historico) ----
 model HealthScore {
-  id                  String   @id @default(uuid())
-  usuarioId           String   @map("usuario_id")
-  scoreGeral          Decimal  @map("score_geral") @db.Decimal(5, 2)
-  scoreSono           Decimal? @map("score_sono") @db.Decimal(5, 2)
-  scoreAtividade      Decimal? @map("score_atividade") @db.Decimal(5, 2)
-  scoreProdutividade  Decimal? @map("score_produtividade") @db.Decimal(5, 2)
-  scoreExame          Decimal? @map("score_exame") @db.Decimal(5, 2)
-  idadeBiologica      Decimal? @map("idade_biologica") @db.Decimal(4, 1)
-  idadeCronologica    Decimal? @map("idade_cronologica") @db.Decimal(4, 1)
-  fontesDados         String[] @map("fontes_dados")
-  confianca           String   @default("baixa")
-  detalhes            String?  @db.Text
-  fatores             Json?
-  criadoEm            DateTime @default(now()) @map("criado_em")
+  id                 String   @id @default(uuid())
+  usuarioId          String   @map("usuario_id")
+  scoreGeral         Decimal  @map("score_geral") @db.Decimal(5, 2)
+  scoreSono          Decimal? @map("score_sono") @db.Decimal(5, 2)
+  scoreAtividade     Decimal? @map("score_atividade") @db.Decimal(5, 2)
+  scoreProdutividade Decimal? @map("score_produtividade") @db.Decimal(5, 2)
+  scoreExame         Decimal? @map("score_exame") @db.Decimal(5, 2)
+  idadeBiologica     Decimal? @map("idade_biologica") @db.Decimal(4, 1)
+  idadeCronologica   Decimal? @map("idade_cronologica") @db.Decimal(4, 1)
+  fontesDados        String[] @map("fontes_dados")
+  confianca          String   @default("baixa")
+  detalhes           String?  @db.Text
+  fatores            Json?
+  criadoEm           DateTime @default(now()) @map("criado_em")
 
-  usuario             Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("health_scores")
 }
 
 // ---- CHECK-INS SEMANAIS ----
 model CheckinSemanal {
-  id                String   @id @default(uuid())
-  usuarioId         String   @map("usuario_id")
-  sonoQualidade     Int?     @map("sono_qualidade")
-  atividadeFisica   String?  @map("atividade_fisica")
-  humor             Int?
-  dor               String?
-  produtividade     Int?
-  notas             String?  @db.Text
-  criadoEm          DateTime @default(now()) @map("criado_em")
+  id              String   @id @default(uuid())
+  usuarioId       String   @map("usuario_id")
+  sonoQualidade   Int?     @map("sono_qualidade")
+  atividadeFisica String?  @map("atividade_fisica")
+  humor           Int?
+  dor             String?
+  produtividade   Int?
+  notas           String?  @db.Text
+  criadoEm        DateTime @default(now()) @map("criado_em")
 
-  usuario           Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("checkins_semanais")
 }
 
 // ---- NOTIFICACOES ----
 model Notificacao {
-  id          String   @id @default(uuid())
-  usuarioId   String   @map("usuario_id")
-  tipo        String
-  titulo      String
-  mensagem    String   @db.Text
-  dados       String?  @db.Text
-  lida        Boolean  @default(false)
-  lidaEm      DateTime? @map("lida_em")
-  enviadaEm   DateTime @default(now()) @map("enviada_em")
+  id        String    @id @default(uuid())
+  usuarioId String    @map("usuario_id")
+  tipo      String
+  titulo    String
+  mensagem  String    @db.Text
+  dados     String?   @db.Text
+  lida      Boolean   @default(false)
+  lidaEm    DateTime? @map("lida_em")
+  enviadaEm DateTime  @default(now()) @map("enviada_em")
 
-  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("notificacoes")
 }
 
 // ---- CODIGOS DE VERIFICACAO (SMS) ----
 model CodigoVerificacao {
-  id          String   @id @default(uuid())
-  celular     String
-  codigoHash  String   @map("codigo_hash")
-  tipo        String   @default("VERIFICACAO_SMS")
-  tentativas  Int      @default(0)
-  expiraEm    DateTime @map("expira_em")
-  usado       Boolean  @default(false)
-  criadoEm    DateTime @default(now()) @map("criado_em")
+  id         String   @id @default(uuid())
+  celular    String
+  codigoHash String   @map("codigo_hash")
+  tipo       String   @default("VERIFICACAO_SMS")
+  tentativas Int      @default(0)
+  expiraEm   DateTime @map("expira_em")
+  usado      Boolean  @default(false)
+  criadoEm   DateTime @default(now()) @map("criado_em")
 
   @@map("codigos_verificacao")
 }
 
 // ---- REFRESH TOKENS ----
 model RefreshToken {
-  id          String   @id @default(uuid())
-  usuarioId   String   @map("usuario_id")
-  token       String   @unique
-  expiraEm    DateTime @map("expira_em")
-  criadoEm    DateTime @default(now()) @map("criado_em")
+  id        String   @id @default(uuid())
+  usuarioId String   @map("usuario_id")
+  token     String   @unique
+  expiraEm  DateTime @map("expira_em")
+  criadoEm  DateTime @default(now()) @map("criado_em")
 
-  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
 }
@@ -274,97 +280,120 @@ model Medico {
   criadoEm         DateTime @default(now()) @map("criado_em")
   atualizadoEm     DateTime @updatedAt @map("atualizado_em")
 
-  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  preConsultas    PreConsulta[]
-  autorizacoes    AutorizacaoAcesso[] @relation("medico_autorizacoes")
+  usuario      Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  preConsultas PreConsulta[]
+  autorizacoes AutorizacaoAcesso[] @relation("medico_autorizacoes")
 
-  templates       FormTemplate[]
+  templates FormTemplate[]
+
+  // ---- Modulo Agenda v1 ----
+  configAgenda      ConfigAgenda?
+  agendaSlots       AgendaSlot[]
+  listaEspera       ListaEspera[]
+  locaisAtendimento LocalAtendimento[]
+  secretarias       SecretariaVinculo[]
+
+  // Google Calendar OAuth (read-only). AES-256-GCM.
+  googleTokenEnc    String?   @map("google_token_enc") @db.Text
+  googleTokenIv     String?   @map("google_token_iv")
+  googleTokenTag    String?   @map("google_token_tag")
+  googleEmail       String?   @map("google_email")
+  googleScope       String?   @map("google_scope")
+  googleConectadoEm DateTime? @map("google_conectado_em")
+  googleSyncErroEm  DateTime? @map("google_sync_erro_em")
 
   @@map("medicos")
 }
 
 // ---- FORM TEMPLATES ----
 model FormTemplate {
-  id              String   @id @default(uuid())
-  medicoId        String   @map("medico_id")
-  nome            String
-  perguntas       Json     // [{id, tipo, texto, opcoes?, obrigatoria?}]
-  permitirAudio   Boolean  @default(true) @map("permitir_audio")
-  ativo           Boolean  @default(true)
-  vezesUsado      Int      @default(0) @map("vezes_usado")
-  versao          Int      @default(1)
-  criadoEm        DateTime @default(now()) @map("criado_em")
-  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+  id            String   @id @default(uuid())
+  medicoId      String   @map("medico_id")
+  nome          String
+  perguntas     Json // [{id, tipo, texto, opcoes?, obrigatoria?}]
+  permitirAudio Boolean  @default(true) @map("permitir_audio")
+  ativo         Boolean  @default(true)
+  vezesUsado    Int      @default(0) @map("vezes_usado")
+  versao        Int      @default(1)
+  criadoEm      DateTime @default(now()) @map("criado_em")
+  atualizadoEm  DateTime @updatedAt @map("atualizado_em")
 
-  medico          Medico   @relation(fields: [medicoId], references: [id], onDelete: Cascade)
-  preConsultas    PreConsulta[]
+  medico       Medico        @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+  preConsultas PreConsulta[]
 
   @@map("form_templates")
 }
 
 // ---- PRE-CONSULTAS ----
 model PreConsulta {
-  id              String   @id @default(uuid())
-  medicoId        String   @map("medico_id")
-  templateId      String?  @map("template_id")
-  templatePerguntas Json?  @map("template_perguntas") // snapshot das perguntas no momento da criação
-  pacienteId      String?  @map("paciente_id")
-  pacienteNome    String   @map("paciente_nome")
-  pacienteTel     String?  @map("paciente_tel")
-  pacienteEmail   String?  @map("paciente_email")
-  linkToken       String   @unique @map("link_token")
-  status          String   @default("PENDENTE") // PENDENTE, ABERTO, RESPONDIDA, EXPIRADA
-  respostas       Json?    // respostas do formulário do paciente
-  pacienteFotoUrl String?  @map("paciente_foto_url")
-  audioUrl        String?  @map("audio_url")
-  transcricao     String?  @db.Text
-  transcricaoWords Json?   @map("transcricao_words") // [{ word, start, end }] para sync karaoke
-  summaryIA       String?  @map("summary_ia") @db.Text
-  summaryJson     Json?    @map("summary_json")
-  audioSummaryUrl String?  @map("audio_summary_url")
-  linkAberto      Boolean  @default(false) @map("link_aberto")
-  linkAbertoEm    DateTime? @map("link_aberto_em")
-  expiraEm        DateTime @map("expira_em")
-  respondidaEm    DateTime? @map("respondida_em")
-  criadoEm        DateTime @default(now()) @map("criado_em")
-  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+  id                String    @id @default(uuid())
+  medicoId          String    @map("medico_id")
+  templateId        String?   @map("template_id")
+  templatePerguntas Json?     @map("template_perguntas") // snapshot das perguntas no momento da criação
+  pacienteId        String?   @map("paciente_id")
+  pacienteNome      String    @map("paciente_nome")
+  pacienteTel       String?   @map("paciente_tel")
+  pacienteEmail     String?   @map("paciente_email")
+  linkToken         String    @unique @map("link_token")
+  status            String    @default("PENDENTE") // PENDENTE, ABERTO, RESPONDIDA, EXPIRADA, FINALIZADA
+  respostas         Json? // respostas do formulário do paciente
+  pacienteFotoUrl   String?   @map("paciente_foto_url")
+  audioUrl          String?   @map("audio_url")
+  transcricao       String?   @db.Text
+  transcricaoWords  Json?     @map("transcricao_words") // [{ word, start, end }] para sync karaoke
+  summaryIA         String?   @map("summary_ia") @db.Text
+  summaryJson       Json?     @map("summary_json")
+  audioSummaryUrl   String?   @map("audio_summary_url")
+  linkAberto        Boolean   @default(false) @map("link_aberto")
+  linkAbertoEm      DateTime? @map("link_aberto_em")
+  expiraEm          DateTime  @map("expira_em")
+  respondidaEm      DateTime? @map("respondida_em")
+  criadoEm          DateTime  @default(now()) @map("criado_em")
+  atualizadoEm      DateTime  @updatedAt @map("atualizado_em")
 
-  deletadoEm      DateTime? @map("deletado_em") // soft-delete
+  deletadoEm DateTime? @map("deletado_em") // soft-delete
 
   // ── FASE 3 — Status honesto por peca (nullable = legado, sem valor ainda) ──
   // Tela do medico usa isso pra mostrar selo de nivel e fallbacks honestos.
-  nivelBriefing       Int?     @map("nivel_briefing") // 0-5 (5=completo, 0=nao respondido)
-  statusResumoIa      String?  @map("status_resumo_ia") // 'ok' | 'parcial' | 'falhou'
-  statusAudioResumo   String?  @map("status_audio_resumo") // 'ok' | 'processando' | 'falhou' | 'suspeito'
-  statusTranscricao   String?  @map("status_transcricao") // 'ok' | 'falhou' | 'sem_audio'
-  statusFoto          String?  @map("status_foto") // 'ok' | 'ausente' | 'falhou'
-  statusAudio         String?  @map("status_audio") // 'ok' | 'ausente' | 'silencio' | 'falhou'
+  nivelBriefing     Int?    @map("nivel_briefing") // 0-5 (5=completo, 0=nao respondido)
+  statusResumoIa    String? @map("status_resumo_ia") // 'ok' | 'parcial' | 'falhou'
+  statusAudioResumo String? @map("status_audio_resumo") // 'ok' | 'processando' | 'falhou' | 'suspeito'
+  statusTranscricao String? @map("status_transcricao") // 'ok' | 'falhou' | 'sem_audio'
+  statusFoto        String? @map("status_foto") // 'ok' | 'ausente' | 'falhou'
+  statusAudio       String? @map("status_audio") // 'ok' | 'ausente' | 'silencio' | 'falhou'
 
-  medico          Medico   @relation(fields: [medicoId], references: [id], onDelete: Cascade)
-  template        FormTemplate? @relation(fields: [templateId], references: [id])
-  paciente        Usuario? @relation("paciente_pre_consultas", fields: [pacienteId], references: [id], onDelete: SetNull)
+  // ---- Modulo Agenda v1 (finalizacao + retorno opcional) ----
+  finalizadaEm  DateTime? @map("finalizada_em")
+  finalizadaPor String?   @map("finalizada_por") // usuarioId do medico
+  retornoSlotId String?   @map("retorno_slot_id")
+
+  medico      Medico        @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+  template    FormTemplate? @relation(fields: [templateId], references: [id])
+  paciente    Usuario?      @relation("paciente_pre_consultas", fields: [pacienteId], references: [id], onDelete: SetNull)
+  retornoSlot AgendaSlot?   @relation("retorno_pc_slot", fields: [retornoSlotId], references: [id], onDelete: SetNull)
 
   @@index([medicoId, pacienteId])
   @@index([medicoId, criadoEm])
   @@index([medicoId, status])
   @@index([medicoId, nivelBriefing])
+  @@index([finalizadaEm])
   @@map("pre_consultas")
 }
 
 // ---- AUTORIZACOES DE ACESSO ----
 model AutorizacaoAcesso {
-  id              String   @id @default(uuid())
-  pacienteId      String   @map("paciente_id")
-  medicoId        String   @map("medico_id")
-  tipoAcesso      String   @default("LEITURA") // LEITURA, COMPLETO
-  categorias      String[] @default(["exames", "perfil"]) // quais dados o médico pode ver
-  ativo           Boolean  @default(true)
-  expiraEm        DateTime? @map("expira_em")
-  criadoEm        DateTime @default(now()) @map("criado_em")
-  revogadoEm      DateTime? @map("revogado_em")
+  id         String    @id @default(uuid())
+  pacienteId String    @map("paciente_id")
+  medicoId   String    @map("medico_id")
+  tipoAcesso String    @default("LEITURA") // LEITURA, COMPLETO
+  categorias String[]  @default(["exames", "perfil"]) // quais dados o médico pode ver
+  ativo      Boolean   @default(true)
+  expiraEm   DateTime? @map("expira_em")
+  criadoEm   DateTime  @default(now()) @map("criado_em")
+  revogadoEm DateTime? @map("revogado_em")
 
-  paciente        Usuario  @relation("paciente_autorizacoes", fields: [pacienteId], references: [id], onDelete: Cascade)
-  medico          Medico   @relation("medico_autorizacoes", fields: [medicoId], references: [id], onDelete: Cascade)
+  paciente Usuario @relation("paciente_autorizacoes", fields: [pacienteId], references: [id], onDelete: Cascade)
+  medico   Medico  @relation("medico_autorizacoes", fields: [medicoId], references: [id], onDelete: Cascade)
 
   @@unique([pacienteId, medicoId])
   @@index([medicoId, ativo])
@@ -376,7 +405,7 @@ model Agendamento {
   id              String   @id @default(uuid())
   usuarioId       String   @map("usuario_id")
   titulo          String
-  tipo            String   // EXAME, CONSULTA, RETORNO
+  tipo            String // EXAME, CONSULTA, RETORNO
   local           String?
   medico          String?
   observacoes     String?  @db.Text
@@ -386,24 +415,24 @@ model Agendamento {
   criadoEm        DateTime @default(now()) @map("criado_em")
   atualizadoEm    DateTime @updatedAt @map("atualizado_em")
 
-  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("agendamentos")
 }
 
 // ---- TAREFAS PENDENTES (fila de processamento assincrono) ----
 model TarefaPendente {
-  id             String   @id @default(uuid())
-  tipo           String   // GERAR_SUMMARY_E_TTS, TRANSCREVER_AUDIO, etc
-  preConsultaId  String?  @map("pre_consulta_id")
-  payload        Json?
-  tentativas     Int      @default(0)
-  proximaTentativa DateTime @default(now()) @map("proxima_tentativa")
-  processadoEm   DateTime? @map("processado_em")
-  erro           String?  @db.Text
-  dead           Boolean  @default(false)
-  criadoEm       DateTime @default(now()) @map("criado_em")
-  atualizadoEm   DateTime @updatedAt @map("atualizado_em")
+  id               String    @id @default(uuid())
+  tipo             String // GERAR_SUMMARY_E_TTS, TRANSCREVER_AUDIO, etc
+  preConsultaId    String?   @map("pre_consulta_id")
+  payload          Json?
+  tentativas       Int       @default(0)
+  proximaTentativa DateTime  @default(now()) @map("proxima_tentativa")
+  processadoEm     DateTime? @map("processado_em")
+  erro             String?   @db.Text
+  dead             Boolean   @default(false)
+  criadoEm         DateTime  @default(now()) @map("criado_em")
+  atualizadoEm     DateTime  @updatedAt @map("atualizado_em")
 
   @@index([processadoEm, proximaTentativa])
   @@index([tipo, processadoEm])
@@ -412,17 +441,17 @@ model TarefaPendente {
 
 // ---- CONSENTIMENTOS (LGPD) ----
 model Consentimento {
-  id              String   @id @default(uuid())
-  usuarioId       String   @map("usuario_id")
-  tipo            String   // TERMOS_USO, POLITICA_PRIVACIDADE, COMPARTILHAMENTO_MEDICO, PROCESSAMENTO_IA
-  versao          String   @default("1.0")
-  aceito          Boolean  @default(true)
-  ipAddress       String?  @map("ip_address")
-  userAgent       String?  @map("user_agent")
-  criadoEm        DateTime @default(now()) @map("criado_em")
-  revogadoEm      DateTime? @map("revogado_em")
+  id         String    @id @default(uuid())
+  usuarioId  String    @map("usuario_id")
+  tipo       String // TERMOS_USO, POLITICA_PRIVACIDADE, COMPARTILHAMENTO_MEDICO, PROCESSAMENTO_IA
+  versao     String    @default("1.0")
+  aceito     Boolean   @default(true)
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  criadoEm   DateTime  @default(now()) @map("criado_em")
+  revogadoEm DateTime? @map("revogado_em")
 
-  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@unique([usuarioId, tipo, versao])
   @@map("consentimentos")
@@ -430,20 +459,194 @@ model Consentimento {
 
 // ---- AUDITORIA DE ACESSO (LGPD: quem viu qual dado, quando, de onde) ----
 model AuditoriaAcesso {
-  id              String   @id @default(uuid())
-  atorId          String?  @map("ator_id") // usuario que acessou (medico ou paciente)
-  atorTipo        String   @map("ator_tipo") // MEDICO, PACIENTE, PUBLICO
-  acao            String   // VIEW_PACIENTE, VIEW_EXAME, VIEW_RG_PUBLICO, VIEW_PRECONSULTA, etc
-  recursoId       String?  @map("recurso_id") // id do recurso acessado
-  recursoTipo     String?  @map("recurso_tipo") // PACIENTE, EXAME, PRECONSULTA, RG_PUBLICO
-  alvoId          String?  @map("alvo_id") // id do dono do dado (se diferente do ator)
-  ipAddress       String?  @map("ip_address")
-  userAgent       String?  @map("user_agent")
-  metadata        Json?    // contexto adicional
-  criadoEm        DateTime @default(now()) @map("criado_em")
+  id          String   @id @default(uuid())
+  atorId      String?  @map("ator_id") // usuario que acessou (medico ou paciente)
+  atorTipo    String   @map("ator_tipo") // MEDICO, PACIENTE, PUBLICO
+  acao        String // VIEW_PACIENTE, VIEW_EXAME, VIEW_RG_PUBLICO, VIEW_PRECONSULTA, etc
+  recursoId   String?  @map("recurso_id") // id do recurso acessado
+  recursoTipo String?  @map("recurso_tipo") // PACIENTE, EXAME, PRECONSULTA, RG_PUBLICO
+  alvoId      String?  @map("alvo_id") // id do dono do dado (se diferente do ator)
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  metadata    Json? // contexto adicional
+  criadoEm    DateTime @default(now()) @map("criado_em")
 
   @@index([atorId, criadoEm])
   @@index([alvoId, criadoEm])
   @@index([recursoTipo, recursoId])
   @@map("auditorias_acesso")
+}
+
+// ============================================
+// MODULO AGENDA MEDICA v1
+// (sessao 26-abr-2026 — feature flag AGENDA_V1_ENABLED)
+// ============================================
+
+// ---- CONFIG DA AGENDA (1 por medico) ----
+model ConfigAgenda {
+  id               String    @id @default(uuid())
+  medicoId         String    @unique @map("medico_id")
+  duracaoPadraoMin Int       @default(30) @map("duracao_padrao_min")
+  visaoPadrao      String    @default("semana") @map("visao_padrao") // dia | semana | mes
+  diasAtendimento  String    @default("1,2,3,4,5") @map("dias_atendimento") // ISO weekday CSV (1=seg)
+  horarioInicio    String    @default("08:00") @map("horario_inicio")
+  horarioFim       String    @default("18:00") @map("horario_fim")
+  almocoInicio     String?   @default("12:00") @map("almoco_inicio")
+  almocoFim        String?   @default("13:30") @map("almoco_fim")
+  bufferMin        Int       @default(0) @map("buffer_min") // intervalo entre consultas
+  lembrete24h      Boolean   @default(true) @map("lembrete_24h")
+  lembrete2h       Boolean   @default(true) @map("lembrete_2h")
+  enviarSMS        Boolean   @default(false) @map("enviar_sms") // v1 sempre false (UI esconde)
+  videochamadaTipo String    @default("jitsi") @map("videochamada_tipo") // jitsi | manual
+  noShowAuto       Int       @default(2) @map("no_show_auto") // 2 faltas = confirmar 48h
+  feriadosAuto     Boolean   @default(true) @map("feriados_auto")
+  timezone         String    @default("America/Sao_Paulo")
+  primeiraConfigEm DateTime? @map("primeira_config_em")
+  tourCompleto     Boolean   @default(false) @map("tour_completo")
+  criadoEm         DateTime  @default(now()) @map("criado_em")
+  atualizadoEm     DateTime  @updatedAt @map("atualizado_em")
+
+  medico Medico @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+
+  @@map("config_agenda")
+}
+
+// ---- LOCAIS DE ATENDIMENTO ----
+model LocalAtendimento {
+  id           String   @id @default(uuid())
+  medicoId     String   @map("medico_id")
+  nome         String // "Consultorio Centro"
+  endereco     String?  @db.Text
+  cep          String?
+  cor          String   @default("#00E5A0")
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  medico Medico       @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+  slots  AgendaSlot[]
+
+  @@index([medicoId, ativo])
+  @@map("locais_atendimento")
+}
+
+// ---- AGENDA SLOTS (consultas marcadas + bloqueios) ----
+model AgendaSlot {
+  id                   String    @id @default(uuid())
+  medicoId             String    @map("medico_id")
+  pacienteId           String?   @map("paciente_id") // null = bloqueio
+  pacienteNomeLivre    String?   @map("paciente_nome_livre") // se cadastro sem conta vita id
+  pacienteTelLivre     String?   @map("paciente_tel_livre")
+  localId              String?   @map("local_id")
+  inicio               DateTime
+  fim                  DateTime
+  duracaoMin           Int       @map("duracao_min")
+  tipo                 String // CONSULTA_NOVA | RETORNO | ONLINE | BLOQUEIO | FERIADO
+  status               String    @default("AGUARDANDO_CONFIRMACAO")
+  // AGUARDANDO_CONFIRMACAO | CONFIRMADA | CANCELADA | REMARCADA | FALTA | COMPARECEU
+  motivo               String?   @db.Text
+  observacoes          String?   @db.Text // anotacao interna (medico ou secretaria)
+  videoUrl             String?   @map("video_url")
+  origem               String    @default("MANUAL")
+  // MANUAL | RETORNO_PRE_CONSULTA | GOOGLE_IMPORT | FERIADO_AUTO | LISTA_ESPERA
+  preConsultaId        String?   @map("pre_consulta_id") // de qual PC veio (se retorno)
+  googleEventId        String?   @unique @map("google_event_id")
+  googleSyncedAt       DateTime? @map("google_synced_at")
+  attemptId            String?   @unique @map("attempt_id") // dedupe idempotencia
+  lembrete24Sent       Boolean   @default(false) @map("lembrete_24_sent")
+  lembrete24SentAt     DateTime? @map("lembrete_24_sent_at")
+  lembrete2Sent        Boolean   @default(false) @map("lembrete_2_sent")
+  lembrete2SentAt      DateTime? @map("lembrete_2_sent_at")
+  pacienteConfirmou    Boolean   @default(false) @map("paciente_confirmou")
+  pacienteConfirmadoEm DateTime? @map("paciente_confirmado_em")
+  pacienteRecusou      Boolean   @default(false) @map("paciente_recusou")
+  cancelamentoMotivo   String?   @map("cancelamento_motivo")
+  cancelamentoPor      String?   @map("cancelamento_por") // usuarioId
+  cancelamentoEm       DateTime? @map("cancelamento_em")
+  desfeitoAte          DateTime? @map("desfeito_ate") // janela 10s pra desfazer
+  estadoAnterior       Json?     @map("estado_anterior") // snapshot pra desfazer
+  noShowConfirmar48h   Boolean   @default(false) @map("no_show_confirmar_48h") // se 2 faltas
+  criadoPor            String    @map("criado_por") // usuarioId (medico OU secretaria)
+  criadoEm             DateTime  @default(now()) @map("criado_em")
+  atualizadoEm         DateTime  @updatedAt @map("atualizado_em")
+
+  medico              Medico            @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+  paciente            Usuario?          @relation("slot_paciente", fields: [pacienteId], references: [id], onDelete: SetNull)
+  local               LocalAtendimento? @relation(fields: [localId], references: [id], onDelete: SetNull)
+  preConsultasRetorno PreConsulta[]     @relation("retorno_pc_slot")
+
+  @@index([medicoId, inicio])
+  @@index([medicoId, status])
+  @@index([pacienteId, inicio])
+  @@index([googleEventId])
+  @@index([inicio, lembrete24Sent])
+  @@index([inicio, lembrete2Sent])
+  @@map("agenda_slots")
+}
+
+// ---- LISTA DE ESPERA ----
+model ListaEspera {
+  id              String    @id @default(uuid())
+  medicoId        String    @map("medico_id")
+  pacienteId      String?   @map("paciente_id")
+  pacienteNome    String?   @map("paciente_nome")
+  pacienteTel     String?   @map("paciente_tel")
+  pacienteEmail   String?   @map("paciente_email")
+  motivo          String?   @db.Text
+  preferencia     String? // MANHA | TARDE | QUALQUER
+  prioridade      String    @default("NORMAL") // NORMAL | ALTA | URGENTE
+  status          String    @default("AGUARDANDO") // AGUARDANDO | OFERTADO | CONFIRMADO | DESCARTADO
+  ofertaSlotId    String?   @map("oferta_slot_id")
+  ofertaEnviadaEm DateTime? @map("oferta_enviada_em")
+  criadoEm        DateTime  @default(now()) @map("criado_em")
+  resolvidoEm     DateTime? @map("resolvido_em")
+  criadoPor       String    @map("criado_por") // usuarioId
+
+  medico   Medico   @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+  paciente Usuario? @relation("espera_paciente", fields: [pacienteId], references: [id], onDelete: SetNull)
+
+  @@index([medicoId, status, prioridade])
+  @@map("lista_espera")
+}
+
+// ---- VINCULO SECRETARIA-MEDICO (multi-user) ----
+model SecretariaVinculo {
+  id            String    @id @default(uuid())
+  medicoId      String    @map("medico_id")
+  usuarioId     String    @map("usuario_id") // conta da secretaria
+  permissoes    String    @default("AGENDA_LER,AGENDA_ESCREVER,LISTA_ESPERA") // CSV
+  ativo         Boolean   @default(true)
+  conviteToken  String?   @unique @map("convite_token")
+  conviteExpira DateTime? @map("convite_expira")
+  conviteEmail  String?   @map("convite_email")
+  aceitoEm      DateTime? @map("aceito_em")
+  criadoEm      DateTime  @default(now()) @map("criado_em")
+  revogadoEm    DateTime? @map("revogado_em")
+
+  medico  Medico  @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation("secretaria_usuario", fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([medicoId, usuarioId])
+  @@index([usuarioId, ativo])
+  @@index([conviteToken])
+  @@map("secretaria_vinculos")
+}
+
+// ---- PUSH SUBSCRIPTIONS (web push pra lembretes) ----
+model PushSubscription {
+  id          String    @id @default(uuid())
+  usuarioId   String    @map("usuario_id")
+  endpoint    String    @unique @db.Text
+  p256dh      String    @db.Text
+  auth        String    @db.Text
+  userAgent   String?   @map("user_agent")
+  ativo       Boolean   @default(true)
+  ultimoUsoEm DateTime? @map("ultimo_uso_em")
+  falhouEm    DateTime? @map("falhou_em")
+  criadoEm    DateTime  @default(now()) @map("criado_em")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, ativo])
+  @@map("push_subscriptions")
 }

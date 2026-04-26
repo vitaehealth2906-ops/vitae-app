@@ -263,6 +263,177 @@ app.listen(PORT, '0.0.0.0', async () => {
     `);
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "jwt_revogados_expira_idx" ON "jwt_revogados"("expira_em")`);
     console.log('[MIGRATE] tabela jwt_revogados OK');
+
+    // ============================================
+    // ETAPA 8 — Modulo Agenda Medica v1 (sessao 26-abr-2026)
+    // Idempotente, aditivo, zero risco. Tabelas e colunas so sao criadas
+    // se nao existirem. Feature flag AGENDA_V1_ENABLED controla se a feature aparece.
+    // ============================================
+
+    // 8.1 — config_agenda (1 por medico)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "config_agenda" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "medico_id" TEXT NOT NULL UNIQUE,
+        "duracao_padrao_min" INTEGER NOT NULL DEFAULT 30,
+        "visao_padrao" TEXT NOT NULL DEFAULT 'semana',
+        "dias_atendimento" TEXT NOT NULL DEFAULT '1,2,3,4,5',
+        "horario_inicio" TEXT NOT NULL DEFAULT '08:00',
+        "horario_fim" TEXT NOT NULL DEFAULT '18:00',
+        "almoco_inicio" TEXT DEFAULT '12:00',
+        "almoco_fim" TEXT DEFAULT '13:30',
+        "buffer_min" INTEGER NOT NULL DEFAULT 0,
+        "lembrete_24h" BOOLEAN NOT NULL DEFAULT true,
+        "lembrete_2h" BOOLEAN NOT NULL DEFAULT true,
+        "enviar_sms" BOOLEAN NOT NULL DEFAULT false,
+        "videochamada_tipo" TEXT NOT NULL DEFAULT 'jitsi',
+        "no_show_auto" INTEGER NOT NULL DEFAULT 2,
+        "feriados_auto" BOOLEAN NOT NULL DEFAULT true,
+        "timezone" TEXT NOT NULL DEFAULT 'America/Sao_Paulo',
+        "primeira_config_em" TIMESTAMP(3),
+        "tour_completo" BOOLEAN NOT NULL DEFAULT false,
+        "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "atualizado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 8.2 — locais_atendimento
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "locais_atendimento" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "medico_id" TEXT NOT NULL,
+        "nome" TEXT NOT NULL,
+        "endereco" TEXT,
+        "cep" TEXT,
+        "cor" TEXT NOT NULL DEFAULT '#00E5A0',
+        "ativo" BOOLEAN NOT NULL DEFAULT true,
+        "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "atualizado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "locais_atendimento_medico_ativo_idx" ON "locais_atendimento"("medico_id", "ativo")`);
+
+    // 8.3 — agenda_slots (consultas + bloqueios)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "agenda_slots" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "medico_id" TEXT NOT NULL,
+        "paciente_id" TEXT,
+        "paciente_nome_livre" TEXT,
+        "paciente_tel_livre" TEXT,
+        "local_id" TEXT,
+        "inicio" TIMESTAMP(3) NOT NULL,
+        "fim" TIMESTAMP(3) NOT NULL,
+        "duracao_min" INTEGER NOT NULL,
+        "tipo" TEXT NOT NULL,
+        "status" TEXT NOT NULL DEFAULT 'AGUARDANDO_CONFIRMACAO',
+        "motivo" TEXT,
+        "observacoes" TEXT,
+        "video_url" TEXT,
+        "origem" TEXT NOT NULL DEFAULT 'MANUAL',
+        "pre_consulta_id" TEXT,
+        "google_event_id" TEXT UNIQUE,
+        "google_synced_at" TIMESTAMP(3),
+        "attempt_id" TEXT UNIQUE,
+        "lembrete_24_sent" BOOLEAN NOT NULL DEFAULT false,
+        "lembrete_24_sent_at" TIMESTAMP(3),
+        "lembrete_2_sent" BOOLEAN NOT NULL DEFAULT false,
+        "lembrete_2_sent_at" TIMESTAMP(3),
+        "paciente_confirmou" BOOLEAN NOT NULL DEFAULT false,
+        "paciente_confirmado_em" TIMESTAMP(3),
+        "paciente_recusou" BOOLEAN NOT NULL DEFAULT false,
+        "cancelamento_motivo" TEXT,
+        "cancelamento_por" TEXT,
+        "cancelamento_em" TIMESTAMP(3),
+        "desfeito_ate" TIMESTAMP(3),
+        "estado_anterior" JSONB,
+        "no_show_confirmar_48h" BOOLEAN NOT NULL DEFAULT false,
+        "criado_por" TEXT NOT NULL,
+        "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "atualizado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "agenda_slots_medico_inicio_idx" ON "agenda_slots"("medico_id", "inicio")`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "agenda_slots_medico_status_idx" ON "agenda_slots"("medico_id", "status")`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "agenda_slots_paciente_inicio_idx" ON "agenda_slots"("paciente_id", "inicio")`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "agenda_slots_inicio_lembrete24_idx" ON "agenda_slots"("inicio", "lembrete_24_sent")`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "agenda_slots_inicio_lembrete2_idx" ON "agenda_slots"("inicio", "lembrete_2_sent")`);
+
+    // 8.4 — lista_espera
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "lista_espera" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "medico_id" TEXT NOT NULL,
+        "paciente_id" TEXT,
+        "paciente_nome" TEXT,
+        "paciente_tel" TEXT,
+        "paciente_email" TEXT,
+        "motivo" TEXT,
+        "preferencia" TEXT,
+        "prioridade" TEXT NOT NULL DEFAULT 'NORMAL',
+        "status" TEXT NOT NULL DEFAULT 'AGUARDANDO',
+        "oferta_slot_id" TEXT,
+        "oferta_enviada_em" TIMESTAMP(3),
+        "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "resolvido_em" TIMESTAMP(3),
+        "criado_por" TEXT NOT NULL
+      )
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "lista_espera_medico_status_prio_idx" ON "lista_espera"("medico_id", "status", "prioridade")`);
+
+    // 8.5 — secretaria_vinculos (multi-user)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "secretaria_vinculos" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "medico_id" TEXT NOT NULL,
+        "usuario_id" TEXT NOT NULL,
+        "permissoes" TEXT NOT NULL DEFAULT 'AGENDA_LER,AGENDA_ESCREVER,LISTA_ESPERA',
+        "ativo" BOOLEAN NOT NULL DEFAULT true,
+        "convite_token" TEXT UNIQUE,
+        "convite_expira" TIMESTAMP(3),
+        "convite_email" TEXT,
+        "aceito_em" TIMESTAMP(3),
+        "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "revogado_em" TIMESTAMP(3)
+      )
+    `);
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "secretaria_vinculos_medico_usuario_unq" ON "secretaria_vinculos"("medico_id", "usuario_id")`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "secretaria_vinculos_usuario_ativo_idx" ON "secretaria_vinculos"("usuario_id", "ativo")`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "secretaria_vinculos_token_idx" ON "secretaria_vinculos"("convite_token")`);
+
+    // 8.6 — push_subscriptions (web push pra lembretes)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "push_subscriptions" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "usuario_id" TEXT NOT NULL,
+        "endpoint" TEXT NOT NULL UNIQUE,
+        "p256dh" TEXT NOT NULL,
+        "auth" TEXT NOT NULL,
+        "user_agent" TEXT,
+        "ativo" BOOLEAN NOT NULL DEFAULT true,
+        "ultimo_uso_em" TIMESTAMP(3),
+        "falhou_em" TIMESTAMP(3),
+        "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "push_subscriptions_usuario_ativo_idx" ON "push_subscriptions"("usuario_id", "ativo")`);
+
+    // 8.7 — Colunas novas em pre_consultas (finalizacao + retorno)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "finalizada_em" TIMESTAMP(3)`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "finalizada_por" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "pre_consultas" ADD COLUMN IF NOT EXISTS "retorno_slot_id" TEXT`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "pre_consultas_finalizada_em_idx" ON "pre_consultas"("finalizada_em")`);
+
+    // 8.8 — Colunas novas em medicos (Google Calendar OAuth)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "medicos" ADD COLUMN IF NOT EXISTS "google_token_enc" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "medicos" ADD COLUMN IF NOT EXISTS "google_token_iv" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "medicos" ADD COLUMN IF NOT EXISTS "google_token_tag" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "medicos" ADD COLUMN IF NOT EXISTS "google_email" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "medicos" ADD COLUMN IF NOT EXISTS "google_scope" TEXT`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "medicos" ADD COLUMN IF NOT EXISTS "google_conectado_em" TIMESTAMP(3)`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "medicos" ADD COLUMN IF NOT EXISTS "google_sync_erro_em" TIMESTAMP(3)`);
+
+    console.log('[MIGRATE] ETAPA 8 (Agenda v1) — 6 tabelas + colunas em pre_consultas/medicos OK');
   } catch (e) {
     console.error('[MIGRATE] Erro ao aplicar migracao manual:', e.message);
   }
