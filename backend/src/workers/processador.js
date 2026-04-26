@@ -372,6 +372,9 @@ async function processarTarefa(tarefa) {
   try {
     if (tarefa.tipo === 'GERAR_SUMMARY_E_TTS') {
       await processarGerarSummaryETts(tarefa);
+    } else if (tarefa.tipo === 'AGENDA_OFERTAR_VAGA' && tarefa.payload?.slotId) {
+      const esperaSvc = require('../services/agenda/espera');
+      await esperaSvc.tentarOfertar(tarefa.payload.slotId);
     } else {
       throw new Error('Tipo de tarefa desconhecido: ' + tarefa.tipo);
     }
@@ -439,18 +442,138 @@ async function tick() {
   }
 }
 
+// ── Worker de lembretes da Agenda (independente, sem TarefaPendente) ──
+// Busca slots com inicio entre now e now+24h (ou +2h) e !lembrete*Sent.
+// Roda a cada 2 min — frequencia suficiente pra cobrir janela.
+const INTERVALO_LEMBRETES_MS = 2 * 60 * 1000;
+let lembretesRunning = false;
+
+async function tickLembretes() {
+  if (lembretesRunning) return;
+  if (process.env.AGENDA_V1_ENABLED !== 'true') return;
+  lembretesRunning = true;
+  try {
+    const lembretesSvc = require('../services/agenda/lembretes');
+
+    // 24h
+    const lista24 = await lembretesSvc.listarLembretes24hPendentes();
+    for (const s of lista24) {
+      try {
+        const r = await lembretesSvc.enviar(s.id, '24h');
+        if (!r.sent && r.reason !== 'JA_ENVIADO') {
+          registrarFalha?.('agenda_lembrete_falhou', { slotId: s.id, tipo: '24h', motivo: r.reason });
+        }
+      } catch (e) {
+        registrarFalha?.('agenda_lembrete_falhou', { slotId: s.id, tipo: '24h', erro: e.message });
+      }
+    }
+
+    // 2h
+    const lista2 = await lembretesSvc.listarLembretes2hPendentes();
+    for (const s of lista2) {
+      try {
+        const r = await lembretesSvc.enviar(s.id, '2h');
+        if (!r.sent && r.reason !== 'JA_ENVIADO') {
+          registrarFalha?.('agenda_lembrete_falhou', { slotId: s.id, tipo: '2h', motivo: r.reason });
+        }
+      } catch (e) {
+        registrarFalha?.('agenda_lembrete_falhou', { slotId: s.id, tipo: '2h', erro: e.message });
+      }
+    }
+  } catch (e) {
+    console.error('[WORKER LEMBRETES] erro:', e.message);
+  } finally {
+    lembretesRunning = false;
+  }
+}
+
+// ── Worker de no-show automatico (roda 1x por hora, marca FALTA em slots passados nao atualizados) ──
+async function tickNoShow() {
+  if (process.env.AGENDA_V1_ENABLED !== 'true') return;
+  try {
+    const prismaInstance = require('../utils/prisma');
+    // Slots cujo fim ja passou ha 1h+, status ainda AGUARDANDO_CONFIRMACAO ou CONFIRMADA
+    const limite = new Date(Date.now() - 60 * 60 * 1000);
+    const slots = await prismaInstance.agendaSlot.findMany({
+      where: {
+        fim: { lt: limite },
+        status: { in: ['AGUARDANDO_CONFIRMACAO', 'CONFIRMADA'] },
+      },
+      select: { id: true, medicoId: true, pacienteId: true },
+      take: 50,
+    });
+
+    const slotsSvc = require('../services/agenda/slots');
+    for (const s of slots) {
+      try {
+        await slotsSvc.marcarStatus(s.id, 'FALTA', 'AUTO_NO_SHOW');
+      } catch (_e) {}
+    }
+  } catch (e) {
+    console.error('[WORKER NO-SHOW] erro:', e.message);
+  }
+}
+
+// ── Sync periodico do Google Calendar (a cada 30 min, em background) ──
+async function tickGoogleSync() {
+  if (process.env.AGENDA_V1_ENABLED !== 'true') return;
+  if (process.env.AGENDA_GCAL_ENABLED !== 'true') return;
+  try {
+    const prismaInstance = require('../utils/prisma');
+    const gcalSvc = require('../services/agenda/google-sync');
+    const medicos = await prismaInstance.medico.findMany({
+      where: { googleConectadoEm: { not: null }, googleTokenEnc: { not: null } },
+      select: { id: true },
+      take: 50,
+    });
+    for (const m of medicos) {
+      try {
+        await gcalSvc.sincronizar(m.id, 90);
+      } catch (e) {
+        registrarFalha?.('agenda_gcal_sync_falhou', { medicoId: m.id, erro: e.message });
+      }
+    }
+  } catch (e) {
+    console.error('[WORKER GCAL SYNC] erro:', e.message);
+  }
+}
+
 let intervalHandle = null;
+let intervalLembretes = null;
+let intervalNoShow = null;
+let intervalGcal = null;
+
 function iniciarWorker() {
   if (intervalHandle) return;
-  // Primeiro tick depois de 10s (da tempo do servidor subir)
   setTimeout(() => {
     tick();
     intervalHandle = setInterval(tick, INTERVALO_MS);
   }, 10000);
+
+  // Workers da agenda (so se feature flag ON; check no proprio tick)
+  setTimeout(() => {
+    tickLembretes();
+    intervalLembretes = setInterval(tickLembretes, INTERVALO_LEMBRETES_MS);
+  }, 15000);
+
+  // No-show: 1x por hora
+  setTimeout(() => {
+    tickNoShow();
+    intervalNoShow = setInterval(tickNoShow, 60 * 60 * 1000);
+  }, 30000);
+
+  // Google sync: 30 min
+  setTimeout(() => {
+    tickGoogleSync();
+    intervalGcal = setInterval(tickGoogleSync, 30 * 60 * 1000);
+  }, 60000);
 }
 
 function pararWorker() {
   if (intervalHandle) { clearInterval(intervalHandle); intervalHandle = null; }
+  if (intervalLembretes) { clearInterval(intervalLembretes); intervalLembretes = null; }
+  if (intervalNoShow) { clearInterval(intervalNoShow); intervalNoShow = null; }
+  if (intervalGcal) { clearInterval(intervalGcal); intervalGcal = null; }
 }
 
 module.exports = { iniciarWorker, pararWorker };

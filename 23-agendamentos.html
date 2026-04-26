@@ -108,9 +108,34 @@
     function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
 
     async function loadAgendamentos() {
+        let items = [];
+
+        // 1. Tenta novo endpoint Agenda v1 (slots do paciente com seu medico)
         try {
-            const data = await vitaeAPI.listarAgendamentos();
-            const items = data.agendamentos || [];
+            if (typeof vitaeAPI.agendaMeusSlots === 'function') {
+                const r = await vitaeAPI.agendaMeusSlots();
+                if (r && r.ok && r.data && r.data.length > 0) {
+                    items = r.data.map(s => ({
+                        id: s.id,
+                        titulo: 'Dr(a). ' + (s.medico?.usuario?.nome || 'Medico') + ' — ' + (s.medico?.especialidade || ''),
+                        tipo: s.tipo === 'RETORNO' ? 'RETORNO' : 'CONSULTA',
+                        dataHora: s.inicio,
+                        local: s.local?.nome || (s.tipo === 'ONLINE' ? 'Consulta online' : ''),
+                        _isV2: true,
+                    }));
+                }
+            }
+        } catch (_e) { /* fallback abaixo */ }
+
+        // 2. Fallback: agendamento legado
+        if (items.length === 0) {
+            try {
+                const data = await vitaeAPI.listarAgendamentos();
+                items = data.agendamentos || [];
+            } catch (_e) {}
+        }
+
+        try {
             if (items.length === 0) return;
 
             document.getElementById('emptyState').style.display = 'none';
@@ -155,10 +180,12 @@
     async function deletar(id) {
         if (!confirm('Cancelar este agendamento?')) return;
         try {
+            // Tenta novo endpoint primeiro (paciente nao pode cancelar slot do medico — so pedir remarcar)
+            // Mantemos fallback pra agendamento legado
             await vitaeAPI.deletarAgendamento(id);
             loadAgendamentos();
         } catch (e) {
-            alert(e.message);
+            alert(e.message || 'Pra cancelar, fale com seu medico.');
         }
     }
 

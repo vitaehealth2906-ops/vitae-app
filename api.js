@@ -525,6 +525,47 @@ const vitaeAPI = {
     return apiRequest(`/agendamento/${id}`, { method: 'DELETE' });
   },
 
+  // ===== Modulo Agenda v1 (sessao 26-abr-2026) =====
+  async agendaConfig() { return apiRequest('/agenda/config'); },
+  async agendaConfigSalvar(dados) { return apiRequest('/agenda/config', { method: 'PUT', body: dados }); },
+  async agendaConfigFinalizarTour() { return apiRequest('/agenda/config', { method: 'PUT', body: { tourCompleto: true } }); },
+  async agendaLocais() { return apiRequest('/agenda/locais'); },
+  async agendaCriarLocal(dados) { return apiRequest('/agenda/locais', { method: 'POST', body: dados }); },
+  async agendaEditarLocal(id, dados) { return apiRequest(`/agenda/locais/${id}`, { method: 'PUT', body: dados }); },
+  async agendaRemoverLocal(id) { return apiRequest(`/agenda/locais/${id}`, { method: 'DELETE' }); },
+  async agendaSlots(inicio, fim) { return apiRequest(`/agenda/slots?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`); },
+  async agendaCriarSlot(dados) { return apiRequest('/agenda/slots', { method: 'POST', body: dados }); },
+  async agendaRemarcarSlot(id, dados) { return apiRequest(`/agenda/slots/${id}`, { method: 'PUT', body: dados }); },
+  async agendaCancelarSlot(id, motivo) { return apiRequest(`/agenda/slots/${id}${motivo ? '?motivo=' + encodeURIComponent(motivo) : ''}`, { method: 'DELETE' }); },
+  async agendaDesfazerCancelamento(id) { return apiRequest(`/agenda/slots/${id}/desfazer`, { method: 'POST' }); },
+  async agendaMarcarComparecimento(id) { return apiRequest(`/agenda/slots/${id}/comparecer`, { method: 'POST' }); },
+  async agendaMarcarFalta(id) { return apiRequest(`/agenda/slots/${id}/falta`, { method: 'POST' }); },
+  async agendaSugerirRetorno(pacienteId, prazoDias = 15) {
+    const q = new URLSearchParams();
+    if (pacienteId) q.set('pacienteId', pacienteId);
+    q.set('prazoDias', prazoDias);
+    return apiRequest(`/agenda/sugestoes-retorno?${q}`);
+  },
+  async agendaFinalizar(preConsultaId, opts) { return apiRequest(`/agenda/finalizar/${preConsultaId}`, { method: 'POST', body: opts }); },
+  async agendaDesfazerFinalizacao(preConsultaId) { return apiRequest(`/agenda/finalizar/${preConsultaId}/desfazer`, { method: 'POST' }); },
+  async agendaListaEspera() { return apiRequest('/agenda/lista-espera'); },
+  async agendaAdicionarEspera(dados) { return apiRequest('/agenda/lista-espera', { method: 'POST', body: dados }); },
+  async agendaRemoverEspera(id) { return apiRequest(`/agenda/lista-espera/${id}`, { method: 'DELETE' }); },
+  async agendaStats(mes) { return apiRequest(`/agenda/stats?mes=${mes}`); },
+  async agendaGoogleAuth() { return apiRequest('/agenda/google/auth'); },
+  async agendaGoogleSync() { return apiRequest('/agenda/google/sync', { method: 'POST' }); },
+  async agendaGoogleDesconectar() { return apiRequest('/agenda/google/desconectar', { method: 'DELETE' }); },
+  async agendaGoogleStatus() { return apiRequest('/agenda/google/status'); },
+  async agendaSecretarias() { return apiRequest('/agenda/secretarias'); },
+  async agendaConvidarSecretaria(email, permissoes) { return apiRequest('/agenda/secretarias/convidar', { method: 'POST', body: { email, permissoes } }); },
+  async agendaAceitarConvite(token) { return apiRequest(`/agenda/secretarias/aceitar/${token}`, { method: 'POST' }); },
+  async agendaRevogarSecretaria(id) { return apiRequest(`/agenda/secretarias/${id}`, { method: 'DELETE' }); },
+  async agendaProximoMeu() { return apiRequest('/agenda/proximo-meu'); },
+  async agendaMeusSlots() { return apiRequest('/agenda/meus-slots'); },
+  async agendaPushVapidKey() { return apiRequest('/agenda/push/vapid-public-key'); },
+  async agendaPushSubscribe(sub) { return apiRequest('/agenda/push/subscribe', { method: 'POST', body: sub }); },
+  async agendaPushUnsubscribe(endpoint) { return apiRequest('/agenda/push/subscribe', { method: 'DELETE', body: { endpoint } }); },
+
   // Autorizacao
   async autorizarMedico(dados) {
     return apiRequest('/autorizacao', { method: 'POST', body: dados });

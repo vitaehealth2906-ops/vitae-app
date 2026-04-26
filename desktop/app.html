@@ -1218,6 +1218,8 @@ body.dark-mode .cfm-disclaimer strong{color:#93C5FD}
     <div class="sb-g">Pacientes</div>
     <a class="nl" id="nl-pacientes" data-view="pacientes" href="#pacientes" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pacientes</span><span class="pip pip-g" id="pipPacientes" style="display:none">0</span></a>
     <a class="nl" id="nl-crm" data-view="crm" href="#crm" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>CRM & Retornos</span></a>
+    <a class="nl" id="nl-agenda" data-view="agenda" href="#agenda" style="text-decoration:none"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Agenda</span></a>
+    <a class="nl" id="nl-stats" data-view="stats" href="#stats" style="text-decoration:none"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Stats</span></a>
     <div class="sb-g">Workspace</div>
     <a class="nl" id="nl-templates" data-view="templates" href="#templates" style="text-decoration:none"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><span>Templates</span></a>
     <a class="nl" id="nl-perfil" data-view="perfil" href="#perfil" style="text-decoration:none"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Meu Perfil</span></a>
@@ -1890,6 +1892,18 @@ body.dark-mode .cfm-disclaimer strong{color:#93C5FD}
     <!-- ============================================================
          RG DA SAUDE — aba educacional (medico conhece o app do paciente)
          ============================================================ -->
+
+    <!-- ============================================================
+         AGENDA v1 (sessao 26-abr-2026) — view dedicada
+         Renderizada por agendaInit() em desktop/app.html (codigo embutido)
+         ============================================================ -->
+    <div id="view-agenda" class="view" style="display:none"></div>
+
+    <!-- ============================================================
+         STATS v1 — aba dedicada de metricas mensais
+         ============================================================ -->
+    <div id="view-stats" class="view" style="display:none"></div>
+
     <div id="view-rg-saude" class="view" style="display:none">
       <div class="rgs-wrap">
 
@@ -2259,7 +2273,9 @@ var VIEW_CONFIG = {
   'perfil':         { title: 'Meu Perfil',     sub: 'Gerencie seus dados' },
   'notificar':      { title: 'Notificar atrasados', sub: 'Selecione pacientes e escolha a mensagem' },
   'metricas':       { title: 'Minhas metricas',     sub: 'Escolha o que acompanhar no dashboard' },
-  'rg-saude':       { title: 'RG da Saude',         sub: 'O mundo do seu paciente' }
+  'rg-saude':       { title: 'RG da Saude',         sub: 'O mundo do seu paciente' },
+  'agenda':         { title: 'Agenda',               sub: 'Sua semana de atendimentos' },
+  'stats':          { title: 'Stats',                sub: 'Resumo do mes' }
 };
 
 /* ---------- BOOT (paralelo, allSettled) ---------- */
@@ -2400,6 +2416,10 @@ function setNavActive(view){
   var target = document.getElementById('nl-'+view);
   if(target) target.classList.add('on');
 }
+
+// Dispatchers de agenda/stats
+window.renderAgenda = function() { try { agendaInit(); } catch(e) { console.error('[agenda]', e); } };
+window.renderStats = function() { try { statsInit(); } catch(e) { console.error('[stats]', e); } };
 
 window.addEventListener('hashchange', function(){
   var r = parseRoute();
@@ -3508,6 +3528,16 @@ async function pcOpenDetail(pcId){
     // Removidos (23/04/2026): badge "Briefing completo", botao olhinho privacy, botao lua theme.
     // Mantidos abaixo: Exportar iClinic + timestamp (confirmados pelo Lucas).
     html += '<button class="btn btn-s" onclick="pcOpenIclModal()" style="background:rgba(21,101,192,.08);border-color:rgba(21,101,192,.18);color:#1565C0;height:36px;font-size:12.5px;padding:0 14px"><svg viewBox="0 0 24 24" style="stroke:#1565C0"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar iClinic</button>';
+
+    // Sessao 26-abr-2026: 2 botoes de finalizacao (apenas se feature flag agenda visivel)
+    // Renderizados sempre — o backend bloqueia se flag off (frontend nao precisa saber)
+    if(pc.status === 'RESPONDIDA') {
+      html += '<button class="btn btn-s" id="btnFinalizarAtend" onclick="finalizarAtendimento(\''+pc.id+'\')" style="height:36px;font-size:12.5px;padding:0 14px" title="Marca o atendimento como concluido. Sem retorno marcado."><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Finalizar atendimento</button>';
+      html += '<button class="btn btn-p" id="btnFinalizarRetorno" onclick="finalizarComRetorno(\''+pc.id+'\')" style="height:36px;font-size:12.5px;padding:0 14px" title="Marca atendimento concluido E abre agenda pra marcar retorno em 1 clique."><svg viewBox="0 0 24 24" style="stroke:#0D0F14"><polyline points="20 6 9 17 4 12"/></svg>Finalizar e marcar retorno</button>';
+    } else if(pc.status === 'FINALIZADA') {
+      html += '<span class="timestamp" style="background:rgba(0,229,160,.08);border-color:rgba(0,229,160,.25);color:#005B36"><svg viewBox="0 0 24 24" width="12" height="12" style="display:inline;margin-right:4px;vertical-align:-2px;stroke:#005B36;fill:none;stroke-width:2.5"><polyline points="20 6 9 17 4 12"/></svg>Finalizada</span>';
+    }
+
     if(respondidaEm !== '--') html += '<div class="timestamp">' + escHtml(respondidaEm) + '</div>';
     html += '</div>';
     html += '</div>';
@@ -4248,6 +4278,402 @@ function pcAtualizarKaraoke(currentTime){
       box.scrollTop += (curRect.top - targetY);
       setTimeout(function(){ window._programmaticScroll = false; }, 50);
     }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   AGENDA v1 (sessao 26-abr-2026)
+   2 botoes de finalizacao no briefing + view-agenda completa.
+   Cada acao tem debounce 1s, attemptId UUID, toast com desfazer.
+   ════════════════════════════════════════════════════════════ */
+
+window.agendaState = {
+  modoRetorno: null,  // null ou { preConsultaId, pacienteId, pacienteNome, prazoDias }
+  view: 'semana',     // dia | semana | mes
+  anchorISO: null,    // semana visivel (segunda)
+  slots: [],
+  config: null,
+  locais: [],
+  toastTimer: null,
+};
+
+function _agUuid() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'a-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+function _agShowToast(msg, undoFn) {
+  if (agendaState.toastTimer) clearTimeout(agendaState.toastTimer);
+  var existing = document.getElementById('ag-toast');
+  if (existing) existing.remove();
+  var t = document.createElement('div');
+  t.id = 'ag-toast';
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0D0F14;color:#fff;padding:14px 20px;border-radius:14px;font-family:inherit;font-size:13.5px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.3);display:flex;align-items:center;gap:14px;max-width:520px';
+  t.innerHTML = '<span>' + msg + '</span>';
+  if (undoFn) {
+    var btn = document.createElement('button');
+    btn.textContent = 'Desfazer';
+    btn.style.cssText = 'background:rgba(0,229,160,.18);border:0;color:#00E5A0;font-weight:700;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12.5px';
+    btn.onclick = function() { undoFn(); t.remove(); };
+    t.appendChild(btn);
+  }
+  document.body.appendChild(t);
+  agendaState.toastTimer = setTimeout(function(){ if (t.parentNode) t.remove(); }, 10000);
+}
+
+async function finalizarAtendimento(pcId) {
+  var btn = document.getElementById('btnFinalizarAtend');
+  if (btn) btn.disabled = true;
+  try {
+    var r = await vitaeAPI.agendaFinalizar(pcId, { comRetorno: false });
+    if (!r.ok) { alert(r.message || 'Erro ao finalizar.'); if (btn) btn.disabled = false; return; }
+    _agShowToast(
+      'Atendimento finalizado. Paciente foi marcado como atendido.',
+      async function() {
+        var u = await vitaeAPI.agendaDesfazerFinalizacao(pcId);
+        if (u.ok) navigate('pre-consultas');
+        else alert(u.message || 'Nao foi possivel desfazer.');
+      }
+    );
+    setTimeout(function() { navigate('pre-consultas'); }, 600);
+  } catch (e) {
+    alert('Erro: ' + e.message);
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function finalizarComRetorno(pcId) {
+  var btn = document.getElementById('btnFinalizarRetorno');
+  if (btn) btn.disabled = true;
+
+  var pc = (pcState && pcState.currentPC) || {};
+  agendaState.modoRetorno = {
+    preConsultaId: pcId,
+    pacienteId: pc.pacienteId || null,
+    pacienteNome: pc.pacienteNome || 'Paciente',
+    prazoDias: 15,
+    pcSnapshot: pc,
+  };
+  navigate('agenda');
+}
+
+async function _agCancelarModoRetorno() {
+  agendaState.modoRetorno = null;
+  navigate('dashboard');
+}
+
+async function _agConfirmarMarcacaoRetorno(slotInicioISO, slotFimISO, duracaoMin) {
+  if (!agendaState.modoRetorno) return;
+  var mr = agendaState.modoRetorno;
+  if (!confirm('Marcar ' + mr.pacienteNome + ' aqui (' + new Date(slotInicioISO).toLocaleString('pt-BR', {dateStyle:'medium', timeStyle:'short'}) + ')?')) return;
+
+  try {
+    var r = await vitaeAPI.agendaFinalizar(mr.preConsultaId, {
+      comRetorno: true,
+      slotInicio: slotInicioISO,
+      slotFim: slotFimISO,
+      slotDuracaoMin: duracaoMin,
+      attemptId: _agUuid(),
+    });
+    if (!r.ok) { alert(r.message || 'Erro ao marcar retorno.'); return; }
+    agendaState.modoRetorno = null;
+    _agShowToast(
+      'Retorno marcado. ' + mr.pacienteNome + ' foi notificado(a).',
+      async function() { await vitaeAPI.agendaDesfazerFinalizacao(mr.preConsultaId); }
+    );
+    setTimeout(function() { navigate('dashboard'); }, 600);
+  } catch (e) {
+    alert('Erro: ' + e.message);
+  }
+}
+
+// Init agenda (chamado quando navigate('agenda'))
+async function agendaInit() {
+  var view = document.getElementById('view-agenda');
+  if (!view) return;
+
+  // Verifica feature flag (backend retorna 503 se off)
+  try {
+    var configResp = await vitaeAPI.agendaConfig();
+    if (!configResp.ok) {
+      view.innerHTML = '<div style="padding:40px;text-align:center"><h2>Agenda em manutencao</h2><p>' + (configResp.message || 'Volte em breve.') + '</p></div>';
+      return;
+    }
+    agendaState.config = configResp.data;
+  } catch (e) {
+    view.innerHTML = '<div style="padding:40px;text-align:center"><h2>Agenda indisponivel</h2><p>' + e.message + '</p></div>';
+    return;
+  }
+
+  // Tour primeira vez
+  if (agendaState.config && !agendaState.config.tourCompleto) {
+    agendaState.config.tourCompleto = true;
+    vitaeAPI.agendaConfigFinalizarTour().catch(function(){});
+  }
+
+  // Carrega locais
+  try {
+    var locResp = await vitaeAPI.agendaLocais();
+    if (locResp.ok) agendaState.locais = locResp.data;
+  } catch (_e) {}
+
+  // Define semana corrente como anchor (se nao tem)
+  if (!agendaState.anchorISO) {
+    var hoje = new Date();
+    var dow = hoje.getDay() === 0 ? 6 : hoje.getDay() - 1; // dist da segunda
+    var seg = new Date(hoje); seg.setDate(seg.getDate() - dow); seg.setHours(0,0,0,0);
+    agendaState.anchorISO = seg.toISOString();
+  }
+
+  await agendaCarregarSlots();
+  agendaRender();
+}
+
+async function agendaCarregarSlots() {
+  if (!agendaState.anchorISO) return;
+  var inicio = new Date(agendaState.anchorISO);
+  var fim = new Date(inicio); fim.setDate(fim.getDate() + 7);
+  try {
+    var resp = await vitaeAPI.agendaSlots(inicio.toISOString(), fim.toISOString());
+    if (resp.ok) agendaState.slots = resp.data;
+  } catch (e) {
+    console.error('[agenda] erro carregar slots:', e);
+  }
+}
+
+function _agFmtDay(d) {
+  return ['DOM','SEG','TER','QUA','QUI','SEX','SAB'][d.getDay()];
+}
+function _agFmtRange(start) {
+  var s = new Date(start); var e = new Date(s); e.setDate(e.getDate() + 6);
+  var meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return s.getDate() + ' – ' + e.getDate() + ' de ' + meses[e.getMonth()] + ', ' + e.getFullYear();
+}
+
+function agendaRender() {
+  var view = document.getElementById('view-agenda');
+  if (!view) return;
+
+  var inicio = new Date(agendaState.anchorISO);
+  var dias = [];
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(inicio); d.setDate(d.getDate() + i);
+    dias.push(d);
+  }
+
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var hojeISO = hoje.toISOString().slice(0,10);
+
+  // Banner de modo retorno
+  var bannerHtml = '';
+  if (agendaState.modoRetorno) {
+    var mr = agendaState.modoRetorno;
+    bannerHtml = `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;background:linear-gradient(135deg,rgba(0,229,160,.08),rgba(0,180,216,.06));border-bottom:1px solid var(--border)">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(120deg,#00E5A0,#00B4D8);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg viewBox="0 0 24 24" width="14" height="14" style="fill:none;stroke:#0D0F14;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div style="flex:1;font-size:13px;color:var(--t2)">Marcando retorno de <b style="color:var(--t1)">${mr.pacienteNome}</b> · sugestao <b>+${mr.prazoDias} dias</b> · clique num horario livre pra confirmar</div>
+        <button onclick="_agCancelarModoRetorno()" style="padding:6px 12px;border-radius:6px;background:transparent;border:0;color:var(--t3);cursor:pointer;font-family:inherit;font-size:12px">Cancelar</button>
+      </div>
+    `;
+  }
+
+  // Toolbar
+  var toolbar = `
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border)">
+      <button onclick="agendaHoje()" style="padding:7px 14px;border-radius:8px;background:#fff;border:1px solid var(--border3,rgba(0,0,0,.14));color:var(--t1);cursor:pointer;font-size:12.5px;font-family:inherit">Hoje</button>
+      <div style="display:flex;gap:0">
+        <button onclick="agendaPrev()" style="width:30px;height:30px;border-radius:50%;border:0;background:transparent;cursor:pointer;color:var(--t2);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="12" height="12" style="fill:none;stroke:currentColor;stroke-width:2"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <button onclick="agendaNext()" style="width:30px;height:30px;border-radius:50%;border:0;background:transparent;cursor:pointer;color:var(--t2);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="12" height="12" style="fill:none;stroke:currentColor;stroke-width:2"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+      <div style="flex:1;font-size:18px;font-weight:500;color:var(--t1);letter-spacing:-.2px">${_agFmtRange(inicio)}</div>
+      <button onclick="agendaNovoSlot()" class="btn btn-p" style="height:34px;font-size:12.5px;padding:0 14px"><svg viewBox="0 0 24 24" style="stroke:#0D0F14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Marcar consulta</button>
+    </div>
+  `;
+
+  // Header dias
+  var headerHtml = '<div style="display:grid;grid-template-columns:64px repeat(7,1fr);border-bottom:1px solid var(--border)">';
+  headerHtml += '<div></div>';
+  for (var d of dias) {
+    var isHoje = d.toISOString().slice(0,10) === hojeISO;
+    headerHtml += `<div style="padding:8px 4px 10px;text-align:center;border-right:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:500;color:${isHoje?'#00E5A0':'var(--t2)'};letter-spacing:.04em;text-transform:uppercase">${_agFmtDay(d)}</div>
+      <div style="font-size:24px;font-weight:400;color:var(--t1);margin-top:2px;letter-spacing:-.4px">
+        ${isHoje ? `<span style="display:inline-flex;width:40px;height:40px;border-radius:50%;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#0D0F14;font-weight:600;align-items:center;justify-content:center;font-size:18px">${d.getDate()}</span>` : d.getDate()}
+      </div>
+    </div>`;
+  }
+  headerHtml += '</div>';
+
+  // Body grid (8h-18h, cada hora 48px)
+  var horas = [8,9,10,11,12,13,14,15,16,17,18];
+  var bodyHtml = '<div style="display:grid;grid-template-columns:64px repeat(7,1fr);overflow-y:auto;max-height:540px;position:relative">';
+
+  // Coluna de horas
+  bodyHtml += '<div style="border-right:1px solid var(--border)">';
+  for (var h of horas) {
+    bodyHtml += `<div style="height:48px;border-bottom:1px solid var(--border);padding:0 6px;font-size:10px;color:var(--t3);text-align:right;position:relative;line-height:1"><span style="position:absolute;top:-6px;right:6px;background:#fff;padding:0 4px">${String(h).padStart(2,'0')}</span></div>`;
+  }
+  bodyHtml += '</div>';
+
+  // 7 colunas de dias com slots
+  for (var di = 0; di < 7; di++) {
+    var d = dias[di];
+    var dia0 = new Date(d); dia0.setHours(0,0,0,0);
+    var dia24 = new Date(d); dia24.setHours(23,59,59,999);
+    var slotsDia = (agendaState.slots || []).filter(function(s){
+      var si = new Date(s.inicio);
+      return si >= dia0 && si <= dia24;
+    });
+
+    var bgWeekend = (d.getDay() === 0 || d.getDay() === 6) ? 'background:#FAFBFC' : '';
+    bodyHtml += `<div style="position:relative;border-right:1px solid var(--border);${bgWeekend}" data-day="${d.toISOString().slice(0,10)}">`;
+    // grid linhas
+    for (var i = 0; i < horas.length; i++) {
+      bodyHtml += `<div style="height:48px;border-bottom:1px solid var(--border);cursor:pointer" onclick="_agClickSlot('${d.toISOString().slice(0,10)}',${horas[i]})"></div>`;
+    }
+    // eventos absolutos
+    for (var s of slotsDia) {
+      var si = new Date(s.inicio); var sf = new Date(s.fim);
+      var topPx = (si.getHours() - 8) * 48 + (si.getMinutes() / 60 * 48);
+      var heightPx = Math.max((sf - si) / 60000 / 60 * 48, 30);
+      var bg, color = '#fff', extraStyle = '';
+      var isHojeCol = d.toISOString().slice(0,10) === hojeISO;
+      if (s.status === 'CANCELADA' || s.status === 'REMARCADA') continue;
+      if (s.tipo === 'BLOQUEIO') {
+        bg = '#3B82F6'; extraStyle = 'background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.15) 0 5px,transparent 5px 10px)';
+      } else if (s.tipo === 'ONLINE') {
+        bg = '#00B4D8';
+      } else if (s.tipo === 'RETORNO') {
+        bg = '#8B5CF6';
+      } else if (isHojeCol) {
+        bg = 'linear-gradient(135deg,#00B58A,#00A0BF)';
+      } else {
+        bg = '#fff'; color = 'var(--t2)'; extraStyle = 'border:1px solid var(--border)';
+      }
+      var nome = s.paciente?.nome || s.pacienteNomeLivre || (s.tipo === 'BLOQUEIO' ? 'Bloqueio' : 'Slot');
+      var hora = String(si.getHours()).padStart(2,'0') + ':' + String(si.getMinutes()).padStart(2,'0');
+      bodyHtml += `<div onclick="_agClickEvento('${s.id}', event)" style="position:absolute;left:2px;right:2px;top:${topPx}px;height:${heightPx}px;border-radius:5px;padding:6px 8px;font-size:11.5px;line-height:1.25;overflow:hidden;cursor:pointer;background:${bg};color:${color};${extraStyle};box-shadow:0 1px 2px rgba(0,0,0,.06);font-weight:500" title="${nome}"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nome}</div><div style="font-size:10px;opacity:.92">${hora}</div></div>`;
+    }
+    bodyHtml += '</div>';
+  }
+  bodyHtml += '</div>';
+
+  view.innerHTML = bannerHtml + toolbar + headerHtml + bodyHtml;
+}
+
+function agendaHoje() {
+  var hoje = new Date();
+  var dow = hoje.getDay() === 0 ? 6 : hoje.getDay() - 1;
+  var seg = new Date(hoje); seg.setDate(seg.getDate() - dow); seg.setHours(0,0,0,0);
+  agendaState.anchorISO = seg.toISOString();
+  agendaCarregarSlots().then(agendaRender);
+}
+
+function agendaPrev() {
+  var d = new Date(agendaState.anchorISO); d.setDate(d.getDate() - 7);
+  agendaState.anchorISO = d.toISOString();
+  agendaCarregarSlots().then(agendaRender);
+}
+
+function agendaNext() {
+  var d = new Date(agendaState.anchorISO); d.setDate(d.getDate() + 7);
+  agendaState.anchorISO = d.toISOString();
+  agendaCarregarSlots().then(agendaRender);
+}
+
+function _agClickSlot(diaISO, hora) {
+  if (agendaState.modoRetorno) {
+    var inicio = new Date(diaISO + 'T' + String(hora).padStart(2,'0') + ':00:00');
+    var dur = (agendaState.config?.duracaoPadraoMin) || 30;
+    var fim = new Date(inicio.getTime() + dur * 60 * 1000);
+    _agConfirmarMarcacaoRetorno(inicio.toISOString(), fim.toISOString(), dur);
+  } else {
+    agendaNovoSlot(diaISO, hora);
+  }
+}
+
+function _agClickEvento(slotId, ev) {
+  if (ev) ev.stopPropagation();
+  var slot = agendaState.slots.find(function(s){ return s.id === slotId; });
+  if (!slot) return;
+  if (!confirm((slot.paciente?.nome || slot.pacienteNomeLivre || 'Slot') + '\n' + new Date(slot.inicio).toLocaleString('pt-BR') + '\n\nCancelar este slot?')) return;
+  vitaeAPI.agendaCancelarSlot(slotId).then(function(r){
+    if (r.ok) {
+      _agShowToast('Slot cancelado.', function() {
+        vitaeAPI.agendaDesfazerCancelamento(slotId).then(function(){ agendaCarregarSlots().then(agendaRender); });
+      });
+      agendaCarregarSlots().then(agendaRender);
+    } else {
+      alert(r.message || 'Erro');
+    }
+  });
+}
+
+async function agendaNovoSlot(diaISO, hora) {
+  var nome = prompt('Nome do paciente:');
+  if (!nome) return;
+  var dia = diaISO || new Date().toISOString().slice(0,10);
+  var h = hora || 9;
+  var inicio = new Date(dia + 'T' + String(h).padStart(2,'0') + ':00:00');
+  var dur = agendaState.config?.duracaoPadraoMin || 30;
+  var fim = new Date(inicio.getTime() + dur * 60 * 1000);
+
+  try {
+    var r = await vitaeAPI.agendaCriarSlot({
+      pacienteNomeLivre: nome,
+      inicio: inicio.toISOString(),
+      fim: fim.toISOString(),
+      duracaoMin: dur,
+      tipo: 'CONSULTA_NOVA',
+      attemptId: _agUuid(),
+    });
+    if (!r.ok) { alert(r.message || 'Conflito ou erro.'); return; }
+    _agShowToast('Slot marcado.', function() {
+      vitaeAPI.agendaCancelarSlot(r.data.id).then(function(){ agendaCarregarSlots().then(agendaRender); });
+    });
+    agendaCarregarSlots().then(agendaRender);
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+// Stats view
+async function statsInit() {
+  var view = document.getElementById('view-stats');
+  if (!view) return;
+  view.innerHTML = '<div style="padding:40px;text-align:center;color:var(--t3)">Carregando...</div>';
+  var mes = new Date().toISOString().slice(0,7);
+  try {
+    var r = await vitaeAPI.agendaStats(mes);
+    if (!r.ok) {
+      view.innerHTML = '<div style="padding:40px;text-align:center"><h2>Stats em manutencao</h2></div>';
+      return;
+    }
+    var d = r.data;
+    view.innerHTML = `
+      <div style="padding:30px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <div>
+            <h1 style="font-size:26px;font-weight:900;margin:0;letter-spacing:-.8px">Suas <em style="font-style:italic;background:linear-gradient(120deg,#00E5A0,#00B4D8);-webkit-background-clip:text;background-clip:text;color:transparent">stats</em> de ${d.mes}</h1>
+            <p style="color:var(--t3);font-size:13px;margin:4px 0 0">Resumo automatico do mes</p>
+          </div>
+        </div>
+        <div style="background:linear-gradient(135deg,#00E5A0,#00B4D8);border-radius:18px;padding:32px;margin-bottom:24px;color:#0D0F14">
+          <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.65;margin-bottom:8px">No-show evitado</div>
+          <div style="font-size:56px;font-weight:900;letter-spacing:-1.5px;line-height:1">R$ ${d.economiaRS.toLocaleString('pt-BR')}</div>
+          <div style="font-size:14px;margin-top:8px;opacity:.8">${d.noShowEvitado} encaixes da lista de espera salvaram seus slots</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+          <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px"><div style="font-size:36px;font-weight:900;color:var(--t1);letter-spacing:-1px">${d.totalSlots}</div><div style="color:var(--t3);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-top:4px">Consultas</div></div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px"><div style="font-size:36px;font-weight:900;color:var(--t1);letter-spacing:-1px">${d.taxaPresenca}%</div><div style="color:var(--t3);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-top:4px">Presenca</div></div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px"><div style="font-size:36px;font-weight:900;color:var(--t1);letter-spacing:-1px">${d.taxaRetorno}%</div><div style="color:var(--t3);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-top:4px">Retornos</div></div>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    view.innerHTML = '<div style="padding:40px;text-align:center"><h2>Erro ao carregar stats</h2><p>' + e.message + '</p></div>';
   }
 }
 

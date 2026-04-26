@@ -992,6 +992,29 @@
 
     // ===== Load next appointment =====
     async function loadNextAppointment() {
+        // 1. Tenta novo endpoint Agenda v1 (slot do paciente com seu medico)
+        try {
+            if (typeof vitaeAPI.agendaProximoMeu === 'function') {
+                const r = await vitaeAPI.agendaProximoMeu();
+                if (r && r.ok && r.data) {
+                    const s = r.data;
+                    const dt = new Date(s.inicio);
+                    const medicoNome = s.medico?.usuario?.nome || 'Medico';
+                    const localNome = s.local?.nome || (s.tipo === 'ONLINE' ? 'Consulta online' : '');
+                    document.getElementById('nextExamContent').innerHTML = `
+                        <div class="next-exam-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                        <div class="next-exam-info">
+                            <div class="next-exam-title">Dr(a). ${medicoNome}</div>
+                            <div class="next-exam-date">${dt.toLocaleDateString('pt-BR')} às ${dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}${localNome ? ' — ' + localNome : ''}</div>
+                        </div>
+                        <div class="next-exam-arrow">›</div>
+                    `;
+                    return;
+                }
+            }
+        } catch (_e) { /* fallback abaixo */ }
+
+        // 2. Fallback: agendamento legado
         try {
             const data = await vitaeAPI.getProximoAgendamento();
             if (data.agendamento) {
@@ -1010,6 +1033,36 @@
             // Keep default empty state
         }
     }
+
+    // Push web subscription (sessao 26-abr-2026)
+    async function _vitaeSetupPush() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        if (typeof vitaeAPI.agendaPushVapidKey !== 'function') return;
+        try {
+            const reg = await navigator.serviceWorker.register('/sw.js');
+            const r = await vitaeAPI.agendaPushVapidKey();
+            if (!r || !r.ok || !r.data?.key) return;
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) return; // ja inscrito
+            // Pede permissao silenciosamente — somente se aprovou
+            if (Notification.permission === 'default') return;
+            if (Notification.permission !== 'granted') return;
+            const newSub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: _urlBase64ToUint8Array(r.data.key),
+            });
+            await vitaeAPI.agendaPushSubscribe(newSub.toJSON());
+        } catch (_e) { /* nao-critico */ }
+    }
+    function _urlBase64ToUint8Array(b64) {
+        const padding = '='.repeat((4 - b64.length % 4) % 4);
+        const b = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(b);
+        const out = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+        return out;
+    }
+    setTimeout(_vitaeSetupPush, 2000);
 
     // ===== Navigation =====
     function navigateTo(target, param) {

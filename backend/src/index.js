@@ -22,6 +22,7 @@ const consentimentoRoutes = require('./routes/consentimento');
 const timelineRoutes = require('./routes/timeline');
 const templatesRoutes = require('./routes/templates');
 const adminRoutes = require('./routes/admin');
+const agendaRoutes = require('./routes/agenda');
 
 // Observabilidade — inicializa Sentry se SENTRY_DSN setado
 require('./services/observability');
@@ -60,6 +61,9 @@ app.use(
 // ── Body parsers ───────────────────────────────────────
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ── Cookie parser (necessario pro OAuth state da Agenda Google) ──
+try { app.use(require('cookie-parser')()); } catch (_e) { /* lib opcional */ }
 
 // ── Trust proxy (Railway/Vercel) — pra rate limit pegar IP real ──
 app.set('trust proxy', 1);
@@ -152,6 +156,8 @@ app.use('/templates', limiterGeral, templatesRoutes);
 app.use('/timeline', limiterGeral, timelineRoutes);
 // Admin — protegido por ADMIN_TOKEN header (rate limit apertado)
 app.use('/admin', limiterPublico, adminRoutes);
+// Agenda v1 — feature flag dentro da rota controla 503; google callback usa cookie
+app.use('/agenda', limiterGeral, agendaRoutes);
 
 // ── 404 para rotas nao encontradas ────────────────────
 app.use((_req, res) => {
