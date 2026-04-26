@@ -88,6 +88,8 @@
 .pc-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:12px;flex-shrink:0}
 .pc-badge-PENDENTE,.pc-badge-ABERTO{background:var(--warn-bg);color:var(--warn)}
 .pc-badge-RESPONDIDA{background:var(--ok-bg);color:var(--ok)}
+.pc-badge-FINALIZADA{background:rgba(0,229,160,.12);color:#005B36}
+.pc-badge-EXPIRADA{background:var(--bad-bg,rgba(239,68,68,.08));color:#B91C1C}
 .pc-badge-EXPIRADA{background:var(--bad-bg);color:var(--bad)}
 .pc-actions-row{display:flex;gap:4px;margin-left:8px;flex-shrink:0}
 .pc-act-btn{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
@@ -1306,7 +1308,7 @@ body.dark-mode .cfm-disclaimer strong{color:#93C5FD}
         </div>
         <div class="dn-stat" onclick="dashFilterByStatus('pendentes')">
           <div>
-            <div class="dn-stat-l">Pendentes</div>
+            <div class="dn-stat-l">Enviadas</div>
             <div class="dn-stat-n" id="dash-statPending">--</div>
           </div>
           <div class="dn-stat-dot warn"></div>
@@ -1330,8 +1332,9 @@ body.dark-mode .cfm-disclaimer strong{color:#93C5FD}
         <div class="filter" data-f="today" onclick="dashSetFilter(this)">Hoje</div>
         <div class="filter" data-f="week" onclick="dashSetFilter(this)">Esta semana</div>
         <div class="filter" data-f="month" onclick="dashSetFilter(this)">Este mes</div>
-        <div class="filter" data-f="pendentes" onclick="dashSetFilter(this)" id="dash-pillPendentes">Pendentes</div>
+        <div class="filter" data-f="pendentes" onclick="dashSetFilter(this)" id="dash-pillPendentes">Enviadas</div>
         <div class="filter" data-f="respondidas" onclick="dashSetFilter(this)">Respondidas</div>
+        <div class="filter" data-f="finalizadas" onclick="dashSetFilter(this)">Finalizadas</div>
       </div>
 
       <div class="dn-pc-card">
@@ -1363,8 +1366,9 @@ body.dark-mode .cfm-disclaimer strong{color:#93C5FD}
         </div>
         <div class="pcn-pills" id="pc-filterBar">
           <button class="pcn-pill on" data-f="all" onclick="pcSetFilter('all',this)">Todas <span class="pcn-ct" id="pc-ctAll">0</span></button>
-          <button class="pcn-pill" data-f="PENDENTE" onclick="pcSetFilter('PENDENTE',this)">Pendentes <span class="pcn-ct" id="pc-ctPend">0</span></button>
+          <button class="pcn-pill" data-f="PENDENTE" onclick="pcSetFilter('PENDENTE',this)">Enviadas <span class="pcn-ct" id="pc-ctPend">0</span></button>
           <button class="pcn-pill" data-f="RESPONDIDA" onclick="pcSetFilter('RESPONDIDA',this)">Respondidas <span class="pcn-ct" id="pc-ctResp">0</span></button>
+          <button class="pcn-pill" data-f="FINALIZADA" onclick="pcSetFilter('FINALIZADA',this)">Finalizadas <span class="pcn-ct" id="pc-ctFin">0</span></button>
           <button class="pcn-pill" data-f="EXPIRADA" onclick="pcSetFilter('EXPIRADA',this)">Expiradas <span class="pcn-ct" id="pc-ctExp">0</span></button>
         </div>
         <div class="pcn-card" id="pc-pcTable">
@@ -2739,6 +2743,7 @@ function dashRenderPC(){
     }
     if(dashState.filter === 'pendentes') return pc.status === 'PENDENTE' || pc.status === 'ABERTO';
     if(dashState.filter === 'respondidas') return pc.status === 'RESPONDIDA';
+    if(dashState.filter === 'finalizadas') return pc.status === 'FINALIZADA';
     var d = pc.criadoEm ? pc.criadoEm.split('T')[0] : '';
     if(dashState.filter === 'today') return d === ts;
     if(dashState.filter === 'week') return d >= ws;
@@ -2756,8 +2761,8 @@ function dashRenderPC(){
   document.getElementById('dash-pcList').innerHTML = list.map(function(pc){
     var n = pc.pacienteNome || 'Paciente';
     var ini = getInitials(n);
-    var badgeCls = pc.status === 'RESPONDIDA' ? 'ok' : pc.status === 'PENDENTE' ? 'warn' : pc.status === 'ABERTO' ? 'info' : 'bad';
-    var st = pc.status === 'RESPONDIDA' ? 'Respondida' : pc.status === 'PENDENTE' ? 'Pendente' : pc.status === 'ABERTO' ? 'Aberto' : 'Expirada';
+    var badgeCls = pc.status === 'RESPONDIDA' ? 'ok' : pc.status === 'FINALIZADA' ? 'ok' : pc.status === 'PENDENTE' ? 'warn' : pc.status === 'ABERTO' ? 'info' : 'bad';
+    var st = pcStatusLabel(pc.status);
     var dateObj = dashFmtDateSplit(pc.respondidaEm || pc.criadoEm || '');
     var cl = pc.status === 'RESPONDIDA' ? 'onclick="navigate(\'pre-consultas\',\'' + pc.id + '\')"' : '';
     var fotoUrl = pickFoto(pc);
@@ -3313,8 +3318,15 @@ function pcRenderAvatarInline(o, ini, className){
   return '<div class="'+className+'">'+ini+'</div>';
 }
 function pcStatusLabel(s){
-  var map = {PENDENTE:'Pendente',ABERTO:'Aberto',RESPONDIDA:'Respondida',EXPIRADA:'Expirada'};
-  return map[s] || s || 'Pendente';
+  // Padronizacao 26-abr-2026 (Lucas): Enviado / Respondido / Finalizado
+  var map = {
+    PENDENTE: 'Enviado',
+    ABERTO: 'Enviado',
+    RESPONDIDA: 'Respondido',
+    FINALIZADA: 'Finalizado',
+    EXPIRADA: 'Expirado'
+  };
+  return map[s] || s || 'Enviado';
 }
 function pcFilterExames(q){
   var items = document.querySelectorAll('.exame-item');
@@ -4928,18 +4940,81 @@ function _agClickEvento(slotId, ev) {
 }
 
 function _agModalSlotInfo(slot) {
-  var nome = slot.paciente?.nome || slot.pacienteNomeLivre || (slot.tipo === 'BLOQUEIO' ? 'Bloqueio' : 'Slot');
-  var dt = new Date(slot.inicio);
-  var dataStr = dt.toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long'}) + ', ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  var nome = slot.paciente?.nome || slot.pacienteNomeLivre || '';
+  var tel = slot.pacienteTelLivre || '';
+  var inicio = new Date(slot.inicio);
+  var dataInput = inicio.toISOString().slice(0,10); // YYYY-MM-DD
+  var horaInput = String(inicio.getHours()).padStart(2,'0') + ':' + String(inicio.getMinutes()).padStart(2,'0');
+  var dur = slot.duracaoMin || 30;
+  var tipo = slot.tipo || 'CONSULTA_NOVA';
+  var motivo = slot.motivo || '';
+  var observacoes = slot.observacoes || '';
+  var localId = slot.localId || '';
+
+  var locaisOpts = (agendaState.locais || []).map(function(l){
+    var sel = l.id === localId ? ' selected' : '';
+    return '<option value="' + _agEsc(l.id) + '"' + sel + '>' + _agEsc(l.nome) + '</option>';
+  }).join('');
+
   var html = `
     <div class="agm-overlay" onclick="if(event.target===this) _agModalClose()">
-      <div class="agm-sheet">
-        <h2>${_agEsc(nome)}</h2>
-        <p class="sub">${_agEsc(dataStr)} · ${slot.duracaoMin}min · ${_agEsc(slot.tipo === 'ONLINE' ? 'Online' : slot.tipo === 'RETORNO' ? 'Retorno' : slot.tipo === 'BLOQUEIO' ? 'Bloqueio' : 'Consulta')}</p>
-        ${slot.motivo ? '<p style="font-size:13px;color:var(--t2);margin:0 0 16px"><b>Motivo:</b> ' + _agEsc(slot.motivo) + '</p>' : ''}
+      <div class="agm-sheet" style="max-width:520px">
+        <h2>Editar consulta</h2>
+        <p class="sub">Mude qualquer campo abaixo. Se o novo horario tiver outro paciente, voce sera avisado.</p>
+        <div class="agm-field">
+          <label>Nome do paciente</label>
+          <input type="text" id="agmEdNome" value="${_agEsc(nome)}" placeholder="Ex: Maria Silva">
+        </div>
+        <div class="agm-field">
+          <label>Telefone</label>
+          <input type="tel" id="agmEdTel" value="${_agEsc(tel)}" placeholder="(11) 98765-4321">
+        </div>
+        <div class="agm-field-row">
+          <div class="agm-field">
+            <label>Data</label>
+            <input type="date" id="agmEdData" value="${dataInput}">
+          </div>
+          <div class="agm-field">
+            <label>Hora</label>
+            <input type="time" id="agmEdHora" value="${horaInput}">
+          </div>
+        </div>
+        <div class="agm-field-row">
+          <div class="agm-field">
+            <label>Tipo</label>
+            <select id="agmEdTipo">
+              <option value="CONSULTA_NOVA"${tipo==='CONSULTA_NOVA'?' selected':''}>Consulta nova</option>
+              <option value="RETORNO"${tipo==='RETORNO'?' selected':''}>Retorno</option>
+              <option value="ONLINE"${tipo==='ONLINE'?' selected':''}>Online</option>
+              <option value="BLOQUEIO"${tipo==='BLOQUEIO'?' selected':''}>Bloqueio</option>
+            </select>
+          </div>
+          <div class="agm-field">
+            <label>Duracao</label>
+            <select id="agmEdDur">
+              <option value="15"${dur===15?' selected':''}>15 min</option>
+              <option value="30"${dur===30?' selected':''}>30 min</option>
+              <option value="45"${dur===45?' selected':''}>45 min</option>
+              <option value="60"${dur===60?' selected':''}>60 min</option>
+              <option value="90"${dur===90?' selected':''}>90 min</option>
+              <option value="120"${dur===120?' selected':''}>120 min</option>
+            </select>
+          </div>
+        </div>
+        ${locaisOpts ? '<div class="agm-field"><label>Local</label><select id="agmEdLocal"><option value="">--</option>' + locaisOpts + '</select></div>' : ''}
+        <div class="agm-field">
+          <label>Motivo</label>
+          <input type="text" id="agmEdMotivo" value="${_agEsc(motivo)}" placeholder="Ex: Dor de cabeca">
+        </div>
+        <div class="agm-field">
+          <label>Observacoes (so voce ve)</label>
+          <textarea id="agmEdObs" rows="2" style="resize:vertical;width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,.1);border-radius:10px;background:var(--bg);font-family:inherit;font-size:13.5px;color:var(--t1);outline:none">${_agEsc(observacoes)}</textarea>
+        </div>
+        <div id="agmEdAlert" style="display:none;margin-top:14px;padding:12px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:10px;font-size:13px;color:#B91C1C"></div>
         <div class="agm-actions">
+          <button class="agm-btn agm-btn-cancel" style="color:#EF4444;margin-right:auto" onclick="_agCancelarSlot('${slot.id}')">Cancelar consulta</button>
           <button class="agm-btn agm-btn-cancel" onclick="_agModalClose()">Fechar</button>
-          <button class="agm-btn agm-btn-cancel" style="color:#EF4444" onclick="_agCancelarSlot('${slot.id}')">Cancelar consulta</button>
+          <button class="agm-btn agm-btn-primary" id="agmEdSalvar" onclick="_agSalvarEdicao('${slot.id}')">Salvar mudancas</button>
         </div>
       </div>
     </div>
@@ -4948,6 +5023,73 @@ function _agModalSlotInfo(slot) {
   div.id = 'agModal';
   div.innerHTML = html;
   document.body.appendChild(div);
+}
+
+async function _agSalvarEdicao(slotId) {
+  var nome = document.getElementById('agmEdNome')?.value.trim();
+  if (!nome) { alert('Digite o nome do paciente.'); return; }
+  var tel = document.getElementById('agmEdTel')?.value.trim() || null;
+  var data = document.getElementById('agmEdData')?.value;
+  var hora = document.getElementById('agmEdHora')?.value;
+  if (!data || !hora) { alert('Data e hora sao obrigatorias.'); return; }
+  var tipo = document.getElementById('agmEdTipo')?.value;
+  var dur = parseInt(document.getElementById('agmEdDur')?.value || 30);
+  var localId = document.getElementById('agmEdLocal')?.value || null;
+  var motivo = document.getElementById('agmEdMotivo')?.value.trim() || null;
+  var observacoes = document.getElementById('agmEdObs')?.value.trim() || null;
+
+  var inicio = new Date(data + 'T' + hora + ':00');
+  var fim = new Date(inicio.getTime() + dur * 60 * 1000);
+
+  var btn = document.getElementById('agmEdSalvar');
+  var alertEl = document.getElementById('agmEdAlert');
+  if (alertEl) alertEl.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
+  try {
+    var r = await vitaeAPI.agendaRemarcarSlot(slotId, {
+      pacienteNomeLivre: nome,
+      pacienteTelLivre: tel,
+      localId: localId || undefined,
+      inicio: inicio.toISOString(),
+      fim: fim.toISOString(),
+      duracaoMin: dur,
+      tipo: tipo,
+      motivo: motivo,
+      observacoes: observacoes,
+    });
+
+    if (!r.ok) {
+      // Conflito: mostra aviso profissional dentro do modal (sem alert feio)
+      if (alertEl) {
+        var msg = '';
+        if (r.code === 'CONFLITO_AGENDA' && r.slotConflitante) {
+          var c = r.slotConflitante;
+          var cNome = c.paciente?.nome || c.pacienteNomeLivre || 'outra consulta';
+          var cHora = new Date(c.inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+          msg = '<b>Horario ja ocupado</b><br>Voce ja tem <b>' + _agEsc(cNome) + '</b> as ' + cHora + '. Escolha outro horario.';
+        } else if (r.code === 'CONFLITO_GOOGLE') {
+          msg = '<b>Conflito com seu Google Calendar</b><br>Voce tem evento pessoal nesse horario. Escolha outro.';
+        } else {
+          msg = '<b>Nao foi possivel salvar:</b> ' + _agEsc(r.message || 'erro desconhecido');
+        }
+        alertEl.innerHTML = msg;
+        alertEl.style.display = 'block';
+      }
+      if (btn) { btn.disabled = false; btn.textContent = 'Salvar mudancas'; }
+      return;
+    }
+
+    _agModalClose();
+    _agShowToast('Consulta atualizada.', null);
+    agendaCarregarSlots().then(agendaRender);
+  } catch (e) {
+    if (alertEl) {
+      alertEl.innerHTML = '<b>Erro:</b> ' + _agEsc(e.message);
+      alertEl.style.display = 'block';
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar mudancas'; }
+  }
 }
 
 function _agModalClose() {
@@ -5017,6 +5159,7 @@ function agendaNovoSlot(diaISO, hora) {
           <label>Motivo (opcional)</label>
           <input type="text" id="agmMotivo" placeholder="Ex: Dor de cabeca">
         </div>
+        <div id="agmAlert" style="display:none;margin-top:14px;padding:12px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:10px;font-size:13px;color:#B91C1C"></div>
         <div class="agm-actions">
           <button class="agm-btn agm-btn-cancel" onclick="_agModalClose()">Cancelar</button>
           <button class="agm-btn agm-btn-primary" id="agmSalvar" onclick="_agSalvarNovo('${dia}',${h},${dur})">Marcar</button>
@@ -5059,7 +5202,22 @@ async function _agSalvarNovo(dia, h, durDefault) {
       attemptId: _agUuid(),
     });
     if (!r.ok) {
-      alert(r.message || 'Conflito ou erro.');
+      var alertEl = document.getElementById('agmAlert');
+      if (alertEl) {
+        var msg = '';
+        if (r.code === 'CONFLITO_AGENDA' && r.slotConflitante) {
+          var c = r.slotConflitante;
+          var cNome = c.paciente?.nome || c.pacienteNomeLivre || 'outra consulta';
+          var cHora = new Date(c.inicio).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+          msg = '<b>Horario ja ocupado</b><br>Voce ja tem <b>' + _agEsc(cNome) + '</b> as ' + cHora + '. Escolha outro horario.';
+        } else if (r.code === 'CONFLITO_GOOGLE') {
+          msg = '<b>Conflito com seu Google Calendar</b><br>Voce tem evento pessoal nesse horario. Escolha outro.';
+        } else {
+          msg = '<b>Nao foi possivel marcar:</b> ' + _agEsc(r.message || 'erro');
+        }
+        alertEl.innerHTML = msg;
+        alertEl.style.display = 'block';
+      }
       if (btn) { btn.disabled = false; btn.textContent = 'Marcar'; }
       return;
     }
@@ -5722,9 +5880,7 @@ function pac2RenderPCs(){
   box.innerHTML = filtered.map(function(pc){
     var statusClass = pc.status === 'RESPONDIDA' ? 'resp' :
                      (pc.status === 'PENDENTE' || pc.status === 'ABERTO') ? 'pend' : 'exp';
-    var statusLabel = pc.status === 'RESPONDIDA' ? 'Respondida' :
-                     pc.status === 'PENDENTE' ? 'Pendente' :
-                     pc.status === 'ABERTO' ? 'Aberto' : 'Expirada';
+    var statusLabel = pcStatusLabel(pc.status);
     var clickAction = pc.status === 'RESPONDIDA' ? 'onclick="navigate(\'pre-consultas\',\'' + pc.id + '\')"' : '';
     return '<div class="pac2-pc-item ' + statusClass + '" ' + clickAction + ' style="margin-bottom:8px">'
       + '<span class="pac2-pc-badge ' + statusClass + '">' + statusLabel + '</span>'
@@ -5905,7 +6061,7 @@ function crmRenderList(){
     var isPending = pc.status === 'PENDENTE' || pc.status === 'ABERTO';
     var isResponded = pc.status === 'RESPONDIDA';
     var badgeCls = isOverdue ? 'bad' : isPending ? 'warn' : isResponded ? 'ok' : 'warn';
-    var badgeTxt = isOverdue ? 'Atrasado' : isPending ? 'Pendente' : isResponded ? 'Respondida' : 'Expirada';
+    var badgeTxt = isOverdue ? 'Atrasado' : isPending ? 'Enviado' : isResponded ? 'Respondido' : 'Expirado';
     var dateStr = fmtDate(pc.respondidaEm || pc.criadoEm || '');
     var daysAgo = Math.floor((now - new Date(pc.criadoEm)) / 86400000);
     var daysCls = daysAgo > 60 ? 'bad' : daysAgo > 30 ? 'warn' : '';
