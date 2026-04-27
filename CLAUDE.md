@@ -576,6 +576,147 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 13 — 27/04/2026 — Anamnese Estruturada + Decisao estrategica "Caminho C"
+
+**Contexto:** Sessao longa de pesquisa estrategica + entrega tecnica focada. Lucas questionou se VITAE deveria virar ambient scribe (gravar consulta + SOAP automatico) competindo com Sofya/Voa/Vocis/Doctorflow ou continuar focado na pre-consulta. Decisao: NAO competir como ambient scribe. Foca no diferencial unico (pre-consulta gravada pelo paciente em casa) e potencializa.
+
+**Decisao estrategica chave — "Caminho C" (Hibrido inteligente):**
+
+VITAE NAO vai virar ambient scribe. Razoes:
+- Mercado saturado: Sofya (R$50M, MV), Voa (60k medicos), Vocis, Doctorflow, Heidi/Abridge gringos
+- Custo de entrada: R$ 800k-2M em ASR streaming + diarizacao + LLM treinado + time clinico
+- Lucas sozinho, 18 anos, sem capital pra essa briga
+- Competidores ja tem 2-4 anos de vantagem
+
+VITAE VAI:
+- Dobrar no diferencial unico: pre-consulta gravada pelo paciente em casa
+- Adicionar peso ao PRE-consulta: anamnese estruturada com 11 campos + fonte rastreavel
+- Eventualmente adicionar PoS leve (SOAP rascunho + exportar iClinic + retorno)
+- NAO entrar no DURANTE com gravacao da consulta
+- Posicionar como complementar ao Sofya/Voa, nao competidor
+
+**Frase de fechamento da decisao:** "VITAE vence sendo o unico que prepara o medico ANTES, com dados reais do paciente coletados em casa, integrado a um RG digital de saude. Categoria nova, nao competidor de categoria existente."
+
+**Entrega tecnica desta sessao — Anamnese Estruturada na 25-summary.html:**
+
+Substituicao dos antigos blocos "Queixa Principal" + "Pontos de Atencao" por componente unico de Anamnese Estruturada com 11 campos clinicos:
+1. Queixa Principal
+2. Tempo de Evolucao
+3. Intensidade (0-10 ou descritor verbal)
+4. Fatores Agravantes
+5. Fatores Atenuantes
+6. Sintomas Associados
+7. Tratamento Previo
+8. Antecedentes Pessoais
+9. Antecedentes Familiares
+10. Habitos
+11. Sono
+
+Cada campo tem **fonte rastreavel** (badge mostrando "audio" verde ou "formulario" azul).
+
+**Backend (`backend/src/services/ai.js`):**
+- Prompt do Gemini 2.5 Flash atualizado pra retornar `anamneseEstruturada` dentro do `summaryJson`
+- Cada campo retorna `{ valor, fonte }` — null se nao mencionado
+- Prioridade de fonte: audio > formulario (audio e mais espontaneo/recente)
+- Regras anti-alucinacao mantidas: prefere null a inventar
+- ZERO schema change — `summaryJson` e Json livre no Prisma, novo campo entra dentro
+
+**Frontend (`25-summary.html`):**
+- Novo CSS `.anamnese-card` (grid 2 colunas + dark mode + responsivo mobile)
+- Novo JS substitui blocos antigos (queixa-card + pontos-atencao) por componente unico
+- Fallback completo pra pre-consultas antigas: deriva queixa de campos legados (queixaPrincipal/descricaoBreve) e tenta extrair campos do formulario direto (r.duracao, r.intensidade, r.fatoresAgravantes, etc)
+- Componente "Padroes Observados" (componente 3) mantido intocado
+- Variaveis legadas (queixaLimpa, pontosAt) preservadas pra compat com "raw fallback" downstream
+
+**Commits desta sessao:**
+- `32be76b` — feat(summary): anamnese estruturada com 11 campos + fonte rastreavel
+
+**INCIDENTE GRAVE: Git local corrompido em `d:/vitae-app-github`**
+
+Durante o `git status` antes do commit, descobriu-se que o git local estava destruido:
+- Refs broken: `refs/remotes/origin/main` e `refs/tags/v-pre-agenda-26abr2026`
+- Objeto Git corrompido: `7076c709f1ed3fc930855f98326a7d40f96850b3` (header invalido, inflate error)
+- Log local mostrava SO 1 commit ("Initial commit") — devia ter 320+
+- Arquivos atuais como "untracked", arquivos antigos como "deleted (staged)"
+- Upstream "gone"
+- `git fetch` falhou com `inflate: data stream error (incorrect header check)`
+
+**Acao tomada (paro antes de qualquer destrutivo):** Lucas escolheu Opcao A (reclonar repo limpo). Como `mv` falhou por permission denied (provavel lock do VSCode/serve.js), executei abordagem alternativa:
+1. `git clone https://github.com/vitaehealth2906-ops/vitae-app.git` em `d:/vitae-app-novo` (pasta nova)
+2. Confirmei historico real (e2eb1c7..., 320+ commits)
+3. Copiei os 2 arquivos modificados do disco quebrado pro novo clone
+4. Validei diff (+312 -59 linhas, so os 2 arquivos esperados)
+5. Commit + push pelo novo clone
+
+**Pasta corrompida preservada** em `d:/vitae-app-github` (NAO deletada). Lucas precisa quando puder:
+1. Fechar VSCode/serve.js que prendem lock
+2. Renomear `d:/vitae-app-github` → `d:/vitae-app-github-OLD-quebrado-27abr2026` (backup forense)
+3. Renomear `d:/vitae-app-novo` → `d:/vitae-app-github` (volta nome oficial)
+
+**Causa raiz do git corrompido:** desconhecida. Possibilidades:
+- Falta de espaco em disco em algum momento
+- Crash do sistema durante operacao git
+- Antivirus deletando objetos no `.git/objects/` (suspeita comum em Windows)
+- Sync do OneDrive/cloud corrompendo `.git/`
+
+**Ate descobrir causa raiz, sessoes futuras devem usar `d:/vitae-app-novo` (renomeado pra `d:/vitae-app-github` apos cleanup)**.
+
+**O que NAO entrou nesta sessao (reservado pra futuro):**
+
+Foram pesquisados/discutidos profundamente mas NAO implementados (decisao estrategica de NAO virar ambient scribe):
+- Gravacao da consulta DURANTE (Sofya-style)
+- Insights ao vivo durante consulta (modelo C+D)
+- Chat conversacional "Consultar IA agora"
+- SOAP automatico completo via gravacao
+- Stepper PRE → DURANTE → POS
+
+Preview foi construido mas DESCARTADO (`d:/vitae-app-github/desktop/preview-consulta-jornada.html`). Pode ser referencia visual no futuro mas nao representa direcao do produto.
+
+**Tambem reservado pra futuro (Caminho C, fase 2):**
+- Documentos 1-clique (receita + atestado + exames + encaminhamento) baseados em pre-consulta + anotacao
+- Botao "Exportar pra iClinic" com modal 4 abas (Historico/Hipoteses/Conduta/Receituario)
+- Marcar retorno simples (presets + calendario custom)
+- Botao combinado "Assinar consulta + marcar retorno"
+
+**12 ideias disruptivas de insights pesquisadas** (pra futuro, se VITAE eventualmente fizer DURANTE):
+1. Espelho Cego (o que medico nao perguntou)
+2. Memoria Comparativa entre consultas
+3. Confronto com vies do proprio medico
+4. Simulador "E se eu prescrever X?"
+5. Detector de gatilhos emocionais sutis (analise prosodica)
+6. Predicao de aderencia ao tratamento
+7. Tradutor de linguagem do paciente
+8. Inteligencia coletiva de medicos BR
+9. Diario de bordo mental da consulta
+10. "Voz do plano" — preview do que paciente entendera
+11. Detector de red flag nao verbalizado
+12. "Tempo de raciocinio inteligente" — IA aproveita silencios
+
+**Pendente pra proxima sessao:**
+- Lucas renomear pastas (`vitae-app-github-OLD-quebrado` + `vitae-app-novo` → `vitae-app-github`)
+- Testar pre-consulta NOVA (gravar audio) e validar que IA gera os 11 campos com fonte
+- Testar pre-consulta ANTIGA (do banco) e validar que fallback funciona
+- Verificar Railway esta deployando (env var `GEMINI_API_KEY` continua valida)
+- Ajustar campos da anamnese se medico betatester apontar gaps
+
+**Skills usadas:**
+- `frontend-design` (carregada mas usada com restricao — nao bater de frente com Material UI)
+- `claude-api` (estudo profundo de prompt engineering pra extracao estruturada)
+- WebSearch extensiva (mercado ambient scribe, alert fatigue, eye-tracking medico, CDS literature)
+- TodoWrite pra rastreio das 7 etapas
+
+**Logs de pesquisa profunda (referencia pra futuro):**
+- Como Sofya, Heidi, Abridge, DeepScribe, Sully, Nuance DAX fazem por dentro
+- Limites tecnicos reais (latencia composta 4-18s, alucinacao, contradicao, alert fatigue 96%)
+- Padroes de monitoramento clinico (trigger-based vs continuous, tiered alerts)
+- Demografia medica BR (635k medicos, idade media 44.8a, mulheres 50.9% em 2025)
+- 5 personas medicas (veterano, jovem tech, pediatra mae, especialista premium, plantonista)
+- Eye-tracking de medico durante consulta (3-12 segundos por janela de fixacao)
+- 14 elementos obrigatorios do prontuario (CFM 1.638/2002 + 1.821/2007)
+- 8 erros tipicos no prontuario que viram processo CRM
+
+---
+
 ### Sessao 12 — 23/04/2026 — Padroes Observados v2 (multi-agente + base de conhecimento)
 
 **Contexto:** Lucas pediu componente Padroes Observados 10/10 pro desktop medico. Sistema que cruza audio do paciente + perfil clinico + base de diretrizes brasileiras (CFM/LGPD/ANVISA-ready). Aprovou execucao autonoma ate deploy.
@@ -1236,6 +1377,17 @@ No dashboard do medico, F12 console: `vitaeAPI.regenerarSummaryPreConsulta('ID_D
 - **Fix em 10 camadas** (documentado na Sessao 5 acima). Principais: IndexedDB local, chunks a 1s, Wake Lock, HEAD validation no backend, fila assincrona com backoff, retomada automatica, badge "Incompleta" no dashboard
 - **Status:** RESOLVIDO
 - **Licao:** No iOS Safari, upload silencioso e a regra, nao excecao. Forca design defensivo: cada peca precisa confirmar entrega explicitamente (HEAD), backend precisa retornar status detalhado (audioConfirmado, fotoConfirmada), cliente nao pode limpar estado local sem confirmacao. Numeros reais em cima de arquitetura: bitrate 64kbps, timeout 25s, backoff 30s/2min/10min/30min/2h.
+
+### ERRO-003: Git local em `d:/vitae-app-github` corrompido (objetos invalidos)
+- **Data:** 27/04/2026
+- **Onde:** repositorio git local na pasta `d:/vitae-app-github` (todo o `.git/`)
+- **O que aconteceu:** durante `git status` antes de commit de feature nova (anamnese estruturada), descoberto que historico local sumiu. `git log` mostrava SO 1 commit ("Initial commit"). `origin/main` ref broken. Tag `v-pre-agenda-26abr2026` broken. Objeto `7076c709f1ed3fc930855f98326a7d40f96850b3` com header invalido.
+- **Causa raiz:** desconhecida. Hipoteses: antivirus Windows deletando objetos do `.git/objects/`, sync OneDrive corrompendo, falta de espaco em disco em algum momento, ou crash do sistema durante operacao git.
+- **Tentativa 1:** `git fetch origin` → falhou com `inflate: data stream error (incorrect header check)` → JOGOU pro fallback
+- **Tentativa 2:** `mv d:/vitae-app-github → vitae-app-github-quebrado` → falhou com `Permission denied` (lock de processo, provavel VSCode ou serve.js)
+- **Solucao executada:** `git clone` em pasta nova `d:/vitae-app-novo`, copiou os 2 arquivos modificados (ai.js + 25-summary.html) do disco quebrado, commit + push do clone novo. Pasta corrompida preservada (NAO deletada).
+- **Status:** CONTORNADO (deploy fez normal). Pasta corrompida ainda existe em `d:/vitae-app-github` aguardando Lucas fechar locks pra renomear.
+- **Licao:** Quando git local quebra, NUNCA tentar `git reset --hard`, `git fsck --fix`, ou outros comandos destrutivos sem aprovacao. Clone fresco em pasta nova e sempre o caminho mais seguro. Preservar pasta corrompida pra forensics. Evitar ter pasta de projeto dentro de OneDrive/iCloud (sync corrompe `.git/`). Considerar excluir `.git/` da varredura do antivirus em maquinas Windows.
 
 (nenhum outro erro registrado ainda — cresce conforme trabalhamos)
 
