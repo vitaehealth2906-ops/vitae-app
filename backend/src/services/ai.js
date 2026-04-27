@@ -741,7 +741,20 @@ Retorne EXCLUSIVAMENTE um JSON valido:
   "pontosAtencao": [{ "titulo": "string (ate 6 palavras)", "mensagem": "string 1-2 frases", "gravidade": "baixa|media|alta|urgente" }],
   "identificaPadroes": [{ "hipotese": "string comeca com Considere/Padrao compativel com/Vale cogitar/Pode haver componente de", "evidencia": "string com 2-3 observacoes do relato separadas por ponto-e-virgula" }],
   "blocos": [{ "titulo": "string", "conteudo": "string", "prioridade": "alta|media|baixa" }],
-  "alertas": [{ "tipo": "URGENTE|ATENCAO|INFO", "titulo": "string", "mensagem": "string" }]
+  "alertas": [{ "tipo": "URGENTE|ATENCAO|INFO", "titulo": "string", "mensagem": "string" }],
+  "anamneseEstruturada": {
+    "queixaPrincipal":      { "valor": "string ou null", "fonte": "audio|formulario|null" },
+    "tempoEvolucao":        { "valor": "string ou null", "fonte": "audio|formulario|null" },
+    "intensidade":          { "valor": "string ou null", "fonte": "audio|formulario|null" },
+    "fatoresAgravantes":    { "valor": "string ou null", "fonte": "audio|formulario|null" },
+    "fatoresAtenuantes":    { "valor": "string ou null", "fonte": "audio|formulario|null" },
+    "sintomasAssociados":   { "valor": "string ou null", "fonte": "audio|formulario|null" },
+    "tratamentoPrevio":     { "valor": "string ou null", "fonte": "audio|formulario|null" },
+    "antecedentesPessoais": { "valor": "string ou null", "fonte": "audio|formulario|null" },
+    "antecedentesFamiliares": { "valor": "string ou null", "fonte": "audio|formulario|null" },
+    "habitos":              { "valor": "string ou null", "fonte": "audio|formulario|null" },
+    "sono":                 { "valor": "string ou null", "fonte": "audio|formulario|null" }
+  }
 }
 
 ═══ REGRAS DO textoVoz (MAIS IMPORTANTE — vira audio de 1 minuto) ═══
@@ -885,7 +898,71 @@ identificaPadroes (array, 0-3 hipoteses SEM DIAGNOSTICAR, componente mais sensiv
 - evidencia: 2-3 observacoes do relato que justificam a hipotese, separadas por ponto-e-virgula
 - Se nao ha padrao claro com pelo menos 2 evidencias convergentes, retorne array vazio []
 - Maximo 3 hipoteses. Preferir 2 (mostra discernimento) a 3 (pode parecer chute)
-- NUNCA quantifique probabilidade (nao use "70% de chance", "provavel", "muito provavel")`;
+- NUNCA quantifique probabilidade (nao use "70% de chance", "provavel", "muito provavel")
+
+═══ REGRAS DE anamneseEstruturada (campo NOVO — 11 campos clinicos com fonte rastreavel) ═══
+
+OBJETIVO: extrair os 11 campos da anamnese de forma INDIVIDUAL e ESTRUTURADA, marcando a FONTE de cada campo (de onde a informacao veio).
+
+CADA CAMPO TEM 2 PARTES OBRIGATORIAS:
+- valor: o conteudo extraido (string curta e objetiva) OU null se nao foi mencionado
+- fonte: "audio" se veio da transcricao, "formulario" se veio das respostas do formulario, null se valor e null
+
+REGRA DE PRIORIDADE DE FONTE:
+- Se o campo aparece TANTO na transcricao quanto no formulario, priorize "audio" (fala mais espontanea/recente).
+- Se aparece SO no formulario, fonte e "formulario".
+- Se aparece SO na transcricao, fonte e "audio".
+- Se NAO aparece em nenhum lugar, valor=null e fonte=null. NUNCA invente.
+
+REGRAS DE CADA CAMPO:
+
+1. queixaPrincipal: a queixa em 1 linha, formato substantivo direto (ex: "Dor de cabeça pulsátil há 2 semanas no lado direito"). NAO use aspas. NAO use frase do paciente literal — extraia o conteudo clinico.
+
+2. tempoEvolucao: tempo desde o inicio da queixa (ex: "2 semanas", "3 dias", "6 meses"). Apenas o tempo, sem texto adicional.
+
+3. intensidade: escala 0-10 se mencionada (ex: "7/10"), ou descritor verbal se nao tem numero (ex: "leve", "moderada", "intensa", "incapacitante"). Se paciente disse "muita dor" sem numero, fica null.
+
+4. fatoresAgravantes: o que piora a queixa (ex: "Ao acordar pela manhã", "Estresse", "Esforço físico"). Se nao mencionado, null.
+
+5. fatoresAtenuantes: o que melhora (ex: "Repouso em ambiente escuro", "Compressa fria", "Medicamento X"). Se nao mencionado, null.
+
+6. sintomasAssociados: outros sintomas alem da queixa principal (ex: "Náusea, fotofobia", "Tontura, sudorese"). Use lista separada por virgula. Se nao mencionado, null.
+
+7. tratamentoPrevio: o que ja tentou contra a queixa (ex: "Dipirona — sem melhora", "Repouso e analgesicos comuns"). Se nao mencionado, null.
+
+8. antecedentesPessoais: doencas/condicoes relevantes (ex: "Hipertensão controlada", "Diabetes tipo 2", "Cirurgia de apendice"). Se nao mencionado, null.
+
+9. antecedentesFamiliares: doencas em familiares diretos (ex: "Mãe com enxaqueca", "Pai com diabetes", "Irmão com depressão"). Se nao mencionado, null.
+
+10. habitos: tabaco, alcool, atividade fisica (ex: "Não fuma · não bebe · sedentária", "Fumante 10 anos · ativo"). Use ponto-medio (·) pra separar. Se nao mencionado, null.
+
+11. sono: qualidade e duracao (ex: "6h/noite · qualidade ruim", "7-8h · sem queixas"). Se nao mencionado, null.
+
+ANTI-ALUCINACAO ABSOLUTA NESSE CAMPO:
+- NUNCA preencha campo nao mencionado. Prefira null a inventar.
+- NUNCA interprete. Se paciente disse "muita dor" sem numero, intensidade=null. NAO escreva "8/10".
+- NUNCA agrupe info de campos diferentes em um so. Cada coisa no seu campo.
+- Se a transcricao ou formulario nao tem dado claro, prefira null.
+
+LINGUAGEM:
+- Frases CURTAS e OBJETIVAS (max 80 caracteres por valor).
+- SEM aspas, SEM "paciente refere", SEM "paciente relata" — direto ao ponto.
+- Use ponto-medio (·) pra separar items dentro do mesmo campo (ex: habitos).
+
+EXEMPLO COMPLETO DE anamneseEstruturada (paciente Maria, 34a, cefaleia):
+{
+  "queixaPrincipal":      { "valor": "Dor de cabeça há 2 semanas, pulsátil, lado direito, piora pela manhã", "fonte": "audio" },
+  "tempoEvolucao":        { "valor": "2 semanas", "fonte": "audio" },
+  "intensidade":          { "valor": "7/10", "fonte": "formulario" },
+  "fatoresAgravantes":    { "valor": "Ao acordar pela manhã", "fonte": "audio" },
+  "fatoresAtenuantes":    { "valor": "Repouso em ambiente escuro", "fonte": "audio" },
+  "sintomasAssociados":   { "valor": "Náusea", "fonte": "audio" },
+  "tratamentoPrevio":     { "valor": "Dipirona — sem melhora", "fonte": "audio" },
+  "antecedentesPessoais": { "valor": "Hipertensão controlada", "fonte": "formulario" },
+  "antecedentesFamiliares": { "valor": "Mãe com enxaqueca", "fonte": "audio" },
+  "habitos":              { "valor": "Não fuma · não bebe · sedentária", "fonte": "formulario" },
+  "sono":                 { "valor": "6h/noite · qualidade ruim", "fonte": "formulario" }
+}`;
 
   const systemPrompt = 'Voce e um interpretador clinico da plataforma VITAE, construido para adiantar contexto para medicos antes da consulta. ' +
     'Seu papel e INTERPRETAR — nunca reorganizar, nunca diagnosticar, nunca prescrever. ' +
