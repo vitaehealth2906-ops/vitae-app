@@ -458,51 +458,84 @@
     gsiScript.defer = true;
     document.head.appendChild(gsiScript);
 
+    function showGoogleError(msg, detail) {
+        const errorMsg = document.getElementById('errorMsg');
+        errorMsg.innerHTML = '<strong>' + msg + '</strong>'
+          + (detail ? '<div style="margin-top:8px; font-size:11px; color:#9CA3AF; word-break:break-all;">' + detail + '</div>' : '')
+          + '<div style="margin-top:10px;"><button onclick="document.getElementById(\'errorMsg\').style.display=\'none\'" style="background:transparent; border:1px solid #EF4444; color:#EF4444; padding:6px 14px; border-radius:8px; font-size:12px; cursor:pointer;">Fechar</button></div>';
+        errorMsg.style.display = 'block';
+        console.error('[GoogleAuth]', msg, detail);
+    }
+
     function loginWithGoogle() {
-        if (!google || !google.accounts) {
-            alert('Google Sign-In está carregando. Tente novamente em 2 segundos.');
+        console.log('[GoogleAuth] Iniciando login Google...');
+        if (typeof google === 'undefined' || !google.accounts) {
+            showGoogleError('Google Sign-In ainda carregando.', 'Aguarde 3 segundos e tente novamente. Se persistir, verifique sua conexão.');
             return;
         }
-        const client = google.accounts.oauth2.initTokenClient({
-            client_id: GOOGLE_CLIENT_ID,
-            scope: 'openid email profile',
-            callback: async (response) => {
-                if (response.error) return;
-                try {
-                    // Get user info from Google
-                    const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                        headers: { Authorization: `Bearer ${response.access_token}` }
-                    }).then(r => r.json());
-
-                    const tipoEscolhido = localStorage.getItem('vitae_tipo_escolhido') || 'PACIENTE';
-                    const result = await vitaeAPI.loginSocial(
-                        'google',
-                        userInfo.sub,
-                        userInfo.name,
-                        userInfo.email
-                    );
-
-                    if (tipoEscolhido === 'MEDICO' || (result.usuario && result.usuario.tipo === 'MEDICO')) {
-                        window.location.href = '20-medico-dashboard.html';
-                    } else {
-                        try {
-                            const perfilData = await vitaeAPI.getPerfil();
-                            const p = perfilData.perfil || {};
-                            const vazio = !p.dataNascimento && !p.tipoSanguineo && !p.genero && !p.cpf;
-                            window.location.href = vazio ? _redirectAfterAuth_quizVazio() : _redirectAfterAuth_perfilOk();
-                        } catch(e) {
-                            window.location.href = _redirectAfterAuth_quizVazio();
-                        }
+        try {
+            const client = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: 'openid email profile',
+                callback: async (response) => {
+                    console.log('[GoogleAuth] Resposta Google:', response);
+                    if (response.error) {
+                        showGoogleError('Google rejeitou o login.', 'Código: ' + response.error + (response.error_description ? ' — ' + response.error_description : ''));
+                        return;
                     }
-                } catch (err) {
-                    const errorMsg = document.getElementById('errorMsg');
-                    errorMsg.textContent = err.message || 'Erro ao entrar com Google.';
-                    errorMsg.style.display = 'block';
-                    setTimeout(() => { errorMsg.style.display = 'none'; }, 5000);
+                    if (!response.access_token) {
+                        showGoogleError('Google não retornou token de acesso.', JSON.stringify(response));
+                        return;
+                    }
+                    try {
+                        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                            headers: { Authorization: `Bearer ${response.access_token}` }
+                        });
+                        if (!userInfoRes.ok) {
+                            const txt = await userInfoRes.text();
+                            showGoogleError('Falha ao buscar dados do Google.', 'HTTP ' + userInfoRes.status + ' — ' + txt.slice(0, 200));
+                            return;
+                        }
+                        const userInfo = await userInfoRes.json();
+                        console.log('[GoogleAuth] UserInfo:', userInfo);
+                        if (!userInfo.sub || !userInfo.email) {
+                            showGoogleError('Google não retornou email ou ID.', 'Recebido: ' + JSON.stringify(userInfo).slice(0, 200));
+                            return;
+                        }
+
+                        const tipoEscolhido = localStorage.getItem('vitae_tipo_escolhido') || 'PACIENTE';
+                        console.log('[GoogleAuth] Chamando backend loginSocial...');
+                        let result;
+                        try {
+                            result = await vitaeAPI.loginSocial('google', userInfo.sub, userInfo.name, userInfo.email);
+                        } catch (apiErr) {
+                            console.error('[GoogleAuth] Backend erro:', apiErr);
+                            showGoogleError('Servidor recusou login.', (apiErr && apiErr.message) ? apiErr.message : String(apiErr));
+                            return;
+                        }
+                        console.log('[GoogleAuth] Backend OK:', result);
+
+                        if (tipoEscolhido === 'MEDICO' || (result.usuario && result.usuario.tipo === 'MEDICO')) {
+                            window.location.href = '20-medico-dashboard.html';
+                        } else {
+                            try {
+                                const perfilData = await vitaeAPI.getPerfil();
+                                const p = perfilData.perfil || {};
+                                const vazio = !p.dataNascimento && !p.tipoSanguineo && !p.genero && !p.cpf;
+                                window.location.href = vazio ? _redirectAfterAuth_quizVazio() : _redirectAfterAuth_perfilOk();
+                            } catch(e) {
+                                window.location.href = _redirectAfterAuth_quizVazio();
+                            }
+                        }
+                    } catch (err) {
+                        showGoogleError('Erro inesperado.', (err && err.message) ? err.message : String(err));
+                    }
                 }
-            }
-        });
-        client.requestAccessToken();
+            });
+            client.requestAccessToken();
+        } catch (initErr) {
+            showGoogleError('Falha ao inicializar Google Sign-In.', (initErr && initErr.message) ? initErr.message : String(initErr));
+        }
     }
 
     function loginWithApple() {

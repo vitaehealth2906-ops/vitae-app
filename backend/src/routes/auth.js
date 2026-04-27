@@ -274,52 +274,84 @@ router.post('/login-social', validate(loginSocialSchema), async (req, res, next)
   try {
     const { provider, providerToken, nome, email } = req.body;
 
-    // TODO: Implementar verificacao real do token OAuth com o provider
-    // Por enquanto, apenas valida que o token existe
     if (!providerToken) {
-      return res.status(400).json({ erro: 'Token do provider e obrigatorio' });
+      return res.status(400).json({ erro: 'Token do provider e obrigatorio', codigo: 'TOKEN_AUSENTE' });
+    }
+    if (!email) {
+      return res.status(400).json({ erro: 'Email do provider e obrigatorio', codigo: 'EMAIL_AUSENTE' });
     }
 
-    // Usar o token como providerId temporario (em producao, decodificar o token)
     const providerId = providerToken;
+    console.log('[login-social] tentativa', { provider, providerId: providerId.slice(0, 20) + '...', email, nome });
 
-    // Buscar usuario existente pelo provider
+    // 1) Buscar pelo par (provider, providerId)
     let usuario = await prisma.usuario.findFirst({
-      where: {
-        provider,
-        providerId,
-      },
+      where: { provider, providerId },
     });
 
-    if (!usuario && email) {
-      // Check if email already exists (user registered manually before)
+    // 2) Se nao achou, buscar por email (link de conta existente)
+    if (!usuario) {
       usuario = await prisma.usuario.findUnique({ where: { email } });
       if (usuario) {
-        // Link social provider to existing account
-        await prisma.usuario.update({
-          where: { id: usuario.id },
-          data: { provider, providerId },
+        console.log('[login-social] linkando conta existente', { id: usuario.id });
+        try {
+          usuario = await prisma.usuario.update({
+            where: { id: usuario.id },
+            data: { provider, providerId },
+          });
+        } catch (linkErr) {
+          console.error('[login-social] falha ao linkar', linkErr);
+          return res.status(500).json({
+            erro: 'Falha ao vincular conta Google ao cadastro existente',
+            codigo: 'LINK_FALHOU',
+            detalhe: linkErr.message,
+          });
+        }
+      }
+    }
+
+    // 3) Se ainda nao tem, criar novo
+    if (!usuario) {
+      console.log('[login-social] criando novo usuario');
+      try {
+        usuario = await prisma.usuario.create({
+          data: {
+            nome: nome || `Usuario ${provider}`,
+            email,
+            provider,
+            providerId,
+            status: 'ATIVO',
+            perfilSaude: { create: {} },
+          },
+        });
+      } catch (createErr) {
+        console.error('[login-social] falha ao criar usuario', createErr);
+        // P2002 = unique constraint violation
+        if (createErr.code === 'P2002') {
+          return res.status(409).json({
+            erro: 'Ja existe um cadastro com esses dados. Tente fazer login.',
+            codigo: 'EMAIL_DUPLICADO',
+            campo: createErr.meta && createErr.meta.target,
+          });
+        }
+        // P2022/P2021 = coluna/tabela nao existe (schema desatualizado)
+        if (createErr.code === 'P2022' || createErr.code === 'P2021') {
+          return res.status(500).json({
+            erro: 'Banco de dados desatualizado. Avise o suporte.',
+            codigo: 'SCHEMA_DESATUALIZADO',
+            detalhe: createErr.message,
+          });
+        }
+        return res.status(500).json({
+          erro: 'Falha ao criar conta via Google',
+          codigo: 'CREATE_FALHOU',
+          detalhe: createErr.message,
         });
       }
     }
 
-    if (!usuario) {
-      // Criar novo usuario via login social
-      usuario = await prisma.usuario.create({
-        data: {
-          nome: nome || `Usuario ${provider}`,
-          email: email || `${providerId}@${provider}.placeholder`,
-          provider,
-          providerId,
-          status: 'ATIVO',
-          perfilSaude: {
-            create: {},
-          },
-        },
-      });
-    }
-
     const { token, refreshToken } = await gerarTokens(usuario);
+    console.log('[login-social] sucesso', { id: usuario.id, email: usuario.email });
 
     return res.status(200).json({
       token,
@@ -332,6 +364,7 @@ router.post('/login-social', validate(loginSocialSchema), async (req, res, next)
       },
     });
   } catch (err) {
+    console.error('[login-social] erro nao tratado', err);
     next(err);
   }
 });
