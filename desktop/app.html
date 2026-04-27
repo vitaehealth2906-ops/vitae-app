@@ -3454,7 +3454,7 @@ function pcRenderList(){
     var avHtml = fotoUrl
       ? '<div class="pcn-tr-av"><img src="' + fotoUrl + '" alt="" onerror="this.parentNode.innerHTML=\'' + sa(ini) + '\'"></div>'
       : '<div class="pcn-tr-av">' + sa(ini) + '</div>';
-    var clickAttr = isResp ? 'onclick="navigate(\'pre-consultas\',\'' + pc.id + '\')"' : '';
+    var clickAttr = 'onclick="navigate(\'pre-consultas\',\'' + pc.id + '\')"';
 
     var actions = '';
     if(isPend && pc.linkToken){
@@ -3518,6 +3518,36 @@ async function pcOpenDetail(pcId){
     var data = await vitaeAPI.getPreConsulta(pcId);
     var pc = data.preConsulta;
     pcState.currentPC = pc;
+
+    if(pc.status !== 'RESPONDIDA' && pc.status !== 'FINALIZADA'){
+      var statusMap = { PENDENTE: { label: 'Aguardando resposta', cor: '#F59E0B', desc: 'O paciente ainda nao abriu o link da pre-consulta.' }, ABERTO: { label: 'Em preenchimento', cor: '#3B82F6', desc: 'O paciente abriu o link mas ainda nao terminou de responder.' }, EXPIRADA: { label: 'Link expirado', cor: '#EF4444', desc: 'O link expirou antes do paciente responder. Crie uma nova pre-consulta.' } };
+      var info = statusMap[pc.status] || { label: pc.status || 'Pendente', cor: '#6B7280', desc: 'Esta pre-consulta ainda nao foi respondida.' };
+      var nomeP = pc.pacienteNome || 'Paciente';
+      var iniP = getInitials(nomeP);
+      var fotoP = pc.pacienteFotoUrl || (pc.paciente && pc.paciente.fotoUrl) || null;
+      var criadaEm = pcFmtDateTime(pc.criadoEm);
+      var linkPC = pc.linkToken ? (window.location.origin + '/pre-consulta.html?token=' + pc.linkToken) : null;
+      var h = '<div class="resumo-wrap"><div class="resumo-top"><button class="back-btn" style="margin-bottom:0" onclick="navigate(\'pre-consultas\')"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Voltar</button></div>';
+      h += '<div class="resumo-head"><h1>Pre-consulta de <em>' + escHtml(nomeP) + '</em></h1></div>';
+      h += '<div style="max-width:560px;margin:24px 0;padding:24px;background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:14px;box-shadow:0 1px 12px rgba(0,0,0,0.07)">';
+      h += '<div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">';
+      h += fotoP ? '<div class="pac-avatar" style="width:56px;height:56px;font-size:18px"><img src="' + fotoP + '" onerror="this.parentElement.textContent=\'' + sa(iniP) + '\'"></div>' : '<div class="pac-avatar" style="width:56px;height:56px;font-size:18px">' + iniP + '</div>';
+      h += '<div style="flex:1;min-width:0"><div style="font-size:18px;font-weight:800;color:#0D0F14">' + escHtml(nomeP) + '</div>';
+      h += '<div style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:4px 10px;border-radius:100px;background:' + info.cor + '14;color:' + info.cor + ';font-size:12px;font-weight:700"><span style="width:6px;height:6px;border-radius:50%;background:' + info.cor + '"></span>' + info.label + '</div></div></div>';
+      h += '<div style="font-size:14px;color:#4B5563;line-height:1.5;margin-bottom:16px">' + info.desc + '</div>';
+      h += '<div style="font-size:12px;color:#6B7280;margin-bottom:16px">Enviada em ' + escHtml(criadaEm) + '</div>';
+      if(linkPC){
+        h += '<div style="background:#F4F6FA;border-radius:12px;padding:12px;margin-bottom:12px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#9CA3AF;margin-bottom:6px">Link da pre-consulta</div>';
+        h += '<div style="font-size:12px;color:#4B5563;word-break:break-all;font-family:monospace">' + escHtml(linkPC) + '</div></div>';
+        h += '<button class="btn btn-p" onclick="pcCopyLink(\'' + linkPC + '\')" style="width:100%"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Copiar link</button>';
+      }
+      h += '</div></div>';
+      detailEl.innerHTML = h;
+      document.getElementById('tbTitle').textContent = 'Pre-Consultas';
+      document.getElementById('tbSub').textContent = info.label;
+      return;
+    }
+
     var summary = pc.summaryJson || {};
     var r = pc.respostas || {};
     var summaryText = summary.textoVoz || summary.summaryTexto || pc.summaryIA || '';
