@@ -351,8 +351,14 @@ body{display:flex;justify-content:center;align-items:center;min-height:100vh;min
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- JAVASCRIPT — Lógica completa V2                                 -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
-<script src="api.js"></script>
+<script src="api.js?v=2-1"></script>
 <script>
+// ════ API BASE — fallback resiliente (nao depende do api.js expor) ════
+const API_BASE = (window.vitaeAPI && window.vitaeAPI.baseUrl)
+  || (['localhost','127.0.0.1'].includes(location.hostname) || location.protocol === 'file:'
+      ? 'http://localhost:3002'
+      : 'https://vitae-app-production.up.railway.app');
+
 // ════ CONFIG ════
 const CFG = {
   silencioMs: 5000,           // Detector silêncio: 5 SEGUNDOS (Lucas confirmou)
@@ -479,7 +485,7 @@ async function init() {
 
   // Tenta carregar pré-consulta do backend
   try {
-    const resp = await fetch(window.vitaeAPI.baseUrl + '/pre-consulta/t/' + ESTADO.token);
+    const resp = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token);
     if (resp.status === 404) return mostrarErro('Link não encontrado', 'Esse link de pré-consulta não existe ou foi removido. Peça outro pro seu médico.');
     if (resp.status === 410) return mostrarErro('Link expirado', 'Esse link já passou da validade. Peça outro pro seu médico.');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -532,8 +538,11 @@ async function init() {
       else renderPerguntaAtual();
     }
   } catch (err) {
-    console.error('init falhou:', err);
-    mostrarErro('Sem conexão', 'Não conseguimos conectar com o servidor. Verifica sua internet e tenta de novo.');
+    console.error('init falhou:', err, 'API_BASE:', API_BASE, 'token:', ESTADO.token);
+    var detalhe = 'Não conseguimos carregar sua pré-consulta. ';
+    if (err && err.message) detalhe += '(' + String(err.message).slice(0, 80) + ')';
+    detalhe += ' Tente recarregar a página.';
+    mostrarErro('Algo deu errado', detalhe);
   }
 }
 
@@ -830,7 +839,7 @@ async function processarRespostaReal(pergunta, blob) {
     fd.append('audioChunk', blob, 'chunk-' + pergunta.id + '.webm');
     fd.append('pergunta', JSON.stringify({ id: pergunta.id, texto: pergunta.texto, ajuda: pergunta.ajuda, campo: pergunta.campo }));
 
-    const resp = await fetch(window.vitaeAPI.baseUrl + '/pre-consulta/t/' + ESTADO.token + '/classificar-resposta', {
+    const resp = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token + '/classificar-resposta', {
       method: 'POST',
       body: fd,
     });
@@ -1235,7 +1244,7 @@ async function enviarPreConsulta() {
     const tk = (window.vitaeAPI && window.vitaeAPI.getToken && window.vitaeAPI.getToken());
     if (tk) headers['Authorization'] = 'Bearer ' + tk;
 
-    const resp = await fetch(window.vitaeAPI.baseUrl + '/pre-consulta/t/' + ESTADO.token + '/responder', {
+    const resp = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token + '/responder', {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
