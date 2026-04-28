@@ -384,13 +384,15 @@ const API_BASE = (window.vitaeAPI && window.vitaeAPI.baseUrl)
 
 // ════ CONFIG ════
 const CFG = {
-  silencioMs: 5000,           // Detector silêncio: 5 SEGUNDOS (Lucas confirmou)
+  silencioMs: 1800,           // Detector silêncio: 1.8s (curto pra avaliar rápido)
   rmsThreshold: 0.015,        // Threshold de voz vs silêncio (igual Sessão 11)
   minRespostas: 7,            // Mínimo 7 de 11 pra liberar envio
   thresholdConfianca: 0.85,   // ≥85% marca autônomo, 60-84% pede confirmação
   bitrate: 64000,             // 64kbps áudio
   silencioInicialTimeoutMs: 30000, // 30s sem fala = "tá tudo bem?"
   redeLentaTimeoutMs: 4000,   // 4s sem resposta backend = banner "rede lenta"
+  maxTentativasContinuas: 3,  // Após N pausas sem responder, mostra falha educativa
+  duracaoMaxPerguntaMs: 90000, // 90s max por pergunta (proteção)
 };
 
 // ════ TEMPLATE PADRÃO 11 PERGUNTAS ════
@@ -423,6 +425,8 @@ const ESTADO = {
   attemptId: null,        // UUID da tentativa atual
   sincronizando: false,
   ultimaAtividade: Date.now(),
+  tentativasContinuas: 0, // contador de pausas sem resposta detectada na pergunta atual
+  duracaoInicio: null,    // timestamp do início da pergunta atual (pra duracaoMaxPerguntaMs)
 };
 
 // ════ ESTADO MEDIA RECORDER ════
@@ -703,6 +707,10 @@ function renderPerguntaAtual() {
   document.getElementById('feedback').textContent = 'Estou te ouvindo';
   document.getElementById('feedback').className = 'q-feedback live';
 
+  // Reset tentativas continuas e timer de duracao
+  ESTADO.tentativasContinuas = 0;
+  ESTADO.duracaoInicio = Date.now();
+
   // Esconde botões ambíguos
   document.getElementById('ambBtns').style.display = 'none';
   document.getElementById('ambBtns').innerHTML = '';
@@ -943,8 +951,22 @@ async function processarRespostaReal(pergunta, blob) {
 
     // r = { respondeu, valor, confianca, motivo, transcricao, audioUrl }
     if (!r.respondeu || r.confianca < 0.60) {
-      // Não respondeu — mostra estado educativo
-      mostrarFalha(r.motivo === 'transcricao_vazia' || r.motivo === 'transcricao_falhou' ? 'sem_voz' : 'sem_resposta');
+      // Não respondeu — incrementa tentativas continuas
+      ESTADO.tentativasContinuas = (ESTADO.tentativasContinuas || 0) + 1;
+      const tempoTotal = Date.now() - (ESTADO.duracaoInicio || Date.now());
+
+      // Se ja tentou demais OU passou do tempo max: mostra falha educativa
+      if (ESTADO.tentativasContinuas >= CFG.maxTentativasContinuas || tempoTotal > CFG.duracaoMaxPerguntaMs) {
+        mostrarFalha(r.motivo === 'transcricao_vazia' || r.motivo === 'transcricao_falhou' ? 'sem_voz' : 'sem_resposta');
+        return;
+      }
+
+      // Continua escutando automaticamente — sem mostrar falha
+      // Hint sutil: 'Continua falando, ainda esperando...'
+      resetMicVisual();
+      document.getElementById('feedback').textContent = 'Continua, ainda estou ouvindo...';
+      document.getElementById('feedback').className = 'q-feedback live';
+      setTimeout(() => iniciarCaptura(), 200);
       return;
     }
 
