@@ -1483,6 +1483,115 @@ Se o documento nao for um resultado de exame alergico, retorne: { "tipo": "nao_e
   }
 }
 
+// ════════════════════════════════════════════════════════════════════
+// CLASSIFICADOR INDIVIDUAL — Pré-consulta V2 (pergunta-por-pergunta)
+// Recebe UMA pergunta + transcricao do paciente. Retorna se respondeu,
+// o valor extraido, e a confianca (0-1).
+// Threshold: ≥0.85 marca autonomo. 0.60-0.84 pede confirmacao. <0.60 ignora.
+// Usado pelo endpoint POST /pre-consulta/t/:token/classificar-resposta
+// ════════════════════════════════════════════════════════════════════
+async function classificarRespostaIndividual(pergunta, transcricao, contexto = {}) {
+  const transc = (transcricao || '').trim();
+  if (transc.length < 2) {
+    return { respondeu: false, valor: null, confianca: 0, motivo: 'transcricao_vazia' };
+  }
+
+  const ajudaTexto = pergunta.ajuda ? `\n\nContexto da pergunta: ${pergunta.ajuda}` : '';
+  const userPrompt = `Pergunta feita ao paciente: "${pergunta.texto}"${ajudaTexto}
+
+Transcricao do que o paciente disse: "${transc}"
+
+Avalie se essa transcricao responde a pergunta. Considere:
+- "nao sei", "nao lembro", "nao tenho certeza" SAO respostas validas (paciente declarou desconhecer)
+- Resposta evasiva ou nao-relacionada NAO conta como resposta
+- Se o paciente respondeu PARCIALMENTE, ainda conta como respondido (confianca menor)
+- Se a pergunta pede numero/duracao e o paciente deu, extraia o valor estruturado
+
+Retorne EXCLUSIVAMENTE um JSON valido:
+{
+  "respondeu": boolean,
+  "valor": "string ou null — o conteudo essencial da resposta, max 80 chars, em portugues claro",
+  "confianca": numero entre 0 e 1,
+  "motivo": "string curta explicando porque (especialmente se respondeu=false)"
+}
+
+Exemplos:
+- Pergunta "Ha quanto tempo?" + Transcricao "ah faz uns três semanas" → {"respondeu":true,"valor":"3 semanas","confianca":0.93,"motivo":"resposta clara de tempo"}
+- Pergunta "Intensidade 0-10?" + Transcricao "ah doutor, doi muito mesmo" → {"respondeu":false,"valor":null,"confianca":0.30,"motivo":"sem numero, apenas qualitativo"}
+- Pergunta "Antecedentes?" + Transcricao "nao sei direito" → {"respondeu":true,"valor":"nao soube responder","confianca":0.95,"motivo":"declarou desconhecer"}
+- Pergunta "O que piora?" + Transcricao "olha, eu acho que..." → {"respondeu":false,"valor":null,"confianca":0.40,"motivo":"resposta cortada/incompleta"}`;
+
+  const systemPrompt = 'Voce e um classificador clinico da plataforma VITAE. Sua unica funcao e avaliar se uma transcricao de fala responde a uma pergunta especifica. Seja rigoroso na confianca: so acima de 0.85 quando tem certeza absoluta. Prefira erro de subestimacao ao erro de alucinacao. Nunca invente valor que nao esta na transcricao.';
+
+  // Tenta Gemini 2.5 Flash primeiro (gratuito)
+  if (genAI) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash',
+        systemInstruction: systemPrompt,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          maxOutputTokens: 512,
+          temperature: 0.3, // baixa temperatura — classificacao precisa ser deterministica
+        },
+      });
+      const result = await model.generateContent(userPrompt);
+      const text = result.response.text();
+      let parsed;
+      try { parsed = JSON.parse(text); }
+      catch (parseErr) {
+        parsed = tentarRecuperarJSON(text);
+        if (!parsed) throw parseErr;
+      }
+      // Valida formato
+      if (typeof parsed.respondeu !== 'boolean' || typeof parsed.confianca !== 'number') {
+        throw new Error('Resposta do Gemini em formato invalido');
+      }
+      return {
+        respondeu: parsed.respondeu,
+        valor: parsed.valor || null,
+        confianca: Math.max(0, Math.min(1, parsed.confianca)),
+        motivo: parsed.motivo || '',
+      };
+    } catch (geminiErr) {
+      console.error('[CLASSIFICADOR] Gemini falhou:', geminiErr.message, '— tentando Claude...');
+    }
+  }
+
+  // Fallback: Claude
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 512,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+    const conteudo = response.content[0].text.trim();
+    let parsed;
+    try { parsed = JSON.parse(conteudo); }
+    catch {
+      const m = conteudo.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (m) parsed = JSON.parse(m[1].trim());
+      else throw new Error('Falha ao parsear Claude');
+    }
+    return {
+      respondeu: !!parsed.respondeu,
+      valor: parsed.valor || null,
+      confianca: Math.max(0, Math.min(1, parsed.confianca || 0)),
+      motivo: parsed.motivo || '',
+    };
+  } catch (claudeErr) {
+    console.error('[CLASSIFICADOR] Claude tambem falhou:', claudeErr.message);
+    // Fallback final: aceita qualquer fala como resposta com confianca baixa
+    return {
+      respondeu: true,
+      valor: transc.slice(0, 80),
+      confianca: 0.50,
+      motivo: 'IA indisponivel — aceito como fallback',
+    };
+  }
+}
+
 module.exports = {
   estruturarExame,
   estruturarExameDeArquivo,
@@ -1496,4 +1605,5 @@ module.exports = {
   gerarPerguntasTemplate,
   scanReceita,
   scanAlergia,
+  classificarRespostaIndividual,
 };

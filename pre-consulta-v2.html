@@ -723,39 +723,142 @@ async function pararCaptura(cancelar) {
   const p = ESTADO.perguntas[ESTADO.perguntaAtual];
   await IDB.salvarChunk(p.id, blob);
 
-  // FASE 1 (modo dummy — sem Gemini classificador real ainda):
-  // Marca como respondida com placeholder. Fase 2 vai chamar backend pra classificar.
-  await processarRespostaDummy(p, blob);
+  // FASE 2: classificador real via backend (Whisper + Gemini)
+  await processarRespostaReal(p, blob);
 }
 
-// ════ PROCESSAR RESPOSTA (DUMMY na Fase 1, será real na Fase 2) ════
-async function processarRespostaDummy(pergunta, blob) {
-  // Simula delay de processamento (1.5s)
-  await new Promise(r => setTimeout(r, 1500));
+// ════ PROCESSAR RESPOSTA REAL (FASE 2 — backend classifica) ════
+async function processarRespostaReal(pergunta, blob) {
+  let timeoutLento = setTimeout(() => {
+    document.getElementById('feedback').textContent = 'Sua internet tá lenta — segura aí';
+    document.getElementById('feedback').className = 'q-feedback warn';
+  }, CFG.redeLentaTimeoutMs);
 
-  // Salva resposta com fonte "audio" e valor placeholder
-  ESTADO.respostas[pergunta.id] = {
-    valor: '(transcrição será gerada pelo servidor)',
+  try {
+    const fd = new FormData();
+    fd.append('audioChunk', blob, 'chunk-' + pergunta.id + '.webm');
+    fd.append('pergunta', JSON.stringify({ id: pergunta.id, texto: pergunta.texto, ajuda: pergunta.ajuda, campo: pergunta.campo }));
+
+    const resp = await fetch(window.vitaeAPI.baseUrl + '/pre-consulta/t/' + ESTADO.token + '/classificar-resposta', {
+      method: 'POST',
+      body: fd,
+    });
+    clearTimeout(timeoutLento);
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error('HTTP ' + resp.status + ': ' + txt);
+    }
+    const r = await resp.json();
+
+    // r = { respondeu, valor, confianca, motivo, transcricao, audioUrl }
+    if (!r.respondeu || r.confianca < 0.60) {
+      // Não respondeu — pede mais
+      document.getElementById('micBtn').className = 'q-mic-big falha';
+      document.getElementById('dotting').style.display = 'none';
+      document.getElementById('feedback').innerHTML = 'Não captei direito — pode falar mais um pouquinho?';
+      document.getElementById('feedback').className = 'q-feedback crit';
+      return;
+    }
+
+    if (r.confianca >= CFG.thresholdConfianca) {
+      // Confiança alta — confirma autonomamente
+      ESTADO.respostas[pergunta.id] = {
+        valor: r.valor,
+        fonte: 'audio',
+        confianca: r.confianca,
+        transcricaoBruta: r.transcricao,
+        audioChunkUrl: r.audioUrl,
+        timestamp: new Date().toISOString(),
+        campoAnamnese: pergunta.campo,
+        status: 'confirmado',
+      };
+      await IDB.salvarEstado();
+
+      // Visual: confirmado
+      document.getElementById('micBtn').className = 'q-mic-big done';
+      document.getElementById('dotting').style.display = 'none';
+      document.getElementById('feedback').innerHTML = 'Anotei: <strong>' + escapeHtml(r.valor) + '</strong>';
+      document.getElementById('feedback').className = 'q-feedback done';
+
+      // Aguarda 1.5s, avança
+      await new Promise(rs => setTimeout(rs, 1500));
+      ESTADO.perguntaAtual++;
+      if (ESTADO.perguntaAtual >= ESTADO.perguntas.length) {
+        irParaRevisao();
+      } else {
+        renderPerguntaAtual();
+      }
+    } else {
+      // Confiança média (60-84%) — pede confirmação humana
+      mostrarConfirmacaoAmbigua(pergunta, r);
+    }
+  } catch (err) {
+    clearTimeout(timeoutLento);
+    console.error('processarResposta erro:', err);
+    document.getElementById('micBtn').className = 'q-mic-big falha';
+    document.getElementById('dotting').style.display = 'none';
+    document.getElementById('feedback').innerHTML = 'Algo deu errado — toque no microfone pra tentar de novo';
+    document.getElementById('feedback').className = 'q-feedback crit';
+  }
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+// ════ CONFIRMAÇÃO AMBÍGUA (60-84% confiança) ════
+function mostrarConfirmacaoAmbigua(pergunta, resultadoClass) {
+  document.getElementById('micBtn').className = 'q-mic-big ambiguo';
+  document.getElementById('dotting').style.display = 'none';
+  document.getElementById('feedback').innerHTML = 'Captei <strong>"' + escapeHtml(resultadoClass.valor) + '"</strong> — confirma?';
+  document.getElementById('feedback').className = 'q-feedback warn';
+
+  const amb = document.getElementById('ambBtns');
+  amb.innerHTML = ''
+    + '<button class="opt" onclick="confirmarAmbiguo(\'' + pergunta.id + '\', true)">Sim, é isso</button>'
+    + '<button class="opt" onclick="confirmarAmbiguo(\'' + pergunta.id + '\', false)">Não, vou falar de novo</button>';
+  amb.style.display = 'flex';
+
+  // Salva temporariamente o resultado pra usar se confirmar
+  window._ultimoResultadoAmbiguo = { pergunta, resultadoClass };
+}
+
+async function confirmarAmbiguo(perguntaId, sim) {
+  const amb = document.getElementById('ambBtns');
+  amb.style.display = 'none';
+  amb.innerHTML = '';
+
+  if (!sim) {
+    // Reseta visual e deixa paciente falar de novo
+    resetMicVisual();
+    document.getElementById('feedback').textContent = 'Toque no microfone pra falar de novo';
+    document.getElementById('feedback').className = 'q-feedback';
+    return;
+  }
+
+  // Confirmou — salva como respondido
+  const dados = window._ultimoResultadoAmbiguo;
+  if (!dados) return;
+
+  ESTADO.respostas[perguntaId] = {
+    valor: dados.resultadoClass.valor,
     fonte: 'audio',
-    confianca: null,
-    transcricaoBruta: null,
-    audioChunkBlob: true, // marca que tem áudio salvo no IDB
+    confianca: dados.resultadoClass.confianca,
+    transcricaoBruta: dados.resultadoClass.transcricao,
+    audioChunkUrl: dados.resultadoClass.audioUrl,
     timestamp: new Date().toISOString(),
-    campoAnamnese: pergunta.campo,
-    status: 'confirmado',
+    campoAnamnese: dados.pergunta.campo,
+    status: 'confirmado_pelo_paciente',
   };
-
   await IDB.salvarEstado();
 
-  // Visual: confirmado
   document.getElementById('micBtn').className = 'q-mic-big done';
-  document.getElementById('waveMini').style.display = 'none';
-  document.getElementById('dotting').style.display = 'none';
-  document.getElementById('feedback').innerHTML = 'Anotei sua resposta';
+  document.getElementById('feedback').innerHTML = 'Anotei: <strong>' + escapeHtml(dados.resultadoClass.valor) + '</strong>';
   document.getElementById('feedback').className = 'q-feedback done';
 
-  // Aguarda 1.5s, avança
-  await new Promise(r => setTimeout(r, 1500));
+  await new Promise(rs => setTimeout(rs, 1500));
   ESTADO.perguntaAtual++;
   if (ESTADO.perguntaAtual >= ESTADO.perguntas.length) {
     irParaRevisao();

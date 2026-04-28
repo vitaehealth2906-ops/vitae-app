@@ -5,7 +5,7 @@ const { z } = require('zod');
 const prisma = require('../utils/prisma');
 const { verificarAuth, authOpcional } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
-const { gerarSummaryPreConsulta, gerarAudioElevenLabs, verificarCompletudeTopicos } = require('../services/ai');
+const { gerarSummaryPreConsulta, gerarAudioElevenLabs, verificarCompletudeTopicos, classificarRespostaIndividual } = require('../services/ai');
 const { enviarEmailPreConsultaRespondida } = require('../services/email');
 const { enviarSMSConfirmacaoPreConsulta } = require('../services/sms');
 const storage = require('../services/storage');
@@ -720,6 +720,99 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
       statusPosterior: 'O resumo clinico sera gerado em ate 2 minutos. O medico sera notificado.',
     });
   } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /t/:token/classificar-resposta — V2 (publico, sem auth)
+// Pre-consulta V2 (pergunta-por-pergunta linear).
+// Recebe UMA pergunta + audio chunk OU transcricao direta.
+// Retorna se respondeu, valor estruturado, confianca (0-1).
+// NAO salva nada permanente — so classifica. Frontend salva no IDB local
+// e o salvamento final continua via POST /responder.
+// ---------------------------------------------------------------------------
+
+const audioChunkUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+router.post('/t/:token/classificar-resposta', audioChunkUpload.single('audioChunk'), async (req, res, next) => {
+  try {
+    const preConsulta = await prisma.preConsulta.findUnique({
+      where: { linkToken: req.params.token },
+    });
+    if (!preConsulta) return res.status(404).json({ erro: 'Pre-consulta nao encontrada' });
+    if (preConsulta.expiraEm < new Date()) return res.status(410).json({ erro: 'Link expirado' });
+    if (preConsulta.status === 'RESPONDIDA') return res.status(409).json({ erro: 'Pre-consulta ja respondida' });
+
+    // Parse do payload
+    let pergunta, transcricaoDireta;
+    try {
+      pergunta = req.body.pergunta ? JSON.parse(req.body.pergunta) : null;
+      transcricaoDireta = req.body.transcricao || null;
+    } catch (e) {
+      return res.status(400).json({ erro: 'Formato invalido', detalhe: 'Campo pergunta deve ser JSON valido.' });
+    }
+
+    if (!pergunta || !pergunta.texto) {
+      return res.status(400).json({ erro: 'Pergunta obrigatoria', detalhe: 'Envie a pergunta sendo classificada.' });
+    }
+
+    // Caminho 1: cliente enviou transcricao direta (sem audio)
+    let transcricao = (transcricaoDireta || '').trim();
+
+    // Caminho 2: cliente enviou audio chunk — backend transcreve via Whisper
+    let audioUrl = null;
+    if (req.file && req.file.buffer) {
+      try {
+        // Upload temporario pra storage (necessario pro Whisper baixar)
+        audioUrl = await storage.upload({
+          buffer: req.file.buffer,
+          nomeOriginal: `chunk-${preConsulta.id}-${Date.now()}.webm`,
+          mimetype: req.file.mimetype || 'audio/webm',
+          pasta: 'audios-chunks',
+        });
+        // Whisper transcreve
+        const t = await transcreverAudio(audioUrl);
+        if (t) transcricao = t.trim();
+      } catch (audioErr) {
+        console.error('[CLASSIFICAR] Erro ao transcrever audio chunk:', audioErr.message);
+        return res.status(200).json({
+          respondeu: false,
+          valor: null,
+          confianca: 0,
+          motivo: 'transcricao_falhou',
+          transcricao: '',
+          audioUrl,
+          erro: 'Nao consegui transcrever — tente falar de novo',
+        });
+      }
+    }
+
+    if (!transcricao || transcricao.length < 2) {
+      return res.status(200).json({
+        respondeu: false,
+        valor: null,
+        confianca: 0,
+        motivo: 'transcricao_vazia',
+        transcricao: '',
+        audioUrl,
+      });
+    }
+
+    // Chama classificador (Gemini → Claude fallback)
+    const resultado = await classificarRespostaIndividual(pergunta, transcricao);
+
+    // Anexa transcricao bruta e audioUrl pro frontend salvar no estado
+    return res.status(200).json({
+      ...resultado,
+      transcricao,
+      audioUrl,
+      perguntaId: pergunta.id || null,
+      campoAnamnese: pergunta.campo || null,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[CLASSIFICAR] Erro:', err.message);
     next(err);
   }
 });
