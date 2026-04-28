@@ -488,15 +488,24 @@ async function init() {
     const resp = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token);
     if (resp.status === 404) return mostrarErro('Link não encontrado', 'Esse link de pré-consulta não existe ou foi removido. Peça outro pro seu médico.');
     if (resp.status === 410) return mostrarErro('Link expirado', 'Esse link já passou da validade. Peça outro pro seu médico.');
+    if (resp.status === 409) return mostrarErro('Já respondida', 'Essa pré-consulta já foi respondida. Não precisa fazer de novo.');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
-    ESTADO.preConsulta = data.preConsulta;
-    ESTADO.paciente = { nome: data.preConsulta.pacienteNome || 'Paciente' };
-    ESTADO.medico = data.preConsulta.medico || { nome: 'Médico' };
+    // Backend retorna estrutura direta (sem wrapper preConsulta):
+    // { id, pacienteNome, medicoNome, especialidade, status, perfilPaciente, templatePerguntas, permitirAudio }
+    ESTADO.preConsulta = { id: data.id, status: data.status };
+    ESTADO.paciente = {
+      nome: (data.perfilPaciente && data.perfilPaciente.nome) || data.pacienteNome || 'Paciente',
+      fotoUrl: (data.perfilPaciente && data.perfilPaciente.fotoUrl) || null,
+    };
+    ESTADO.medico = {
+      nome: data.medicoNome || 'Médico',
+      especialidade: data.especialidade || '',
+    };
 
     // Decide template: do médico ou padrão
-    const tplPerguntas = data.preConsulta.templatePerguntas;
+    const tplPerguntas = data.templatePerguntas;
     if (Array.isArray(tplPerguntas) && tplPerguntas.length > 0) {
       // Usa template do médico, normalizando pro formato esperado
       ESTADO.perguntas = tplPerguntas.map((q, i) => ({
@@ -603,13 +612,19 @@ function limparBanner() {
 function renderHeader() {
   const nome = ESTADO.paciente.nome || 'Paciente';
   const iniciais = nome.split(/\s+/).slice(0, 2).map(s => s[0] || '').join('').toUpperCase() || '--';
-  const docNome = (ESTADO.medico.usuario && ESTADO.medico.usuario.nome) || ESTADO.medico.nome || 'Médico';
+  const docNome = ESTADO.medico.nome || 'Médico';
   const docEspec = ESTADO.medico.especialidade || '';
   const docFull = docEspec ? ('Dr(a). ' + docNome + ' · ' + docEspec) : ('Dr(a). ' + docNome);
+  const fotoUrl = ESTADO.paciente.fotoUrl || null;
 
   ['avaPaciente', 'avaPaciente2'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.textContent = iniciais;
+    if (!el) return;
+    if (fotoUrl) {
+      el.innerHTML = '<img src="' + fotoUrl + '" alt="" onerror="this.parentNode.textContent=\'' + iniciais + '\'">';
+    } else {
+      el.textContent = iniciais;
+    }
   });
   ['nmPaciente', 'nmPaciente2'].forEach(id => {
     const el = document.getElementById(id);
