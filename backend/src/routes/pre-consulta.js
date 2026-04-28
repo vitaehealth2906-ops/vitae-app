@@ -128,6 +128,68 @@ const audioUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize
 
 const router = express.Router();
 
+// ----------------------------------------------------------------------------
+// V2 RETROCOMPATIBILIDADE — Dual-write
+// Se respostas vem no formato V2 (com _v2 ou _versaoFluxo), extrai os valores
+// pros campos legados que telas antigas e o summary atual esperam.
+// Mapeamento campo da anamnese → campo legado:
+//   queixaPrincipal → queixaPrincipal
+//   tempoEvolucao → duracaoSintomas
+//   intensidade → intensidade (campo novo, mas IA aceita)
+//   fatoresAgravantes → fatoresAgravantes
+//   fatoresAtenuantes → fatoresAtenuantes
+//   sintomasAssociados → sintomas
+//   tratamentoPrevio → tratamentoPrevio
+//   antecedentesPessoais → doencasAtuais
+//   antecedentesFamiliares → historicoFamiliar
+//   habitos → (composto: tabagismo + alcool + exercicio em string unica)
+//   sono → horasSono / qualidadeSono
+// Telas legadas leem direto. _v2 fica preservado pra IA/UI nova.
+// ----------------------------------------------------------------------------
+function enriquecerRespostasV2(respostas) {
+  if (!respostas || typeof respostas !== 'object') return respostas;
+  const v2 = respostas._v2;
+  if (!v2 || typeof v2 !== 'object') return respostas;
+
+  const out = { ...respostas };
+  const mapaCampoLegado = {
+    queixaPrincipal:        ['queixaPrincipal'],
+    tempoEvolucao:          ['duracaoSintomas', 'duracao', 'tempoEvolucao'],
+    intensidade:            ['intensidade'],
+    fatoresAgravantes:      ['fatoresAgravantes'],
+    fatoresAtenuantes:      ['fatoresAtenuantes'],
+    sintomasAssociados:     ['sintomas', 'sintomasAssociados'],
+    tratamentoPrevio:       ['tratamentoPrevio'],
+    antecedentesPessoais:   ['doencasAtuais', 'condicoes', 'antecedentesPessoais'],
+    antecedentesFamiliares: ['historicoFamiliar', 'antecedentesFamiliares'],
+    habitos:                ['habitos'],
+    sono:                   ['sono', 'horasSono'],
+  };
+
+  Object.values(v2).forEach(r => {
+    if (!r || typeof r !== 'object') return;
+    const campo = r.campoAnamnese;
+    const valor = r.valor;
+    if (!campo) return;
+
+    // Pulado / desconhecer NAO populam o campo legado
+    // (medico precisa ver "vazio" se foi pulado, nao texto fake)
+    if (r.fonte === 'pulado' || r.fonte === 'desconhecer') return;
+    if (!valor) return;
+
+    const destinos = mapaCampoLegado[campo] || [campo];
+    destinos.forEach(d => {
+      if (!out[d]) out[d] = valor; // nao sobrescreve se ja existe
+    });
+  });
+
+  // Preserva metadata
+  out._v2 = v2;
+  out._versaoFluxo = respostas._versaoFluxo || 'v2-pergunta-por-pergunta';
+
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Schemas
 // ---------------------------------------------------------------------------
@@ -657,11 +719,28 @@ router.post('/t/:token/responder', authOpcional, validate(responderPreConsultaSc
     const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
     const pacienteIdFinal = await vincularPaciente({ preConsulta, pacienteIdLogado, req });
 
+    // === FASE 3 V2 — Dual-write retrocompat ===
+    // Se chegou no formato V2 (com _v2 ou _versaoFluxo === 'v2-pergunta-por-pergunta'),
+    // extrai os valores e popula campos antigos pra retrocompatibilidade total.
+    // Resultado: telas antigas (25-summary, desktop/app) leem campo legado;
+    // telas/IA novas leem _v2 com fonte rastreavel.
+    const respostasEnriquecidas = enriquecerRespostasV2(respostas);
+
+    // Concatena transcricoes individuais V2 numa unica transcricao final pro Whisper/Gemini summary
+    let transcricaoFinal = transcricao || null;
+    if (respostas && respostas._v2 && typeof respostas._v2 === 'object') {
+      const transcsV2 = Object.values(respostas._v2)
+        .filter(r => r && r.transcricaoBruta)
+        .map(r => r.transcricaoBruta)
+        .join(' ');
+      if (transcsV2 && transcsV2.length > 0) transcricaoFinal = transcsV2;
+    }
+
     // === ETAPA 4 — Salvar pre-consulta imediatamente (SEM gerar summary sincrono) ===
     // Summary/Whisper/TTS saem do caminho critico e viram tarefas pendentes (Etapa 5)
     const updateData = {
-      respostas,
-      transcricao: transcricao || null,
+      respostas: respostasEnriquecidas,
+      transcricao: transcricaoFinal,
       status: 'RESPONDIDA',
       respondidaEm: new Date(),
       ...(pacienteIdFinal && { pacienteId: pacienteIdFinal }),
