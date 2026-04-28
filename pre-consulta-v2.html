@@ -56,7 +56,8 @@ body{display:flex;justify-content:center;align-items:center;min-height:100vh;min
 .q-mic-big.processando{background:#F4F6FA;color:#9CA3AF;animation:none;cursor:default}
 .q-mic-big.done{background:rgba(0,196,122,0.20);color:#00C47A;box-shadow:0 0 0 14px rgba(0,196,122,0.08);animation:none;cursor:default}
 .q-mic-big.ambiguo{background:rgba(245,158,11,0.15);color:#F59E0B;animation:none;cursor:default}
-.q-mic-big.falha{background:rgba(239,68,68,0.10);color:#EF4444;animation:none}
+.q-mic-big.falha{background:rgba(245,158,11,0.12);color:#F59E0B;animation:none;cursor:pointer}
+.q-mic-big.falha:hover,.q-mic-big.falha:active{background:rgba(245,158,11,0.20)}
 @keyframes q-breath{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 
 .q-feedback{font-size:13px;font-weight:700;color:rgba(13,15,20,0.55);min-height:22px;margin-top:4px}
@@ -81,6 +82,15 @@ body{display:flex;justify-content:center;align-items:center;min-height:100vh;min
 .q-dotting span:nth-child(2){animation-delay:0.2s}
 .q-dotting span:nth-child(3){animation-delay:0.4s}
 @keyframes q-dot{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}
+
+/* ════ ESTADO DE FALHA EDUCATIVO ════ */
+.falha-bloco{display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:300px;margin-top:14px}
+.falha-bloco.active{display:flex}
+.falha-titulo{font-size:15px;font-weight:800;color:#0D0F14;text-align:center;line-height:1.3}
+.falha-dica{font-size:12.5px;color:rgba(13,15,20,0.55);text-align:center;line-height:1.4;padding:10px 14px;background:rgba(245,158,11,0.08);border-radius:10px;border:1px solid rgba(245,158,11,0.15)}
+.falha-dica strong{color:#92400E;font-weight:700}
+.btn-tentar{width:100%;padding:14px;border-radius:14px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;border:none;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(0,229,160,0.20);-webkit-appearance:none}
+.falha-link{font-size:12px;color:rgba(13,15,20,0.50);font-weight:600;text-decoration:underline;cursor:pointer;padding:4px 8px}
 
 /* ════ BOTÕES AMBÍGUO ════ */
 .q-amb{display:flex;flex-direction:column;gap:8px;width:100%;max-width:280px;margin-top:14px}
@@ -283,6 +293,19 @@ body{display:flex;justify-content:center;align-items:center;min-height:100vh;min
       <div class="q-feedback" id="feedback">Toque no microfone pra começar</div>
 
       <div class="q-amb" id="ambBtns" style="display:none"></div>
+
+      <!-- Bloco educativo quando IA não conseguiu entender -->
+      <div class="falha-bloco" id="falhaBloco">
+        <div class="falha-titulo" id="falhaTitulo">Acho que não te ouvi bem</div>
+        <div class="falha-dica" id="falhaDica">
+          <strong>Não é problema seu</strong> — pode ter sido barulho de fundo ou o celular um pouco longe. Tenta de novo, falando com calma.
+        </div>
+        <button class="btn-tentar" onclick="reiniciarPergunta()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1015.5-6.2L21 8M21 3v5h-5"/></svg>
+          Tentar de novo
+        </button>
+        <span class="falha-link" onclick="trocarModo('form')">Prefere digitar essa resposta?</span>
+      </div>
     </div>
 
     <div class="q-foot">
@@ -687,6 +710,50 @@ function resetMicVisual() {
   mic.className = 'q-mic-big';
   document.getElementById('waveMini').style.display = 'none';
   document.getElementById('dotting').style.display = 'none';
+  document.getElementById('falhaBloco').classList.remove('active');
+}
+
+// ════ MOSTRA ESTADO DE FALHA EDUCATIVO ════
+// motivo: 'sem_voz' | 'transcricao_curta' | 'sem_resposta' | 'rede' | 'generico'
+function mostrarFalha(motivo) {
+  const mic = document.getElementById('micBtn');
+  mic.className = 'q-mic-big falha';
+  document.getElementById('waveMini').style.display = 'none';
+  document.getElementById('dotting').style.display = 'none';
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'q-feedback';
+
+  const titulo = document.getElementById('falhaTitulo');
+  const dica = document.getElementById('falhaDica');
+
+  // Mensagens contextuais (neuro: tirar culpa do paciente, dar caminho claro)
+  if (motivo === 'sem_voz') {
+    titulo.textContent = 'Não consegui te ouvir';
+    dica.innerHTML = '<strong>Não é problema seu.</strong> O microfone pode ter ficado muito longe ou houve barulho. Aproxima do rosto e tenta de novo.';
+  } else if (motivo === 'transcricao_curta') {
+    titulo.textContent = 'Acho que não terminou';
+    dica.innerHTML = '<strong>Pode falar com calma.</strong> Conta um pouquinho mais sobre isso — quanto mais detalhes, melhor pro seu médico.';
+  } else if (motivo === 'sem_resposta') {
+    titulo.textContent = 'Hmm, não entendi sua resposta';
+    dica.innerHTML = '<strong>Sem stress.</strong> Tenta responder a pergunta acima diretamente — pode ser bem simples, com suas palavras.';
+  } else if (motivo === 'rede') {
+    titulo.textContent = 'Sua internet falhou';
+    dica.innerHTML = '<strong>Não perdeu nada.</strong> Sua fala foi gravada. Quando a internet voltar, é só tentar de novo.';
+  } else {
+    titulo.textContent = 'Algo deu errado dessa vez';
+    dica.innerHTML = '<strong>Não foi você.</strong> Tenta gravar de novo — se acontecer de novo, pode preencher por escrito.';
+  }
+
+  document.getElementById('falhaBloco').classList.add('active');
+}
+
+function reiniciarPergunta() {
+  document.getElementById('falhaBloco').classList.remove('active');
+  resetMicVisual();
+  document.getElementById('feedback').textContent = 'Toque no microfone pra começar';
+  document.getElementById('feedback').className = 'q-feedback';
+  // Inicia gravação direto pro paciente não precisar tocar de novo
+  iniciarCaptura();
 }
 
 // ════ MOSTRAR AJUDA (versão expandida da pergunta) ════
@@ -817,10 +884,7 @@ async function pararCaptura(cancelar) {
   // Tem chunks? Processa
   if (MEDIA.chunks.length === 0 || !MEDIA.voiceStart) {
     // Não captou voz
-    document.getElementById('feedback').textContent = 'Não captei o que você disse — pode falar mais um pouquinho?';
-    document.getElementById('feedback').className = 'q-feedback crit';
-    document.getElementById('micBtn').className = 'q-mic-big falha';
-    document.getElementById('waveMini').style.display = 'none';
+    mostrarFalha('sem_voz');
     return;
   }
 
@@ -868,11 +932,8 @@ async function processarRespostaReal(pergunta, blob) {
 
     // r = { respondeu, valor, confianca, motivo, transcricao, audioUrl }
     if (!r.respondeu || r.confianca < 0.60) {
-      // Não respondeu — pede mais
-      document.getElementById('micBtn').className = 'q-mic-big falha';
-      document.getElementById('dotting').style.display = 'none';
-      document.getElementById('feedback').innerHTML = 'Não captei direito — pode falar mais um pouquinho?';
-      document.getElementById('feedback').className = 'q-feedback crit';
+      // Não respondeu — mostra estado educativo
+      mostrarFalha(r.motivo === 'transcricao_vazia' || r.motivo === 'transcricao_falhou' ? 'sem_voz' : 'sem_resposta');
       return;
     }
 
@@ -911,10 +972,7 @@ async function processarRespostaReal(pergunta, blob) {
   } catch (err) {
     clearTimeout(timeoutLento);
     console.error('processarResposta erro:', err);
-    document.getElementById('micBtn').className = 'q-mic-big falha';
-    document.getElementById('dotting').style.display = 'none';
-    document.getElementById('feedback').innerHTML = 'Algo deu errado — toque no microfone pra tentar de novo';
-    document.getElementById('feedback').className = 'q-feedback crit';
+    mostrarFalha(navigator.onLine === false ? 'rede' : 'generico');
   }
 }
 
