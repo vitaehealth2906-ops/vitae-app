@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>vita id — Pré-consulta</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{font-family:'Plus Jakarta Sans',sans-serif;background:#F4F6FA;-webkit-font-smoothing:antialiased;color:#0D0F14}
+body{display:flex;justify-content:center;align-items:center;min-height:100vh;min-height:100dvh}
+
+.phone{width:393px;max-width:100vw;height:852px;max-height:100vh;background:#F4F6FA;border-radius:52px;overflow:hidden;position:relative;box-shadow:0 1px 12px rgba(0,0,0,0.07);display:flex;flex-direction:column}
+@media(max-width:480px){
+  body{padding:0!important;background:#F4F6FA!important;overflow-x:hidden}
+  .phone{width:100vw!important;max-width:100vw!important;height:100vh!important;height:100dvh!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}
+  .notch{display:none!important}
+}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:34px;background:#F4F6FA;border-radius:0 0 20px 20px;z-index:10}
+
+.screen{flex:1;display:none;flex-direction:column;padding:50px 18px 18px;overflow-y:auto;scrollbar-width:none}
+.screen.active{display:flex}
+.screen::-webkit-scrollbar{display:none}
+
+/* ════ HEADER COMPACTO (foto + nome + tag) ════ */
+.q-head-mini{display:flex;align-items:center;gap:10px;padding:0 4px 14px}
+.q-head-mini .ava{width:38px;height:38px;border-radius:50%;background:linear-gradient(120deg,rgba(0,229,160,0.12),rgba(0,180,216,0.12));border:1.5px solid rgba(0,229,160,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#00C47A;font-size:13px;font-weight:800;overflow:hidden}
+.q-head-mini .ava img{width:100%;height:100%;object-fit:cover}
+.q-head-mini .nm{flex:1;min-width:0}
+.q-head-mini .nm .n1{font-size:13px;font-weight:800;color:#0D0F14;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-head-mini .nm .n2{font-size:11px;color:rgba(13,15,20,0.45);font-weight:500;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-head-mini .pre-tag{font-size:9px;font-weight:800;letter-spacing:1px;color:#00C47A;text-transform:uppercase;padding:4px 8px;background:rgba(0,229,160,0.10);border-radius:100px;flex-shrink:0}
+
+/* ════ TOGGLE áudio / formulário ════ */
+.q-toggle{display:flex;justify-content:center;margin-bottom:18px}
+.q-toggle .pill{display:inline-flex;background:rgba(13,15,20,0.06);border-radius:12px;padding:3px}
+.q-toggle .opt{padding:9px 18px;border-radius:9px;font-family:inherit;font-size:13px;font-weight:600;color:rgba(13,15,20,0.4);background:transparent;border:none;cursor:pointer;transition:all .2s;-webkit-appearance:none}
+.q-toggle .opt.active{background:#fff;color:#0D0F14;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+
+/* ════ PROGRESSO ════ */
+.q-prog{padding:0 4px 18px}
+.q-prog .row{display:flex;justify-content:space-between;font-size:10px;font-weight:800;color:rgba(13,15,20,0.45);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px}
+.q-prog .row .marker{color:#00C47A}
+.q-prog .row .marker.warn{color:#F59E0B}
+.q-prog .bar{height:3px;background:rgba(0,0,0,0.06);border-radius:100px;overflow:hidden}
+.q-prog .bar .fill{height:100%;background:linear-gradient(90deg,#00E5A0,#00B4D8);border-radius:100px;transition:width .5s}
+
+/* ════ CENTRO PROTAGONISTA (pergunta + mic) ════ */
+.q-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px 14px;min-height:380px}
+.q-pergunta{font-size:28px;font-weight:900;letter-spacing:-0.7px;color:#0D0F14;line-height:1.18;margin-bottom:14px;max-width:340px}
+.q-sub{font-size:13px;color:rgba(13,15,20,0.45);font-weight:500;margin-bottom:32px;max-width:300px}
+.q-help{display:inline-flex;align-items:center;gap:5px;color:rgba(13,15,20,0.45);font-size:11.5px;font-weight:600;cursor:pointer;margin-bottom:18px;padding:6px 12px;border-radius:100px;background:#F4F6FA;border:none;font-family:inherit}
+
+.q-mic-big{width:130px;height:130px;border-radius:50%;background:rgba(0,229,160,0.10);display:flex;align-items:center;justify-content:center;color:#00C47A;animation:q-breath 2.2s ease-in-out infinite;margin-bottom:18px;border:none;cursor:pointer;font-family:inherit;-webkit-appearance:none}
+.q-mic-big.live{background:rgba(0,229,160,0.18);color:#00E5A0;box-shadow:0 0 0 14px rgba(0,229,160,0.07);animation:none}
+.q-mic-big.processando{background:#F4F6FA;color:#9CA3AF;animation:none;cursor:default}
+.q-mic-big.done{background:rgba(0,196,122,0.20);color:#00C47A;box-shadow:0 0 0 14px rgba(0,196,122,0.08);animation:none;cursor:default}
+.q-mic-big.ambiguo{background:rgba(245,158,11,0.15);color:#F59E0B;animation:none;cursor:default}
+.q-mic-big.falha{background:rgba(239,68,68,0.10);color:#EF4444;animation:none}
+@keyframes q-breath{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+
+.q-feedback{font-size:13px;font-weight:700;color:rgba(13,15,20,0.55);min-height:22px;margin-top:4px}
+.q-feedback.live{color:#00C47A}
+.q-feedback.done strong{color:#0D0F14;font-weight:800}
+.q-feedback.warn{color:#F59E0B}
+.q-feedback.crit{color:#EF4444}
+
+.q-wave-mini{display:flex;gap:3px;align-items:center;justify-content:center;height:22px;margin:4px 0 10px}
+.q-wave-mini span{display:block;width:3px;background:#00E5A0;border-radius:100px;animation:q-wave 0.85s ease-in-out infinite}
+.q-wave-mini span:nth-child(1){height:8px;animation-delay:0s}
+.q-wave-mini span:nth-child(2){height:16px;animation-delay:0.07s}
+.q-wave-mini span:nth-child(3){height:22px;animation-delay:0.14s}
+.q-wave-mini span:nth-child(4){height:14px;animation-delay:0.21s}
+.q-wave-mini span:nth-child(5){height:18px;animation-delay:0.28s}
+.q-wave-mini span:nth-child(6){height:10px;animation-delay:0.35s}
+.q-wave-mini span:nth-child(7){height:16px;animation-delay:0.42s}
+@keyframes q-wave{0%,100%{transform:scaleY(0.4)}50%{transform:scaleY(1)}}
+
+.q-dotting{display:flex;gap:5px;justify-content:center;margin-top:8px}
+.q-dotting span{width:6px;height:6px;border-radius:50%;background:#9CA3AF;animation:q-dot 1.2s ease-in-out infinite}
+.q-dotting span:nth-child(2){animation-delay:0.2s}
+.q-dotting span:nth-child(3){animation-delay:0.4s}
+@keyframes q-dot{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}
+
+/* ════ BOTÕES AMBÍGUO ════ */
+.q-amb{display:flex;flex-direction:column;gap:8px;width:100%;max-width:280px;margin-top:14px}
+.q-amb .opt{padding:13px;border-radius:14px;background:#fff;border:1.5px solid rgba(245,158,11,0.30);color:#0D0F14;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.q-amb .alt{font-size:12px;color:rgba(13,15,20,0.50);text-align:center;margin-top:4px;font-weight:500;text-decoration:underline;cursor:pointer}
+
+/* ════ RODAPÉ controles ════ */
+.q-foot{display:flex;justify-content:space-around;padding:12px 4px 4px;border-top:1px solid rgba(0,0,0,0.04);gap:6px}
+.q-foot button{padding:9px 12px;font-size:12px;font-weight:700;color:rgba(13,15,20,0.50);background:transparent;border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;border-radius:100px;-webkit-appearance:none}
+.q-foot button:hover,.q-foot button:active{background:#F4F6FA;color:#0D0F14}
+.q-foot button svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ════ BANNERS ════ */
+.banner{padding:11px 14px;border-radius:12px;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:10px;margin-bottom:14px;line-height:1.4}
+.banner svg{flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.banner.warn{background:rgba(245,158,11,0.10);color:#92400E;border:1px solid rgba(245,158,11,0.20)}
+.banner.crit{background:rgba(239,68,68,0.10);color:#991B1B;border:1px solid rgba(239,68,68,0.20)}
+.banner.info{background:rgba(59,130,246,0.10);color:#1E40AF;border:1px solid rgba(59,130,246,0.20)}
+
+/* ════ OVERLAY PAUSADO ════ */
+.overlay-pause{position:absolute;inset:0;background:rgba(13,15,20,0.55);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;flex-direction:column;color:#fff;padding:24px;z-index:60}
+.overlay-pause.active{display:flex}
+.overlay-pause .ic{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:18px;color:#fff}
+.overlay-pause .ti{font-size:22px;font-weight:900;letter-spacing:-0.4px;margin-bottom:8px}
+.overlay-pause .ds{font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:24px;text-align:center;max-width:240px;line-height:1.45}
+
+/* ════ FORMULÁRIO ════ */
+.fm-list{display:flex;flex-direction:column;gap:8px;padding-top:6px}
+.fm-card{background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:14px;padding:14px;border-left:3px solid transparent;transition:border-color .2s}
+.fm-card.done{border-left-color:#00C47A}
+.fm-card.now{border:2px solid #00E5A0}
+.fm-card.todo{opacity:0.65}
+.fm-card.skip{border-left-color:#F59E0B}
+.fm-card.naosabe{border-left-color:#9CA3AF}
+.fm-card .qn{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:rgba(13,15,20,0.40)}
+.fm-card.done .qn{color:#00C47A}
+.fm-card.now .qn{color:#00B4D8}
+.fm-card.skip .qn{color:#92400E}
+.fm-card.naosabe .qn{color:#374151}
+.fm-card .qt{font-size:13px;color:#0D0F14;font-weight:700;margin-top:3px;line-height:1.35}
+.fm-card .ans{font-size:12px;color:#4B5563;margin-top:4px;line-height:1.4}
+.fm-card .ans.empty{color:#F59E0B;font-weight:700}
+.fm-card .ans.gray{color:#6B7280;font-style:italic}
+.fm-card textarea{width:100%;min-height:64px;padding:10px;border-radius:10px;border:1.5px solid rgba(0,0,0,0.07);font-family:inherit;font-size:13px;color:#0D0F14;margin-top:8px;resize:none;outline:none}
+.fm-card textarea:focus{border-color:#00E5A0;box-shadow:0 0 0 3px rgba(0,229,160,0.15)}
+.fm-card .ctrl{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.fm-card .ctrl button{padding:6px 10px;border-radius:8px;background:#F4F6FA;color:rgba(13,15,20,0.65);border:none;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.fm-card .ctrl .skip-btn{color:#92400E;background:rgba(245,158,11,0.10)}
+
+/* ════ TELA REVISÃO ════ */
+.rv-head{padding:6px 4px 16px}
+.rv-head .ti{font-size:24px;font-weight:900;letter-spacing:-0.5px;color:#0D0F14;display:flex;align-items:center;gap:8px;line-height:1.2}
+.rv-head .ti svg{flex-shrink:0}
+.rv-head .ti.warn{color:#92400E}
+.rv-head .ds{font-size:13px;color:rgba(13,15,20,0.55);margin-top:6px;line-height:1.5}
+.rv-head .edu{font-size:12px;color:rgba(13,15,20,0.55);margin-top:10px;padding:10px 12px;background:rgba(245,158,11,0.08);border-radius:10px;line-height:1.5}
+.rv-head .edu strong{color:#0D0F14}
+
+.rv-bot{padding-top:14px;border-top:1px solid rgba(0,0,0,0.05);margin-top:14px}
+.btn-primary{width:100%;padding:15px;border-radius:14px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;border:none;font-family:inherit;font-size:15px;font-weight:700;box-shadow:0 4px 20px rgba(0,229,160,0.25);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;-webkit-appearance:none}
+.btn-primary:disabled,.btn-primary.disabled{opacity:0.5;cursor:not-allowed;box-shadow:none}
+.btn-secondary{width:100%;padding:14px;border-radius:14px;background:#fff;color:#0D0F14;border:1.5px solid rgba(0,0,0,0.07);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;-webkit-appearance:none}
+
+.rv-hint{text-align:center;margin-top:10px;font-size:11px;color:rgba(13,15,20,0.45);font-weight:600;line-height:1.4}
+
+/* ════ TELA LOADING / ERRO / ENVIADO ════ */
+.center-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
+.center-screen .ic{width:72px;height:72px;border-radius:50%;background:rgba(0,229,160,0.10);display:flex;align-items:center;justify-content:center;color:#00C47A;margin-bottom:20px}
+.center-screen .ic.crit{background:rgba(239,68,68,0.10);color:#EF4444}
+.center-screen .ic.done{background:rgba(0,196,122,0.18);color:#00C47A}
+.center-screen .ti{font-size:22px;font-weight:900;letter-spacing:-0.4px;color:#0D0F14;margin-bottom:8px;line-height:1.2}
+.center-screen .ds{font-size:13px;color:rgba(13,15,20,0.55);max-width:280px;line-height:1.5;margin-bottom:20px}
+.spinner{width:36px;height:36px;border:3px solid rgba(0,229,160,0.2);border-top-color:#00E5A0;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="notch"></div>
+
+  <!-- ════ TELA: LOADING ════ -->
+  <div class="screen active" id="screen-loading">
+    <div class="center-screen">
+      <div class="spinner"></div>
+      <div class="ti" style="margin-top:18px">Carregando sua pré-consulta</div>
+      <div class="ds">Só um instante...</div>
+    </div>
+  </div>
+
+  <!-- ════ TELA: ERRO (link expirado, inválido, etc) ════ -->
+  <div class="screen" id="screen-erro">
+    <div class="center-screen">
+      <div class="ic crit"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      <div class="ti" id="erroTitulo">Algo deu errado</div>
+      <div class="ds" id="erroMensagem">Não conseguimos abrir sua pré-consulta. Peça pro seu médico te enviar um novo link.</div>
+    </div>
+  </div>
+
+  <!-- ════ TELA: ÁUDIO (formato minimalista) ════ -->
+  <div class="screen" id="screen-audio">
+    <div class="q-head-mini">
+      <div class="ava" id="avaPaciente">--</div>
+      <div class="nm">
+        <div class="n1" id="nmPaciente">Carregando...</div>
+        <div class="n2" id="nmMedico">Pré-consulta médica</div>
+      </div>
+      <div class="pre-tag">Pré-consulta</div>
+    </div>
+
+    <div class="q-toggle">
+      <div class="pill">
+        <button class="opt active" id="modoAudio" onclick="trocarModo('audio')">Gravar áudio</button>
+        <button class="opt" id="modoForm" onclick="trocarModo('form')">Preencher formulário</button>
+      </div>
+    </div>
+
+    <div id="bannerHolder"></div>
+
+    <div class="q-prog">
+      <div class="row"><span id="progLabel">Pergunta 1 de 11</span><span class="marker" id="progMarker">0% concluído</span></div>
+      <div class="bar"><div class="fill" id="progFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="q-center">
+      <div class="q-pergunta" id="perguntaTexto">O que está te incomodando hoje?</div>
+      <div class="q-sub" id="perguntaSub">Pode falar quando quiser, sem pressa</div>
+
+      <button class="q-help" id="btnAjuda" onclick="mostrarAjuda()" style="display:none">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5M12 17v.01"/></svg>
+        Não entendi a pergunta
+      </button>
+
+      <button class="q-mic-big" id="micBtn" onclick="toggleMic()">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v4"/></svg>
+      </button>
+
+      <div class="q-wave-mini" id="waveMini" style="display:none"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+
+      <div class="q-dotting" id="dotting" style="display:none"><span></span><span></span><span></span></div>
+
+      <div class="q-feedback" id="feedback">Toque no microfone pra começar</div>
+
+      <div class="q-amb" id="ambBtns" style="display:none"></div>
+    </div>
+
+    <div class="q-foot">
+      <button onclick="pularPergunta()"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg>Pular</button>
+      <button onclick="voltarPergunta()"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Voltar</button>
+      <button onclick="naoSeiResposta()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5M12 17v.01"/></svg>Não sei</button>
+    </div>
+
+    <!-- Overlay pausado -->
+    <div class="overlay-pause" id="overlayPause">
+      <div class="ic"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></div>
+      <div class="ti">Pausado</div>
+      <div class="ds">Sua fala está salva. Toque pra continuar quando estiver pronto.</div>
+      <button class="btn-primary" style="max-width:240px" onclick="retomarPausa()">Continuar</button>
+    </div>
+  </div>
+
+  <!-- ════ TELA: FORMULÁRIO ════ -->
+  <div class="screen" id="screen-form">
+    <div class="q-head-mini">
+      <div class="ava" id="avaPaciente2">--</div>
+      <div class="nm">
+        <div class="n1" id="nmPaciente2">Carregando...</div>
+        <div class="n2" id="nmMedico2">Pré-consulta médica</div>
+      </div>
+      <div class="pre-tag">Pré-consulta</div>
+    </div>
+
+    <div class="q-toggle">
+      <div class="pill">
+        <button class="opt" onclick="trocarModo('audio')">Gravar áudio</button>
+        <button class="opt active">Preencher formulário</button>
+      </div>
+    </div>
+
+    <div class="q-prog">
+      <div class="row"><span id="progLabelForm">11 perguntas</span><span class="marker" id="progMarkerForm">0 respondidas</span></div>
+      <div class="bar"><div class="fill" id="progFillForm" style="width:0%"></div></div>
+    </div>
+
+    <div class="fm-list" id="fmList"></div>
+
+    <div class="rv-bot">
+      <button class="btn-primary disabled" id="btnEnviarForm" onclick="irParaRevisao()">Revisar antes de enviar</button>
+    </div>
+  </div>
+
+  <!-- ════ TELA: REVISÃO FINAL ════ -->
+  <div class="screen" id="screen-revisao">
+    <div class="rv-head" id="rvHead"></div>
+    <div class="fm-list" id="rvList"></div>
+    <div class="rv-bot" id="rvBot"></div>
+  </div>
+
+  <!-- ════ TELA: ENVIADO ════ -->
+  <div class="screen" id="screen-enviado">
+    <div class="center-screen">
+      <div class="ic done"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+      <div class="ti">Tudo enviado!</div>
+      <div class="ds">Seu médico vai receber tudo organizado antes da consulta. Você pode fechar essa janela.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- JAVASCRIPT — Lógica completa V2                                 -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<script src="api.js"></script>
+<script>
+// ════ CONFIG ════
+const CFG = {
+  silencioMs: 5000,           // Detector silêncio: 5 SEGUNDOS (Lucas confirmou)
+  rmsThreshold: 0.015,        // Threshold de voz vs silêncio (igual Sessão 11)
+  minRespostas: 7,            // Mínimo 7 de 11 pra liberar envio
+  thresholdConfianca: 0.85,   // ≥85% marca autônomo, 60-84% pede confirmação
+  bitrate: 64000,             // 64kbps áudio
+  silencioInicialTimeoutMs: 30000, // 30s sem fala = "tá tudo bem?"
+  redeLentaTimeoutMs: 4000,   // 4s sem resposta backend = banner "rede lenta"
+};
+
+// ════ TEMPLATE PADRÃO 11 PERGUNTAS ════
+const TEMPLATE_DEFAULT = [
+  { id:'p1',  texto:'O que está te incomodando hoje?',                      ajuda:'Conta o que te trouxe a marcar essa consulta — o sintoma principal.',                  campo:'queixaPrincipal' },
+  { id:'p2',  texto:'Há quanto tempo isso vem acontecendo?',                ajuda:'Desde quando você notou — dias, semanas, meses.',                                       campo:'tempoEvolucao' },
+  { id:'p3',  texto:'Numa escala de 0 a 10, quanto incomoda?',              ajuda:'0 é nada, 10 é o pior possível. Pode dar um número aproximado.',                        campo:'intensidade' },
+  { id:'p4',  texto:'Tem alguma coisa que faz piorar?',                     ajuda:'Movimento, comida, hora do dia, esforço, estresse — qualquer coisa que piora.',         campo:'fatoresAgravantes' },
+  { id:'p5',  texto:'E alguma coisa que faz melhorar?',                     ajuda:'Algum remédio, posição, repouso, compressa — qualquer coisa que alivia.',               campo:'fatoresAtenuantes' },
+  { id:'p6',  texto:'Tem outros sintomas junto?',                           ajuda:'Febre, náusea, tontura, falta de ar — qualquer outra coisa que apareceu junto.',        campo:'sintomasAssociados' },
+  { id:'p7',  texto:'Já tomou algum remédio ou tentou algo pra isso?',      ajuda:'Remédios por conta própria, chá, qualquer coisa que você tentou.',                      campo:'tratamentoPrevio' },
+  { id:'p8',  texto:'Você tem alguma doença que já saiba?',                 ajuda:'Diabetes, pressão alta, tireoide, ansiedade — qualquer condição diagnosticada.',        campo:'antecedentesPessoais' },
+  { id:'p9',  texto:'Tem alguém na sua família com alguma doença importante?', ajuda:'Pai, mãe, irmãos — diabetes, câncer, problemas de coração, qualquer coisa relevante.', campo:'antecedentesFamiliares' },
+  { id:'p10', texto:'Me conta dos seus hábitos: fuma, bebe, faz exercício?', ajuda:'De forma geral — não precisa exato. É pra ter uma ideia.',                              campo:'habitos' },
+  { id:'p11', texto:'Como tá seu sono ultimamente?',                        ajuda:'Quantas horas dorme, se acorda no meio da noite, qualidade do sono.',                   campo:'sono' },
+];
+
+// ════ ESTADO GLOBAL ════
+const ESTADO = {
+  token: null,
+  preConsulta: null,
+  paciente: null,
+  medico: null,
+  perguntas: [],          // template carregado (médico ou default)
+  perguntaAtual: 0,       // index na array perguntas
+  respostas: {},          // { pergunta_id: { valor, fonte, confianca, transcricao, audioChunkUrl, timestamp, status } }
+  modo: 'audio',          // 'audio' | 'form'
+  pausado: false,
+  modoCaptura: false,     // true se está gravando ativamente
+  attemptId: null,        // UUID da tentativa atual
+  sincronizando: false,
+  ultimaAtividade: Date.now(),
+};
+
+// ════ ESTADO MEDIA RECORDER ════
+const MEDIA = {
+  stream: null,
+  recorder: null,
+  audioCtx: null,
+  analyser: null,
+  rmsData: null,
+  silencioStart: null,
+  voiceStart: null,
+  chunks: [],
+  rmsSamplerInterval: null,
+  wakeLock: null,
+};
+
+// ════ INDEXEDDB CACHE LOCAL ════
+const IDB = {
+  db: null,
+  async open() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('vitae_v2', 1);
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => { this.db = req.result; resolve(); };
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('estado')) db.createObjectStore('estado', { keyPath: 'token' });
+        if (!db.objectStoreNames.contains('chunks')) db.createObjectStore('chunks', { keyPath: 'id', autoIncrement: true });
+      };
+    });
+  },
+  async salvarEstado() {
+    if (!this.db || !ESTADO.token) return;
+    const tx = this.db.transaction(['estado'], 'readwrite');
+    tx.objectStore('estado').put({
+      token: ESTADO.token,
+      perguntaAtual: ESTADO.perguntaAtual,
+      respostas: ESTADO.respostas,
+      modo: ESTADO.modo,
+      atualizadoEm: Date.now(),
+    });
+    return new Promise(r => tx.oncomplete = r);
+  },
+  async carregarEstado(token) {
+    if (!this.db) return null;
+    return new Promise(r => {
+      const tx = this.db.transaction(['estado'], 'readonly');
+      const req = tx.objectStore('estado').get(token);
+      req.onsuccess = () => r(req.result || null);
+      req.onerror = () => r(null);
+    });
+  },
+  async salvarChunk(perguntaId, blob) {
+    if (!this.db) return;
+    const tx = this.db.transaction(['chunks'], 'readwrite');
+    tx.objectStore('chunks').add({ token: ESTADO.token, perguntaId, blob, criadoEm: Date.now(), uploaded: false });
+    return new Promise(r => tx.oncomplete = r);
+  },
+  async limparTudo(token) {
+    if (!this.db) return;
+    const tx = this.db.transaction(['estado','chunks'], 'readwrite');
+    tx.objectStore('estado').delete(token);
+    // chunks ficam — cleanup depois
+    return new Promise(r => tx.oncomplete = r);
+  }
+};
+
+// ════ INIT ════
+async function init() {
+  try {
+    await IDB.open();
+  } catch (e) { console.warn('IDB indisponível:', e); }
+
+  // Pega token da URL
+  const params = new URLSearchParams(location.search);
+  ESTADO.token = params.get('token');
+  if (!ESTADO.token) {
+    return mostrarErro('Link inválido', 'O endereço dessa pré-consulta está incompleto. Peça pro seu médico te enviar um novo link.');
+  }
+
+  // attemptId pra dedupe
+  ESTADO.attemptId = (crypto.randomUUID && crypto.randomUUID()) || (Date.now() + '-' + Math.random().toString(36).slice(2));
+
+  // Tenta carregar pré-consulta do backend
+  try {
+    const resp = await fetch(window.vitaeAPI.baseUrl + '/pre-consulta/t/' + ESTADO.token);
+    if (resp.status === 404) return mostrarErro('Link não encontrado', 'Esse link de pré-consulta não existe ou foi removido. Peça outro pro seu médico.');
+    if (resp.status === 410) return mostrarErro('Link expirado', 'Esse link já passou da validade. Peça outro pro seu médico.');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    ESTADO.preConsulta = data.preConsulta;
+    ESTADO.paciente = { nome: data.preConsulta.pacienteNome || 'Paciente' };
+    ESTADO.medico = data.preConsulta.medico || { nome: 'Médico' };
+
+    // Decide template: do médico ou padrão
+    const tplPerguntas = data.preConsulta.templatePerguntas;
+    if (Array.isArray(tplPerguntas) && tplPerguntas.length > 0) {
+      // Usa template do médico, normalizando pro formato esperado
+      ESTADO.perguntas = tplPerguntas.map((q, i) => ({
+        id: q.id || ('p' + (i+1)),
+        texto: q.texto || q.label || '',
+        ajuda: q.ajuda || q.help || '',
+        campo: q.campo || ('campo_' + (i+1)),
+      }));
+    } else {
+      ESTADO.perguntas = TEMPLATE_DEFAULT.slice();
+    }
+
+    // Limita a 15 perguntas
+    if (ESTADO.perguntas.length > 15) ESTADO.perguntas = ESTADO.perguntas.slice(0, 15);
+
+    // Tenta retomar estado salvo
+    const salvo = await IDB.carregarEstado(ESTADO.token);
+    if (salvo && salvo.perguntaAtual > 0 && salvo.perguntaAtual < ESTADO.perguntas.length) {
+      ESTADO.perguntaAtual = salvo.perguntaAtual;
+      ESTADO.respostas = salvo.respostas || {};
+      ESTADO.modo = salvo.modo || 'audio';
+      mostrarBanner('info', 'Voltamos de onde você parou — pergunta ' + (ESTADO.perguntaAtual + 1));
+    }
+
+    // Renderiza header e tela inicial
+    renderHeader();
+    irParaTela(ESTADO.modo === 'form' ? 'form' : 'audio');
+    renderPerguntaAtual();
+  } catch (err) {
+    console.error('init falhou:', err);
+    mostrarErro('Sem conexão', 'Não conseguimos conectar com o servidor. Verifica sua internet e tenta de novo.');
+  }
+}
+
+// ════ NAVEGAÇÃO DE TELAS ════
+function irParaTela(nome) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const t = document.getElementById('screen-' + nome);
+  if (t) t.classList.add('active');
+  ESTADO.ultimaAtividade = Date.now();
+}
+
+function mostrarErro(titulo, msg) {
+  document.getElementById('erroTitulo').textContent = titulo;
+  document.getElementById('erroMensagem').textContent = msg;
+  irParaTela('erro');
+}
+
+function mostrarBanner(tipo, texto) {
+  const holder = document.getElementById('bannerHolder');
+  if (!holder) return;
+  const icon = tipo === 'crit'
+    ? '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0114 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01M3 3l18 18"/></svg>'
+    : tipo === 'warn'
+    ? '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 9v4m0 4v.01M3.07 19h17.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L1.34 16c-.77 1.33.19 3 1.73 3z"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+  holder.innerHTML = '<div class="banner ' + tipo + '">' + icon + '<span>' + texto + '</span></div>';
+  setTimeout(() => { if (holder.firstChild) holder.firstChild.style.opacity = '0.7'; }, 4000);
+}
+
+function limparBanner() {
+  const holder = document.getElementById('bannerHolder');
+  if (holder) holder.innerHTML = '';
+}
+
+// ════ HEADER ════
+function renderHeader() {
+  const nome = ESTADO.paciente.nome || 'Paciente';
+  const iniciais = nome.split(/\s+/).slice(0, 2).map(s => s[0] || '').join('').toUpperCase() || '--';
+  const docNome = (ESTADO.medico.usuario && ESTADO.medico.usuario.nome) || ESTADO.medico.nome || 'Médico';
+  const docEspec = ESTADO.medico.especialidade || '';
+  const docFull = docEspec ? ('Dr(a). ' + docNome + ' · ' + docEspec) : ('Dr(a). ' + docNome);
+
+  ['avaPaciente', 'avaPaciente2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = iniciais;
+  });
+  ['nmPaciente', 'nmPaciente2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = nome;
+  });
+  ['nmMedico', 'nmMedico2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = docFull;
+  });
+}
+
+// ════ MODO ÁUDIO / FORMULÁRIO ════
+async function trocarModo(novo) {
+  if (ESTADO.modoCaptura) {
+    // Para gravação se mudou modo no meio
+    pararCaptura(true);
+  }
+  ESTADO.modo = novo;
+  await IDB.salvarEstado();
+  if (novo === 'form') {
+    renderFormulario();
+    irParaTela('form');
+  } else {
+    renderPerguntaAtual();
+    irParaTela('audio');
+  }
+}
+
+// ════ RENDERIZAR PERGUNTA ATUAL (modo áudio) ════
+function renderPerguntaAtual() {
+  const p = ESTADO.perguntas[ESTADO.perguntaAtual];
+  if (!p) {
+    // Acabaram as perguntas — vai pra revisão
+    return irParaRevisao();
+  }
+
+  document.getElementById('perguntaTexto').textContent = p.texto;
+  document.getElementById('perguntaSub').textContent = 'Pode falar quando quiser, sem pressa';
+  document.getElementById('progLabel').textContent = 'Pergunta ' + (ESTADO.perguntaAtual + 1) + ' de ' + ESTADO.perguntas.length;
+  const pct = Math.round(((ESTADO.perguntaAtual) / ESTADO.perguntas.length) * 100);
+  document.getElementById('progMarker').textContent = pct + '% concluído';
+  document.getElementById('progFill').style.width = pct + '%';
+
+  // Botão ajuda só se tem ajuda
+  const btnAjuda = document.getElementById('btnAjuda');
+  btnAjuda.style.display = p.ajuda ? 'inline-flex' : 'none';
+
+  // Reset visual
+  resetMicVisual();
+  document.getElementById('feedback').textContent = 'Toque no microfone pra começar';
+  document.getElementById('feedback').className = 'q-feedback';
+
+  // Esconde botões ambíguos
+  document.getElementById('ambBtns').style.display = 'none';
+  document.getElementById('ambBtns').innerHTML = '';
+}
+
+function resetMicVisual() {
+  const mic = document.getElementById('micBtn');
+  mic.className = 'q-mic-big';
+  document.getElementById('waveMini').style.display = 'none';
+  document.getElementById('dotting').style.display = 'none';
+}
+
+// ════ MOSTRAR AJUDA (versão expandida da pergunta) ════
+function mostrarAjuda() {
+  const p = ESTADO.perguntas[ESTADO.perguntaAtual];
+  if (!p || !p.ajuda) return;
+  document.getElementById('perguntaSub').textContent = p.ajuda;
+  document.getElementById('btnAjuda').style.display = 'none';
+}
+
+// ════ TOGGLE MICROFONE ════
+async function toggleMic() {
+  if (ESTADO.modoCaptura) {
+    // Já gravando — para
+    pararCaptura(false);
+  } else {
+    // Não gravando — começa
+    iniciarCaptura();
+  }
+}
+
+// ════ INICIAR CAPTURA DE ÁUDIO ════
+async function iniciarCaptura() {
+  try {
+    if (!MEDIA.stream) {
+      MEDIA.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
+    }
+
+    // Wake Lock (iOS 16.4+)
+    if ('wakeLock' in navigator) {
+      try { MEDIA.wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
+    }
+
+    // Audio Context pro detector de voz (RMS)
+    if (!MEDIA.audioCtx || MEDIA.audioCtx.state === 'closed') {
+      MEDIA.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (MEDIA.audioCtx.state === 'suspended') await MEDIA.audioCtx.resume();
+    const source = MEDIA.audioCtx.createMediaStreamSource(MEDIA.stream);
+    MEDIA.analyser = MEDIA.audioCtx.createAnalyser();
+    MEDIA.analyser.fftSize = 1024;
+    source.connect(MEDIA.analyser);
+    MEDIA.rmsData = new Float32Array(MEDIA.analyser.fftSize);
+
+    // MediaRecorder
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm');
+    MEDIA.recorder = new MediaRecorder(MEDIA.stream, { mimeType, audioBitsPerSecond: CFG.bitrate });
+    MEDIA.chunks = [];
+    MEDIA.recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) MEDIA.chunks.push(e.data); };
+    MEDIA.recorder.onerror = (e) => { console.error('Recorder erro:', e); pararCaptura(true); };
+    MEDIA.recorder.start(1000);
+
+    ESTADO.modoCaptura = true;
+    MEDIA.silencioStart = null;
+    MEDIA.voiceStart = null;
+
+    // Visual: live
+    const mic = document.getElementById('micBtn');
+    mic.className = 'q-mic-big live';
+    document.getElementById('waveMini').style.display = 'flex';
+    document.getElementById('feedback').textContent = 'Estou te ouvindo';
+    document.getElementById('feedback').className = 'q-feedback live';
+
+    // Inicia sampler RMS pra detectar silêncio
+    iniciarRMSSampler();
+  } catch (err) {
+    console.error('iniciarCaptura erro:', err);
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      document.getElementById('feedback').textContent = 'Precisamos da permissão do microfone — toque em "permitir" e tente de novo';
+      document.getElementById('feedback').className = 'q-feedback crit';
+    } else {
+      document.getElementById('feedback').textContent = 'Não conseguimos abrir o microfone — você pode preencher por escrito';
+      document.getElementById('feedback').className = 'q-feedback crit';
+    }
+  }
+}
+
+// ════ DETECTOR DE SILÊNCIO (RMS) ════
+function iniciarRMSSampler() {
+  if (MEDIA.rmsSamplerInterval) clearInterval(MEDIA.rmsSamplerInterval);
+  MEDIA.rmsSamplerInterval = setInterval(() => {
+    if (!ESTADO.modoCaptura || !MEDIA.analyser) return;
+    MEDIA.analyser.getFloatTimeDomainData(MEDIA.rmsData);
+    let sum = 0;
+    for (let i = 0; i < MEDIA.rmsData.length; i++) sum += MEDIA.rmsData[i] * MEDIA.rmsData[i];
+    const rms = Math.sqrt(sum / MEDIA.rmsData.length);
+
+    const agora = Date.now();
+    if (rms >= CFG.rmsThreshold) {
+      // Tem voz
+      if (!MEDIA.voiceStart) MEDIA.voiceStart = agora;
+      MEDIA.silencioStart = null;
+    } else {
+      // Silêncio
+      if (MEDIA.voiceStart && !MEDIA.silencioStart) MEDIA.silencioStart = agora;
+      // Detector: 5 segundos de silêncio APÓS voz = fim de fala
+      if (MEDIA.silencioStart && (agora - MEDIA.silencioStart >= CFG.silencioMs) && MEDIA.voiceStart) {
+        clearInterval(MEDIA.rmsSamplerInterval);
+        MEDIA.rmsSamplerInterval = null;
+        pararCaptura(false);
+      }
+    }
+  }, 100);
+}
+
+// ════ PARAR CAPTURA ════
+async function pararCaptura(cancelar) {
+  if (!ESTADO.modoCaptura) return;
+  ESTADO.modoCaptura = false;
+
+  if (MEDIA.rmsSamplerInterval) { clearInterval(MEDIA.rmsSamplerInterval); MEDIA.rmsSamplerInterval = null; }
+  if (MEDIA.wakeLock && MEDIA.wakeLock.release) { try { await MEDIA.wakeLock.release(); } catch (_) {} MEDIA.wakeLock = null; }
+
+  // Para recorder
+  if (MEDIA.recorder && MEDIA.recorder.state !== 'inactive') {
+    await new Promise(resolve => {
+      MEDIA.recorder.onstop = resolve;
+      MEDIA.recorder.stop();
+    });
+  }
+
+  if (cancelar) {
+    resetMicVisual();
+    document.getElementById('feedback').textContent = 'Toque no microfone pra começar';
+    return;
+  }
+
+  // Tem chunks? Processa
+  if (MEDIA.chunks.length === 0 || !MEDIA.voiceStart) {
+    // Não captou voz
+    document.getElementById('feedback').textContent = 'Não captei o que você disse — pode falar mais um pouquinho?';
+    document.getElementById('feedback').className = 'q-feedback crit';
+    document.getElementById('micBtn').className = 'q-mic-big falha';
+    document.getElementById('waveMini').style.display = 'none';
+    return;
+  }
+
+  // Estado: processando
+  document.getElementById('micBtn').className = 'q-mic-big processando';
+  document.getElementById('waveMini').style.display = 'none';
+  document.getElementById('dotting').style.display = 'flex';
+  document.getElementById('feedback').textContent = 'Anotando...';
+  document.getElementById('feedback').className = 'q-feedback';
+
+  const blob = new Blob(MEDIA.chunks, { type: MEDIA.recorder.mimeType });
+  MEDIA.chunks = [];
+
+  // Salva no IDB local
+  const p = ESTADO.perguntas[ESTADO.perguntaAtual];
+  await IDB.salvarChunk(p.id, blob);
+
+  // FASE 1 (modo dummy — sem Gemini classificador real ainda):
+  // Marca como respondida com placeholder. Fase 2 vai chamar backend pra classificar.
+  await processarRespostaDummy(p, blob);
+}
+
+// ════ PROCESSAR RESPOSTA (DUMMY na Fase 1, será real na Fase 2) ════
+async function processarRespostaDummy(pergunta, blob) {
+  // Simula delay de processamento (1.5s)
+  await new Promise(r => setTimeout(r, 1500));
+
+  // Salva resposta com fonte "audio" e valor placeholder
+  ESTADO.respostas[pergunta.id] = {
+    valor: '(transcrição será gerada pelo servidor)',
+    fonte: 'audio',
+    confianca: null,
+    transcricaoBruta: null,
+    audioChunkBlob: true, // marca que tem áudio salvo no IDB
+    timestamp: new Date().toISOString(),
+    campoAnamnese: pergunta.campo,
+    status: 'confirmado',
+  };
+
+  await IDB.salvarEstado();
+
+  // Visual: confirmado
+  document.getElementById('micBtn').className = 'q-mic-big done';
+  document.getElementById('waveMini').style.display = 'none';
+  document.getElementById('dotting').style.display = 'none';
+  document.getElementById('feedback').innerHTML = 'Anotei sua resposta';
+  document.getElementById('feedback').className = 'q-feedback done';
+
+  // Aguarda 1.5s, avança
+  await new Promise(r => setTimeout(r, 1500));
+  ESTADO.perguntaAtual++;
+  if (ESTADO.perguntaAtual >= ESTADO.perguntas.length) {
+    irParaRevisao();
+  } else {
+    renderPerguntaAtual();
+  }
+}
+
+// ════ PULAR PERGUNTA ════
+async function pularPergunta() {
+  const p = ESTADO.perguntas[ESTADO.perguntaAtual];
+  if (!p) return;
+  if (ESTADO.modoCaptura) pararCaptura(true);
+  ESTADO.respostas[p.id] = {
+    valor: null,
+    fonte: 'pulado',
+    confianca: null,
+    timestamp: new Date().toISOString(),
+    campoAnamnese: p.campo,
+    status: 'pulado',
+  };
+  await IDB.salvarEstado();
+  ESTADO.perguntaAtual++;
+  if (ESTADO.perguntaAtual >= ESTADO.perguntas.length) irParaRevisao();
+  else renderPerguntaAtual();
+}
+
+// ════ NÃO SEI A RESPOSTA ════
+async function naoSeiResposta() {
+  const p = ESTADO.perguntas[ESTADO.perguntaAtual];
+  if (!p) return;
+  if (ESTADO.modoCaptura) pararCaptura(true);
+  ESTADO.respostas[p.id] = {
+    valor: null,
+    fonte: 'desconhecer',
+    confianca: null,
+    timestamp: new Date().toISOString(),
+    campoAnamnese: p.campo,
+    status: 'desconhecer',
+  };
+  await IDB.salvarEstado();
+  ESTADO.perguntaAtual++;
+  if (ESTADO.perguntaAtual >= ESTADO.perguntas.length) irParaRevisao();
+  else renderPerguntaAtual();
+}
+
+// ════ VOLTAR PERGUNTA ════
+async function voltarPergunta() {
+  if (ESTADO.modoCaptura) pararCaptura(true);
+  if (ESTADO.perguntaAtual > 0) {
+    ESTADO.perguntaAtual--;
+    await IDB.salvarEstado();
+    renderPerguntaAtual();
+  }
+}
+
+// ════ RENDERIZAR FORMULÁRIO ════
+function renderFormulario() {
+  const list = document.getElementById('fmList');
+  list.innerHTML = '';
+  let respondidas = 0;
+
+  ESTADO.perguntas.forEach((p, idx) => {
+    const r = ESTADO.respostas[p.id];
+    let cls = 'fm-card';
+    let qnLbl = (idx + 1) + '';
+    let body = '';
+
+    if (r && r.fonte === 'audio') {
+      cls += ' done'; respondidas++;
+      qnLbl += ' · áudio ✓';
+      body = '<div class="ans">' + (r.valor || 'Resposta gravada') + '</div>';
+    } else if (r && r.fonte === 'formulario') {
+      cls += ' done'; respondidas++;
+      qnLbl += ' · escrito ✓';
+      body = '<div class="ans">' + (r.valor || '') + '</div>';
+    } else if (r && r.fonte === 'pulado') {
+      cls += ' skip'; respondidas++;
+      qnLbl += ' · pulado';
+      body = '<div class="ans empty">Você pulou</div>';
+    } else if (r && r.fonte === 'desconhecer') {
+      cls += ' naosabe'; respondidas++;
+      qnLbl += ' · não sei';
+      body = '<div class="ans gray">Você disse: "não sei"</div>';
+    } else {
+      // Não respondida — mostra textarea
+      body = '<textarea id="fm_' + p.id + '" placeholder="Escreva sua resposta..."></textarea>'
+        + '<div class="ctrl">'
+        + '<button onclick="salvarRespostaForm(\'' + p.id + '\')">Salvar resposta</button>'
+        + '<button class="skip-btn" onclick="pularNoForm(\'' + p.id + '\')">Pular essa</button>'
+        + '</div>';
+    }
+
+    list.innerHTML += '<div class="' + cls + '">'
+      + '<div class="qn">' + qnLbl + '</div>'
+      + '<div class="qt">' + p.texto + '</div>'
+      + body
+      + '</div>';
+  });
+
+  // Atualiza progresso
+  document.getElementById('progLabelForm').textContent = ESTADO.perguntas.length + ' perguntas';
+  document.getElementById('progMarkerForm').textContent = respondidas + ' respondidas';
+  const pct = Math.round((respondidas / ESTADO.perguntas.length) * 100);
+  document.getElementById('progFillForm').style.width = pct + '%';
+
+  // Botão enviar
+  const btn = document.getElementById('btnEnviarForm');
+  if (respondidas >= CFG.minRespostas) {
+    btn.classList.remove('disabled');
+    btn.disabled = false;
+    btn.textContent = 'Revisar antes de enviar';
+  } else {
+    btn.classList.add('disabled');
+    btn.disabled = true;
+    btn.textContent = 'Faltam ' + (CFG.minRespostas - respondidas) + ' respostas pra liberar';
+  }
+}
+
+async function salvarRespostaForm(perguntaId) {
+  const ta = document.getElementById('fm_' + perguntaId);
+  if (!ta) return;
+  const valor = (ta.value || '').trim();
+  if (valor.length < 1) { ta.focus(); return; }
+  const p = ESTADO.perguntas.find(x => x.id === perguntaId);
+  if (!p) return;
+  ESTADO.respostas[perguntaId] = {
+    valor: valor,
+    fonte: 'formulario',
+    confianca: 1,
+    timestamp: new Date().toISOString(),
+    campoAnamnese: p.campo,
+    status: 'confirmado',
+  };
+  await IDB.salvarEstado();
+  renderFormulario();
+}
+
+async function pularNoForm(perguntaId) {
+  const p = ESTADO.perguntas.find(x => x.id === perguntaId);
+  if (!p) return;
+  ESTADO.respostas[perguntaId] = {
+    valor: null,
+    fonte: 'pulado',
+    confianca: null,
+    timestamp: new Date().toISOString(),
+    campoAnamnese: p.campo,
+    status: 'pulado',
+  };
+  await IDB.salvarEstado();
+  renderFormulario();
+}
+
+// ════ TELA REVISÃO FINAL ════
+function irParaRevisao() {
+  if (ESTADO.modoCaptura) pararCaptura(true);
+  renderRevisao();
+  irParaTela('revisao');
+}
+
+function renderRevisao() {
+  // Conta cobertura
+  let respondidas = 0, puladas = 0, desconhecer = 0, vazio = 0;
+  ESTADO.perguntas.forEach(p => {
+    const r = ESTADO.respostas[p.id];
+    if (!r) vazio++;
+    else if (r.fonte === 'audio' || r.fonte === 'formulario') respondidas++;
+    else if (r.fonte === 'pulado') puladas++;
+    else if (r.fonte === 'desconhecer') desconhecer++;
+  });
+  const total = ESTADO.perguntas.length;
+  const cobertas = respondidas + puladas + desconhecer; // tudo que tem decisão consciente
+
+  // Header da revisão
+  const head = document.getElementById('rvHead');
+  if (respondidas >= CFG.minRespostas) {
+    head.innerHTML = ''
+      + '<div class="ti"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>Quase lá</div>'
+      + '<div class="ds">Confere o que vai pro seu médico:</div>';
+  } else {
+    head.innerHTML = ''
+      + '<div class="ti warn"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M12 9v4m0 4v.01M3.07 19h17.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L1.34 16c-.77 1.33.19 3 1.73 3z"/></svg>Ainda não dá pra enviar</div>'
+      + '<div class="ds">Você respondeu só <strong>' + respondidas + ' de ' + total + ' perguntas</strong>. Seu médico precisa do mínimo de <strong>' + CFG.minRespostas + ' respostas</strong> pra te receber preparado.</div>'
+      + '<div class="edu"><strong>O que fazer agora:</strong> volta nas perguntas que você pulou e responde pelo menos mais ' + (CFG.minRespostas - respondidas) + '. Pode falar "não sei" se realmente não souber — isso conta como resposta.</div>';
+  }
+
+  // Lista das perguntas
+  const list = document.getElementById('rvList');
+  list.innerHTML = '';
+  ESTADO.perguntas.forEach((p, idx) => {
+    const r = ESTADO.respostas[p.id];
+    let cls = 'fm-card';
+    let qnLbl = '① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩ ⑪ ⑫ ⑬ ⑭ ⑮'.split(' ')[idx] || (idx + 1);
+    let body = '';
+    let actions = '';
+
+    if (r && r.fonte === 'audio') {
+      cls += ' done';
+      body = '<div class="ans">' + (r.valor || 'Resposta gravada') + '</div>';
+      actions = '<div style="margin-top:6px"><span style="font-size:10px;color:#00C47A;font-weight:700">áudio</span></div>';
+    } else if (r && r.fonte === 'formulario') {
+      cls += ' done';
+      body = '<div class="ans">' + (r.valor || '') + '</div>';
+      actions = '<div style="margin-top:6px"><span style="font-size:10px;color:#1E40AF;font-weight:700">escrito</span></div>';
+    } else if (r && r.fonte === 'pulado') {
+      cls += ' skip';
+      body = '<div class="ans empty">Você pulou</div>';
+      actions = '<div class="ctrl" style="margin-top:8px"><button onclick="responderAgora(' + idx + ')">Responder agora</button></div>';
+    } else if (r && r.fonte === 'desconhecer') {
+      cls += ' naosabe';
+      body = '<div class="ans gray">Você disse: "não sei"</div>';
+    } else {
+      body = '<div class="ans empty">Não respondeu ainda</div>';
+      actions = '<div class="ctrl" style="margin-top:8px"><button onclick="responderAgora(' + idx + ')">Responder agora</button></div>';
+    }
+
+    list.innerHTML += '<div class="' + cls + '">'
+      + '<div class="qn">' + qnLbl + ' · ' + p.texto.slice(0, 40) + (p.texto.length > 40 ? '...' : '') + '</div>'
+      + body + actions
+      + '</div>';
+  });
+
+  // Rodapé com botões
+  const bot = document.getElementById('rvBot');
+  if (respondidas >= CFG.minRespostas) {
+    bot.innerHTML = ''
+      + '<button class="btn-primary" onclick="enviarPreConsulta()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>Enviar pro médico</button>'
+      + '<div class="rv-hint">Você decide o que mandar</div>';
+  } else {
+    bot.innerHTML = ''
+      + '<button class="btn-primary" onclick="responderAgora(' + buscarPrimeiraPulada() + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Voltar e responder mais</button>'
+      + '<div class="rv-hint">Botão de enviar libera quando você responder pelo menos ' + CFG.minRespostas + ' das ' + total + ' perguntas</div>';
+  }
+}
+
+function buscarPrimeiraPulada() {
+  for (let i = 0; i < ESTADO.perguntas.length; i++) {
+    const r = ESTADO.respostas[ESTADO.perguntas[i].id];
+    if (!r || r.fonte === 'pulado') return i;
+  }
+  return 0;
+}
+
+function responderAgora(idx) {
+  ESTADO.perguntaAtual = idx;
+  // Limpa resposta anterior pra permitir refazer
+  delete ESTADO.respostas[ESTADO.perguntas[idx].id];
+  IDB.salvarEstado();
+  renderPerguntaAtual();
+  irParaTela(ESTADO.modo === 'form' ? 'form' : 'audio');
+  if (ESTADO.modo === 'form') renderFormulario();
+}
+
+// ════ ENVIAR PRÉ-CONSULTA ════
+async function enviarPreConsulta() {
+  const btn = document.querySelector('#rvBot .btn-primary');
+  if (btn) { btn.classList.add('disabled'); btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+  try {
+    // Monta payload no formato V2 + retrocompat (campos antigos preenchidos)
+    const respostasV2 = ESTADO.respostas;
+
+    // Retrocompat: extrai campos antigos esperados pelo summary
+    const respostasFlat = {};
+    Object.values(respostasV2).forEach(r => {
+      if (r.campoAnamnese && r.valor) {
+        respostasFlat[r.campoAnamnese] = r.valor;
+      }
+    });
+    // Mantém também a estrutura V2 dentro
+    respostasFlat._v2 = respostasV2;
+    respostasFlat._versaoFluxo = 'v2-pergunta-por-pergunta';
+
+    const body = {
+      respostas: respostasFlat,
+      transcricao: null,
+      audioBase64: null,
+      fotoBase64: null,
+      attemptId: ESTADO.attemptId,
+    };
+
+    const headers = { 'Content-Type': 'application/json' };
+    const tk = (window.vitaeAPI && window.vitaeAPI.getToken && window.vitaeAPI.getToken());
+    if (tk) headers['Authorization'] = 'Bearer ' + tk;
+
+    const resp = await fetch(window.vitaeAPI.baseUrl + '/pre-consulta/t/' + ESTADO.token + '/responder', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok && resp.status !== 200) {
+      const err = await resp.text();
+      throw new Error('HTTP ' + resp.status + ': ' + err);
+    }
+
+    // Sucesso — limpa cache local e mostra tela enviado
+    await IDB.limparTudo(ESTADO.token);
+    irParaTela('enviado');
+  } catch (err) {
+    console.error('enviar erro:', err);
+    if (btn) { btn.classList.remove('disabled'); btn.disabled = false; btn.textContent = 'Tentar enviar de novo'; }
+    mostrarBanner('crit', 'Não conseguimos enviar agora. Verifica sua internet e tenta de novo.');
+  }
+}
+
+// ════ PAUSA / RETOMADA ════
+function pausar() {
+  if (ESTADO.modoCaptura) pararCaptura(true);
+  ESTADO.pausado = true;
+  document.getElementById('overlayPause').classList.add('active');
+}
+
+function retomarPausa() {
+  ESTADO.pausado = false;
+  document.getElementById('overlayPause').classList.remove('active');
+}
+
+// ════ VISIBILITY CHANGE ════
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && ESTADO.modoCaptura) {
+    // Pausa automática se sai do app
+    pararCaptura(true);
+  }
+});
+
+// ════ ONLINE / OFFLINE ════
+window.addEventListener('online', () => mostrarBanner('info', 'Internet voltou — continuando'));
+window.addEventListener('offline', () => mostrarBanner('crit', 'Sem internet — sua resposta foi salva, vai sincronizar quando voltar'));
+
+// ════ INIT ON LOAD ════
+window.addEventListener('DOMContentLoaded', init);
+
+</script>
+</body>
+</html>

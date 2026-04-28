@@ -4,6 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>vitaid — Pré-Consulta</title>
+
+    <!-- ═══ FEATURE FLAG V2 (fluxo pergunta-por-pergunta) ═══
+         Redireciona pra pre-consulta-v2.html se:
+         - URL tem ?v=2 (manual override)
+         - localStorage vitae_fluxo_v2=true (flag por device)
+         - window.VITAE_FLUXO_V2 setado via outro mecanismo (futuro: API/env)
+         Pra rollback total: remover esse <script> ou setar localStorage=false. -->
+    <script>
+      (function(){
+        try {
+          var p = new URLSearchParams(location.search);
+          var queryV2 = p.get('v') === '2';
+          var storageV2 = false;
+          try { storageV2 = localStorage.getItem('vitae_fluxo_v2') === 'true'; } catch(_){}
+          var globalV2 = window.VITAE_FLUXO_V2 === true;
+          if (queryV2 || storageV2 || globalV2) {
+            // Mantém todos os params menos v=2
+            p.delete('v');
+            var qs = p.toString();
+            location.replace('pre-consulta-v2.html' + (qs ? ('?' + qs) : ''));
+          }
+        } catch(e) { console.warn('feature flag v2 falhou:', e); }
+      })();
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
