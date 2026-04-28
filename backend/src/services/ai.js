@@ -1019,6 +1019,12 @@ EXEMPLO COMPLETO DE anamneseEstruturada (paciente Maria, 34a, cefaleia):
         console.warn('[SUMMARY-AI] textoVoz ausente no output Gemini — TTS usara summaryTexto');
       }
 
+      // V2 — enriquece anamneseEstruturada com fontes "pulado" e "desconhecer"
+      // baseado no respostas._v2 (sobrescreve fontes que Gemini possa ter inferido errado)
+      if (respostas && respostas._v2 && parsed.anamneseEstruturada) {
+        parsed.anamneseEstruturada = enriquecerFontesAnamneseV2(parsed.anamneseEstruturada, respostas._v2);
+      }
+
       console.log('[SUMMARY-AI] Gemini sucesso! Blocos:', (parsed.blocos || []).length, '| summary chars:', parsed.summaryTexto.length);
       return parsed;
     } catch (geminiErr) {
@@ -1490,6 +1496,38 @@ Se o documento nao for um resultado de exame alergico, retorne: { "tipo": "nao_e
 // Threshold: ≥0.85 marca autonomo. 0.60-0.84 pede confirmacao. <0.60 ignora.
 // Usado pelo endpoint POST /pre-consulta/t/:token/classificar-resposta
 // ════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════
+// V2 — Enriquece anamneseEstruturada com fontes "pulado" e "desconhecer"
+// O Gemini summary infere fontes audio/formulario com base nos campos legados.
+// Aqui sobrescrevemos com a fonte real do V2 quando disponivel.
+// ════════════════════════════════════════════════════════════════════
+function enriquecerFontesAnamneseV2(anamnese, respostasV2) {
+  if (!anamnese || typeof anamnese !== 'object') return anamnese;
+  if (!respostasV2 || typeof respostasV2 !== 'object') return anamnese;
+
+  // Mapa: campoAnamnese (chave do v2) → chave do anamneseEstruturada
+  const out = JSON.parse(JSON.stringify(anamnese));
+
+  Object.values(respostasV2).forEach(r => {
+    if (!r || !r.campoAnamnese) return;
+    const campoChave = r.campoAnamnese;
+    if (!out[campoChave]) return;
+
+    if (r.fonte === 'pulado') {
+      out[campoChave] = { valor: null, fonte: 'pulado' };
+    } else if (r.fonte === 'desconhecer') {
+      out[campoChave] = { valor: 'Paciente declarou desconhecer', fonte: 'desconhecer' };
+    } else if (r.fonte === 'audio' && r.valor) {
+      // Confirma fonte audio (Gemini pode ter inferido formulario erradamente)
+      out[campoChave] = { valor: out[campoChave].valor || r.valor, fonte: 'audio' };
+    } else if (r.fonte === 'formulario' && r.valor) {
+      out[campoChave] = { valor: out[campoChave].valor || r.valor, fonte: 'formulario' };
+    }
+  });
+
+  return out;
+}
+
 async function classificarRespostaIndividual(pergunta, transcricao, contexto = {}) {
   const transc = (transcricao || '').trim();
   if (transc.length < 2) {

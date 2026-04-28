@@ -841,6 +841,14 @@
             background: rgba(59,130,246,0.10);
             color: #1E40AF;
         }
+        .anamnese-field-src.pulado {
+            background: rgba(245,158,11,0.12);
+            color: #92400E;
+        }
+        .anamnese-field-src.desconhecer {
+            background: rgba(107,114,128,0.12);
+            color: #374151;
+        }
         .anamnese-field-val {
             font-size: 13px; color: var(--v-ink);
             line-height: 1.5; font-weight: 500;
@@ -1662,16 +1670,30 @@ async function init() {
         var temAnamneseEstruturada = anamnese && typeof anamnese === 'object' && Object.keys(anamnese).length > 0;
 
         // Helper: deriva valor + fonte de um campo da anamnese, com fallback
+        // V2: fontes possiveis sao audio | formulario | pulado | desconhecer
         function getAnamneseField(campo) {
             if (!anamnese || !anamnese[campo]) return { valor: null, fonte: null };
             var f = anamnese[campo];
             if (typeof f === 'string') return { valor: f.trim() || null, fonte: 'formulario' };
             if (typeof f === 'object') {
                 var v = (f.valor != null && f.valor !== '') ? String(f.valor).trim() : null;
-                var s = f.fonte === 'audio' || f.fonte === 'formulario' ? f.fonte : null;
+                var fontesValidas = ['audio', 'formulario', 'pulado', 'desconhecer'];
+                var s = fontesValidas.indexOf(f.fonte) >= 0 ? f.fonte : null;
+                // Pulado/desconhecer mantém fonte mesmo sem valor
+                if (s === 'pulado' || s === 'desconhecer') {
+                    return { valor: v, fonte: s };
+                }
                 return { valor: v || null, fonte: v ? (s || 'formulario') : null };
             }
             return { valor: null, fonte: null };
+        }
+        // Helper: label do badge de fonte
+        function fonteLabel(fonte) {
+            if (fonte === 'audio') return 'áudio';
+            if (fonte === 'formulario') return 'formulário';
+            if (fonte === 'pulado') return 'pulado';
+            if (fonte === 'desconhecer') return 'não soube';
+            return '';
         }
 
         // Definicao dos 11 campos: chave, label, layout (full = ocupa linha inteira)
@@ -1741,7 +1763,7 @@ async function init() {
             html += '<div class="anamnese-grid full">';
             html += '<div class="anamnese-field">';
             html += '<div class="anamnese-field-lbl"><span class="anamnese-field-lbl-text">Queixa Principal</span>';
-            if (qp.fonte) html += '<span class="anamnese-field-src ' + qp.fonte + '">' + (qp.fonte === 'audio' ? 'áudio' : 'formulário') + '</span>';
+            if (qp.fonte) html += '<span class="anamnese-field-src ' + qp.fonte + '">' + fonteLabel(qp.fonte) + '</span>';
             html += '</div>';
             if (qp.valor) {
                 html += '<div class="anamnese-field-val">' + sanitize(qp.valor) + '</div>';
@@ -1758,7 +1780,7 @@ async function init() {
                 var d = getAnamneseField(f.key);
                 html += '<div class="anamnese-field">';
                 html += '<div class="anamnese-field-lbl"><span class="anamnese-field-lbl-text">' + sanitize(f.label) + '</span>';
-                if (d.fonte) html += '<span class="anamnese-field-src ' + d.fonte + '">' + (d.fonte === 'audio' ? 'áudio' : 'formulário') + '</span>';
+                if (d.fonte) html += '<span class="anamnese-field-src ' + d.fonte + '">' + fonteLabel(d.fonte) + '</span>';
                 html += '</div>';
                 if (d.valor) {
                     html += '<div class="anamnese-field-val">' + sanitize(d.valor) + '</div>';

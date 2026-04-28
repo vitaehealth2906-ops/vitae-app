@@ -285,6 +285,8 @@ body.dark-mode .padroes-card-v2-evidencia{color:#C4C9D4}
 .anamnese-field-src{font-size:8.5px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.06em;text-transform:none;white-space:nowrap;font-family:ui-monospace,'SF Mono',monospace}
 .anamnese-field-src.audio{background:rgba(0,196,122,.12);color:#008F5A}
 .anamnese-field-src.formulario{background:rgba(59,130,246,.10);color:#1E40AF}
+.anamnese-field-src.pulado{background:rgba(245,158,11,.12);color:#92400E}
+.anamnese-field-src.desconhecer{background:rgba(107,114,128,.12);color:#374151}
 .anamnese-field-val{font-size:13px;color:#0D0F14;line-height:1.5;font-weight:500}
 .anamnese-field-val.empty{color:#9CA3AF;font-style:italic;font-weight:400}
 .anamnese-empty-block{padding:14px 16px;background:rgba(0,0,0,.02);border:1.5px dashed rgba(0,0,0,.08);border-radius:10px;font-size:12.5px;color:#6B7280;line-height:1.55;font-style:italic}
@@ -3745,10 +3747,19 @@ async function pcOpenDetail(pcId){
       if(typeof f === 'string') return { valor: f.trim() || null, fonte: 'formulario' };
       if(typeof f === 'object'){
         var v = (f.valor != null && f.valor !== '') ? String(f.valor).trim() : null;
-        var s = f.fonte === 'audio' || f.fonte === 'formulario' ? f.fonte : null;
+        var fontesValidas = ['audio','formulario','pulado','desconhecer'];
+        var s = fontesValidas.indexOf(f.fonte) >= 0 ? f.fonte : null;
+        if (s === 'pulado' || s === 'desconhecer') return { valor: v, fonte: s };
         return { valor: v || null, fonte: v ? (s || 'formulario') : null };
       }
       return { valor: null, fonte: null };
+    }
+    function fonteLabel(fonte){
+      if(fonte==='audio') return 'áudio';
+      if(fonte==='formulario') return 'formulário';
+      if(fonte==='pulado') return 'pulado';
+      if(fonte==='desconhecer') return 'não soube';
+      return '';
     }
 
     var ANAMNESE_FIELDS = [
@@ -3827,7 +3838,7 @@ async function pcOpenDetail(pcId){
       html += '<div class="anamnese-grid full">';
       html += '<div class="anamnese-field">';
       html += '<div class="anamnese-field-lbl"><span class="anamnese-field-lbl-text">Queixa Principal</span>';
-      if(qp.fonte) html += '<span class="anamnese-field-src ' + qp.fonte + '">' + (qp.fonte === 'audio' ? 'áudio' : 'formulário') + '</span>';
+      if(qp.fonte) html += '<span class="anamnese-field-src ' + qp.fonte + '">' + fonteLabel(qp.fonte) + '</span>';
       html += '</div>';
       if(qp.valor){
         html += '<div class="anamnese-field-val">' + escHtml(qp.valor) + '</div>';
@@ -3843,7 +3854,7 @@ async function pcOpenDetail(pcId){
         var d = getAnamneseField(f.key);
         html += '<div class="anamnese-field">';
         html += '<div class="anamnese-field-lbl"><span class="anamnese-field-lbl-text">' + escHtml(f.label) + '</span>';
-        if(d.fonte) html += '<span class="anamnese-field-src ' + d.fonte + '">' + (d.fonte === 'audio' ? 'áudio' : 'formulário') + '</span>';
+        if(d.fonte) html += '<span class="anamnese-field-src ' + d.fonte + '">' + fonteLabel(d.fonte) + '</span>';
         html += '</div>';
         if(d.valor){
           html += '<div class="anamnese-field-val">' + escHtml(d.valor) + '</div>';
