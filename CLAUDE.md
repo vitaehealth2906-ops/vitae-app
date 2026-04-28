@@ -629,7 +629,26 @@ Cada campo tem **fonte rastreavel** (badge mostrando "audio" verde ou "formulari
 - Variaveis legadas (queixaLimpa, pontosAt) preservadas pra compat com "raw fallback" downstream
 
 **Commits desta sessao:**
-- `32be76b` — feat(summary): anamnese estruturada com 11 campos + fonte rastreavel
+- `32be76b` — feat(summary): anamnese estruturada com 11 campos + fonte rastreavel (mobile + backend)
+- `6961932` — fix(desktop): aplicar anamnese estruturada tambem em desktop/app.html
+
+**BUG encontrado pelo Lucas durante teste:** abriu pre-consulta de paciente antigo em `https://vitae-app.vercel.app/desktop/app.html#pre-consultas/2f691846-acea-4450-8c85-ee0594f8a47f` e o componente NAO apareceu. Causa raiz: `desktop/app.html` tem renderizacao PROPRIA da tela summary, separada da `25-summary.html` mobile. Eu so atualizei a mobile no primeiro commit. Fix do desktop foi feito em commit `6961932`.
+
+**Aprendizado da Sessao:** o medico tem 2 telas de summary (mobile em `25-summary.html` e desktop em `desktop/app.html`). Mudanca em uma EXIGE replicacao na outra. CLAUDE.md ja avisa isso na regra de design — desta vez o erro foi nao verificar.
+
+**Fallback robusto no desktop:** versao do desktop tem mapeamento mais amplo de chaves do `r` (respostas do formulario):
+- Tempo: duracao, duracaoSintomas, tempoEvolucao, tempoSintomas
+- Intensidade: intensidade, intensidadeDor, intensidadeSintomas
+- Agravantes: fatoresAgravantes, agravantes, fatoresPiora, oQuePiora
+- Atenuantes: fatoresAtenuantes, atenuantes, fatoresMelhora, oQueMelhora
+- Sintomas: sintomas, sintomasAssociados, outrosSintomas
+- Tratamento: tratamentoPrevio, tratamentos, medicamentosTomados, tentativasTratamento
+- Pessoais: condicoes, antecedentesPessoais, doencasAtuais, doencasPrevias
+- Familiares: historicoFamiliar, antecedentesFamiliares, familiaresDoencas
+- Habitos: combina tabagismo + alcool + atividadeFisica + exercicio em string unica (ou habitos/estiloDeVida)
+- Sono: combina horasSono + qualidadeSono em string unica (ou sono/padraoSono)
+
+Esse fallback expandido pode ser portado pra `25-summary.html` em proxima sessao se necessario (atualmente o mobile tem fallback mais simples).
 
 **INCIDENTE GRAVE: Git local corrompido em `d:/vitae-app-github`**
 
