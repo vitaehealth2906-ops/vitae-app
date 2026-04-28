@@ -6,21 +6,26 @@
     <title>vitaid — Pré-Consulta</title>
 
     <!-- ═══ FEATURE FLAG V2 (fluxo pergunta-por-pergunta) ═══
-         Redireciona pra pre-consulta-v2.html se:
-         - URL tem ?v=2 (manual override)
-         - localStorage vitae_fluxo_v2=true (flag por device)
-         - window.VITAE_FLUXO_V2 setado via outro mecanismo (futuro: API/env)
-         Pra rollback total: remover esse <script> ou setar localStorage=false. -->
+         AGORA ATIVO POR PADRAO. Todo link de pre-consulta cai no V2.
+         Rollback rapido (zero deploy):
+         - Adicionar ?v=1 na URL pra forcar V1 antigo
+         - localStorage.setItem('vitae_fluxo_v1', 'true') pra forcar V1 nesse device
+         - Pra rollback total permanente: setar V2_DEFAULT=false aqui embaixo + push -->
     <script>
       (function(){
         try {
+          var V2_DEFAULT = true; // ← MUDAR PRA false PRA ROLLBACK GERAL
           var p = new URLSearchParams(location.search);
+          var queryV1 = p.get('v') === '1';
           var queryV2 = p.get('v') === '2';
-          var storageV2 = false;
+          var storageV1 = false, storageV2 = false;
+          try { storageV1 = localStorage.getItem('vitae_fluxo_v1') === 'true'; } catch(_){}
           try { storageV2 = localStorage.getItem('vitae_fluxo_v2') === 'true'; } catch(_){}
           var globalV2 = window.VITAE_FLUXO_V2 === true;
-          if (queryV2 || storageV2 || globalV2) {
-            // Mantém todos os params menos v=2
+          // Decisao: V1 forcado tem prioridade sobre default
+          var usarV1 = queryV1 || storageV1;
+          var usarV2 = !usarV1 && (queryV2 || storageV2 || globalV2 || V2_DEFAULT);
+          if (usarV2) {
             p.delete('v');
             var qs = p.toString();
             location.replace('pre-consulta-v2.html' + (qs ? ('?' + qs) : ''));
