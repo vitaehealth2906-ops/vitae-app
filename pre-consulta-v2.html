@@ -597,6 +597,9 @@ function finalizarOnboarding(modoEscolhido, pulou) {
   } else {
     renderPerguntaAtual();
     irParaTela('audio');
+    // Aproveita o user gesture do botão "Começar gravando" pra ativar mic
+    // (iOS exige gesto pra getUserMedia, mas depois disso fica ativo entre perguntas)
+    setTimeout(() => iniciarCaptura(), 200);
   }
 }
 
@@ -695,10 +698,10 @@ function renderPerguntaAtual() {
   const btnAjuda = document.getElementById('btnAjuda');
   btnAjuda.style.display = p.ajuda ? 'inline-flex' : 'none';
 
-  // Reset visual
+  // Reset visual — mic vai ficar live automaticamente via iniciarCaptura
   resetMicVisual();
-  document.getElementById('feedback').textContent = 'Toque no microfone pra começar';
-  document.getElementById('feedback').className = 'q-feedback';
+  document.getElementById('feedback').textContent = 'Estou te ouvindo';
+  document.getElementById('feedback').className = 'q-feedback live';
 
   // Esconde botões ambíguos
   document.getElementById('ambBtns').style.display = 'none';
@@ -778,6 +781,10 @@ async function toggleMic() {
 
 // ════ INICIAR CAPTURA DE ÁUDIO ════
 async function iniciarCaptura() {
+  // Guarda: se já tá capturando, não reinicia
+  if (ESTADO.modoCaptura) return;
+  // Guarda: se está em revisão/form, não inicia
+  if (ESTADO.modo !== 'audio') return;
   try {
     if (!MEDIA.stream) {
       MEDIA.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
@@ -968,6 +975,8 @@ async function processarRespostaReal(pergunta, blob) {
         irParaRevisao();
       } else {
         renderPerguntaAtual();
+        // Mic continua ativo automaticamente — sem precisar tocar de novo
+        setTimeout(() => iniciarCaptura(), 300);
       }
     } else {
       // Confiança média (60-84%) — pede confirmação humana
@@ -1041,6 +1050,7 @@ async function confirmarAmbiguo(perguntaId, sim) {
     irParaRevisao();
   } else {
     renderPerguntaAtual();
+    setTimeout(() => iniciarCaptura(), 300);
   }
 }
 
@@ -1060,7 +1070,7 @@ async function pularPergunta() {
   await IDB.salvarEstado();
   ESTADO.perguntaAtual++;
   if (ESTADO.perguntaAtual >= ESTADO.perguntas.length) irParaRevisao();
-  else renderPerguntaAtual();
+  else { renderPerguntaAtual(); setTimeout(() => iniciarCaptura(), 300); }
 }
 
 // ════ NÃO SEI A RESPOSTA ════
@@ -1079,7 +1089,7 @@ async function naoSeiResposta() {
   await IDB.salvarEstado();
   ESTADO.perguntaAtual++;
   if (ESTADO.perguntaAtual >= ESTADO.perguntas.length) irParaRevisao();
-  else renderPerguntaAtual();
+  else { renderPerguntaAtual(); setTimeout(() => iniciarCaptura(), 300); }
 }
 
 // ════ VOLTAR PERGUNTA ════
