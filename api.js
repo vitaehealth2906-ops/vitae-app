@@ -616,3 +616,6 @@ const vitaeAPI = {
 
 // Expoe globalmente
 window.vitaeAPI = vitaeAPI;
+// Expoe baseUrl pra modulos externos (pre-consulta-v2.html etc)
+window.vitaeAPI.baseUrl = API_URL;
+window.vitaeAPI.getToken = function(){ try { return localStorage.getItem('vitae_token') || null; } catch(_){ return null; } };
