@@ -811,10 +811,10 @@ async function iniciarCaptura() {
     MEDIA.silencioStart = null;
     MEDIA.voiceStart = null;
 
-    // Visual: live
+    // Visual: live (sem ondinha ainda — aparece só quando detectar voz real)
     const mic = document.getElementById('micBtn');
     mic.className = 'q-mic-big live';
-    document.getElementById('waveMini').style.display = 'flex';
+    document.getElementById('waveMini').style.display = 'none';
     document.getElementById('feedback').textContent = 'Estou te ouvindo';
     document.getElementById('feedback').className = 'q-feedback live';
 
@@ -843,12 +843,15 @@ function iniciarRMSSampler() {
     const rms = Math.sqrt(sum / MEDIA.rmsData.length);
 
     const agora = Date.now();
+    const wave = document.getElementById('waveMini');
     if (rms >= CFG.rmsThreshold) {
-      // Tem voz
+      // Tem voz — mostra ondinha animada
       if (!MEDIA.voiceStart) MEDIA.voiceStart = agora;
       MEDIA.silencioStart = null;
+      if (wave && wave.style.display !== 'flex') wave.style.display = 'flex';
     } else {
-      // Silêncio
+      // Silêncio — esconde ondinha
+      if (wave && wave.style.display !== 'none') wave.style.display = 'none';
       if (MEDIA.voiceStart && !MEDIA.silencioStart) MEDIA.silencioStart = agora;
       // Detector: 5 segundos de silêncio APÓS voz = fim de fala
       if (MEDIA.silencioStart && (agora - MEDIA.silencioStart >= CFG.silencioMs) && MEDIA.voiceStart) {
