@@ -576,6 +576,91 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 15 — 28/04/2026 — Pre-consulta V2 (pergunta-por-pergunta linear) — IMPLEMENTACAO COMPLETA AUTONOMA
+
+**Contexto:** Sessao gigante de design+implementacao. Lucas validou frontend novo (formato minimalista pergunta-por-pergunta, header compacto, mic grande, toggle persistente) via preview em `preview-pre-consulta-guiada.html` (commit c8ef7a7). Apos analise tecnica 11/10 das 8 camadas + 50 bugs possiveis + 6 fases, Lucas autorizou execucao autonoma sem pedir permissao entre fases.
+
+**Decisoes finais aprovadas:**
+- Modelo arquitetural B (audio por pergunta + classificador real-time)
+- Threshold confianca Gemini: 85% (autonomo) / 60-84% (pede confirmacao) / <60% (ignora)
+- Minimo 7/11 respostas pra liberar envio
+- Detector silencio: **5 segundos** (Lucas confirmou explicitamente apos eu alertar)
+- Templates default: 11 perguntas escritas no preview
+- Lucas pulou validacao com 5 pessoas leigas — vai direto pro medico betatester
+- Feature flag obrigatoria, DESLIGADA por padrao (rollback em 30s)
+
+**6 fases implementadas + commitadas:**
+
+**Fase 1** (`490c459`) — Frontend pergunta-por-pergunta
+- Cria `pre-consulta-v2.html` standalone (1119 linhas)
+- Detector RMS local de voz (5s silencio = fim de fala)
+- 6 telas internas: loading, erro, audio, form, revisao, enviado
+- Estado por pergunta: aguardando, captando, processando, confirmado, pulado, desconhecer
+- Cache local IndexedDB (`vitae_v2` db)
+- Wake Lock iOS 16.4+
+- Visibilitychange auto-pausa
+- Modo formulario com cards expansiveis
+- Tela revisao com bloqueio <7/11
+- Modifica `pre-consulta.html` com feature flag (script no head)
+  - URL `?v=2` redireciona
+  - localStorage `vitae_fluxo_v2=true` redireciona
+  - `window.VITAE_FLUXO_V2=true` redireciona
+
+**Fase 2** (`b572689`) — Backend Gemini classificador turn-by-turn
+- `ai.js` nova funcao `classificarRespostaIndividual(pergunta, transcricao)` — Gemini 2.5 Flash temperature 0.3, fallback Claude, fallback final aceita confianca 0.50
+- `pre-consulta.js` novo endpoint `POST /t/:token/classificar-resposta` (publico, sem auth)
+  - Multipart upload de audio chunk (max 5MB)
+  - Whisper transcreve, Gemini classifica, retorna estrutura
+  - NAO salva permanente — so classifica
+- Frontend integrado: substitui modo dummy por chamada real
+- Threshold visual: ambiguo → botoes [Sim e isso / Nao falar de novo]
+
+**Fase 3** (`9d80b83`) — Dual-write retrocompat backend
+- Funcao `enriquecerRespostasV2(respostas)` no `pre-consulta.js`
+- Detecta `_v2` no payload e popula campos legados (queixaPrincipal, duracaoSintomas, etc)
+- Pulado/desconhecer NAO populam campo legado (medico ve vazio honesto)
+- Concatena transcricoesBrutas individuais V2 numa transcricao final pro Gemini summary
+- Resultado: 25-summary.html e desktop/app.html funcionam SEM mudanca, lendo campos legados
+
+**Fase 4** (`a6980cb`) — Onboarding completo (5 telas)
+- `pre-consulta-slides.html` REESCRITO: substitui 3 slides antigos (Confianca/Preparo/Compromisso) por 2 telas de boas-vindas
+  - Tela 1: "Vamos criar seu RG da Saude" + 3 passos numerados + "4 minutos"
+  - Tela 2: "Fica seu pra sempre" + 4 beneficios + 3 selos (gratuito/LGPD/voce decide)
+- `pre-consulta-v2.html`: 3 telas de onboarding pre-gravacao adicionadas
+  - Tela 1: "Vamos fazer sua consulta valer mais"
+  - Tela 2: "Nao e entrevista. E uma conversa" + 4 itens (incluindo 'so seu medico vai ouvir')
+  - Tela 3: "Ta tudo no seu controle" + 4 cards + selo '100% privado'
+- localStorage marca onboarding visto por token
+- Combate 8 + 10 = 18 objecoes do paciente (mapeadas no preview)
+
+**Fase 5** (`9239c99`) — Medico ve 4 fontes (audio/formulario/pulado/desconhecer)
+- `ai.js` nova funcao `enriquecerFontesAnamneseV2` — apos Gemini gerar summary, sobrescreve fontes da `anamneseEstruturada` com fonte real do `_v2`
+- `25-summary.html` (mobile): CSS `.anamnese-field-src.pulado` (amarelo) e `.desconhecer` (cinza), helper `fonteLabel()`, badges atualizados
+- `desktop/app.html`: MESMAS mudancas (sincronizar — licao Sessao 13)
+
+**Fase 6** (proximo commit) — Validacao + README
+- Sintaxe validada: backend (node --check), pre-consulta-v2.html (Function constructor), pre-consulta-slides.html
+- Cria `README-PRECONSULTA-V2.md` com 7 testes obrigatorios + instrucoes de ativacao/rollback
+
+**Memoria salva:**
+- Novo arquivo `project_preconsulta_v2_decisoes.md` em `C:\Users\valve\.claude\projects\d--\memory\` documentando todas decisoes pra futuras sessoes
+
+**Status pra Lucas:**
+- Sistema 100% pronto pra ativar com `?v=2`
+- Lucas pode mandar link `https://vitae-app.vercel.app/pre-consulta.html?token=X&v=2` pro medico betatester
+- Rollback rapido: remover `?v=2` ou `localStorage.removeItem('vitae_fluxo_v2')`
+
+**Pendente pra proxima sessao:**
+- Lucas testar pessoalmente os 7 cenarios do README
+- Mandar pro medico betatester com `?v=2`
+- Coletar feedback real (taxa de conclusao, cobertura, tempo medio)
+- Ajustar threshold silencio (5s pode parecer demorado — calibrar pra 2-3s se necessario)
+- Adicionar dicionario CMED top 200 termos pro Whisper transcrever bem nomes de remedios
+- Detector WhatsApp in-app browser no V2 (V1 ja tem)
+- Auto-save no modo formulario (so salva ao clicar botao hoje)
+
+---
+
 ### Sessao 14 — 27/04/2026 (noite, PC casa) — Investigacao bugs (sem alteracao de codigo)
 
 **Contexto:** Lucas voltou da faculdade pro PC de casa ~21h. Repo local `d:/vitae-app-github` estava corrompido (continuacao do incidente da Sessao 13). Achou pasta `d:/vitae-app-novo` (clone limpo de mais cedo) sincronizada com GitHub. Renomeou `vitae-app-github` → `vitae-app-github-OLD` mas falhou em renomear `vitae-app-novo` → `vitae-app-github` (lock de VSCode/serve.js — `Device or resource busy`). Trabalhou direto na `vitae-app-novo`.
