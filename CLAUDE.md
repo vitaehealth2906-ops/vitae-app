@@ -576,6 +576,60 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 14 — 27/04/2026 (noite, PC casa) — Investigacao bugs (sem alteracao de codigo)
+
+**Contexto:** Lucas voltou da faculdade pro PC de casa ~21h. Repo local `d:/vitae-app-github` estava corrompido (continuacao do incidente da Sessao 13). Achou pasta `d:/vitae-app-novo` (clone limpo de mais cedo) sincronizada com GitHub. Renomeou `vitae-app-github` → `vitae-app-github-OLD` mas falhou em renomear `vitae-app-novo` → `vitae-app-github` (lock de VSCode/serve.js — `Device or resource busy`). Trabalhou direto na `vitae-app-novo`.
+
+**2 bugs investigados — NENHUMA alteracao de codigo, so diagnostico:**
+
+**1. "Anamnese estruturada mostra 1/11 campos" — NAO E BUG**
+
+Lucas abriu pre-consulta antiga (do banco) e viu so Queixa Principal preenchida com badge `formulario`. Achou que o prompt do Gemini estava quebrado.
+
+**Diagnostico:** pre-consulta foi respondida ANTES do deploy de hoje (commits `32be76b`/`6961932`). Audio dela foi processado pelo prompt antigo, que nao estruturava os 11 campos. O fallback do `desktop/app.html` (linhas 3768-3805) so consegue extrair do formulario nesses casos. Funcionando como projetado.
+
+**Validacao real precisa de:** pre-consulta NOVA com audio gravado pos-deploy (Teste 2 do `HANDOFF-PC-CASA-27-ABR-2026.md`). Lucas nao fez essa validacao ainda.
+
+**Alternativa:** rodar `vitaeAPI.regenerarSummaryPreConsulta('id-pre-consulta')` no F12 console pra reprocessar pre-consulta antiga com o prompt novo.
+
+**Licao operacional:** a feature foi entregue de manha mas Lucas testou com dado antigo a noite — o fluxo de validacao deveria ter sido mais explicito que "voce precisa criar pre-consulta NOVA pra testar". O handoff de mais cedo ja avisava isso, mas nao foi suficiente — Lucas pulou o aviso e foi direto testar com dado existente.
+
+**2. "Google Sign-In erro 400 redirect_uri_mismatch" — DIAGNOSTICADO, falta config**
+
+Paciente Alvaro abriu link de pre-consulta no iPhone via WhatsApp, clicou "Continuar com Google", deu `Erro 400: redirect_uri_mismatch` em `accounts.google.com` (mesmo erro do incidente ao vivo de mais cedo).
+
+**Estado do Google Cloud Console (Lucas mandou print):**
+- Origens JavaScript autorizadas: SO `https://vitae-app.vercel.app` (1 entrada)
+- URIs de redirecionamento autorizados: SO `https://vitae-app.vercel.app/03-cadastro.html` (1 entrada)
+
+**Estranheza tecnica:** o codigo do `03-cadastro.html` usa `google.accounts.oauth2.initTokenClient` (popup, sem redirect) — tecnicamente NAO deveria precisar de redirect_uri configurado. Pre-consulta.html nao tem Google login proprio (paciente e redirecionado pra `03-cadastro.html` antes de clicar Google).
+
+**Hipoteses ainda em aberto:**
+- A — preview deploy do Vercel (tipo `vitae-app-git-main-xxx.vercel.app`) sendo usado em vez de producao
+- B — WhatsApp in-app browser tem comportamento que confunde o GIS
+- C — config do OAuth Client esta como tipo errado (deveria ser "Web application")
+
+**Pendente Lucas mandar (no notebook):**
+1. Link EXATO da pre-consulta que veio no WhatsApp do Alvaro
+2. Print da barra de URL do iPhone ANTES de clicar Google (preview Vercel ou producao?)
+
+**Solucao provisoria recomendada:** Lucas adicionar URLs extras nas duas listas do Console: `pre-consulta.html`, `localhost:3000`. Esperar 5min, testar.
+
+**Decisao operacional:** NAO mexer em codigo nessa sessao. Bug nao e de codigo — e de config externa que so Lucas resolve.
+
+**Arquivos criados/modificados:**
+- `HANDOFF-NOITE-27-ABR-2026.md` — handoff explicito pro notebook da faculdade
+- `CLAUDE.md` — Sessao 14 adicionada
+
+**Pendente pra proxima sessao (notebook):**
+- Lucas mandar 2 prints/info do bug Google Sign-In
+- Adicionar URLs extras no Google Cloud Console e validar
+- Implementar verificacao real do ID token com `google-auth-library` (Tier 2)
+- Criar pre-consulta nova com audio e validar Anamnese estruturada (Teste 2)
+- Renomear pastas no PC de casa quando Lucas voltar (fechar VSCode antes)
+
+---
+
 ### Sessao 13 — 27/04/2026 — Anamnese Estruturada + Decisao estrategica "Caminho C"
 
 **Contexto:** Sessao longa de pesquisa estrategica + entrega tecnica focada. Lucas questionou se VITAE deveria virar ambient scribe (gravar consulta + SOAP automatico) competindo com Sofya/Voa/Vocis/Doctorflow ou continuar focado na pre-consulta. Decisao: NAO competir como ambient scribe. Foca no diferencial unico (pre-consulta gravada pelo paciente em casa) e potencializa.
