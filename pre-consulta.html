@@ -1008,13 +1008,23 @@ const FLUXO = {
     if (!estado.slidesVistos) return 'onb1-1';
     if (!logado) return 'login';
 
-    // Logado — checa se perfil completo
+    // Se acabou de voltar do quiz vita id (URL tem ?perfilCompleto=1 marcador), confia
+    // que perfil foi salvo recentemente. Espera 800ms pra dar tempo do banco propagar.
+    const params = new URLSearchParams(location.search);
+    const acabouQuizVid = params.get('perfilCompleto') === '1' || params.get('voltei') === 'quizvid';
+
+    // Logado — checa se perfil completo (com retry pra dar tempo do save propagar)
     let perfilCompleto = false;
-    try {
-      const perfilData = await window.vitaeAPI.getPerfil();
-      const p = (perfilData && (perfilData.perfil || perfilData)) || {};
-      perfilCompleto = !!(p.cpf && p.dataNascimento);
-    } catch(e) { perfilCompleto = false; }
+    let tentativas = acabouQuizVid ? 4 : 1;
+    while (tentativas > 0) {
+      try {
+        const perfilData = await window.vitaeAPI.getPerfil();
+        const p = (perfilData && (perfilData.perfil || perfilData)) || {};
+        if (p.cpf && p.dataNascimento) { perfilCompleto = true; break; }
+      } catch(e) {}
+      tentativas--;
+      if (tentativas > 0) await new Promise(r => setTimeout(r, 800));
+    }
 
     if (!perfilCompleto) return 'quiz-vid-1';
     if (!estado.onb2Visto) return 'onb2-1';

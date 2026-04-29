@@ -1157,7 +1157,18 @@
     };
 
     // ===== Conclude =====
+    let _concluindo = false;
     async function conclude() {
+        // Anti duplo-clique: trava no primeiro clique
+        if (_concluindo) return;
+        _concluindo = true;
+        const btnTravar = document.getElementById('btnConcluir');
+        if (btnTravar) {
+            btnTravar.disabled = true;
+            btnTravar.textContent = 'Salvando…';
+            btnTravar.style.opacity = '0.6';
+            btnTravar.style.cursor = 'not-allowed';
+        }
 
         // Collect all data
         const nascInput = document.getElementById('nascimentoISO').value || document.getElementById('nascimentoInput').value;
@@ -1251,11 +1262,15 @@
             if (btn) {
                 btn.textContent = 'Erro ao salvar — tente novamente';
                 btn.style.background = '#EF4444';
+                btn.disabled = false;
+                btn.style.opacity = '';
+                btn.style.cursor = '';
                 setTimeout(() => {
                     btn.textContent = 'Continuar para a pre-consulta';
                     btn.style.background = '';
                 }, 4000);
             }
+            _concluindo = false; // libera pra retry
             alert('Não foi possível salvar: ' + errMsg);
             return;
         }
@@ -1295,13 +1310,14 @@
             }
         }
 
-        // Voltar para a pre-consulta com o token original
+        // Voltar para a pre-consulta com o token original.
+        // Marcador ?voltei=quizvid avisa o state machine pra dar tempo do save propagar.
         if (saveSuccess) {
             setTimeout(() => {
                 if (preConsultaToken) {
                     localStorage.removeItem('vitae_pre_consulta_token');
                     localStorage.removeItem('vitae_quiz_retorno');
-                    window.location.href = 'pre-consulta.html?token=' + encodeURIComponent(preConsultaToken);
+                    window.location.href = 'pre-consulta.html?token=' + encodeURIComponent(preConsultaToken) + '&voltei=quizvid';
                 } else {
                     window.location.href = '08-perfil.html';
                 }
