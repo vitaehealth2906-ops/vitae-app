@@ -12,9 +12,11 @@
          - localStorage.setItem('vitae_fluxo_v1', 'true') pra forcar V1 nesse device
          - Pra rollback total permanente: setar V2_DEFAULT=false aqui embaixo + push -->
     <script>
+      // Feature flag legada — V4_DEFAULT agora age DEPOIS de slides + login + perfil completo.
+      // O redirect efetivo pra pre-consulta-v4.html acontece em showMainContent() (final do gate).
+      // Isso preserva os 2 onboardings + login obrigatório que o V1/V2 tinham.
       (function(){
         try {
-          var V4_DEFAULT = true; // ← MUDAR PRA false PRA ROLLBACK GERAL (volta pra V1)
           var p = new URLSearchParams(location.search);
           var queryV1 = p.get('v') === '1';
           var queryV2 = p.get('v') === '2';
@@ -23,21 +25,21 @@
           try { storageV1 = localStorage.getItem('vitae_fluxo_v1') === 'true'; } catch(_){}
           try { storageV2 = localStorage.getItem('vitae_fluxo_v2') === 'true'; } catch(_){}
           try { storageV4 = localStorage.getItem('vitae_fluxo_v4') === 'true'; } catch(_){}
-          var globalV4 = window.VITAE_FLUXO_V4 === true;
-          // Prioridade: V1 forcado > V2 forcado > V4 (default novo)
+          // Forças explícitas só. SEM redirect default no topo — gates rodam normais.
           var usarV1 = queryV1 || storageV1;
           var usarV2 = !usarV1 && (queryV2 || storageV2);
-          var usarV4 = !usarV1 && !usarV2 && (queryV4 || storageV4 || globalV4 || V4_DEFAULT);
+          var usarV4Forcado = !usarV1 && !usarV2 && (queryV4 || storageV4);
           if (usarV2) {
             p.delete('v');
             var qs2 = p.toString();
             location.replace('pre-consulta-v2.html' + (qs2 ? ('?' + qs2) : ''));
-          } else if (usarV4) {
+          } else if (usarV4Forcado) {
+            // Atalho de DEV — pula todos os gates. Não usar em produção.
             p.delete('v');
             var qs4 = p.toString();
             location.replace('pre-consulta-v4.html' + (qs4 ? ('?' + qs4) : ''));
           }
-        } catch(e) { console.warn('feature flag v4 falhou:', e); }
+        } catch(e) { console.warn('feature flag falhou:', e); }
       })();
     </script>
 
@@ -2692,6 +2694,22 @@ async function prefillFromProfile() {
 }
 
 function showMainContent() {
+    // ═══ V4 GATE — só chega aqui APÓS slides + login + perfil completo ═══
+    // Redireciona pro V4 (quiz híbrido) preservando todos os portões anteriores.
+    // V4_DEFAULT=true: V4 é o quiz padrão; V2 ainda acessível via ?v=2; V1 via ?v=1.
+    try {
+      var V4_DEFAULT = true;
+      var pp = new URLSearchParams(location.search);
+      var skipNova = pp.get('v') === '1' || localStorage.getItem('vitae_fluxo_v1') === 'true';
+      if (V4_DEFAULT && !skipNova) {
+        // Roteia pelo V2 (que tem o 2o onboarding de 3 telas).
+        // V2 detecta quiz=v4 no final do onboarding e redireciona pra pre-consulta-v4.html.
+        pp.delete('v');
+        pp.set('quiz', 'v4');
+        location.replace('pre-consulta-v2.html?' + pp.toString());
+        return;
+      }
+    } catch(e) { console.warn('redirect V4 falhou, segue V1:', e); }
     // Make sure all gate/login screens are hidden
     document.getElementById('loginGate').classList.remove('active');
     document.getElementById('loginFormWrap').classList.remove('active');

@@ -569,6 +569,15 @@ async function init() {
     if (!onbVisto && !skipOnb) {
       irParaTela('onb1');
     } else {
+      // Se chegou via ponte V4 e onboarding já feito, redireciona direto pro V4
+      try {
+        var ppCheck = new URLSearchParams(location.search);
+        if (ppCheck.get('quiz') === 'v4') {
+          ppCheck.delete('quiz');
+          location.replace('pre-consulta-v4.html?' + ppCheck.toString());
+          return;
+        }
+      } catch(_){}
       irParaTela(ESTADO.modo === 'form' ? 'form' : 'audio');
       if (ESTADO.modo === 'form') renderFormulario();
       else renderPerguntaAtual();
@@ -593,6 +602,18 @@ function pularOnboarding() {
 
 function finalizarOnboarding(modoEscolhido, pulou) {
   try { localStorage.setItem('vitae_onb_v2_' + ESTADO.token, '1'); } catch(_){}
+
+  // Ponte pro V4: se chegou aqui via pre-consulta.html com ?quiz=v4, redireciona
+  // pro quiz híbrido novo (mantendo token e demais params).
+  try {
+    var ppV4 = new URLSearchParams(location.search);
+    if (ppV4.get('quiz') === 'v4') {
+      ppV4.delete('quiz');
+      location.replace('pre-consulta-v4.html?' + ppV4.toString());
+      return;
+    }
+  } catch(_){}
+
   ESTADO.modo = modoEscolhido === 'form' ? 'form' : 'audio';
   IDB.salvarEstado();
   if (ESTADO.modo === 'form') {
