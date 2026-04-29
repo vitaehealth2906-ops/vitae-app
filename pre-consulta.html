@@ -14,23 +14,30 @@
     <script>
       (function(){
         try {
-          var V2_DEFAULT = true; // ← MUDAR PRA false PRA ROLLBACK GERAL
+          var V4_DEFAULT = true; // ← MUDAR PRA false PRA ROLLBACK GERAL (volta pra V1)
           var p = new URLSearchParams(location.search);
           var queryV1 = p.get('v') === '1';
           var queryV2 = p.get('v') === '2';
-          var storageV1 = false, storageV2 = false;
+          var queryV4 = p.get('v') === '4';
+          var storageV1 = false, storageV2 = false, storageV4 = false;
           try { storageV1 = localStorage.getItem('vitae_fluxo_v1') === 'true'; } catch(_){}
           try { storageV2 = localStorage.getItem('vitae_fluxo_v2') === 'true'; } catch(_){}
-          var globalV2 = window.VITAE_FLUXO_V2 === true;
-          // Decisao: V1 forcado tem prioridade sobre default
+          try { storageV4 = localStorage.getItem('vitae_fluxo_v4') === 'true'; } catch(_){}
+          var globalV4 = window.VITAE_FLUXO_V4 === true;
+          // Prioridade: V1 forcado > V2 forcado > V4 (default novo)
           var usarV1 = queryV1 || storageV1;
-          var usarV2 = !usarV1 && (queryV2 || storageV2 || globalV2 || V2_DEFAULT);
+          var usarV2 = !usarV1 && (queryV2 || storageV2);
+          var usarV4 = !usarV1 && !usarV2 && (queryV4 || storageV4 || globalV4 || V4_DEFAULT);
           if (usarV2) {
             p.delete('v');
-            var qs = p.toString();
-            location.replace('pre-consulta-v2.html' + (qs ? ('?' + qs) : ''));
+            var qs2 = p.toString();
+            location.replace('pre-consulta-v2.html' + (qs2 ? ('?' + qs2) : ''));
+          } else if (usarV4) {
+            p.delete('v');
+            var qs4 = p.toString();
+            location.replace('pre-consulta-v4.html' + (qs4 ? ('?' + qs4) : ''));
           }
-        } catch(e) { console.warn('feature flag v2 falhou:', e); }
+        } catch(e) { console.warn('feature flag v4 falhou:', e); }
       })();
     </script>
 

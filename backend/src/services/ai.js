@@ -1,5 +1,6 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { enriquecerFontesAnamneseV4 } = require('../utils/respostas-v4');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -1023,6 +1024,10 @@ EXEMPLO COMPLETO DE anamneseEstruturada (paciente Maria, 34a, cefaleia):
       // baseado no respostas._v2 (sobrescreve fontes que Gemini possa ter inferido errado)
       if (respostas && respostas._v2 && parsed.anamneseEstruturada) {
         parsed.anamneseEstruturada = enriquecerFontesAnamneseV2(parsed.anamneseEstruturada, respostas._v2);
+      }
+      // V4 — mesmo enriquecimento, lendo modo (audio/texto/pulado/desconhecer)
+      if (respostas && respostas._v4 && parsed.anamneseEstruturada) {
+        parsed.anamneseEstruturada = enriquecerFontesAnamneseV4(parsed.anamneseEstruturada, respostas._v4);
       }
 
       console.log('[SUMMARY-AI] Gemini sucesso! Blocos:', (parsed.blocos || []).length, '| summary chars:', parsed.summaryTexto.length);

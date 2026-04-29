@@ -125,6 +125,10 @@ async function vincularPaciente({ preConsulta, pacienteIdLogado, req }) {
 }
 
 const audioUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+const v4ChunkUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+// V4 helpers
+const v4 = require('../utils/respostas-v4');
 
 const router = express.Router();
 
@@ -892,6 +896,306 @@ router.post('/t/:token/classificar-resposta', audioChunkUpload.single('audioChun
     });
   } catch (err) {
     console.error('[CLASSIFICAR] Erro:', err.message);
+    next(err);
+  }
+});
+
+// ============================================================================
+// V4 ENDPOINTS — Quiz híbrido (texto OU áudio por pergunta)
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// GET /t/:token/estado — Retomada de sessão V4 (público)
+// Retorna estado atual: respostas, perguntaAtual, modo, cobertura
+// ---------------------------------------------------------------------------
+router.get('/t/:token/estado', async (req, res, next) => {
+  try {
+    const preConsulta = await prisma.preConsulta.findUnique({
+      where: { linkToken: req.params.token },
+      include: {
+        medico: { include: { usuario: { select: { nome: true } } } },
+      },
+    });
+    if (!preConsulta) return res.status(404).json({ erro: 'Pré-consulta não encontrada' });
+    if (preConsulta.expiraEm < new Date()) return res.status(410).json({ erro: 'Link expirado' });
+    if (preConsulta.status === 'RESPONDIDA') return res.status(409).json({ erro: 'Pré-consulta já respondida' });
+
+    const totalPerguntas = Array.isArray(preConsulta.templatePerguntas)
+      ? preConsulta.templatePerguntas.length
+      : 11;
+
+    const resumo = v4.resumirParaCliente(preConsulta.respostas, totalPerguntas);
+
+    return res.status(200).json({
+      preConsultaId: preConsulta.id,
+      pacienteNome: preConsulta.pacienteNome,
+      medicoNome: preConsulta.medico.usuario.nome,
+      especialidade: preConsulta.medico.especialidade,
+      status: preConsulta.status,
+      templatePerguntas: preConsulta.templatePerguntas,
+      totalPerguntas,
+      ...resumo,
+    });
+  } catch (err) {
+    console.error('[V4 ESTADO] Erro:', err.message);
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /t/:token/responder-pergunta — Salva UMA resposta V4 (público)
+// Modos: 'audio' (multipart audioChunk + JSON) | 'texto' | 'pulado' | 'desconhecer'
+// Retorna interpretação Gemini + valor extraído + confiança
+// ---------------------------------------------------------------------------
+router.post('/t/:token/responder-pergunta', v4ChunkUpload.single('audioChunk'), async (req, res, next) => {
+  try {
+    const preConsulta = await prisma.preConsulta.findUnique({
+      where: { linkToken: req.params.token },
+    });
+    if (!preConsulta) return res.status(404).json({ erro: 'Pré-consulta não encontrada' });
+    if (preConsulta.expiraEm < new Date()) return res.status(410).json({ erro: 'Link expirado' });
+    if (preConsulta.status === 'RESPONDIDA') return res.status(409).json({ erro: 'Já respondida' });
+
+    // Parse do payload
+    let dados;
+    try {
+      dados = req.body.dados ? JSON.parse(req.body.dados) : req.body;
+    } catch (e) {
+      return res.status(400).json({ erro: 'Formato inválido', detalhe: 'dados deve ser JSON válido' });
+    }
+
+    const { perguntaId, modo, valor: valorTexto, attemptId } = dados;
+
+    if (!perguntaId) return res.status(400).json({ erro: 'perguntaId obrigatório' });
+    if (!v4.MODOS_VALIDOS.includes(modo)) {
+      return res.status(400).json({ erro: 'Modo inválido', detalhe: 'use audio | texto | pulado | desconhecer' });
+    }
+
+    // Busca campo da anamnese pela pergunta no template
+    const tpl = Array.isArray(preConsulta.templatePerguntas) ? preConsulta.templatePerguntas : [];
+    const perguntaTemplate = tpl.find(p => p.id === perguntaId) || { texto: '', campo: null };
+    const campoAnamnese = perguntaTemplate.campo || perguntaTemplate.campoAnamnese || null;
+
+    let resultadoClassificador = null;
+    let audioUrl = null;
+    let transcricao = null;
+
+    // ────────────────────────────────────────────────────────────────
+    // MODO ÁUDIO — upload chunk → Whisper → Gemini
+    // ────────────────────────────────────────────────────────────────
+    if (modo === 'audio') {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ erro: 'audioChunk obrigatório no modo áudio' });
+      }
+      try {
+        audioUrl = await storage.upload({
+          buffer: req.file.buffer,
+          nomeOriginal: `v4-${preConsulta.id}-${perguntaId}-${Date.now()}.webm`,
+          mimetype: req.file.mimetype || 'audio/webm',
+          pasta: 'pre-consulta-v4-chunks',
+        });
+        transcricao = await transcreverAudio(audioUrl);
+      } catch (audioErr) {
+        console.error('[V4 RESPONDER] Erro áudio:', audioErr.message);
+        return res.status(200).json({
+          modo: 'audio',
+          respondeu: false,
+          valor: null,
+          confianca: 0,
+          motivo: 'transcricao_falhou',
+          erro: 'Não consegui transcrever o áudio — tenta de novo',
+        });
+      }
+
+      if (!transcricao || transcricao.trim().length < 2) {
+        return res.status(200).json({
+          modo: 'audio',
+          respondeu: false,
+          valor: null,
+          confianca: 0,
+          motivo: 'transcricao_vazia',
+          transcricao: '',
+          audioUrl,
+          erro: 'Não captei o que você disse',
+        });
+      }
+
+      resultadoClassificador = await classificarRespostaIndividual(perguntaTemplate, transcricao);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // MODO TEXTO — só Gemini, pula Whisper
+    // ────────────────────────────────────────────────────────────────
+    else if (modo === 'texto') {
+      const txtSanitizado = v4.sanitizar(valorTexto);
+      if (!txtSanitizado || txtSanitizado.length < 1) {
+        return res.status(400).json({ erro: 'Texto vazio' });
+      }
+      transcricao = txtSanitizado;
+      resultadoClassificador = await classificarRespostaIndividual(perguntaTemplate, txtSanitizado);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // MODO PULADO / DESCONHECER — sem IA
+    // ────────────────────────────────────────────────────────────────
+    else {
+      resultadoClassificador = {
+        respondeu: modo === 'desconhecer',
+        valor: modo === 'desconhecer' ? 'Paciente declarou desconhecer' : null,
+        confianca: 1,
+        motivo: modo,
+      };
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // SALVAR no banco
+    // ────────────────────────────────────────────────────────────────
+    const novaResposta = v4.criarResposta({
+      valor: resultadoClassificador.valor || (modo === 'texto' ? transcricao : null),
+      modo,
+      confianca: resultadoClassificador.confianca,
+      transcricaoBruta: transcricao,
+      audioChunkUrl: audioUrl,
+      campoAnamnese,
+    });
+
+    const validacao = v4.validarRespostaV4(novaResposta);
+    if (!validacao.ok) {
+      console.error('[V4 RESPONDER] Validação falhou:', validacao.erro);
+      return res.status(400).json({ erro: validacao.erro });
+    }
+
+    const respostasAtualizadas = v4.salvarRespostaNoEstado(
+      preConsulta.respostas || {},
+      perguntaId,
+      novaResposta
+    );
+
+    // Marca attemptId pra dedupe futuro
+    if (attemptId) respostasAtualizadas._attemptId = attemptId;
+
+    // Atomic update — só atualiza se ainda não está RESPONDIDA
+    const atualizadas = await prisma.preConsulta.updateMany({
+      where: { id: preConsulta.id, status: { not: 'RESPONDIDA' } },
+      data: {
+        respostas: respostasAtualizadas,
+        status: 'ABERTO', // garante transição
+      },
+    });
+    if (atualizadas.count === 0) {
+      return res.status(409).json({ erro: 'Pré-consulta já finalizada' });
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // RETORNO
+    // ────────────────────────────────────────────────────────────────
+    return res.status(200).json({
+      modo,
+      respondeu: resultadoClassificador.respondeu,
+      valor: resultadoClassificador.valor,
+      confianca: resultadoClassificador.confianca,
+      motivo: resultadoClassificador.motivo,
+      transcricao,
+      audioUrl,
+      perguntaId,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[V4 RESPONDER] Erro:', err.message);
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /t/:token/finalizar — Finaliza pré-consulta V4 (público)
+// Valida cobertura 11/11 → marca RESPONDIDA → enfileira briefing
+// ---------------------------------------------------------------------------
+router.post('/t/:token/finalizar', authOpcional, async (req, res, next) => {
+  try {
+    const preConsulta = await prisma.preConsulta.findUnique({
+      where: { linkToken: req.params.token },
+      include: { medico: { include: { usuario: { select: { nome: true, email: true } } } } },
+    });
+    if (!preConsulta) return res.status(404).json({ erro: 'Pré-consulta não encontrada' });
+    if (preConsulta.expiraEm < new Date()) return res.status(410).json({ erro: 'Link expirado' });
+    if (preConsulta.status === 'RESPONDIDA') {
+      return res.status(200).json({ ok: true, duplicate: true, preConsultaId: preConsulta.id });
+    }
+
+    const totalPerguntas = Array.isArray(preConsulta.templatePerguntas)
+      ? preConsulta.templatePerguntas.length
+      : 11;
+
+    const cobertura = v4.calcularCobertura(preConsulta.respostas, totalPerguntas);
+
+    if (!cobertura.completa) {
+      return res.status(400).json({
+        erro: 'Cobertura insuficiente',
+        detalhe: `Faltam ${cobertura.faltam} perguntas com algum status`,
+        respondidas: cobertura.respondidas,
+        total: totalPerguntas,
+      });
+    }
+
+    // Vincula paciente (auto-link tel/email) — mesma lógica do endpoint legado
+    const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
+    const pacienteIdFinal = await vincularPaciente({ preConsulta, pacienteIdLogado, req });
+
+    // Concatena transcrições V4 numa transcrição final pro Whisper/Gemini summary
+    const transcricoesV4 = preConsulta.respostas && preConsulta.respostas._v4
+      ? Object.values(preConsulta.respostas._v4)
+          .filter(r => r && r.transcricaoBruta)
+          .map(r => r.transcricaoBruta)
+          .join(' \n')
+      : '';
+
+    // Enriquece campos legados final (garantia)
+    const respostasFinais = v4.enriquecerCamposLegados(preConsulta.respostas);
+
+    const updateData = {
+      respostas: respostasFinais,
+      transcricao: transcricoesV4 || preConsulta.transcricao || null,
+      status: 'RESPONDIDA',
+      respondidaEm: new Date(),
+      ...(pacienteIdFinal && { pacienteId: pacienteIdFinal }),
+    };
+
+    const updatedCount = await prisma.preConsulta.updateMany({
+      where: { id: preConsulta.id, status: { not: 'RESPONDIDA' } },
+      data: updateData,
+    });
+    if (updatedCount.count === 0) {
+      return res.status(409).json({ erro: 'Pré-consulta já respondida (concorrência)' });
+    }
+
+    // Enfileira briefing (mesmo worker do legado processa)
+    try {
+      const existente = await prisma.tarefaPendente.findFirst({
+        where: { tipo: 'GERAR_SUMMARY_E_TTS', preConsultaId: preConsulta.id, processadoEm: null, dead: false },
+      });
+      if (!existente) {
+        await prisma.tarefaPendente.create({
+          data: {
+            tipo: 'GERAR_SUMMARY_E_TTS',
+            preConsultaId: preConsulta.id,
+            payload: { temAudio: true, transcricaoInicial: transcricoesV4, versao: 'v4' },
+            tentativas: 0,
+          },
+        });
+      }
+    } catch (queueErr) {
+      console.error('[V4 FINALIZAR] Erro ao enfileirar:', queueErr.message);
+      // Não bloqueia — pré-consulta já está RESPONDIDA, briefing pode ser regenerado
+    }
+
+    return res.status(200).json({
+      ok: true,
+      preConsultaId: preConsulta.id,
+      cobertura,
+      statusBriefing: 'enfileirado',
+    });
+  } catch (err) {
+    console.error('[V4 FINALIZAR] Erro:', err.message);
     next(err);
   }
 });
