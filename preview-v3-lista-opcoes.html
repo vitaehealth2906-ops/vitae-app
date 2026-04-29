@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V3 — 4 opções da lista durante gravação (preview interativo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{font-family:'Plus Jakarta Sans',sans-serif;background:#1a1d24;color:#e5e7eb;-webkit-font-smoothing:antialiased}
+body{padding:32px 16px 80px}
+
+.lab{max-width:1700px;margin:0 auto 36px;text-align:center}
+.lab h1{font-size:32px;font-weight:900;letter-spacing:-1px;margin-bottom:10px;background:linear-gradient(120deg,#00E5A0,#00B4D8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.lab .sub{color:#9ca3af;font-size:14px;font-weight:500;max-width:780px;margin:0 auto 18px;line-height:1.5}
+
+/* Controles globais */
+.ctrls{max-width:1100px;margin:0 auto 30px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center;background:rgba(255,255,255,0.03);padding:18px;border-radius:14px;border:1px solid rgba(255,255,255,0.06)}
+.ctrls button{padding:12px 22px;border-radius:100px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:8px}
+.btn-play{background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff}
+.btn-pause{background:rgba(245,158,11,0.20);color:#FBBF24;border:1px solid rgba(245,158,11,0.30)}
+.btn-reset{background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.12)}
+.timer-box{font-family:'SF Mono',ui-monospace,monospace;font-size:18px;font-weight:700;color:#00E5A0;padding:8px 16px;background:#0D0F14;border-radius:8px;letter-spacing:1px}
+.cover-box{font-size:13px;color:#9ca3af;font-weight:600}
+.cover-box strong{color:#00E5A0;font-size:16px}
+
+/* Grid de phones */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:24px;max-width:1700px;margin:0 auto}
+
+.opt-wrap{display:flex;flex-direction:column;align-items:center}
+.opt-label{margin-bottom:14px;text-align:center;max-width:380px}
+.opt-label .num{display:inline-block;width:32px;height:32px;border-radius:50%;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;font-size:13px;font-weight:800;line-height:32px;text-align:center;margin-bottom:6px}
+.opt-label .name{display:block;color:#fff;font-size:15px;font-weight:800;margin-bottom:4px}
+.opt-label .desc{color:#9ca3af;font-size:12.5px;font-weight:500;line-height:1.4}
+
+/* Phone frame */
+.phone{width:380px;max-width:100%;height:780px;background:#F4F6FA;border-radius:48px;position:relative;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.5),0 0 0 8px #2a2d35,0 0 0 10px #1a1d24;color:#0D0F14}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:120px;height:32px;background:#000;border-radius:100px;z-index:100}
+.statusbar{position:absolute;top:0;left:0;right:0;height:50px;display:flex;justify-content:space-between;align-items:center;padding:18px 30px 0;font-size:14px;font-weight:600;color:#0D0F14;z-index:50}
+
+.content{position:absolute;top:50px;left:0;right:0;bottom:0;padding:14px;overflow-y:auto;display:flex;flex-direction:column;scrollbar-width:none}
+.content::-webkit-scrollbar{display:none}
+
+/* Header compacto */
+.head-mini{display:flex;align-items:center;gap:10px;padding:0 4px 10px}
+.head-mini .ava{width:34px;height:34px;border-radius:50%;background:linear-gradient(120deg,rgba(0,229,160,0.12),rgba(0,180,216,0.12));border:1.5px solid rgba(0,229,160,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#00C47A;font-size:11px;font-weight:800}
+.head-mini .nm{flex:1;min-width:0}
+.head-mini .nm .n1{font-size:12px;font-weight:800;color:#0D0F14;line-height:1.15}
+.head-mini .nm .n2{font-size:10.5px;color:rgba(13,15,20,0.45);font-weight:500;margin-top:1px}
+.head-mini .pre-tag{font-size:8.5px;font-weight:800;letter-spacing:1px;color:#00C47A;text-transform:uppercase;padding:3px 7px;background:rgba(0,229,160,0.10);border-radius:100px;flex-shrink:0}
+
+/* Pergunta do topo (durante gravação) */
+.pergunta-topo{padding:8px 4px 12px;border-bottom:1px solid rgba(0,0,0,0.05);margin-bottom:10px}
+.pergunta-topo .lbl{font-size:9px;font-weight:800;color:rgba(13,15,20,0.40);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px}
+.pergunta-topo .txt{font-size:14px;font-weight:700;color:#0D0F14;line-height:1.3}
+
+/* OPÇÕES — compartilham .lista wrapper */
+.lista{padding:4px 4px 10px;flex-shrink:0;max-height:280px;overflow-y:auto;scrollbar-width:thin}
+.lista::-webkit-scrollbar{width:3px}
+.lista::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.10);border-radius:100px}
+
+/* OPÇÃO 1 — ESTÁTICA */
+.opt1 .lista-item{display:flex;align-items:flex-start;gap:8px;padding:7px 4px;border-bottom:1px solid rgba(0,0,0,0.04);font-size:11.5px;color:rgba(13,15,20,0.55);line-height:1.35}
+.opt1 .lista-item:last-child{border-bottom:none}
+.opt1 .lista-item .num{flex-shrink:0;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.05);color:rgba(13,15,20,0.40);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800}
+
+/* OPÇÃO 2 — CHECKMARKS LIVE */
+.opt2 .lista-item{display:flex;align-items:flex-start;gap:8px;padding:7px 4px;border-bottom:1px solid rgba(0,0,0,0.04);font-size:11.5px;line-height:1.35;color:rgba(13,15,20,0.55);transition:all .35s}
+.opt2 .lista-item:last-child{border-bottom:none}
+.opt2 .lista-item .ic{flex-shrink:0;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.05);display:flex;align-items:center;justify-content:center;color:rgba(13,15,20,0.40);transition:all .35s}
+.opt2 .lista-item.coberta{color:#00C47A;font-weight:600}
+.opt2 .lista-item.coberta .ic{background:rgba(0,196,122,0.18);color:#00C47A}
+.opt2 .lista-item.coberta .ic svg{stroke:currentColor}
+
+/* OPÇÃO 3 — DESTACA ATUAL */
+.opt3 .lista-item{display:flex;align-items:flex-start;gap:8px;padding:7px 8px;border-radius:8px;font-size:11.5px;line-height:1.35;color:rgba(13,15,20,0.50);transition:all .25s;margin-bottom:3px}
+.opt3 .lista-item .num{flex-shrink:0;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.05);color:rgba(13,15,20,0.40);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800}
+.opt3 .lista-item.atual{background:rgba(0,229,160,0.10);color:#00734D;font-weight:700;border-left:3px solid #00E5A0;padding-left:6px}
+.opt3 .lista-item.atual .num{background:#00E5A0;color:#fff}
+.opt3 .lista-item.coberta{color:rgba(13,15,20,0.30);text-decoration:line-through}
+
+/* OPÇÃO 4 — CONTAGEM SIMPLES */
+.opt4 .contador-box{padding:18px;background:linear-gradient(120deg,rgba(0,229,160,0.08),rgba(0,180,216,0.08));border-radius:14px;text-align:center;margin-bottom:8px}
+.opt4 .contador-box .vl{font-size:42px;font-weight:900;letter-spacing:-2px;background:linear-gradient(120deg,#00E5A0,#00B4D8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.opt4 .contador-box .lbl{font-size:11.5px;color:rgba(13,15,20,0.55);font-weight:600;margin-top:4px}
+.opt4 .barra-prog{height:4px;background:rgba(0,0,0,0.06);border-radius:100px;overflow:hidden;margin-top:14px}
+.opt4 .barra-prog .fill{height:100%;background:linear-gradient(90deg,#00E5A0,#00B4D8);border-radius:100px;transition:width .35s}
+.opt4 .hint{font-size:11.5px;color:rgba(13,15,20,0.50);font-weight:500;text-align:center;margin-top:8px;line-height:1.4}
+
+/* Mic central */
+.mic-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 6px;min-height:140px}
+.mic-circle{width:90px;height:90px;border-radius:50%;background:rgba(0,229,160,0.10);display:flex;align-items:center;justify-content:center;color:#00C47A;animation:breath 2.2s ease-in-out infinite;margin-bottom:10px;flex-shrink:0}
+.mic-circle.live{background:rgba(0,229,160,0.18);color:#00E5A0;box-shadow:0 0 0 10px rgba(0,229,160,0.07);animation:none}
+.mic-circle.pausa{background:rgba(245,158,11,0.12);color:#F59E0B;animation:none}
+@keyframes breath{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+
+.wave{display:flex;gap:2px;align-items:center;justify-content:center;height:18px;margin-top:4px}
+.wave span{display:block;width:2.5px;background:#00E5A0;border-radius:100px;animation:waveAn 0.85s ease-in-out infinite}
+.wave span:nth-child(1){height:7px;animation-delay:0s}
+.wave span:nth-child(2){height:13px;animation-delay:0.07s}
+.wave span:nth-child(3){height:18px;animation-delay:0.14s}
+.wave span:nth-child(4){height:11px;animation-delay:0.21s}
+.wave span:nth-child(5){height:15px;animation-delay:0.28s}
+.wave span:nth-child(6){height:8px;animation-delay:0.35s}
+.wave span:nth-child(7){height:13px;animation-delay:0.42s}
+@keyframes waveAn{0%,100%{transform:scaleY(0.4)}50%{transform:scaleY(1)}}
+
+.fb{font-size:11px;font-weight:700;color:rgba(13,15,20,0.55);text-align:center;margin-top:4px}
+.fb.live{color:#00C47A}
+
+/* Rodapé */
+.foot-mic{display:flex;justify-content:center;gap:10px;padding:8px 4px 0}
+.foot-mic .b1{padding:10px 18px;border-radius:14px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;border:none;font-family:inherit;font-size:12px;font-weight:700;flex:1;cursor:pointer;-webkit-appearance:none}
+.foot-mic .b2{padding:10px 14px;border-radius:14px;background:#fff;color:rgba(13,15,20,0.65);border:1px solid rgba(0,0,0,0.07);font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;-webkit-appearance:none}
+
+/* INFO BLOCO no final */
+.info{max-width:1100px;margin:50px auto 0;padding:24px;background:rgba(255,255,255,0.03);border-radius:18px;border:1px solid rgba(255,255,255,0.06)}
+.info h3{font-size:16px;font-weight:800;color:#fff;margin-bottom:12px}
+.info ul{list-style:none;padding:0}
+.info ul li{padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13.5px;color:#d1d5db;line-height:1.55}
+.info ul li:last-child{border-bottom:none}
+.info ul li strong{color:#00E5A0;font-weight:800}
+
+</style>
+</head>
+<body>
+
+<div class="lab">
+  <h1>V3 — Lista durante gravação (4 opções, lado a lado)</h1>
+  <p class="sub">Toque "Iniciar simulação" e veja como cada opção se comporta enquanto o paciente "vai falando" (simulado por timer). 11 perguntas são cobertas progressivamente. Compare visualmente qual te agrada mais.</p>
+</div>
+
+<div class="ctrls">
+  <button class="btn-play" id="btnPlay" onclick="iniciar()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+    Iniciar simulação
+  </button>
+  <button class="btn-pause" id="btnPause" onclick="pausar()" style="display:none">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+    Pausar
+  </button>
+  <button class="btn-reset" onclick="resetar()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1015.5-6.2L21 8M21 3v5h-5"/></svg>
+    Reiniciar
+  </button>
+  <span class="timer-box" id="timer">00:00</span>
+  <span class="cover-box"><strong id="coverNum">0</strong> / 11 cobertas</span>
+</div>
+
+<div class="grid">
+
+  <!-- OPÇÃO 1 — ESTÁTICA -->
+  <div class="opt-wrap">
+    <div class="opt-label">
+      <div class="num">1</div>
+      <span class="name">ESTÁTICA</span>
+      <div class="desc">Lista cinza fixa. Não muda durante a gravação. Paciente olha quando quer.</div>
+    </div>
+    <div class="phone opt1">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:42</span><span>···</span></div>
+      <div class="content">
+        <div class="head-mini">
+          <div class="ava">LB</div>
+          <div class="nm"><div class="n1">Lucas Borelli</div><div class="n2">Dr. Borelli · Dermatologia</div></div>
+          <div class="pre-tag">Pré-consulta</div>
+        </div>
+        <div class="pergunta-topo">
+          <div class="lbl">Tópicos a cobrir</div>
+          <div class="txt">Fala sobre todos esses 11 pontos no áudio</div>
+        </div>
+        <div class="lista" id="lista1"></div>
+        <div class="mic-area">
+          <div class="mic-circle" id="mic1">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v4" stroke-linecap="round"/></svg>
+          </div>
+          <div class="wave" id="wave1" style="display:none"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="fb" id="fb1">Toca "iniciar"</div>
+        </div>
+        <div class="foot-mic">
+          <button class="b1">Já falei tudo</button>
+          <button class="b2">Pausar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPÇÃO 2 — CHECKMARKS LIVE -->
+  <div class="opt-wrap">
+    <div class="opt-label">
+      <div class="num">2</div>
+      <span class="name">CHECKMARKS AO VIVO</span>
+      <div class="desc">Cada item vira verde com check conforme IA detecta cobertura em tempo real. Dopamina contínua de progresso.</div>
+    </div>
+    <div class="phone opt2">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:42</span><span>···</span></div>
+      <div class="content">
+        <div class="head-mini">
+          <div class="ava">LB</div>
+          <div class="nm"><div class="n1">Lucas Borelli</div><div class="n2">Dr. Borelli · Dermatologia</div></div>
+          <div class="pre-tag">Pré-consulta</div>
+        </div>
+        <div class="pergunta-topo">
+          <div class="lbl">Vou marcando o que você cobrir</div>
+          <div class="txt">Pode falar à vontade — eu acompanho</div>
+        </div>
+        <div class="lista" id="lista2"></div>
+        <div class="mic-area">
+          <div class="mic-circle" id="mic2">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v4" stroke-linecap="round"/></svg>
+          </div>
+          <div class="wave" id="wave2" style="display:none"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="fb" id="fb2">Toca "iniciar"</div>
+        </div>
+        <div class="foot-mic">
+          <button class="b1">Já falei tudo</button>
+          <button class="b2">Pausar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPÇÃO 3 — DESTACA ATUAL -->
+  <div class="opt-wrap">
+    <div class="opt-label">
+      <div class="num">3</div>
+      <span class="name">DESTACA O ATUAL</span>
+      <div class="desc">IA detecta sobre qual pergunta o paciente está falando agora e destaca em verde. Cobertas ficam riscadas.</div>
+    </div>
+    <div class="phone opt3">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:42</span><span>···</span></div>
+      <div class="content">
+        <div class="head-mini">
+          <div class="ava">LB</div>
+          <div class="nm"><div class="n1">Lucas Borelli</div><div class="n2">Dr. Borelli · Dermatologia</div></div>
+          <div class="pre-tag">Pré-consulta</div>
+        </div>
+        <div class="pergunta-topo">
+          <div class="lbl">Estou seguindo o que você fala</div>
+          <div class="txt">A pergunta destacada é o que estou ouvindo agora</div>
+        </div>
+        <div class="lista" id="lista3"></div>
+        <div class="mic-area">
+          <div class="mic-circle" id="mic3">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v4" stroke-linecap="round"/></svg>
+          </div>
+          <div class="wave" id="wave3" style="display:none"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="fb" id="fb3">Toca "iniciar"</div>
+        </div>
+        <div class="foot-mic">
+          <button class="b1">Já falei tudo</button>
+          <button class="b2">Pausar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPÇÃO 4 — CONTAGEM -->
+  <div class="opt-wrap">
+    <div class="opt-label">
+      <div class="num">4</div>
+      <span class="name">CONTAGEM SIMPLES</span>
+      <div class="desc">Mostra só "X de 11 cobertas" + barra de progresso. Sem detalhar quais. Limpo e minimalista.</div>
+    </div>
+    <div class="phone opt4">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:42</span><span>···</span></div>
+      <div class="content">
+        <div class="head-mini">
+          <div class="ava">LB</div>
+          <div class="nm"><div class="n1">Lucas Borelli</div><div class="n2">Dr. Borelli · Dermatologia</div></div>
+          <div class="pre-tag">Pré-consulta</div>
+        </div>
+        <div class="pergunta-topo">
+          <div class="lbl">Progresso da gravação</div>
+          <div class="txt">Fala sobre tudo no seu ritmo</div>
+        </div>
+        <div class="lista">
+          <div class="contador-box">
+            <div class="vl" id="contador4">0</div>
+            <div class="lbl">de 11 pontos cobertos</div>
+            <div class="barra-prog"><div class="fill" id="bar4" style="width:0%"></div></div>
+          </div>
+          <div class="hint">Quando chegar nos 11 (ou em algum patamar bom), pode tocar "já falei tudo"</div>
+        </div>
+        <div class="mic-area">
+          <div class="mic-circle" id="mic4">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v4" stroke-linecap="round"/></svg>
+          </div>
+          <div class="wave" id="wave4" style="display:none"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="fb" id="fb4">Toca "iniciar"</div>
+        </div>
+        <div class="foot-mic">
+          <button class="b1">Já falei tudo</button>
+          <button class="b2">Pausar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="info">
+  <h3>Trade-offs honestos das 4 opções</h3>
+  <ul>
+    <li><strong>Opção 1 — Estática:</strong> mais simples tecnicamente. Paciente vê tudo desde o começo. Não distrai. Mas não dá feedback de progresso = paciente não sabe se está cobrindo bem ou não. Fica olhando a lista o tempo todo "será que peguei essa?". Custo: BAIXO. Implementação: 1 dia.</li>
+    <li><strong>Opção 2 — Checkmarks ao vivo:</strong> a mais "mágica" emocionalmente. Cada check verde gera dopamina. Paciente sabe exatamente o que falta. Mas exige Whisper streaming + Gemini analisando em tempo real → mais caro + mais complexo + risco de marcar errado durante a fala. Se IA marca uma errada, paciente vê e perde confiança. Custo: ALTO. Implementação: 1 semana.</li>
+    <li><strong>Opção 3 — Destaca atual:</strong> elegante mas frágil. Funciona bem se paciente fala em ordem linear (pergunta 1, depois 2, depois 3). Mas a maioria dos pacientes NÃO fala em ordem — pula entre tópicos. Aí o destaque fica saltando entre itens, parece bug. Custo: MÉDIO-ALTO. Implementação: 4 dias.</li>
+    <li><strong>Opção 4 — Contagem simples:</strong> minimalista. Não polui visualmente. Mas paciente não sabe quais 7 das 11 foram cobertas — só que 7 foram. Quando chega no fim, descobre quais faltaram. Pode frustrar. Custo: BAIXO-MÉDIO. Implementação: 2 dias.</li>
+  </ul>
+</div>
+
+<div class="info">
+  <h3>Cenários de teste — observa o que acontece em cada opção:</h3>
+  <ul>
+    <li><strong>Cenário A:</strong> Paciente fala bem, cobre 11/11 em 90 segundos. Qual opção te dá mais confiança visual?</li>
+    <li><strong>Cenário B:</strong> Paciente cobre 7 de 11 e toca "já falei tudo" cedo demais. Qual opção fez ele perceber que faltava?</li>
+    <li><strong>Cenário C:</strong> IA detecta erradamente uma cobertura no meio. Qual opção é menos prejudicada por essa falha?</li>
+    <li><strong>Cenário D:</strong> Paciente fala sobre intensidade primeiro, depois volta pra queixa. Qual opção lida com fala não-linear?</li>
+  </ul>
+</div>
+
+<script>
+// ════ Simulador da gravação ════
+const PERGUNTAS = [
+  {n:1, t:"O que está te incomodando hoje"},
+  {n:2, t:"Há quanto tempo isso vem acontecendo"},
+  {n:3, t:"Numa escala de 0 a 10, quanto incomoda"},
+  {n:4, t:"Tem alguma coisa que faz piorar"},
+  {n:5, t:"E alguma coisa que faz melhorar"},
+  {n:6, t:"Tem outros sintomas junto"},
+  {n:7, t:"Já tomou algum remédio ou tentou algo"},
+  {n:8, t:"Você tem alguma doença que já saiba"},
+  {n:9, t:"Tem alguém na família com doença importante"},
+  {n:10, t:"Hábitos: fuma, bebe, faz exercício"},
+  {n:11, t:"Como tá seu sono ultimamente"},
+];
+
+// Ordem de cobertura SIMULADA (não-linear, mais realista — paciente fala fora de ordem)
+// Cada entrada: {idx, ms} = qual pergunta cobrir + em quantos ms desde início
+const ORDEM = [
+  {idx:0, ms:4000},   // 4s — começa falando da queixa
+  {idx:1, ms:8000},   // 8s — tempo
+  {idx:5, ms:14000},  // 14s — sintomas associados (pulou pra 6)
+  {idx:3, ms:20000},  // 20s — agravantes (volta pra 4)
+  {idx:6, ms:26000},  // 26s — tratamento prévio
+  {idx:2, ms:33000},  // 33s — intensidade
+  {idx:4, ms:40000},  // 40s — atenuantes
+  {idx:7, ms:48000},  // 48s — antecedentes
+  {idx:8, ms:55000},  // 55s — familiar
+  {idx:9, ms:64000},  // 64s — hábitos
+  {idx:10, ms:72000}, // 72s — sono
+];
+
+// Renderiza listas iniciais
+function renderListas() {
+  // Opção 1: estática
+  let html1 = '';
+  PERGUNTAS.forEach(p => {
+    html1 += '<div class="lista-item"><div class="num">' + p.n + '</div><div>' + p.t + '</div></div>';
+  });
+  document.getElementById('lista1').innerHTML = html1;
+
+  // Opção 2: checkmarks (começa com circulos)
+  let html2 = '';
+  PERGUNTAS.forEach((p, i) => {
+    html2 += '<div class="lista-item" data-idx="' + i + '"><div class="ic"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div><div>' + p.t + '</div></div>';
+  });
+  document.getElementById('lista2').innerHTML = html2;
+
+  // Opção 3: destaca atual
+  let html3 = '';
+  PERGUNTAS.forEach((p, i) => {
+    html3 += '<div class="lista-item" data-idx="' + i + '"><div class="num">' + p.n + '</div><div>' + p.t + '</div></div>';
+  });
+  document.getElementById('lista3').innerHTML = html3;
+}
+
+let timerInterval = null;
+let startTime = null;
+let pausedAt = 0;
+let coberta = new Set();
+
+function iniciar() {
+  if (timerInterval) return;
+  document.getElementById('btnPlay').style.display = 'none';
+  document.getElementById('btnPause').style.display = 'inline-flex';
+
+  // Mic states e wave todos live
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('mic' + i).className = 'mic-circle live';
+    document.getElementById('wave' + i).style.display = 'flex';
+    document.getElementById('fb' + i).textContent = 'Estou te ouvindo';
+    document.getElementById('fb' + i).className = 'fb live';
+  }
+
+  startTime = Date.now() - pausedAt;
+
+  timerInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const seg = Math.floor(elapsed / 1000);
+    const m = Math.floor(seg / 60);
+    const s = seg % 60;
+    document.getElementById('timer').textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+
+    // Cobre perguntas conforme ORDEM
+    ORDEM.forEach(item => {
+      if (elapsed >= item.ms && !coberta.has(item.idx)) {
+        coberta.add(item.idx);
+        marcarCoberta(item.idx);
+      }
+    });
+
+    // Destacar atual (Opção 3) — última coberta + se está no meio de cobrir nova
+    const cobertaArr = Array.from(coberta);
+    const ultimaIdx = cobertaArr[cobertaArr.length - 1];
+
+    // Encontra próxima a ser coberta
+    const prox = ORDEM.find(o => !coberta.has(o.idx) && elapsed > (o.ms - 4000));
+    const idxAtual = prox ? prox.idx : ultimaIdx;
+
+    // Atualiza Opção 3 — destaca atual
+    document.querySelectorAll('#lista3 .lista-item').forEach(el => {
+      el.classList.remove('atual');
+      const i = parseInt(el.dataset.idx);
+      if (i === idxAtual && !coberta.has(i)) {
+        el.classList.add('atual');
+      }
+      if (coberta.has(i)) {
+        el.classList.add('coberta');
+      }
+    });
+
+    // Atualiza contador
+    document.getElementById('coverNum').textContent = coberta.size;
+    document.getElementById('contador4').textContent = coberta.size;
+    document.getElementById('bar4').style.width = (coberta.size / 11 * 100) + '%';
+
+    // Auto-pausa após 80s
+    if (elapsed > 80000) pausar();
+  }, 100);
+}
+
+function marcarCoberta(idx) {
+  // Opção 2: checkmarks
+  const el2 = document.querySelector('#lista2 .lista-item[data-idx="' + idx + '"]');
+  if (el2) el2.classList.add('coberta');
+}
+
+function pausar() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  pausedAt = Date.now() - startTime;
+  document.getElementById('btnPlay').style.display = 'inline-flex';
+  document.getElementById('btnPause').style.display = 'none';
+
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('mic' + i).className = 'mic-circle pausa';
+    document.getElementById('wave' + i).style.display = 'none';
+    document.getElementById('fb' + i).textContent = 'Pausado';
+    document.getElementById('fb' + i).className = 'fb';
+  }
+}
+
+function resetar() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  startTime = null;
+  pausedAt = 0;
+  coberta.clear();
+
+  document.getElementById('timer').textContent = '00:00';
+  document.getElementById('coverNum').textContent = '0';
+  document.getElementById('contador4').textContent = '0';
+  document.getElementById('bar4').style.width = '0%';
+
+  document.getElementById('btnPlay').style.display = 'inline-flex';
+  document.getElementById('btnPause').style.display = 'none';
+
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('mic' + i).className = 'mic-circle';
+    document.getElementById('wave' + i).style.display = 'none';
+    document.getElementById('fb' + i).textContent = 'Toca "iniciar"';
+    document.getElementById('fb' + i).className = 'fb';
+  }
+
+  // Reset de marcações
+  document.querySelectorAll('.lista-item.coberta, .lista-item.atual').forEach(el => {
+    el.classList.remove('coberta');
+    el.classList.remove('atual');
+  });
+}
+
+// Init
+renderListas();
+
+</script>
+</body>
+</html>
