@@ -819,6 +819,17 @@ const API_BASE = (function(){
   const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.protocol === 'file:';
   return isLocal ? 'http://localhost:3002' : 'https://vitae-app-production.up.railway.app';
 })();
+
+// Helper: anexa Authorization Bearer se paciente está logado.
+// Sem isso, backend não vincula PreConsulta.pacienteId ao Usuario logado.
+function authHeaders(extra) {
+  const h = Object.assign({}, extra || {});
+  try {
+    const t = localStorage.getItem('vitae_token');
+    if (t) h['Authorization'] = 'Bearer ' + t;
+  } catch(e) {}
+  return h;
+}
 </script>
 
 <script>
@@ -1217,12 +1228,12 @@ async function init() {
 
   // Carrega estado do backend (paciente, médico, perguntas)
   try {
-    const resp = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token + '/estado');
+    const resp = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token + '/estado', { headers: authHeaders() });
     if (resp.status === 404) return mostrarErroInicial('Link não encontrado', 'Esse link de pré-consulta não existe ou foi removido. Peça outro pro seu médico.', null);
     if (resp.status === 410) return mostrarErroInicial('Link expirado', 'Esse link já passou da validade (30 dias). Peça outro pro seu médico.', null);
     if (resp.status === 409) return mostrarPreConsultaJaRespondida();
     if (!resp.ok) {
-      const r2 = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token);
+      const r2 = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token, { headers: authHeaders() });
       if (!r2.ok) throw new Error('HTTP ' + resp.status);
       const data2 = await r2.json();
       hidratarDadosBasicos(data2);
@@ -1394,7 +1405,7 @@ async function enviarTexto() {
     const fd = new FormData();
     fd.append('dados', JSON.stringify(dados));
     const resp = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token + '/responder-pergunta', {
-      method: 'POST', body: fd
+      method: 'POST', body: fd, headers: authHeaders()
     });
     clearTimeout(timeoutLento);
     limparBanner();
@@ -1580,7 +1591,7 @@ async function processarAudio(blob) {
     fd.append('dados', JSON.stringify(dados));
 
     const resp = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token + '/responder-pergunta', {
-      method: 'POST', body: fd
+      method: 'POST', body: fd, headers: authHeaders()
     });
     clearTimeout(timeoutLento);
     limparBanner();
@@ -1697,7 +1708,7 @@ async function enviarRespostaSimples(p, modo) {
     const fd = new FormData();
     fd.append('dados', JSON.stringify(dados));
     await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token + '/responder-pergunta', {
-      method: 'POST', body: fd
+      method: 'POST', body: fd, headers: authHeaders()
     });
   } catch(_){ /* silencioso — IDB segura */ }
   salvarRespostaLocal(p.id, { valor: modo === 'desconhecer' ? 'Paciente declarou desconhecer' : null, modo, campoAnamnese: p.campo });
@@ -1812,7 +1823,7 @@ async function finalizarPreConsulta() {
 
   try {
     const resp = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token + '/finalizar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+      method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: '{}'
     });
     if (!resp.ok && resp.status !== 200) {
       const data = await resp.json().catch(() => ({}));
