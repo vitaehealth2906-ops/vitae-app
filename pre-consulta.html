@@ -517,6 +517,39 @@ body{display:flex;justify-content:center;align-items:center;min-height:100vh;min
     </div>
   </div>
 
+  <!-- ═══ ENVIANDO (apos clicar Enviar pro medico) ═══ -->
+  <div class="screen" id="screen-enviando">
+    <div class="qz-loading">
+      <div class="qz-loading__spinner"></div>
+      <div class="qz-loading__text">Enviando suas respostas…</div>
+      <div style="font-size:12.5px;color:rgba(13,15,20,0.55);text-align:center;font-weight:500;margin:14px 22px 0;line-height:1.5">Tô organizando tudo pro seu médico. Pode demorar uns segundos. <strong>Não fecha o app ainda.</strong></div>
+    </div>
+  </div>
+
+  <!-- ═══ SESSAO EXPIROU ═══ -->
+  <div class="screen" id="screen-sessao-expirou">
+    <div class="fullstate">
+      <div class="fullstate__icon" style="background:rgba(59,130,246,0.10);color:#3B82F6"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="fullstate__title">Sua sessão expirou</div>
+      <div class="fullstate__desc">Faz tempo que você não usa o app. Por segurança, encerramos sua sessão. Suas respostas <strong>estão salvas</strong>.</div>
+      <div class="fullstate__actions">
+        <button class="qz-btn-p" onclick="reiniciarLogin()" style="width:100%">Entrar de novo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SERVIDOR CAIU ═══ -->
+  <div class="screen" id="screen-servidor-caiu">
+    <div class="fullstate">
+      <div class="fullstate__icon" style="background:rgba(239,68,68,0.10);color:#EF4444"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></div>
+      <div class="fullstate__title">Tivemos um problema temporário</div>
+      <div class="fullstate__desc">Nosso servidor está respondendo lento. <strong>Suas respostas estão salvas no celular.</strong></div>
+      <div class="fullstate__actions" style="display:flex;flex-direction:column;gap:8px;width:100%">
+        <button class="qz-btn-p" onclick="location.reload()" style="width:100%">Tentar de novo</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ ONB2 — 2º ONBOARDING (3 TELAS, 1 BOTÃO NA 3ª) ═══ -->
   <div class="screen" id="screen-onb2-1">
     <div class="ob-content">
@@ -1106,6 +1139,31 @@ function loginGoogleRedirect() {
   const url = '03-cadastro.html?retorno=' + encodeURIComponent(ESTADO.token) + '&googleOnly=1';
   location.href = url;
 }
+
+function reiniciarLogin() {
+  try {
+    localStorage.removeItem('vitae_token');
+    localStorage.removeItem('vitae_refresh_token');
+    localStorage.removeItem('vitae_usuario');
+  } catch(e) {}
+  irPara('login');
+}
+
+// Interceptador "Sair sem enviar" — só ativa durante o quiz V4
+window.addEventListener('beforeunload', function(e) {
+  const ativa = document.querySelector('.screen.active');
+  if (!ativa) return;
+  const id = ativa.id;
+  // Só intercepta se está no meio do quiz (nem na revisão, nem enviado)
+  if (id === 'screen-quiz' || id === 'screen-gravando' || id === 'screen-confirm' || id === 'screen-ambiguo') {
+    const respondidas = Object.keys(ESTADO.respostas || {}).length;
+    if (respondidas > 0 && respondidas < (ESTADO.perguntas || []).length) {
+      e.preventDefault();
+      e.returnValue = 'Suas respostas estão salvas. Tem certeza que quer sair?';
+      return e.returnValue;
+    }
+  }
+});
 
 // Handlers dos onboardings
 function onb1Avancar() { irPara('onb1-2'); }
@@ -1868,6 +1926,7 @@ window.lgIrEsqueci = lgIrEsqueci;
 window.esqEnviar = esqEnviar;
 window.loginGoogleRedirect = loginGoogleRedirect;
 window.rotearProximaTela = rotearProximaTela;
+window.reiniciarLogin = reiniciarLogin;
 </script>
 </body>
 </html>
