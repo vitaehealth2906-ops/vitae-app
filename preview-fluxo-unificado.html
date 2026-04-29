@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview · Fluxo Pré-Consulta Unificado · VITAE</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --green:#00E5A0; --cyan:#00B4D8; --text:#0D0F14; --bg:#F4F6FA; --card:#FFF;
+    --t1:#0D0F14; --t2:#4B5563; --t3:#6B7280; --t4:#9CA3AF; --t5:#C4C9D4;
+    --grad:linear-gradient(120deg,#00E5A0,#00B4D8);
+    --warn:#F59E0B; --err:#EF4444; --info:#3B82F6; --ok:#00C47A;
+  }
+  body{
+    font-family:'Plus Jakarta Sans',sans-serif;
+    background:#0a0c10; color:#E7E9EE; min-height:100vh; padding:48px 32px 80px;
+    background-image:radial-gradient(circle at 20% 0%, rgba(0,229,160,0.08), transparent 50%),radial-gradient(circle at 80% 80%, rgba(0,180,216,0.06), transparent 50%);
+  }
+
+  /* ─── HEADER ─── */
+  .header{max-width:1400px;margin:0 auto 64px;text-align:center}
+  .badge-top{display:inline-block;padding:6px 14px;border-radius:100px;background:rgba(0,229,160,0.12);color:#00E5A0;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px;border:1px solid rgba(0,229,160,0.25)}
+  .h1{font-size:54px;font-weight:900;letter-spacing:-1.6px;margin-bottom:14px;line-height:1.05;color:#fff}
+  .h1 em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .h-sub{font-size:17px;color:#9CA3AF;max-width:760px;margin:0 auto;line-height:1.5;font-weight:500}
+  .meta-bar{display:flex;justify-content:center;gap:28px;margin-top:28px;flex-wrap:wrap}
+  .meta{display:flex;align-items:center;gap:8px;color:#C4C9D4;font-size:13px;font-weight:600}
+  .meta strong{color:#fff;font-weight:800}
+  .meta .dot{width:6px;height:6px;border-radius:50%;background:#00E5A0;box-shadow:0 0 12px #00E5A0}
+
+  /* ─── DIAGRAMA MACRO ─── */
+  .macro{max-width:1400px;margin:0 auto 80px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:24px;padding:40px 36px;backdrop-filter:blur(10px)}
+  .macro-h{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+  .macro-h .num{width:42px;height:42px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:#0D0F14;box-shadow:0 4px 20px rgba(0,229,160,0.4)}
+  .macro-h .ti{font-size:24px;font-weight:900;letter-spacing:-0.5px;color:#fff}
+  .macro-h .sub{font-size:13px;color:#9CA3AF;margin-top:2px}
+  .flow-chain{display:flex;gap:14px;align-items:stretch;justify-content:center;flex-wrap:wrap}
+  .fc-node{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:16px;padding:16px 18px;min-width:140px;max-width:170px;text-align:center;position:relative}
+  .fc-node.entry{border-color:rgba(0,229,160,0.35);background:rgba(0,229,160,0.08)}
+  .fc-node.gate{border-color:rgba(245,158,11,0.30);background:rgba(245,158,11,0.06)}
+  .fc-node.quiz{border-color:rgba(0,180,216,0.30);background:rgba(0,180,216,0.06)}
+  .fc-node.end{border-color:rgba(0,196,122,0.35);background:rgba(0,196,122,0.10)}
+  .fc-node .lbl{font-size:10px;font-weight:800;letter-spacing:1.2px;color:#9CA3AF;text-transform:uppercase;margin-bottom:8px}
+  .fc-node .ti{font-size:13px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:4px}
+  .fc-node .ds{font-size:11px;color:#9CA3AF;line-height:1.4;font-weight:500}
+  .fc-arrow{display:flex;align-items:center;color:#4B5563;font-size:22px;font-weight:300}
+
+  /* ─── ESTADO MACHINE ─── */
+  .state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:28px}
+  .state-cell{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px 18px}
+  .state-cell .key{font-family:'JetBrains Mono',monospace;font-size:11px;color:#00E5A0;font-weight:700;margin-bottom:6px;letter-spacing:0.5px}
+  .state-cell .desc{font-size:12px;color:#C4C9D4;line-height:1.45;font-weight:500}
+
+  /* ─── SECTION CONTAINER ─── */
+  .section{max-width:1400px;margin:0 auto 72px}
+  .sec-header{display:flex;align-items:center;gap:16px;margin-bottom:32px;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .sec-header .num{width:48px;height:48px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;color:#0D0F14;flex-shrink:0;box-shadow:0 4px 24px rgba(0,229,160,0.35)}
+  .sec-header .info{flex:1}
+  .sec-header .ti{font-size:28px;font-weight:900;letter-spacing:-0.7px;color:#fff;line-height:1.1}
+  .sec-header .sub{font-size:13px;color:#9CA3AF;margin-top:4px;font-weight:500}
+  .sec-header .pill{padding:6px 12px;border-radius:100px;background:rgba(0,229,160,0.10);color:#00E5A0;font-size:11px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;border:1px solid rgba(0,229,160,0.20)}
+
+  /* ─── ROW: phone + annotations ─── */
+  .row{display:grid;grid-template-columns:413px 1fr;gap:36px;margin-bottom:36px;align-items:start}
+  @media(max-width:1100px){.row{grid-template-columns:1fr}}
+
+  /* ─── PHONE FRAME ─── */
+  .phone-wrap{position:sticky;top:24px}
+  .phone{width:393px;height:852px;background:var(--bg);border-radius:52px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.6),0 0 0 8px #1a1d24,0 0 0 9px rgba(255,255,255,0.05);font-family:'Plus Jakarta Sans',sans-serif}
+  .notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:126px;height:34px;background:#000;border-radius:20px;z-index:10}
+  .phone-label{margin-top:18px;text-align:center}
+  .phone-label .name{font-size:13px;font-weight:800;color:#fff;letter-spacing:0.3px}
+  .phone-label .desc{font-size:11px;color:#9CA3AF;margin-top:4px;font-weight:500}
+
+  /* ─── ANNOTATIONS ─── */
+  .ann{display:flex;flex-direction:column;gap:14px}
+  .ann-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 20px}
+  .ann-card.info{border-left:3px solid #00B4D8}
+  .ann-card.rule{border-left:3px solid #00E5A0}
+  .ann-card.warn{border-left:3px solid #F59E0B}
+  .ann-card.bug{border-left:3px solid #EF4444}
+  .ann-card.prev{border-left:3px solid #8B5CF6}
+  .ann-card.scenario{border-left:3px solid #00B4D8}
+  .ann-card .h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .ann-card .h-ic{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900}
+  .ann-card.info .h-ic{background:rgba(0,180,216,0.15);color:#00B4D8}
+  .ann-card.rule .h-ic{background:rgba(0,229,160,0.15);color:#00E5A0}
+  .ann-card.warn .h-ic{background:rgba(245,158,11,0.15);color:#F59E0B}
+  .ann-card.bug .h-ic{background:rgba(239,68,68,0.15);color:#EF4444}
+  .ann-card.prev .h-ic{background:rgba(139,92,246,0.15);color:#A78BFA}
+  .ann-card.scenario .h-ic{background:rgba(0,180,216,0.15);color:#00B4D8}
+  .ann-card .h-ti{font-size:12px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#fff}
+  .ann-card ul{list-style:none}
+  .ann-card li{font-size:13px;color:#C4C9D4;line-height:1.55;font-weight:500;padding-left:16px;position:relative;margin-bottom:7px}
+  .ann-card li:last-child{margin-bottom:0}
+  .ann-card li::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0.4}
+  .ann-card.rule li::before{background:#00E5A0}
+  .ann-card.bug li::before{background:#EF4444}
+  .ann-card.prev li::before{background:#A78BFA}
+  .ann-card .p{font-size:13px;color:#C4C9D4;line-height:1.55;font-weight:500}
+  .ann-card .p strong{color:#fff;font-weight:800}
+  .ann-card code{font-family:'JetBrains Mono',monospace;font-size:11px;color:#00E5A0;background:rgba(0,229,160,0.08);padding:2px 6px;border-radius:4px}
+
+  /* ─── SCREEN STYLES (inside phone) ─── */
+  /* Loading */
+  .scr{width:100%;height:100%;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 28px}
+  .vlogo{font-size:34px;font-weight:900;letter-spacing:2px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}
+  .vsub{font-size:11px;color:var(--t4);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:32px}
+  .spinner{width:38px;height:38px;border-radius:50%;border:3px solid rgba(0,229,160,0.15);border-top-color:#00E5A0;animation:spin 0.8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Onb1 e Onb2 — base */
+  .onb-content{padding:60px 24px 24px;height:100%;display:flex;flex-direction:column}
+  .onb-pc-top{font-size:13px;font-weight:800;letter-spacing:2px;color:#00C47A;text-align:center;text-transform:uppercase;margin-bottom:20px;font-family:'Plus Jakarta Sans'}
+  .onb-dots{display:flex;justify-content:center;gap:6px;margin-bottom:28px}
+  .onb-dot{width:6px;height:6px;border-radius:50%;background:rgba(13,15,20,0.15)}
+  .onb-dot.active{width:22px;border-radius:3px;background:var(--grad)}
+  .onb-icon-wrap{width:80px;height:80px;border-radius:24px;background:rgba(0,229,160,0.08);display:flex;align-items:center;justify-content:center;margin:8px auto 22px}
+  .onb-title{font-size:24px;font-weight:900;letter-spacing:-0.5px;color:var(--t1);text-align:center;line-height:1.2;margin-bottom:8px;padding:0 8px}
+  .onb-title em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .onb-sub{font-size:13.5px;color:rgba(13,15,20,0.55);text-align:center;line-height:1.5;font-weight:500;margin-bottom:24px;padding:0 12px}
+  .onb-passos{display:flex;flex-direction:column;gap:10px;margin-bottom:auto;padding:0 4px}
+  .onb-passo{display:flex;gap:12px;align-items:center;padding:12px 14px;background:#fff;border:1px solid rgba(0,0,0,0.05);border-radius:12px}
+  .onb-passo .num{width:28px;height:28px;border-radius:50%;background:rgba(0,229,160,0.10);color:#00C47A;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0}
+  .onb-passo .ti{font-size:13px;font-weight:700;color:#0D0F14}
+  .onb-passo .ds{font-size:11.5px;color:rgba(13,15,20,0.50);font-weight:500;margin-top:1px}
+  .onb-foot{padding:14px 0 0;flex-shrink:0}
+  .onb-btn-p{width:100%;padding:15px;border-radius:14px;background:var(--grad);color:#fff;border:none;font-family:inherit;font-size:15px;font-weight:700;box-shadow:0 4px 20px rgba(0,229,160,0.25);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+  .onb-foot-link{display:block;text-align:center;margin-top:10px;font-size:12px;color:rgba(13,15,20,0.50);font-weight:600}
+
+  /* benefícios (onb1 tela 2) */
+  .benef{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+  .benef-item{display:flex;gap:12px;align-items:flex-start;padding:11px 13px;background:#fff;border:1px solid rgba(0,0,0,0.05);border-radius:12px}
+  .benef-item .ic{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .benef-item .ic.green{background:rgba(0,229,160,0.10);color:#00C47A}
+  .benef-item .ic.red{background:rgba(239,68,68,0.10);color:#EF4444}
+  .benef-item .ic.blue{background:rgba(59,130,246,0.10);color:#3B82F6}
+  .benef-item .ic.cyan{background:rgba(0,180,216,0.10);color:#00B4D8}
+  .benef-item .ti{font-size:12.5px;font-weight:800;color:#0D0F14}
+  .benef-item .ds{font-size:11px;color:rgba(13,15,20,0.55);font-weight:500;line-height:1.4;margin-top:1px}
+  .selos{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:auto;padding-bottom:12px}
+  .selo{padding:5px 10px;border-radius:100px;background:rgba(0,229,160,0.10);color:#00734D;font-size:10px;font-weight:800;letter-spacing:0.3px}
+
+  /* Login Gate */
+  .login-content{padding:74px 24px 24px;height:100%;display:flex;flex-direction:column}
+  .login-pc-top{font-size:13px;font-weight:800;letter-spacing:2px;color:#00C47A;text-align:center;text-transform:uppercase;margin-bottom:18px}
+  .login-h{text-align:center;margin-bottom:6px}
+  .login-h .ti{font-size:24px;font-weight:900;letter-spacing:-0.5px;color:#0D0F14}
+  .login-h .ti em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .login-h .sub{font-size:13px;color:rgba(13,15,20,0.55);font-weight:500;margin-top:6px;line-height:1.4;padding:0 10px}
+  .login-trust{display:flex;align-items:center;gap:8px;background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.15);border-radius:12px;padding:10px 12px;margin:18px 0}
+  .login-trust .ic{color:#00C47A;flex-shrink:0}
+  .login-trust .tx{font-size:11.5px;color:#0D0F14;font-weight:600;line-height:1.35}
+  .login-google{width:100%;padding:14px;border-radius:14px;background:#fff;border:1.5px solid rgba(0,0,0,0.10);font-family:inherit;font-size:14.5px;font-weight:700;color:#0D0F14;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;margin-bottom:14px}
+  .login-or{display:flex;align-items:center;gap:10px;color:rgba(13,15,20,0.40);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;margin:6px 0 14px}
+  .login-or::before,.login-or::after{content:"";flex:1;height:1px;background:rgba(0,0,0,0.08)}
+  .login-input{width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid rgba(0,0,0,0.07);background:#fff;font-family:inherit;font-size:14px;color:#0D0F14;margin-bottom:10px}
+  .login-btn{width:100%;padding:14px;border-radius:14px;background:var(--grad);color:#fff;border:none;font-family:inherit;font-size:15px;font-weight:700;box-shadow:0 4px 20px rgba(0,229,160,0.25);cursor:pointer;margin-top:4px}
+  .login-foot{margin-top:auto;padding-top:18px;text-align:center}
+  .login-foot .lk{font-size:13px;color:#0D0F14;font-weight:700;background:none;border:none;cursor:pointer}
+  .login-foot .lk em{color:#00B4D8;font-style:normal}
+
+  /* Quiz V4 — copiado direto do design aprovado */
+  .q-wrap{height:100%;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+  .q-status{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;font-size:14px;font-weight:600;color:var(--t1)}
+  .q-status .l{display:flex;align-items:center;gap:6px}
+  .q-status .r{display:flex;align-items:center;gap:5px}
+  .q-status .r svg{width:17px;height:17px}
+  .q-header{padding:14px 22px 0;display:flex;align-items:center;gap:11px;flex-shrink:0}
+  .q-avatar{width:38px;height:38px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;flex-shrink:0}
+  .q-info{flex:1;min-width:0}
+  .q-name{font-size:14px;font-weight:800;color:var(--t1);line-height:1.2}
+  .q-ctx{font-size:11px;color:var(--t3);font-weight:500;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .q-tag{padding:4px 9px;border-radius:100px;background:rgba(0,229,160,0.10);color:#00734D;font-size:9px;font-weight:800;letter-spacing:0.4px;text-transform:uppercase;flex-shrink:0}
+  .q-progress{padding:18px 22px 6px;flex-shrink:0}
+  .q-progress-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .q-pl{font-size:10px;font-weight:800;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase}
+  .q-pn{font-size:10px;font-weight:700;color:var(--t3)}
+  .q-bar{height:4px;background:rgba(0,0,0,0.04);border-radius:100px;overflow:hidden}
+  .q-fill{height:100%;background:var(--grad);border-radius:100px;transition:width 0.4s ease}
+  .q-content{flex:1;display:flex;flex-direction:column;justify-content:center;padding:18px 22px;overflow-y:auto;min-height:0}
+  .q-help-chip{align-self:flex-start;padding:6px 11px;border-radius:100px;background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.05);font-size:10.5px;font-weight:600;color:var(--t3);display:flex;align-items:center;gap:5px;margin-bottom:18px;cursor:pointer}
+  .q-question{font-size:28px;font-weight:900;color:var(--t1);letter-spacing:-0.7px;line-height:1.16;margin-bottom:10px}
+  .q-question em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .q-hint{font-size:13px;color:var(--t3);line-height:1.45;margin-bottom:24px;font-weight:500}
+  .q-textarea{width:100%;padding:14px 16px;border:1.5px solid rgba(0,0,0,0.07);border-radius:14px;background:#fff;font-family:inherit;font-size:14.5px;color:var(--t1);resize:none;min-height:96px;line-height:1.5}
+  .q-divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--t4);font-size:11px;font-weight:700;letter-spacing:1.5px}
+  .q-divider::before,.q-divider::after{content:"";flex:1;height:1px;background:rgba(0,0,0,0.06)}
+  .q-mic-btn{width:100%;padding:18px;border-radius:14px;background:var(--grad);color:#fff;border:none;font-family:inherit;font-size:15.5px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;box-shadow:0 6px 22px rgba(0,229,160,0.32),inset 0 1px 0 rgba(255,255,255,0.2)}
+  .q-actions{padding:14px 22px 18px;display:flex;justify-content:center;gap:24px;flex-shrink:0;border-top:1px solid rgba(0,0,0,0.04)}
+  .q-act{background:none;border:none;color:var(--t3);font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 8px}
+  .q-act svg{width:18px;height:18px;opacity:0.7}
+
+  /* Quiz states */
+  .q-mic-big{width:130px;height:130px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 0 0 12px rgba(0,229,160,0.10),0 8px 36px rgba(0,229,160,0.50)}
+  .q-listening{font-size:14px;color:#00C47A;font-weight:700;text-align:center;margin-bottom:10px}
+  .q-timer{font-size:13px;color:var(--t3);text-align:center;font-family:'JetBrains Mono';font-weight:700;margin-bottom:18px}
+  .q-confirm-card{background:#fff;border-radius:18px;padding:28px 22px;text-align:center;border:1px solid rgba(0,0,0,0.05);box-shadow:0 4px 24px rgba(0,0,0,0.05)}
+  .q-check-big{width:64px;height:64px;border-radius:50%;background:rgba(0,229,160,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:#00C47A}
+  .q-anotei{font-size:12px;color:var(--t4);font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px}
+  .q-valor{font-size:24px;font-weight:900;color:var(--t1);letter-spacing:-0.5px;margin-bottom:14px}
+  .q-conf-q{font-size:13px;color:var(--t3);margin-bottom:18px;font-weight:500}
+  .q-conf-btns{display:flex;flex-direction:column;gap:8px}
+  .q-btn-p{padding:13px;border-radius:14px;background:var(--grad);color:#fff;border:none;font-weight:800;font-size:14px;cursor:pointer}
+  .q-btn-s{padding:12px;border-radius:14px;background:#fff;color:var(--t1);border:1.5px solid rgba(0,0,0,0.08);font-weight:700;font-size:13px;cursor:pointer}
+  .q-falha-box{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.20);border-radius:14px;padding:16px;margin:14px 0}
+  .q-falha-tx{font-size:13px;color:#0D0F14;line-height:1.5;font-weight:500}
+  .q-rev-list{padding:0 22px;display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+  .q-rev-item{padding:12px 14px;background:#fff;border-radius:12px;border-left:3px solid var(--green);display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .q-rev-item.azul{border-left-color:#3B82F6}
+  .q-rev-item.amar{border-left-color:#F59E0B}
+  .q-rev-item.cinz{border-left-color:#9CA3AF}
+  .q-rev-item .lf{flex:1}
+  .q-rev-item .ll{font-size:11px;color:var(--t4);font-weight:700;text-transform:uppercase;letter-spacing:0.6px}
+  .q-rev-item .lt{font-size:13px;color:var(--t1);font-weight:600;margin-top:2px}
+  .q-rev-item .rt{font-size:10px;font-weight:800;padding:3px 7px;border-radius:8px;background:rgba(0,229,160,0.10);color:#00734D;letter-spacing:0.4px;text-transform:uppercase}
+  .q-rev-item.azul .rt{background:rgba(59,130,246,0.10);color:#3B82F6}
+  .q-rev-item.amar .rt{background:rgba(245,158,11,0.10);color:#B45309}
+  .q-rev-item.cinz .rt{background:rgba(156,163,175,0.18);color:#4B5563}
+
+  .q-enviado-c{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px}
+  .q-enviado-c .ic{width:96px;height:96px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;margin-bottom:24px;box-shadow:0 12px 48px rgba(0,229,160,0.45)}
+  .q-enviado-c .ti{font-size:32px;font-weight:900;letter-spacing:-0.8px;color:var(--t1);margin-bottom:10px;text-align:center}
+  .q-enviado-c .ti em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .q-enviado-c .ds{font-size:14px;color:var(--t3);text-align:center;line-height:1.55;font-weight:500;max-width:280px}
+
+  /* ─── BUGS PREVENIDOS BLOCK ─── */
+  .bugs-block{max-width:1400px;margin:64px auto 0;background:linear-gradient(135deg,rgba(239,68,68,0.04),rgba(245,158,11,0.04));border:1px solid rgba(239,68,68,0.15);border-radius:24px;padding:40px}
+  .bugs-h{font-size:24px;font-weight:900;color:#fff;margin-bottom:6px;letter-spacing:-0.5px}
+  .bugs-sub{font-size:13px;color:#9CA3AF;margin-bottom:28px;font-weight:500}
+  .bugs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+  .bug-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px}
+  .bug-card .lbl{font-size:10px;font-weight:800;letter-spacing:1.2px;color:#EF4444;text-transform:uppercase;margin-bottom:8px}
+  .bug-card .ti{font-size:14px;font-weight:800;color:#fff;line-height:1.3;margin-bottom:8px}
+  .bug-card .ds{font-size:12px;color:#9CA3AF;line-height:1.5;font-weight:500;margin-bottom:10px}
+  .bug-card .fix{font-size:11px;color:#00E5A0;font-weight:700;letter-spacing:0.5px}
+  .bug-card .fix::before{content:"→ ";color:#00E5A0}
+
+  /* ─── PHASES BLOCK ─── */
+  .phases{max-width:1400px;margin:64px auto 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:24px;padding:40px}
+  .ph-h{font-size:24px;font-weight:900;color:#fff;margin-bottom:6px;letter-spacing:-0.5px}
+  .ph-sub{font-size:13px;color:#9CA3AF;margin-bottom:28px;font-weight:500}
+  .ph-list{display:flex;flex-direction:column;gap:12px}
+  .ph-item{display:flex;gap:16px;padding:16px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:14px}
+  .ph-num{width:34px;height:34px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#0D0F14;font-weight:900;font-size:15px;flex-shrink:0}
+  .ph-body{flex:1}
+  .ph-ti{font-size:14px;font-weight:800;color:#fff;margin-bottom:5px}
+  .ph-ds{font-size:12.5px;color:#9CA3AF;line-height:1.5;font-weight:500;margin-bottom:6px}
+  .ph-test{font-size:11px;color:#00E5A0;font-weight:700;letter-spacing:0.4px}
+  .ph-test::before{content:"Teste: ";color:#9CA3AF;font-weight:600}
+
+  /* ─── FOOTER ─── */
+  .footer{max-width:1400px;margin:80px auto 0;text-align:center;padding-top:48px;border-top:1px solid rgba(255,255,255,0.08)}
+  .footer .h{font-size:32px;font-weight:900;color:#fff;letter-spacing:-0.7px;margin-bottom:14px}
+  .footer .h em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .footer .p{font-size:14px;color:#9CA3AF;max-width:600px;margin:0 auto 24px;line-height:1.55;font-weight:500}
+  .footer .actions{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+  .footer .btn{padding:13px 28px;border-radius:14px;font-family:inherit;font-size:13.5px;font-weight:800;border:none;cursor:pointer;letter-spacing:0.3px}
+  .footer .btn.primary{background:var(--grad);color:#0D0F14;box-shadow:0 6px 28px rgba(0,229,160,0.40)}
+  .footer .btn.secondary{background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.10)}
+</style>
+</head>
+<body>
+
+<!-- ════════ HEADER ════════ -->
+<div class="header">
+  <span class="badge-top">Plano de Refatoração · v4.0</span>
+  <h1 class="h1">Fluxo de pré-consulta <em>unificado</em></h1>
+  <p class="h-sub">Um único arquivo, um cérebro só. Adeus aos 7 redirects, 12 chaves de localStorage e 13 gambiarras. Cada tela aqui mostrada é uma seção do mesmo arquivo — paciente nunca "muda de página", só muda de tela.</p>
+  <div class="meta-bar">
+    <div class="meta"><span class="dot"></span><strong>1 arquivo</strong> ao invés de 4</div>
+    <div class="meta"><span class="dot"></span><strong>3 chaves</strong> de localStorage ao invés de 12</div>
+    <div class="meta"><span class="dot"></span><strong>0 redirect</strong> entre arquivos durante o fluxo</div>
+    <div class="meta"><span class="dot"></span><strong>0 flicker</strong> garantido por loading inicial</div>
+  </div>
+</div>
+
+<!-- ════════ DIAGRAMA MACRO ════════ -->
+<div class="macro">
+  <div class="macro-h">
+    <div class="num">1</div>
+    <div><div class="ti">Fluxo macro</div><div class="sub">A jornada completa do paciente, do clique no link até o envio para o médico</div></div>
+  </div>
+  <div class="flow-chain">
+    <div class="fc-node entry">
+      <div class="lbl">Início</div>
+      <div class="ti">Loading</div>
+      <div class="ds">150ms · decide qual tela</div>
+    </div>
+    <div class="fc-arrow">→</div>
+    <div class="fc-node">
+      <div class="lbl">Etapa 1</div>
+      <div class="ti">1º Onboarding</div>
+      <div class="ds">2 telas · explica o que é</div>
+    </div>
+    <div class="fc-arrow">→</div>
+    <div class="fc-node gate">
+      <div class="lbl">Gate</div>
+      <div class="ti">Login / Cadastro</div>
+      <div class="ds">obrigatório · cria vita id</div>
+    </div>
+    <div class="fc-arrow">→</div>
+    <div class="fc-node">
+      <div class="lbl">Etapa 2</div>
+      <div class="ti">2º Onboarding</div>
+      <div class="ds">3 telas · um botão só</div>
+    </div>
+    <div class="fc-arrow">→</div>
+    <div class="fc-node quiz">
+      <div class="lbl">Etapa 3</div>
+      <div class="ti">Quiz V4</div>
+      <div class="ds">11 perguntas · áudio ou texto</div>
+    </div>
+    <div class="fc-arrow">→</div>
+    <div class="fc-node">
+      <div class="lbl">Etapa 4</div>
+      <div class="ti">Revisão</div>
+      <div class="ds">checa cobertura · 11/11</div>
+    </div>
+    <div class="fc-arrow">→</div>
+    <div class="fc-node end">
+      <div class="lbl">Fim</div>
+      <div class="ti">Enviado</div>
+      <div class="ds">médico recebe tudo</div>
+    </div>
+  </div>
+
+  <div class="state-grid">
+    <div class="state-cell">
+      <div class="key">slidesVistos: bool</div>
+      <div class="desc">Marca se o paciente já passou pelo 1º onboarding (2 slides). Persistido no navegador.</div>
+    </div>
+    <div class="state-cell">
+      <div class="key">logado: bool</div>
+      <div class="desc">Derivado do JWT do api.js. Se houver token válido, é true. Senão, mostra login gate.</div>
+    </div>
+    <div class="state-cell">
+      <div class="key">perfilCompleto: bool</div>
+      <div class="desc">Derivado de getPerfil(). Se CPF e data de nascimento existem, é true. Senão, redireciona pro quiz-perfil.</div>
+    </div>
+    <div class="state-cell">
+      <div class="key">onb2Visto: bool</div>
+      <div class="desc">Marca se o paciente passou pelo 2º onboarding (3 telas). Persistido por token.</div>
+    </div>
+    <div class="state-cell">
+      <div class="key">perguntaAtual: int</div>
+      <div class="desc">Pergunta corrente do quiz (0-10). Persistido no IndexedDB pra retomada.</div>
+    </div>
+    <div class="state-cell">
+      <div class="key">enviado: bool</div>
+      <div class="desc">Final state. Quando true, mostra tela "Tudo enviado".</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ETAPA 0: LOADING ════════ -->
+<div class="section">
+  <div class="sec-header">
+    <div class="num">0</div>
+    <div class="info">
+      <div class="ti">Loading inicial</div>
+      <div class="sub">A primeira coisa que o paciente vê. Existe pra evitar o flicker que existe hoje.</div>
+    </div>
+    <span class="pill">Bug B resolvido</span>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr">
+          <div class="vlogo">vita id</div>
+          <div class="vsub">pré-consulta médica</div>
+          <div class="spinner"></div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 0 · Loading</div>
+        <div class="desc">Aparece por 150ms enquanto o cérebro decide</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">O que faz</div></div>
+        <p class="p">Tela mínima que aparece IMEDIATAMENTE quando o paciente clica no link. Mostra logo VITAE + spinner. Por baixo, o JavaScript executa <strong>decidirTela()</strong> que olha o estado do paciente (já viu slides? logado? perfil completo?) e troca pra tela correta.</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Regras</div></div>
+        <ul>
+          <li>Aparece <strong>antes</strong> do navegador desenhar qualquer outra tela. Body começa com visibility:hidden, só a tela de loading é visível.</li>
+          <li>Tempo máximo visível: <strong>500ms</strong>. Se demorar mais, mostra "Carregando sua pré-consulta…" pra dar feedback.</li>
+          <li>Tempo mínimo visível: <strong>150ms</strong>. Se decisão for instantânea, ainda esperamos 150ms pra não parecer "piscou".</li>
+          <li>Se decidirTela() falhar (raro), mostra tela de erro com botão "Tentar de novo".</li>
+        </ul>
+      </div>
+
+      <div class="ann-card scenario">
+        <div class="h"><div class="h-ic">→</div><div class="h-ti">Cenários</div></div>
+        <ul>
+          <li><strong>Primeira vez:</strong> loading → 1º onboarding</li>
+          <li><strong>Já viu slides, não logado:</strong> loading → login gate</li>
+          <li><strong>Logado, perfil incompleto:</strong> loading → quiz de perfil (CPF, data)</li>
+          <li><strong>Logado, perfil OK, viu onb2:</strong> loading → quiz V4 direto</li>
+          <li><strong>Retomando do meio:</strong> loading → quiz V4 na pergunta exata onde parou</li>
+          <li><strong>Já enviou antes:</strong> loading → tela "Tudo enviado, pode fechar"</li>
+        </ul>
+      </div>
+
+      <div class="ann-card prev">
+        <div class="h"><div class="h-ic">⊘</div><div class="h-ti">Bug que isto previne</div></div>
+        <p class="p"><strong>Hoje (sem essa tela):</strong> paciente abre o link e vê a tela de gravar piscar por 1-2 segundos antes do redirect pro 1º onboarding. Causa: navegador desenha a tela inteira antes do JavaScript decidir pra onde mandar.</p>
+        <p class="p" style="margin-top:8px"><strong>Com essa tela:</strong> o body começa escondido. Só a logo+spinner aparece. Quando decidirTela() termina, o body é revelado já com a tela certa. Zero flicker.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ETAPA 1: 1º ONBOARDING ════════ -->
+<div class="section">
+  <div class="sec-header">
+    <div class="num">1</div>
+    <div class="info">
+      <div class="ti">1º Onboarding · O que é, o que ganha</div>
+      <div class="sub">2 telas explicando o RG da Saúde antes de pedir cadastro. Reduz desistência.</div>
+    </div>
+    <span class="pill">Migrado de pre-consulta-slides.html</span>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:0;background:var(--bg)">
+          <div class="onb-content">
+            <div class="onb-pc-top">vita id</div>
+            <div class="onb-dots"><div class="onb-dot active"></div><div class="onb-dot"></div></div>
+            <div class="onb-icon-wrap">
+              <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M5 17c0-2 1.8-3 4-3s4 1 4 3"/><path d="M15 9h4M15 12h3M15 15h4"/>
+              </svg>
+            </div>
+            <div class="onb-title">Vamos criar seu <em>RG da Saúde</em></div>
+            <div class="onb-sub">Seu médico te enviou esse link pra preparar sua consulta. Leva uns <strong>4 minutos</strong>.</div>
+            <div class="onb-passos">
+              <div class="onb-passo"><div class="num">1</div><div><div class="ti">Criar sua conta</div><div class="ds">Email, telefone e foto · 1 minuto</div></div></div>
+              <div class="onb-passo"><div class="num">2</div><div><div class="ti">Responder dados básicos</div><div class="ds">Sangue, idade, contato · 1 minuto</div></div></div>
+              <div class="onb-passo"><div class="num">3</div><div><div class="ti">Falar com seu médico</div><div class="ds">Conversa de 2 minutos sobre sua saúde</div></div></div>
+            </div>
+            <div class="onb-foot">
+              <button class="onb-btn-p">Continuar →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 1 · Onb1 — Apresentação</div>
+        <div class="desc">"Vamos criar seu RG da Saúde"</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">O que faz</div></div>
+        <p class="p">Primeiro contato. Explica em 4 segundos o que é o vita id e quanto tempo vai demorar. Os 3 passos numerados criam expectativa clara: <strong>cadastro → dados básicos → conversa com médico</strong>.</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Regras</div></div>
+        <ul>
+          <li>Aparece <strong>só na primeira visita</strong>. Se paciente já viu antes, pula direto pro próximo gate.</li>
+          <li>Botão "Continuar" é o único caminho. Não tem "pular" aqui — é importante o paciente entender o que vai fazer.</li>
+          <li>Estado salva em <code>vitae_pc_state</code> com <code>slidesVistos: true</code> assim que clica no botão da segunda tela.</li>
+        </ul>
+      </div>
+
+      <div class="ann-card scenario">
+        <div class="h"><div class="h-ic">→</div><div class="h-ti">Frustrações que isto resolve</div></div>
+        <ul>
+          <li><strong>"O que é isso? Eu cliquei sem querer?"</strong> → Header "vita id" + título grande explica em 1 segundo.</li>
+          <li><strong>"Quanto tempo vai levar?"</strong> → "Leva uns 4 minutos" no subtítulo, em negrito.</li>
+          <li><strong>"O que esperar agora?"</strong> → 3 passos numerados com tempo estimado de cada um.</li>
+          <li><strong>"Tô preso? Posso fechar?"</strong> → Não tem fricção visual de prisão. Voltar do navegador funciona.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:0;background:var(--bg)">
+          <div class="onb-content">
+            <div class="onb-pc-top">vita id</div>
+            <div class="onb-dots"><div class="onb-dot"></div><div class="onb-dot active"></div></div>
+            <div class="onb-title" style="margin-top:18px;font-size:22px">Seu RG da Saúde <em>fica seu pra sempre</em></div>
+            <div class="onb-sub">Não é só pra essa consulta. É um histórico médico digital seu, completo.</div>
+            <div class="benef">
+              <div class="benef-item">
+                <div class="ic green">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v16"/></svg>
+                </div>
+                <div><div class="ti">Tudo num lugar só</div><div class="ds">Exames, alergias, remédios e consultas — todos juntos.</div></div>
+              </div>
+              <div class="benef-item">
+                <div class="ic red">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5-7-12a5 5 0 0 1 10 0v0a5 5 0 0 1 10 0c0 7-7 12-7 12z" transform="translate(-3,0) scale(0.8) translate(3,0)"/></svg>
+                </div>
+                <div><div class="ti">Pronto pra emergência</div><div class="ds">QR Code mostra alergias e remédios em 1 segundo.</div></div>
+              </div>
+              <div class="benef-item">
+                <div class="ic blue">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </div>
+                <div><div class="ti">Compartilha em 1 toque</div><div class="ds">Outro médico precisa ver? QR Code resolve.</div></div>
+              </div>
+              <div class="benef-item">
+                <div class="ic cyan">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+                </div>
+                <div><div class="ti">Score de saúde</div><div class="ds">Avalia sono, atividade e exames — atualiza sozinho.</div></div>
+              </div>
+            </div>
+            <div class="selos">
+              <div class="selo">100% gratuito</div>
+              <div class="selo">LGPD</div>
+              <div class="selo">Você decide</div>
+            </div>
+            <div class="onb-foot">
+              <button class="onb-btn-p">Criar meu RG da Saúde</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 2 · Onb1 — Benefícios</div>
+        <div class="desc">"Fica seu pra sempre"</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">O que faz</div></div>
+        <p class="p">Tela 2 do 1º onboarding. Combate a objeção <strong>"vou criar conta só pra essa consulta?"</strong> mostrando os 4 benefícios permanentes do RG da Saúde + 3 selos de confiança.</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Regras</div></div>
+        <ul>
+          <li>Botão "Criar meu RG da Saúde" leva pro Login Gate (próxima etapa).</li>
+          <li>Ao clicar, <code>slidesVistos = true</code> é gravado no localStorage por TOKEN. Próxima vez que paciente abrir o link, pula direto pro login.</li>
+          <li>Se paciente apertar voltar do navegador, retorna pra Tela 1 (não pro link original — fluxo é progressivo).</li>
+        </ul>
+      </div>
+
+      <div class="ann-card scenario">
+        <div class="h"><div class="h-ic">→</div><div class="h-ti">Frustrações que isto resolve</div></div>
+        <ul>
+          <li><strong>"Preciso mesmo criar conta?"</strong> → 4 benefícios permanentes (não só essa consulta).</li>
+          <li><strong>"É seguro?"</strong> → 3 selos: gratuito, LGPD, "você decide".</li>
+          <li><strong>"Meu médico vai me forçar a usar?"</strong> → Selo "Você decide" reduz medo de coerção.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ETAPA 2: LOGIN GATE ════════ -->
+<div class="section">
+  <div class="sec-header">
+    <div class="num">2</div>
+    <div class="info">
+      <div class="ti">Login / Cadastro · Gate obrigatório</div>
+      <div class="sub">Paciente cria conta = vira usuário do app. Sem isso, perdemos o produto pro lado paciente.</div>
+    </div>
+    <span class="pill">Bug A resolvido (Google iOS)</span>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:0;background:var(--bg)">
+          <div class="login-content">
+            <div class="login-pc-top">vita id</div>
+            <div class="login-h">
+              <div class="ti">Criar seu <em>RG da Saúde</em></div>
+              <div class="sub">Em 1 minuto. Pode usar Google ou email.</div>
+            </div>
+            <div class="login-trust">
+              <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <div class="tx">Seus dados são protegidos pela LGPD. Só você decide quem vê.</div>
+            </div>
+            <button class="login-google">
+              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8c1.8-4.4 6.1-7.5 11.1-7.5 3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2c-.4.4 6.6-4.8 6.6-14.9 0-1.3-.1-2.6-.4-3.9z"/></svg>
+              Continuar com Google
+            </button>
+            <div class="login-or">ou</div>
+            <input type="email" class="login-input" placeholder="Seu email">
+            <input type="password" class="login-input" placeholder="Senha">
+            <button class="login-btn">Entrar</button>
+            <div class="login-foot">
+              <button class="lk">Não tenho conta · <em>Criar com email</em></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 3 · Login Gate</div>
+        <div class="desc">Inline dentro do mesmo arquivo</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">O que faz</div></div>
+        <p class="p">Login obrigatório. <strong>3 caminhos:</strong> (1) Continuar com Google — caminho principal, mais rápido. (2) Email + senha — pra quem já tem vita id. (3) Criar com email — pra quem prefere não usar Google.</p>
+        <p class="p" style="margin-top:8px">Selo de LGPD logo no topo combate a objeção "vou dar meus dados pra quem?".</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Regras</div></div>
+        <ul>
+          <li><strong>Aparece sempre</strong> que <code>logado: false</code>, exceto se já enviou pré-consulta antes.</li>
+          <li>Email + senha → <code>vitaeAPI.login()</code> → estado.logado = true → decidirTela() → próxima etapa.</li>
+          <li>Google → redireciona breve pra <code>03-cadastro.html?retorno=TOKEN&googleOnly=1</code> (modo só-Google) → após autenticar, volta pra <code>pre-consulta.html?token=TOKEN</code> → estado restaurado, decidirTela() → próxima etapa.</li>
+          <li>"Criar com email" → leva pro <code>03-cadastro.html?retorno=TOKEN</code> normal (cadastro completo) → volta limpo.</li>
+          <li>Em todos os casos, ao retornar do 03-cadastro, o estado <code>vitae_pc_state</code> está intacto. Slides já vistos não aparecem de novo.</li>
+        </ul>
+      </div>
+
+      <div class="ann-card prev">
+        <div class="h"><div class="h-ic">⊘</div><div class="h-ti">Bug do Google Sign-In resolvido</div></div>
+        <p class="p"><strong>Problema atual:</strong> botão Google usa <strong>popup</strong>. No WhatsApp do iPhone, o popup é suspendido pelo iOS quando o foco muda. Callback nunca dispara. Paciente "perde" o login.</p>
+        <p class="p" style="margin-top:8px"><strong>Solução nova:</strong> O botão Google sai do popup. Vai pro <code>03-cadastro.html?googleOnly=1</code> que usa o método <strong>redirect</strong> (paciente sai do app, faz Google no navegador completo, volta). Funciona em iOS, Android, WhatsApp, qualquer ambiente. É 1 segundo mais lento mas <strong>nunca falha</strong>.</p>
+      </div>
+
+      <div class="ann-card scenario">
+        <div class="h"><div class="h-ic">→</div><div class="h-ti">Cenários de erro tratados</div></div>
+        <ul>
+          <li><strong>Email errado:</strong> mensagem inline "Email ou senha incorretos" abaixo do botão. Não pula tela.</li>
+          <li><strong>Cancelou o Google:</strong> volta pra essa tela com tudo intacto. Sem mensagem de erro (não foi erro, foi escolha).</li>
+          <li><strong>Google falhou (rede/auth):</strong> tela do 03-cadastro mostra "Tente de novo ou use email". Volta pra cá ao desistir.</li>
+          <li><strong>Já tem conta com esse email mas tentou criar:</strong> 03-cadastro detecta e oferece "Você já tem conta. Fazer login?".</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ETAPA 3: 2º ONBOARDING ════════ -->
+<div class="section">
+  <div class="sec-header">
+    <div class="num">3</div>
+    <div class="info">
+      <div class="ti">2º Onboarding · Confiança pra falar</div>
+      <div class="sub">3 telas explicando como o quiz funciona. Reduz ansiedade de gravar áudio.</div>
+    </div>
+    <span class="pill">Bug E resolvido (1 botão só)</span>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:0;background:var(--bg)">
+          <div class="onb-content">
+            <div class="onb-pc-top" style="color:#00C47A">PRÉ-CONSULTA MÉDICA</div>
+            <div class="onb-dots"><div class="onb-dot active"></div><div class="onb-dot"></div><div class="onb-dot"></div></div>
+            <div class="onb-icon-wrap" style="background:rgba(0,180,216,0.08)">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </div>
+            <div class="onb-title">Vamos fazer sua consulta <em>valer mais</em></div>
+            <div class="onb-sub">Seu médico recebe tudo organizado antes da consulta. Aí ele tem mais tempo pra te ouvir, não pra anotar.</div>
+            <div class="onb-passos" style="margin-top:auto;margin-bottom:14px">
+              <div class="onb-passo"><div class="num">⏱</div><div><div class="ti">Leva 2-3 minutos</div><div class="ds">11 perguntas curtas, uma por vez</div></div></div>
+              <div class="onb-passo"><div class="num">🎙</div><div><div class="ti">Você decide como responder</div><div class="ds">Falar ou digitar — escolhe a cada pergunta</div></div></div>
+            </div>
+            <div class="onb-foot">
+              <button class="onb-btn-p">Continuar →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 4 · Onb2 — Tela 1</div>
+        <div class="desc">"Vamos fazer sua consulta valer mais"</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">O que faz</div></div>
+        <p class="p">Tela 1 do 2º onboarding. Mostra o <strong>valor pro paciente</strong>: "médico tem mais tempo pra te ouvir". Combate a objeção "vou trabalhar pro médico de graça".</p>
+      </div>
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Regras</div></div>
+        <ul>
+          <li>Aparece <strong>só na primeira vez</strong> que chega ao quiz. Marca <code>onb2Visto: true</code> ao final da 3ª tela.</li>
+          <li>Se já viu antes, pula direto pro quiz.</li>
+          <li>"Continuar →" leva pra Tela 5.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:0;background:var(--bg)">
+          <div class="onb-content">
+            <div class="onb-pc-top" style="color:#00C47A">PRÉ-CONSULTA MÉDICA</div>
+            <div class="onb-dots"><div class="onb-dot"></div><div class="onb-dot active"></div><div class="onb-dot"></div></div>
+            <div class="onb-title" style="margin-top:14px">Não é entrevista. <em>É uma conversa.</em></div>
+            <div class="onb-sub">Pode falar do seu jeito, com suas palavras. Sem pressa, sem teste.</div>
+            <div class="onb-passos">
+              <div class="onb-passo"><div class="num" style="background:rgba(0,229,160,0.10);color:#00C47A">✓</div><div><div class="ti">Sem certo nem errado</div><div class="ds">Não tem resposta "ideal" — só sua resposta.</div></div></div>
+              <div class="onb-passo"><div class="num" style="background:rgba(0,180,216,0.10);color:#00B4D8">✓</div><div><div class="ti">Pode pular o que não souber</div><div class="ds">"Não sei" também é resposta válida.</div></div></div>
+              <div class="onb-passo"><div class="num" style="background:rgba(245,158,11,0.10);color:#B45309">✓</div><div><div class="ti">Voltar e refazer quando quiser</div><div class="ds">Trocou de ideia? Sem problema.</div></div></div>
+              <div class="onb-passo"><div class="num" style="background:rgba(139,92,246,0.10);color:#7C3AED">✓</div><div><div class="ti">Só seu médico ouve</div><div class="ds">Ninguém mais tem acesso ao que você falou.</div></div></div>
+            </div>
+            <div class="onb-foot">
+              <button class="onb-btn-p">Continuar →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 5 · Onb2 — Tela 2</div>
+        <div class="desc">"Não é entrevista. É uma conversa."</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">O que faz</div></div>
+        <p class="p">Combate as 4 frustrações que travam paciente em quizzes médicos: <strong>medo de errar, vergonha de não saber, pressa, falta de privacidade</strong>.</p>
+      </div>
+      <div class="ann-card scenario">
+        <div class="h"><div class="h-ic">→</div><div class="h-ti">Objeções resolvidas</div></div>
+        <ul>
+          <li><strong>"E se eu errar?"</strong> → "Sem certo nem errado".</li>
+          <li><strong>"E se eu não souber?"</strong> → "Não sei também é resposta".</li>
+          <li><strong>"E se eu falar besteira?"</strong> → "Voltar e refazer quando quiser".</li>
+          <li><strong>"Quem mais vai ouvir isso?"</strong> → "Só seu médico".</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:0;background:var(--bg)">
+          <div class="onb-content">
+            <div class="onb-pc-top" style="color:#00C47A">PRÉ-CONSULTA MÉDICA</div>
+            <div class="onb-dots"><div class="onb-dot"></div><div class="onb-dot"></div><div class="onb-dot active"></div></div>
+            <div class="onb-title" style="margin-top:14px">Tá tudo no <em>seu controle</em></div>
+            <div class="onb-sub">Não tem certo nem errado. Você decide tudo.</div>
+            <div class="onb-passos" style="margin-top:8px;margin-bottom:14px">
+              <div style="display:flex;flex-direction:column;gap:11px">
+                <div><div style="font-size:13px;font-weight:800;color:#0D0F14">Não sabe alguma?</div><div style="font-size:11.5px;color:rgba(13,15,20,0.55);margin-top:1px">Pula sem problema. "Não sei" também é resposta.</div></div>
+                <div><div style="font-size:13px;font-weight:800;color:#0D0F14">Falou errado?</div><div style="font-size:11.5px;color:rgba(13,15,20,0.55);margin-top:1px">Volta e refaz quantas vezes quiser.</div></div>
+                <div><div style="font-size:13px;font-weight:800;color:#0D0F14">Tem alguém perto?</div><div style="font-size:11.5px;color:rgba(13,15,20,0.55);margin-top:1px">Pausa quando quiser. Volta depois de onde parou.</div></div>
+                <div><div style="font-size:13px;font-weight:800;color:#0D0F14">Prefere escrever?</div><div style="font-size:11.5px;color:rgba(13,15,20,0.55);margin-top:1px">Tem essa opção também — a qualquer momento.</div></div>
+              </div>
+            </div>
+            <div style="margin-top:auto;margin-bottom:14px;padding:11px 14px;background:rgba(0,229,160,0.06);border-radius:100px;display:inline-flex;align-self:center;align-items:center;gap:7px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span style="font-size:12px;color:#00734D;font-weight:800;letter-spacing:0.2px">Só seu médico ouve · 100% privado</span>
+            </div>
+            <div class="onb-foot">
+              <button class="onb-btn-p">Começar pré-consulta →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 6 · Onb2 — Tela 3</div>
+        <div class="desc">"Tá tudo no seu controle" — 1 BOTÃO SÓ</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">O que mudou</div></div>
+        <p class="p"><strong>Antes:</strong> 2 botões ("Começar gravando" / "Prefiro digitar"). Redundantes — no V4 a escolha é por pergunta, não global.</p>
+        <p class="p" style="margin-top:8px"><strong>Agora:</strong> 1 botão único "Começar pré-consulta →". Sem ambiguidade. Leva direto pro quiz.</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Regras</div></div>
+        <ul>
+          <li>Ao clicar, marca <code>onb2Visto: true</code> e abre a primeira pergunta do quiz.</li>
+          <li>Próxima vez que paciente chegar a essa parte, pula esse onboarding inteiro.</li>
+        </ul>
+      </div>
+
+      <div class="ann-card prev">
+        <div class="h"><div class="h-ic">⊘</div><div class="h-ti">Bug E resolvido</div></div>
+        <p class="p">Os 2 botões antigos faziam exatamente a mesma coisa quando <code>?quiz=v4</code> estava ativo (que é sempre em produção). O parâmetro <code>'audio'</code> ou <code>'form'</code> era descartado pelo redirect. <strong>Era código zumbi.</strong> 1 botão limpa a interface e elimina a confusão.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ETAPA 4: QUIZ V4 ════════ -->
+<div class="section">
+  <div class="sec-header">
+    <div class="num">4</div>
+    <div class="info">
+      <div class="ti">Quiz V4 · 11 perguntas · áudio ou texto</div>
+      <div class="sub">Coração da pré-consulta. Cada pergunta uma tela. Visual idêntico ao preview aprovado.</div>
+    </div>
+    <span class="pill">Migrado pixel-perfect</span>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="q-wrap">
+          <div class="q-status"><div class="l">9:41</div><div class="r"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 20h20v2H2zM2 17h2v3H2zM6 13h2v7H6zM10 9h2v11h-2zM14 5h2v15h-2zM18 1h2v19h-2z"/></svg> 100</div></div>
+          <div class="q-header">
+            <div class="q-avatar">LB</div>
+            <div class="q-info"><div class="q-name">Lucas Borelli</div><div class="q-ctx">Dr. lucas borelli · Dermatologia</div></div>
+            <div class="q-tag">Pré-consulta</div>
+          </div>
+          <div class="q-progress">
+            <div class="q-progress-top"><div class="q-pl">PERGUNTA 3 DE 11</div><div class="q-pn">27% concluído</div></div>
+            <div class="q-bar"><div class="q-fill" style="width:27%"></div></div>
+          </div>
+          <div class="q-content">
+            <div class="q-help-chip">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Não entendi a pergunta
+            </div>
+            <div class="q-question">Há quanto tempo isso vem <em>acontecendo</em>?</div>
+            <div class="q-hint">Pode falar de remédios, exames, qualquer coisa relevante.</div>
+            <textarea class="q-textarea" placeholder="Escreva aqui se preferir digitar..."></textarea>
+            <div class="q-divider">ou</div>
+            <button class="q-mic-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              Tocar para falar
+            </button>
+          </div>
+          <div class="q-actions">
+            <button class="q-act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>Pular</button>
+            <button class="q-act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>
+            <button class="q-act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Não sei</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 7 · Quiz — Estado inicial</div>
+        <div class="desc">Pergunta nova · áudio ou texto</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">Estado inicial da pergunta</div></div>
+        <p class="p">Pergunta GIGANTE no centro. Duas opções IGUAIS lado a lado: textarea (digitar) e botão grande de microfone (falar). Sem hierarquia — paciente decide.</p>
+        <p class="p" style="margin-top:8px">3 ações secundárias no rodapé: <strong>Pular, Voltar, Não sei</strong>.</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Regras de comportamento</div></div>
+        <ul>
+          <li>Header sempre visível: avatar + nome + médico + tag "Pré-consulta".</li>
+          <li>Barra de progresso anima suavemente conforme avança.</li>
+          <li>"Não entendi a pergunta" abre modal explicando com palavras simples.</li>
+          <li><strong>Cada resposta é salva imediatamente</strong> no IndexedDB local + enviada pro servidor. Se cair internet, próxima vez retoma na pergunta exata.</li>
+          <li>Pode voltar perguntas já respondidas e refazer.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="q-wrap">
+          <div class="q-status"><div class="l">9:41</div><div class="r">100</div></div>
+          <div class="q-progress" style="padding-top:14px"><div class="q-progress-top"><div class="q-pl">PERGUNTA 3 DE 11</div><div class="q-pn">27% concluído</div></div><div class="q-bar"><div class="q-fill" style="width:27%"></div></div></div>
+          <div class="q-content" style="justify-content:flex-start;padding-top:30px">
+            <div class="q-question" style="font-size:22px;margin-bottom:18px">Há quanto tempo isso vem <em>acontecendo</em>?</div>
+            <div style="position:relative">
+              <div class="q-mic-big" style="width:130px;height:130px;animation:breath 1.6s ease-in-out infinite">
+                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              </div>
+            </div>
+            <div class="q-listening">Estou te ouvindo…</div>
+            <div class="q-timer">00:08</div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
+              <button class="q-btn-p">Já falei tudo</button>
+              <button class="q-btn-s" style="color:var(--err);border-color:rgba(239,68,68,0.20)">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 8 · Quiz — Gravando</div>
+        <div class="desc">Microfone grande · ondinha verde</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">Modo gravação</div></div>
+        <p class="p">Quando paciente toca em "Tocar para falar", entra nesse estado. Microfone grande no centro com glow pulsante. <strong>Não pode ser clicado durante a gravação</strong> — fica como indicador visual.</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Detecção automática de fim de fala</div></div>
+        <ul>
+          <li>Sistema detecta silêncio de <strong>1.8 segundos</strong> e finaliza automaticamente.</li>
+          <li>Paciente também pode finalizar manualmente clicando "Já falei tudo".</li>
+          <li>Cancelar volta pro estado inicial sem salvar.</li>
+          <li>Timer mostra tempo de gravação. Máximo 60 segundos por pergunta.</li>
+        </ul>
+      </div>
+
+      <div class="ann-card warn">
+        <div class="h"><div class="h-ic">!</div><div class="h-ti">Cenários edge</div></div>
+        <ul>
+          <li><strong>Bluetooth desconectou:</strong> grava com mic do celular automaticamente.</li>
+          <li><strong>Ligação chegou:</strong> pausa, salva o que tem, retoma quando voltar.</li>
+          <li><strong>App fechou no meio:</strong> chunks salvos no IndexedDB. Próxima abertura oferece "Continuar?".</li>
+          <li><strong>Sem permissão de mic:</strong> mostra sheet explicando como ativar nas configurações.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="q-wrap" style="background:var(--bg)">
+          <div class="q-status"><div class="l">9:41</div><div class="r">100</div></div>
+          <div class="q-progress"><div class="q-progress-top"><div class="q-pl">PERGUNTA 3 DE 11</div><div class="q-pn">27% concluído</div></div><div class="q-bar"><div class="q-fill" style="width:27%"></div></div></div>
+          <div class="q-content" style="justify-content:center">
+            <div class="q-confirm-card">
+              <div class="q-check-big">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="q-anotei">Anotei</div>
+              <div class="q-valor">3 semanas</div>
+              <div class="q-conf-q">É isso mesmo?</div>
+              <div class="q-conf-btns">
+                <button class="q-btn-p">Sim, é isso</button>
+                <button class="q-btn-s">Refazer</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 9 · Quiz — Confirmação</div>
+        <div class="desc">"Anotei: 3 semanas" · É isso mesmo?</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">Confirmação inteligente</div></div>
+        <p class="p">Após áudio ou texto, o sistema extrai o <strong>valor essencial</strong> e mostra de volta pro paciente: "Anotei: <em>3 semanas</em>". Paciente confirma ou refaz.</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Lógica de confiança</div></div>
+        <ul>
+          <li>Confiança ≥ 85% → mostra essa tela diretamente.</li>
+          <li>Confiança 60-84% → mostra com aviso "Acho que entendi…" (paciente pode refazer).</li>
+          <li>Confiança < 60% → mostra tela de falha educativa (próxima).</li>
+          <li>"Sim, é isso" → grava resposta + avança pra próxima pergunta.</li>
+          <li>"Refazer" → volta pro estado inicial dessa mesma pergunta.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="q-wrap" style="background:var(--bg)">
+          <div class="q-status"><div class="l">9:41</div><div class="r">100</div></div>
+          <div class="q-progress"><div class="q-progress-top"><div class="q-pl">PERGUNTA 3 DE 11</div><div class="q-pn">27% concluído</div></div><div class="q-bar"><div class="q-fill" style="width:27%"></div></div></div>
+          <div class="q-content" style="justify-content:center">
+            <div style="text-align:center">
+              <div style="width:72px;height:72px;border-radius:50%;background:rgba(245,158,11,0.10);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:#F59E0B">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <div style="font-size:22px;font-weight:900;color:#0D0F14;margin-bottom:6px;letter-spacing:-0.5px">Acho que não te ouvi bem</div>
+              <div class="q-falha-box">
+                <div class="q-falha-tx">Não é problema seu — pode ter sido barulho ou celular longe. <strong>Tenta falar mais perto.</strong></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+                <button class="q-btn-p">Tentar de novo</button>
+                <button class="q-btn-s">Prefere digitar essa resposta?</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 10 · Quiz — Falha educativa</div>
+        <div class="desc">Amarelo, não vermelho · acolhedor</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">Falha não é erro</div></div>
+        <p class="p">Quando confiança < 60%, mostramos essa tela <strong>amarela e acolhedora</strong>. Não vermelha (não é erro). Mensagem culpa o ambiente, nunca o paciente.</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Recuperação progressiva</div></div>
+        <ul>
+          <li>1ª falha: "Tenta falar mais perto" + botão tentar de novo.</li>
+          <li>2ª falha: mensagem muda pra "Tá com barulho aí? Pode ser melhor digitar."</li>
+          <li>3ª falha: força digitação automaticamente (mostra textarea ao invés de mic).</li>
+          <li>Em qualquer falha, paciente sempre tem a opção "Prefere digitar?" visível.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="q-wrap" style="background:var(--bg)">
+          <div class="q-status"><div class="l">9:41</div><div class="r">100</div></div>
+          <div style="padding:18px 22px 14px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+              <div style="width:38px;height:38px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div><div style="font-size:18px;font-weight:900;color:#0D0F14;letter-spacing:-0.4px">Quase lá</div><div style="font-size:11.5px;color:rgba(13,15,20,0.55);font-weight:500">Confere o que vai pro seu médico</div></div>
+            </div>
+          </div>
+          <div class="q-rev-list" style="overflow-y:auto;flex:1">
+            <div class="q-rev-item"><div class="lf"><div class="ll">PERGUNTA 1</div><div class="lt">Manchas no rosto há 3 semanas</div></div><div class="rt">Áudio</div></div>
+            <div class="q-rev-item azul"><div class="lf"><div class="ll">PERGUNTA 2</div><div class="lt">Coçando às vezes</div></div><div class="rt">Escrito</div></div>
+            <div class="q-rev-item"><div class="lf"><div class="ll">PERGUNTA 3</div><div class="lt">3 semanas</div></div><div class="rt">Áudio</div></div>
+            <div class="q-rev-item amar"><div class="lf"><div class="ll">PERGUNTA 4</div><div class="lt">—</div></div><div class="rt">Pulado</div></div>
+            <div class="q-rev-item"><div class="lf"><div class="ll">PERGUNTA 5</div><div class="lt">Sol piora bastante</div></div><div class="rt">Áudio</div></div>
+            <div class="q-rev-item cinz"><div class="lf"><div class="ll">PERGUNTA 6</div><div class="lt">Não sabe responder</div></div><div class="rt">Não sei</div></div>
+            <div class="q-rev-item"><div class="lf"><div class="ll">PERGUNTA 7</div><div class="lt">Já usou pomada antes</div></div><div class="rt">Áudio</div></div>
+          </div>
+          <div style="padding:14px 22px 18px;border-top:1px solid rgba(0,0,0,0.04);flex-shrink:0">
+            <button class="q-btn-p" style="width:100%;padding:15px;font-size:15px">Enviar pro médico</button>
+            <div style="text-align:center;font-size:11px;color:var(--t4);margin-top:10px;font-weight:500">Você decide o que mandar</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 11 · Revisão final</div>
+        <div class="desc">11 cards · botão liberado</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">Tela de revisão</div></div>
+        <p class="p">Lista de todas as 11 respostas com <strong>4 fontes coloridas</strong>: Áudio (verde), Escrito (azul), Pulado (amarelo), Não sei (cinza). Paciente pode editar qualquer uma antes de enviar.</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Liberação do botão "Enviar"</div></div>
+        <ul>
+          <li>Botão "Enviar pro médico" só fica ativo quando <strong>11 de 11</strong> perguntas têm algum status (incluindo Pulado e Não sei).</li>
+          <li>Se faltar alguma, mostra cobertura insuficiente (próxima tela).</li>
+          <li>Mini-player no topo permite ouvir o áudio gravado antes de enviar.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="q-wrap" style="background:var(--bg)">
+          <div class="q-status"><div class="l">9:41</div><div class="r">100</div></div>
+          <div style="padding:18px 22px 14px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+              <div style="width:38px;height:38px;border-radius:12px;background:rgba(245,158,11,0.12);display:flex;align-items:center;justify-content:center;color:#F59E0B"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+              <div><div style="font-size:18px;font-weight:900;color:#0D0F14;letter-spacing:-0.4px">Ainda não dá pra enviar</div><div style="font-size:11.5px;color:rgba(13,15,20,0.55);font-weight:500">Você respondeu 7 de 11</div></div>
+            </div>
+          </div>
+          <div style="padding:0 22px 14px">
+            <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.20);border-radius:14px;padding:14px 16px;margin-bottom:14px">
+              <div style="font-size:12px;font-weight:800;color:#B45309;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:6px">O que fazer agora</div>
+              <div style="font-size:13px;color:#0D0F14;line-height:1.5;font-weight:500">Volta nas perguntas que pulou e responde — pode dizer "não sei" que conta como resposta.</div>
+            </div>
+          </div>
+          <div class="q-rev-list" style="flex:1;overflow-y:auto">
+            <div class="q-rev-item amar"><div class="lf"><div class="ll">PERGUNTA 4</div><div class="lt">—</div></div><div class="rt">Pulado</div></div>
+            <div class="q-rev-item amar"><div class="lf"><div class="ll">PERGUNTA 8</div><div class="lt">—</div></div><div class="rt">Pulado</div></div>
+            <div class="q-rev-item amar"><div class="lf"><div class="ll">PERGUNTA 9</div><div class="lt">—</div></div><div class="rt">Pulado</div></div>
+            <div class="q-rev-item amar"><div class="lf"><div class="ll">PERGUNTA 11</div><div class="lt">—</div></div><div class="rt">Pulado</div></div>
+          </div>
+          <div style="padding:14px 22px 18px;border-top:1px solid rgba(0,0,0,0.04);flex-shrink:0">
+            <button class="q-btn-p" style="width:100%;padding:15px;font-size:15px">Voltar e responder mais</button>
+            <div style="text-align:center;font-size:10.5px;color:var(--t4);margin-top:10px;font-weight:500">Botão de enviar libera quando todas as 11 tiverem alguma resposta</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 12 · Cobertura insuficiente</div>
+        <div class="desc">Bloqueia envio · educa paciente</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card warn">
+        <div class="h"><div class="h-ic">!</div><div class="h-ti">Bloqueio educativo</div></div>
+        <p class="p">Médico definiu que precisa das 11/11 com algum status. Se faltar, paciente vê essa tela. <strong>Não tem botão "enviar mesmo assim"</strong> — protege o médico de receber pré-consulta vazia.</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Caixa educativa amarela</div></div>
+        <ul>
+          <li>Explica em linguagem simples o que fazer.</li>
+          <li>Mostra só as perguntas que faltam (não todas).</li>
+          <li>Toque em qualquer card volta direto pra aquela pergunta.</li>
+          <li>Botão único "Voltar e responder mais".</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="q-enviado-c">
+          <div class="ic"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="ti">Tudo <em>enviado</em></div>
+          <div class="ds">Seu médico vai receber tudo organizado antes da consulta. Você pode fechar essa janela.</div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Tela 13 · Enviado</div>
+        <div class="desc">Final · check verde gigante</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">Tela final</div></div>
+        <p class="p">Confirmação simples. Check verde gigante + mensagem clara. Paciente pode fechar.</p>
+      </div>
+
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Comportamento</div></div>
+        <ul>
+          <li>Estado <code>enviado: true</code> persiste no localStorage.</li>
+          <li>Se paciente abrir o link de novo, vê essa tela direto (não revive o quiz).</li>
+          <li>Backend dispara: gerar summary + TTS pro médico em background.</li>
+          <li>Médico recebe a anamnese organizada com 4 fontes coloridas (áudio/escrito/pulado/não sei).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ BUGS PREVENIDOS ════════ -->
+<div class="bugs-block">
+  <div class="bugs-h">Bugs prevenidos pela arquitetura nova</div>
+  <div class="bugs-sub">Cada bug que você reportou + cada gambiarra catalogada. O que sai de cena.</div>
+  <div class="bugs-grid">
+    <div class="bug-card">
+      <div class="lbl">Bug A · Google iOS</div>
+      <div class="ti">Login Google quebrava no WhatsApp</div>
+      <div class="ds">Popup era suspendido pelo iOS quando o foco mudava. Callback nunca disparava.</div>
+      <div class="fix">Trocado pra modo redirect (sai do app, volta limpo). Funciona em qualquer celular.</div>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Bug B · Flicker</div>
+      <div class="ti">Tela de gravar piscava por 1-2s</div>
+      <div class="ds">DOM inteiro era pintado antes do JavaScript decidir o redirect.</div>
+      <div class="fix">Body começa escondido. Loading screen aparece imediato. Decisão acontece por baixo.</div>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Bug C · Pulos aleatórios</div>
+      <div class="ti">Telas trocavam sem motivo</div>
+      <div class="ds">Flag de "slides visto" era escrita com nome diferente do que era lida (chaves desacopladas).</div>
+      <div class="fix">Estado consolidado em 1 objeto único. Mesma chave escrita e lida em todo lugar.</div>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Bug D · Sensação de remendo</div>
+      <div class="ti">Código fragmentado em 4 arquivos</div>
+      <div class="ds">7 redirects encadeados, 12 chaves de localStorage, 13 gambiarras catalogadas.</div>
+      <div class="fix">1 arquivo só. 3 chaves. 0 redirect. Cada bug futuro tem 1 lugar pra olhar.</div>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Bug E · 2 botões redundantes</div>
+      <div class="ti">"Começar gravando" / "Prefiro digitar" duplicados</div>
+      <div class="ds">Faziam exatamente a mesma coisa quando V4 estava ativo. Código zumbi.</div>
+      <div class="fix">1 botão único "Começar pré-consulta →". Sem ambiguidade.</div>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Gambiarra 1 · Função mentirosa</div>
+      <div class="ti">"showMainContent" que redirecionava</div>
+      <div class="ds">Nome dizia uma coisa, código fazia outra. Confunde qualquer dev que mexer depois.</div>
+      <div class="fix">Função única "decidirTela()" que faz exatamente o que o nome diz.</div>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Gambiarra 2 · 3 sistemas de versão</div>
+      <div class="ti">V1, V2 e V4 rodando juntos</div>
+      <div class="ds">8 combinações possíveis de estado. Pra entender qual versão ativa, precisava ler 2700 linhas.</div>
+      <div class="fix">Só V4 existe. V1 e V2 movidos pra pasta legacy/.</div>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Gambiarra 3 · 2 telas de login</div>
+      <div class="ti">Login dentro do arquivo + 03-cadastro</div>
+      <div class="ds">Comportamentos pós-login diferentes. Causa parte dos pulos aleatórios.</div>
+      <div class="fix">Login inline único. 03-cadastro só é usado pro Google (modo isolado).</div>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Gambiarra 4 · Try/catch silenciosos</div>
+      <div class="ti">Erros engolidos sem log</div>
+      <div class="ds">Quando algo falhava, código simulava sucesso. Paciente via tela errada e ninguém sabia o porquê.</div>
+      <div class="fix">Erros logados com contexto. Falha sempre volta pro estado mais conservador (login ou loading).</div>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Gambiarra 5 · Código V1 morto</div>
+      <div class="ti">Painel de gravação V1 ainda renderizava</div>
+      <div class="ds">DOM completo do V1 era pintado mesmo quando ia redirecionar pro V4 dali a 1s. Causa o flicker.</div>
+      <div class="fix">V1 deletado. Só V4 existe no DOM.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ FASES DE IMPLEMENTAÇÃO ════════ -->
+<div class="phases">
+  <div class="ph-h">Fases de implementação</div>
+  <div class="ph-sub">Ordem exata. Cada fase é testável isoladamente. Branch separado durante todo o processo.</div>
+  <div class="ph-list">
+    <div class="ph-item">
+      <div class="ph-num">1</div>
+      <div class="ph-body">
+        <div class="ph-ti">Criar branch + esqueleto + loading screen</div>
+        <div class="ph-ds">git checkout -b refactor-pre-consulta-unico. Cria pre-consulta.html novo só com loading + função decidirTela() vazia.</div>
+        <div class="ph-test">abrir o arquivo, ver loading aparecer 150ms e estado vazio</div>
+      </div>
+    </div>
+    <div class="ph-item">
+      <div class="ph-num">2</div>
+      <div class="ph-body">
+        <div class="ph-ti">Migrar 1º onboarding (2 telas)</div>
+        <div class="ph-ds">Copia HTML/CSS/JS de pre-consulta-slides.html. Adapta pra ser tela interna (show/hide div). Conecta na máquina de estados.</div>
+        <div class="ph-test">abrir link novo → ver loading → ver tela 1 do onboarding → clicar continuar → ver tela 2 → clicar criar RG → ir pro login</div>
+      </div>
+    </div>
+    <div class="ph-item">
+      <div class="ph-num">3</div>
+      <div class="ph-body">
+        <div class="ph-ti">Login Gate inline (sem Google ainda)</div>
+        <div class="ph-ds">Email + senha + botão "Criar com email". Conecta com vitaeAPI.login() e vitaeAPI.register(). Trata erros.</div>
+        <div class="ph-test">login com email errado mostra erro inline. Login certo passa pra próxima etapa. Criar conta volta limpo.</div>
+      </div>
+    </div>
+    <div class="ph-item">
+      <div class="ph-num">4</div>
+      <div class="ph-body">
+        <div class="ph-ti">Adicionar Google via 03-cadastro (modo redirect)</div>
+        <div class="ph-ds">Botão Google leva pra 03-cadastro.html?googleOnly=1&retorno=TOKEN. 03-cadastro detecta param, mostra só Google em modo redirect, retorna pra pre-consulta.html.</div>
+        <div class="ph-test">testar no iPhone via WhatsApp: clicar Google → escolher conta → voltar → estar logado e na tela certa</div>
+      </div>
+    </div>
+    <div class="ph-item">
+      <div class="ph-num">5</div>
+      <div class="ph-body">
+        <div class="ph-ti">Migrar 2º onboarding (3 telas, 1 botão na 3ª)</div>
+        <div class="ph-ds">Copia de pre-consulta-v2.html. Remove os 2 botões antigos da tela 3, coloca 1 botão único "Começar pré-consulta".</div>
+        <div class="ph-test">passar pelas 3 telas, ver 1 botão só na 3ª, ir direto pro quiz</div>
+      </div>
+    </div>
+    <div class="ph-item">
+      <div class="ph-num">6</div>
+      <div class="ph-body">
+        <div class="ph-ti">Integrar quiz V4 inteiro (estado inicial, gravando, confirmação, falha, ambíguo)</div>
+        <div class="ph-ds">Copia o coração de pre-consulta-v4.html. Adapta IndexedDB pra namespace único. Mantém endpoints backend (/estado, /responder-pergunta, /finalizar).</div>
+        <div class="ph-test">testar 11 perguntas com mix audio/texto/pulado/não sei, verificar IndexedDB salvando, verificar backend recebendo</div>
+      </div>
+    </div>
+    <div class="ph-item">
+      <div class="ph-num">7</div>
+      <div class="ph-body">
+        <div class="ph-ti">Migrar revisão (cobertura completa + insuficiente) e tela enviado</div>
+        <div class="ph-ds">Copia tela de revisão com 4 fontes coloridas. Lógica de bloqueio se < 11/11.</div>
+        <div class="ph-test">enviar com 11/11 funciona, com 7/11 mostra cobertura insuficiente, médico recebe summary correto</div>
+      </div>
+    </div>
+    <div class="ph-item">
+      <div class="ph-num">8</div>
+      <div class="ph-body">
+        <div class="ph-ti">Aposentar arquivos antigos</div>
+        <div class="ph-ds">Mover pre-consulta-slides.html, pre-consulta-v2.html, pre-consulta-v4.html, pre-consulta-backup-pre45s.html pra pasta legacy/. Limpar localStorage de chaves antigas (vitae_fluxo_v1/v2/v4, vitae_bv_visto, etc).</div>
+        <div class="ph-test">abrir o link de produção e confirmar que tudo funciona vindo só do arquivo novo</div>
+      </div>
+    </div>
+    <div class="ph-item">
+      <div class="ph-num">9</div>
+      <div class="ph-body">
+        <div class="ph-ti">Deploy preview Vercel · Lucas testa</div>
+        <div class="ph-ds">Push do branch. Vercel cria URL tipo vitae-app-git-refactor-unico.vercel.app. Lucas testa os 8 cenários do checklist.</div>
+        <div class="ph-test">checklist completo do Lucas (8 cenários) passa em iPhone real, Android, Chrome desktop, WhatsApp</div>
+      </div>
+    </div>
+    <div class="ph-item">
+      <div class="ph-num">10</div>
+      <div class="ph-body">
+        <div class="ph-ti">Merge pra produção</div>
+        <div class="ph-ds">Lucas aprova → merge pro main → Vercel deploya em produção em ~30s. Rollback disponível em 5min via git revert se necessário.</div>
+        <div class="ph-test">link de produção funciona perfeito. Médico betatester recebe pré-consulta limpa.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ FOOTER ════════ -->
+<div class="footer">
+  <div class="h">Aprovação <em>final</em></div>
+  <p class="p">Esse é o blueprint completo. Visual + regras + cenários + bugs prevenidos + fases. Se você aprovar, eu sigo isso aqui à risca, sem improvisar, sem alucinar. Se não aprovar, ajustamos antes de qualquer linha de código entrar.</p>
+  <div class="actions">
+    <button class="btn primary">Aprovar e iniciar refatoração</button>
+    <button class="btn secondary">Quero ajustar antes</button>
+  </div>
+</div>
+
+<style>
+@keyframes breath { 0%,100% {transform:scale(1)} 50% {transform:scale(1.06)} }
+</style>
+
+</body>
+</html>
