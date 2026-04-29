@@ -309,6 +309,12 @@
       <div class="ds">obrigatório · cria vita id</div>
     </div>
     <div class="fc-arrow">→</div>
+    <div class="fc-node gate" style="border-color:rgba(139,92,246,0.30);background:rgba(139,92,246,0.06)">
+      <div class="lbl">Etapa 1.5</div>
+      <div class="ti">Quiz vita id</div>
+      <div class="ds">7 passos · cria RG · só novo</div>
+    </div>
+    <div class="fc-arrow">→</div>
     <div class="fc-node">
       <div class="lbl">Etapa 2</div>
       <div class="ti">2º Onboarding</div>
@@ -872,6 +878,480 @@
           <li><strong>Senhas não batem:</strong> aviso embaixo do segundo campo, não submete o formulário.</li>
           <li><strong>Senha igual à anterior:</strong> backend rejeita, mostra "Use uma senha diferente da anterior".</li>
         </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ETAPA 2C: QUIZ DE CRIAÇÃO DO VITA ID ════════ -->
+<div class="section">
+  <div class="sec-header">
+    <div class="num">2c</div>
+    <div class="info">
+      <div class="ti">Quiz de criação do RG da Saúde · 7 passos</div>
+      <div class="sub">Coleta os dados que viram seu vita id permanente. Só aparece pra paciente novo (quem nunca teve conta). Quem já tem RG da Saúde, pula esse passo inteiro.</div>
+    </div>
+    <span class="pill">Migrado de quiz-preconsulta.html</span>
+  </div>
+
+  <!-- Aviso de cópia pixel-perfect -->
+  <div style="background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.18);border-radius:18px;padding:20px 24px;margin-bottom:32px">
+    <div style="display:flex;align-items:flex-start;gap:14px">
+      <div style="width:34px;height:34px;border-radius:12px;background:rgba(0,229,160,0.12);display:flex;align-items:center;justify-content:center;color:#00E5A0;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#00734D;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:6px">Importante · não muda absolutamente nada do visual</div>
+        <p style="font-size:13.5px;color:#C4C9D4;line-height:1.55;font-weight:500;margin-bottom:6px">As 7 telas que você vê aqui embaixo são <strong>apenas visualizações pra mostrar a ordem dos passos</strong>. Na refatoração real, eu vou <strong>copiar e colar pixel-perfect os componentes que já existem</strong> em <code style="font-family:'JetBrains Mono';font-size:11px;color:#00E5A0;background:rgba(0,229,160,0.08);padding:2px 6px;border-radius:4px">quiz-preconsulta.html</code>:</p>
+        <ul style="list-style:none;padding:0;margin:8px 0 0">
+          <li style="font-size:12.5px;color:#C4C9D4;line-height:1.55;font-weight:500;padding-left:18px;position:relative;margin-bottom:3px">
+            <span style="position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:#00E5A0"></span>
+            Mesmo CSS, mesmas cores, mesmas fontes (vitae-core.css)
+          </li>
+          <li style="font-size:12.5px;color:#C4C9D4;line-height:1.55;font-weight:500;padding-left:18px;position:relative;margin-bottom:3px">
+            <span style="position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:#00E5A0"></span>
+            Mesmas máscaras de input, mesmas validações
+          </li>
+          <li style="font-size:12.5px;color:#C4C9D4;line-height:1.55;font-weight:500;padding-left:18px;position:relative;margin-bottom:3px">
+            <span style="position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:#00E5A0"></span>
+            Mesmo upload de exame com Claude Vision (já funcionando)
+          </li>
+          <li style="font-size:12.5px;color:#C4C9D4;line-height:1.55;font-weight:500;padding-left:18px;position:relative">
+            <span style="position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:#00E5A0"></span>
+            Mesmo scan de receita, mesma compressão de foto
+          </li>
+        </ul>
+        <p style="font-size:12.5px;color:#9CA3AF;line-height:1.55;font-weight:500;margin-top:10px;font-style:italic">A única coisa que muda é que esses componentes vão morar dentro do arquivo único <code style="font-family:'JetBrains Mono';font-size:11px;color:#00E5A0;background:rgba(0,229,160,0.08);padding:2px 6px;border-radius:4px">pre-consulta.html</code> em vez de ficar num arquivo separado. Comportamento e visual = idênticos.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-bottom:14px">
+    <div></div>
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">Quando aparece</div></div>
+        <p class="p">Aparece <strong>imediatamente após o login/cadastro</strong>. Sistema verifica se o perfil do paciente tá completo (CPF + data de nascimento existem). Se faltar, mostra esse quiz.</p>
+        <p class="p" style="margin-top:8px"><strong>Pula automaticamente</strong> se: paciente já tinha vita id antes, ou já preencheu esse quiz numa pré-consulta anterior. Quem já é usuário do app vai direto pro 2º Onboarding.</p>
+      </div>
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Por que existe esse quiz</div></div>
+        <ul>
+          <li><strong>É o que cria o vita id de verdade</strong> — sem essas informações, o RG da Saúde fica vazio.</li>
+          <li>Médico precisa desses dados pra preparar a consulta (alergias, medicamentos, exames).</li>
+          <li>Em emergência, o vita id mostra alergias e remédios em 1 segundo via QR Code.</li>
+          <li>Score de saúde precisa de altura, peso e exames pra calcular.</li>
+        </ul>
+      </div>
+      <div class="ann-card scenario">
+        <div class="h"><div class="h-ic">→</div><div class="h-ti">Comportamento geral</div></div>
+        <ul>
+          <li>Indicador "Passo X de 7" no topo, sempre visível.</li>
+          <li>Botão "Próximo" só ativa quando campos obrigatórios preenchidos.</li>
+          <li>Botão "Voltar" em todos os passos exceto o primeiro.</li>
+          <li>Auto-save a cada passo — se paciente fechar o app, retoma onde parou.</li>
+          <li>Tempo médio total: 2-3 minutos.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:60px 24px 24px;background:var(--bg);justify-content:flex-start">
+          <div style="font-size:11px;font-weight:800;color:#9CA3AF;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Passo <span style="color:#00E5A0">1</span> de 7</div>
+          <div style="height:4px;background:rgba(0,0,0,0.04);border-radius:100px;margin-bottom:24px;overflow:hidden"><div style="height:100%;background:var(--grad);width:14%"></div></div>
+          <div style="font-size:26px;font-weight:900;color:#0D0F14;letter-spacing:-0.6px;line-height:1.15;margin-bottom:6px">Dados <em style="color:#00E5A0;font-style:italic">básicos</em></div>
+          <div style="font-size:13px;color:rgba(13,15,20,0.55);margin-bottom:22px;font-weight:500">Informações essenciais do seu RG da Saúde</div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div>
+              <div class="lg-fl">Data de nascimento</div>
+              <input class="lg-fi" type="text" placeholder="dd/mm/aaaa">
+            </div>
+            <div style="display:flex;gap:10px">
+              <div style="flex:1">
+                <div class="lg-fl">Altura (cm)</div>
+                <input class="lg-fi" type="number" placeholder="170">
+              </div>
+              <div style="flex:1">
+                <div class="lg-fl">Peso (kg)</div>
+                <input class="lg-fi" type="number" placeholder="70">
+              </div>
+            </div>
+            <div>
+              <div class="lg-fl">Gênero</div>
+              <div style="display:flex;gap:8px">
+                <button class="q-btn-s" style="flex:1;padding:11px;font-size:12.5px">Masculino</button>
+                <button class="q-btn-s" style="flex:1;padding:11px;font-size:12.5px;border-color:#00E5A0;background:rgba(0,229,160,0.08);color:#00734D">Feminino</button>
+                <button class="q-btn-s" style="flex:1;padding:11px;font-size:12.5px">Outro</button>
+              </div>
+            </div>
+          </div>
+          <button class="lg-btn" style="margin-top:auto">Próximo →</button>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Passo 1 · Dados básicos</div>
+        <div class="desc">Nascimento + altura + peso + gênero</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">O que pede</div></div>
+        <ul>
+          <li><strong>Data de nascimento</strong> — obrigatória (cálculo de idade)</li>
+          <li><strong>Altura em cm</strong> — obrigatória (IMC, score)</li>
+          <li><strong>Peso em kg</strong> — obrigatório (IMC, score)</li>
+          <li><strong>Gênero</strong> — obrigatório (anamnese precisa)</li>
+        </ul>
+      </div>
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Validações</div></div>
+        <ul>
+          <li>Data: máscara automática dd/mm/aaaa, valida que é data real.</li>
+          <li>Altura: entre 50 e 250 cm.</li>
+          <li>Peso: entre 20 e 300 kg, aceita 0.1 (decimais).</li>
+          <li>Gênero: 3 opções com botão grande, sem dropdown.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:60px 24px 24px;background:var(--bg);justify-content:flex-start">
+          <div style="font-size:11px;font-weight:800;color:#9CA3AF;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Passo <span style="color:#00E5A0">2</span> de 7</div>
+          <div style="height:4px;background:rgba(0,0,0,0.04);border-radius:100px;margin-bottom:24px;overflow:hidden"><div style="height:100%;background:var(--grad);width:28%"></div></div>
+          <div style="font-size:26px;font-weight:900;color:#0D0F14;letter-spacing:-0.6px;line-height:1.15;margin-bottom:6px">Saúde <em style="color:#00E5A0;font-style:italic">geral</em></div>
+          <div style="font-size:13px;color:rgba(13,15,20,0.55);margin-bottom:22px;font-weight:500">Informações importantes para emergências</div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div>
+              <div class="lg-fl">Tipo sanguíneo</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+                <button class="q-btn-s" style="padding:9px;font-size:11.5px">A+</button>
+                <button class="q-btn-s" style="padding:9px;font-size:11.5px">A−</button>
+                <button class="q-btn-s" style="padding:9px;font-size:11.5px;border-color:#00E5A0;background:rgba(0,229,160,0.08);color:#00734D">B+</button>
+                <button class="q-btn-s" style="padding:9px;font-size:11.5px">B−</button>
+                <button class="q-btn-s" style="padding:9px;font-size:11.5px">AB+</button>
+                <button class="q-btn-s" style="padding:9px;font-size:11.5px">AB−</button>
+                <button class="q-btn-s" style="padding:9px;font-size:11.5px">O+</button>
+                <button class="q-btn-s" style="padding:9px;font-size:11.5px">O−</button>
+              </div>
+              <button class="q-btn-s" style="width:100%;margin-top:8px;font-size:12px">Não sei meu tipo sanguíneo</button>
+            </div>
+            <div>
+              <div class="lg-fl">CPF</div>
+              <input class="lg-fi" type="text" placeholder="000.000.000-00">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:auto">
+            <button class="q-btn-s" style="padding:14px 18px">‹ Voltar</button>
+            <button class="lg-btn" style="flex:1">Próximo →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Passo 2 · Saúde geral</div>
+        <div class="desc">Tipo sanguíneo + CPF</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">O que pede</div></div>
+        <ul>
+          <li><strong>Tipo sanguíneo</strong> — 8 botões grandes + opção "Não sei". Crítico em emergência.</li>
+          <li><strong>CPF</strong> — máscara automática, validação de dígitos.</li>
+        </ul>
+      </div>
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Por que CPF</div></div>
+        <ul>
+          <li>Identificação única no SUS.</li>
+          <li>Evita conta duplicada (mesma pessoa, 2 emails diferentes).</li>
+          <li>Médico precisa pra prontuário e prescrição.</li>
+          <li>Validação aceita só CPF real (algoritmo de dígitos).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:60px 24px 24px;background:var(--bg);justify-content:flex-start">
+          <div style="font-size:11px;font-weight:800;color:#9CA3AF;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Passo <span style="color:#00E5A0">3</span> de 7</div>
+          <div style="height:4px;background:rgba(0,0,0,0.04);border-radius:100px;margin-bottom:24px;overflow:hidden"><div style="height:100%;background:var(--grad);width:42%"></div></div>
+          <div style="font-size:26px;font-weight:900;color:#0D0F14;letter-spacing:-0.6px;line-height:1.15;margin-bottom:6px">Contato de <em style="color:#00E5A0;font-style:italic">emergência</em></div>
+          <div style="font-size:13px;color:rgba(13,15,20,0.55);margin-bottom:22px;font-weight:500">Pra quem devemos ligar em caso de emergência?</div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div>
+              <div class="lg-fl">Nome do contato</div>
+              <input class="lg-fi" type="text" placeholder="Mãe, pai, esposo(a)…">
+            </div>
+            <div>
+              <div class="lg-fl">Celular do contato</div>
+              <div class="lg-phone-wrap">
+                <div class="lg-phone-prefix">🇧🇷 +55</div>
+                <input class="lg-fi" type="tel" placeholder="(11) 99999-9999" style="flex:1">
+              </div>
+            </div>
+            <div>
+              <div class="lg-fl">Relação</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <button class="q-btn-s" style="padding:9px 14px;font-size:12px;border-color:#00E5A0;background:rgba(0,229,160,0.08);color:#00734D">Mãe</button>
+                <button class="q-btn-s" style="padding:9px 14px;font-size:12px">Pai</button>
+                <button class="q-btn-s" style="padding:9px 14px;font-size:12px">Cônjuge</button>
+                <button class="q-btn-s" style="padding:9px 14px;font-size:12px">Filho(a)</button>
+                <button class="q-btn-s" style="padding:9px 14px;font-size:12px">Outro</button>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:auto">
+            <button class="q-btn-s" style="padding:14px 18px">‹ Voltar</button>
+            <button class="lg-btn" style="flex:1">Próximo →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Passo 3 · Contato de emergência</div>
+        <div class="desc">Nome + celular + relação</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">Por que pede</div></div>
+        <p class="p">Em emergência, hospital escaneia o QR Code do paciente e vê <strong>imediatamente quem ligar</strong>. Reduz tempo de identificação e contato com família.</p>
+      </div>
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Validações</div></div>
+        <ul>
+          <li>Nome obrigatório.</li>
+          <li>Celular: máscara automática, mínimo 10 dígitos.</li>
+          <li>Relação: 5 opções com botão (não permite digitar livre).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:60px 24px 24px;background:var(--bg);justify-content:flex-start">
+          <div style="font-size:11px;font-weight:800;color:#9CA3AF;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Passo <span style="color:#00E5A0">4</span> de 7</div>
+          <div style="height:4px;background:rgba(0,0,0,0.04);border-radius:100px;margin-bottom:24px;overflow:hidden"><div style="height:100%;background:var(--grad);width:57%"></div></div>
+          <div style="font-size:26px;font-weight:900;color:#0D0F14;letter-spacing:-0.6px;line-height:1.15;margin-bottom:6px">Suas <em style="color:#EF4444;font-style:italic">alergias</em></div>
+          <div style="font-size:13px;color:rgba(13,15,20,0.55);margin-bottom:22px;font-weight:500">Importante para segurança em medicações e procedimentos</div>
+          <div>
+            <div class="lg-fl">Tem alguma alergia?</div>
+            <textarea class="lg-fi" rows="4" placeholder="Ex: dipirona, penicilina, amendoim, frutos do mar…" style="resize:none;font-family:inherit"></textarea>
+            <div style="font-size:11px;color:rgba(13,15,20,0.45);margin-top:6px;font-weight:500">Separe por vírgula. Pode escrever do seu jeito.</div>
+          </div>
+          <button class="q-btn-s" style="margin-top:14px;width:100%">📷 Escanear receita / pulseira de alergia</button>
+          <div style="background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.12);border-radius:12px;padding:11px 13px;margin-top:14px">
+            <div style="font-size:11.5px;font-weight:800;color:#991B1B;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:4px">Não tem nenhuma?</div>
+            <div style="font-size:12px;color:#0D0F14;line-height:1.4;font-weight:500">Toca em "Próximo" sem preencher. Mas vale lembrar: alergia ignorada pode virar emergência.</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:auto">
+            <button class="q-btn-s" style="padding:14px 18px">‹ Voltar</button>
+            <button class="lg-btn" style="flex:1">Próximo →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Passo 4 · Alergias</div>
+        <div class="desc">Texto livre + scan opcional</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">Origem do produto</div></div>
+        <p class="p">Esse é o quiz que <strong>nasceu da sua história pessoal</strong>: você foi internado por crise alérgica (Dipirona + Penicilina) sem nenhum sistema avisar o médico. Esse passo aqui resolve isso.</p>
+      </div>
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Comportamento</div></div>
+        <ul>
+          <li><strong>Texto livre</strong> — paciente escreve do jeito dele. IA depois normaliza ("dipirona" e "Novalgina" viram a mesma família).</li>
+          <li><strong>Scan opcional</strong> — botão pra fotografar receita ou pulseira de alergia, sistema extrai automaticamente.</li>
+          <li><strong>Pode pular</strong> — não é obrigatório, mas tem aviso educativo amarelo.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:60px 24px 24px;background:var(--bg);justify-content:flex-start">
+          <div style="font-size:11px;font-weight:800;color:#9CA3AF;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Passo <span style="color:#00E5A0">5</span> de 7</div>
+          <div style="height:4px;background:rgba(0,0,0,0.04);border-radius:100px;margin-bottom:24px;overflow:hidden"><div style="height:100%;background:var(--grad);width:71%"></div></div>
+          <div style="font-size:26px;font-weight:900;color:#0D0F14;letter-spacing:-0.6px;line-height:1.15;margin-bottom:6px">Medicamentos em <em style="color:#00E5A0;font-style:italic">uso</em></div>
+          <div style="font-size:13px;color:rgba(13,15,20,0.55);margin-bottom:22px;font-weight:500">Pra seu médico saber o que você já toma</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:13px;font-weight:800;color:#0D0F14">Losartana 50mg</div>
+                <div style="font-size:11.5px;color:rgba(13,15,20,0.55);font-weight:500;margin-top:2px">1x ao dia · de manhã</div>
+              </div>
+              <button style="background:none;border:none;color:rgba(239,68,68,0.7);font-size:18px;cursor:pointer;padding:4px">×</button>
+            </div>
+            <div style="background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:13px;font-weight:800;color:#0D0F14">Metformina 500mg</div>
+                <div style="font-size:11.5px;color:rgba(13,15,20,0.55);font-weight:500;margin-top:2px">2x ao dia · após refeição</div>
+              </div>
+              <button style="background:none;border:none;color:rgba(239,68,68,0.7);font-size:18px;cursor:pointer;padding:4px">×</button>
+            </div>
+            <button class="q-btn-s" style="width:100%;padding:13px;font-size:13px;border-style:dashed">+ Adicionar medicamento</button>
+            <button class="q-btn-s" style="width:100%;padding:11px;font-size:12px">📷 Escanear receita</button>
+          </div>
+          <div style="font-size:11.5px;color:rgba(13,15,20,0.50);text-align:center;margin-top:14px;font-weight:500">Não toma nenhum? Toca direto em "Próximo".</div>
+          <div style="display:flex;gap:8px;margin-top:auto">
+            <button class="q-btn-s" style="padding:14px 18px">‹ Voltar</button>
+            <button class="lg-btn" style="flex:1">Próximo →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Passo 5 · Medicamentos em uso</div>
+        <div class="desc">Lista + scan + pular</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">Como funciona</div></div>
+        <ul>
+          <li><strong>Adicionar manual</strong> — abre formulário com nome, dose, horário.</li>
+          <li><strong>Escanear receita</strong> — paciente fotografa, IA extrai medicamentos automaticamente.</li>
+          <li><strong>Pular</strong> — paciente que não toma nada vai direto pro próximo.</li>
+        </ul>
+      </div>
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Cruzamento com alergias</div></div>
+        <p class="p">Quando paciente adiciona medicamento, sistema verifica automaticamente contra a lista de alergias do passo anterior. Se houver conflito (ex: alergia a penicilina + amoxicilina), <strong>mostra alerta vermelho imediato</strong> antes de salvar.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:60px 24px 24px;background:var(--bg);justify-content:flex-start">
+          <div style="font-size:11px;font-weight:800;color:#9CA3AF;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Passo <span style="color:#00E5A0">6</span> de 7</div>
+          <div style="height:4px;background:rgba(0,0,0,0.04);border-radius:100px;margin-bottom:24px;overflow:hidden"><div style="height:100%;background:var(--grad);width:85%"></div></div>
+          <div style="font-size:26px;font-weight:900;color:#0D0F14;letter-spacing:-0.6px;line-height:1.15;margin-bottom:6px">Últimos <em style="color:#00E5A0;font-style:italic">exames</em></div>
+          <div style="font-size:13px;color:rgba(13,15,20,0.55);margin-bottom:22px;font-weight:500">Anexe resultados recentes pro seu médico</div>
+          <div style="background:#fff;border:2px dashed rgba(0,229,160,0.25);border-radius:16px;padding:28px 20px;text-align:center">
+            <div style="width:54px;height:54px;border-radius:14px;background:rgba(0,229,160,0.08);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#00C47A">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div style="font-size:14px;font-weight:800;color:#0D0F14;margin-bottom:4px">Anexar exame</div>
+            <div style="font-size:11.5px;color:rgba(13,15,20,0.55);font-weight:500">PDF, foto ou imagem do laboratório</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+            <div style="background:rgba(0,180,216,0.06);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00B4D8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <div style="flex:1;font-size:12.5px;font-weight:600;color:#0D0F14">hemograma_jan26.pdf</div>
+              <span style="font-size:10px;font-weight:800;color:#0C4A6E;background:rgba(0,180,216,0.15);padding:3px 8px;border-radius:6px;letter-spacing:0.4px;text-transform:uppercase">PDF</span>
+            </div>
+          </div>
+          <div style="font-size:11.5px;color:rgba(13,15,20,0.50);text-align:center;margin-top:14px;font-weight:500">Não tem exame pra mandar? Toca em "Próximo".</div>
+          <div style="display:flex;gap:8px;margin-top:auto">
+            <button class="q-btn-s" style="padding:14px 18px">‹ Voltar</button>
+            <button class="lg-btn" style="flex:1">Próximo →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Passo 6 · Últimos exames</div>
+        <div class="desc">Upload PDF/foto · IA extrai parâmetros</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">O que acontece com o arquivo</div></div>
+        <p class="p">Paciente envia PDF ou foto. Em segundo plano, sistema:</p>
+        <ul>
+          <li><strong>Lê o documento</strong> com IA (Claude Vision).</li>
+          <li><strong>Extrai parâmetros</strong> (hemoglobina, glicose, colesterol, etc) com valor + referência.</li>
+          <li><strong>Classifica cada um</strong>: Normal, Atenção ou Crítico.</li>
+          <li><strong>Gera resumo</strong> + recomendações pro médico.</li>
+        </ul>
+      </div>
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Pode pular</div></div>
+        <ul>
+          <li>Paciente sem exame recente toca "Próximo" e segue.</li>
+          <li>Aceita múltiplos arquivos (vai juntando na lista).</li>
+          <li>Tipo de exame é detectado automaticamente (não precisa marcar).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr" style="padding:60px 24px 24px;background:var(--bg);justify-content:flex-start">
+          <div style="font-size:11px;font-weight:800;color:#9CA3AF;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Passo <span style="color:#00E5A0">7</span> de 7</div>
+          <div style="height:4px;background:rgba(0,0,0,0.04);border-radius:100px;margin-bottom:24px;overflow:hidden"><div style="height:100%;background:var(--grad);width:100%"></div></div>
+          <div style="font-size:26px;font-weight:900;color:#0D0F14;letter-spacing:-0.6px;line-height:1.15;margin-bottom:6px">Sua <em style="color:#00E5A0;font-style:italic">foto</em></div>
+          <div style="font-size:13px;color:rgba(13,15,20,0.55);margin-bottom:22px;font-weight:500">Uma foto do rosto ajuda médicos a te identificarem em emergências</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:18px">
+            <div style="width:160px;height:160px;border-radius:50%;border:2px dashed rgba(0,229,160,0.30);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#fff">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <div style="font-size:10px;font-weight:800;color:#00E5A0;letter-spacing:0.5px;text-transform:uppercase">Toque pra adicionar</div>
+            </div>
+            <div style="font-size:12.5px;color:#6B7280;text-align:center;line-height:1.45;font-weight:500">Uma foto recente, com boa luz e sem óculos escuros</div>
+            <div style="display:flex;gap:8px;width:100%">
+              <button class="q-btn-s" style="flex:1;padding:11px;font-size:12.5px;display:flex;align-items:center;justify-content:center;gap:6px">📷 Câmera</button>
+              <button class="q-btn-s" style="flex:1;padding:11px;font-size:12.5px;display:flex;align-items:center;justify-content:center;gap:6px">🖼 Galeria</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:auto">
+            <button class="q-btn-s" style="padding:14px 18px">‹ Voltar</button>
+            <button class="lg-btn" style="flex:1">Concluir RG da Saúde →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">
+        <div class="name">Passo 7 · Foto do rosto</div>
+        <div class="desc">Câmera ou galeria · cria vita id</div>
+      </div>
+    </div>
+
+    <div class="ann">
+      <div class="ann-card info">
+        <div class="h"><div class="h-ic">i</div><div class="h-ti">Última etapa do quiz</div></div>
+        <p class="p">Foto do rosto pra emergência (médico identifica visualmente). É <strong>obrigatória</strong> hoje (decisão sua: opcional ou obrigatória pra refatoração).</p>
+      </div>
+      <div class="ann-card rule">
+        <div class="h"><div class="h-ic">✓</div><div class="h-ti">Comportamento</div></div>
+        <ul>
+          <li><strong>Câmera</strong> — abre direto a câmera frontal pra selfie.</li>
+          <li><strong>Galeria</strong> — escolhe foto existente do celular.</li>
+          <li>Foto é comprimida automaticamente (1200px, JPEG 80%) antes de subir.</li>
+          <li>Salva em <code>Usuario.fotoUrl</code> — vira fonte única (médico, pré-consultas, QR Code).</li>
+          <li>Botão "Concluir RG da Saúde" → fecha quiz → vai direto pro 2º Onboarding.</li>
+        </ul>
+      </div>
+      <div class="ann-card scenario">
+        <div class="h"><div class="h-ic">→</div><div class="h-ti">Após concluir</div></div>
+        <p class="p">Toast verde aparece: <strong>"RG da Saúde criado!"</strong> e paciente vai direto pro 2º Onboarding (3 telas) e depois quiz V4 da pré-consulta médica. Tudo conectado, sem redirect entre arquivos.</p>
       </div>
     </div>
   </div>
@@ -2095,6 +2575,198 @@
       <div class="ti">App pausa, paciente atende, volta</div>
       <div class="ds">iOS suspende JavaScript ao atender ligação. Gravação corrompe.</div>
       <div class="fix">visibilitychange detecta pausa, salva chunks parciais, oferece "Retomar de onde parou" ao voltar.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ INTEGRAÇÃO TÉCNICA · BANCO + MÉDICO ════════ -->
+<div class="phases" style="background:linear-gradient(135deg,rgba(0,229,160,0.04),rgba(0,180,216,0.04));border-color:rgba(0,229,160,0.15)">
+  <div class="ph-h">Integração técnica · banco + entrega ao médico</div>
+  <div class="ph-sub">O que cada tela faz por baixo dos panos: onde os dados vão, como chegam ao médico, quais erros podem aparecer.</div>
+
+  <!-- BANCO DE DADOS -->
+  <div style="margin-top:32px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:800;color:#00E5A0;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Banco de dados — onde cada coisa fica salva</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px">
+    <div class="bug-card" style="border-color:rgba(0,229,160,0.20)">
+      <div class="lbl" style="color:#00E5A0">Tabela Usuario</div>
+      <div class="ti">Login + perfil + foto</div>
+      <div class="ds">Dados do cadastro (nome, email, celular, senha criptografada). Foto do rosto vai pro Supabase Storage e a URL fica aqui em <code style="color:#00E5A0">fotoUrl</code>.</div>
+      <div class="fix">Preenchido na Etapa 2 (cadastro) + Passo 7 do Quiz vita id (foto)</div>
+    </div>
+    <div class="bug-card" style="border-color:rgba(0,229,160,0.20)">
+      <div class="lbl" style="color:#00E5A0">Tabela PerfilSaude</div>
+      <div class="ti">Quiz vita id (passos 1-3)</div>
+      <div class="ds">Data de nascimento, altura, peso, gênero, tipo sanguíneo, CPF, contato de emergência. <strong>1 paciente = 1 perfilSaude</strong>.</div>
+      <div class="fix">Preenchido nos passos 1, 2 e 3 do Quiz vita id</div>
+    </div>
+    <div class="bug-card" style="border-color:rgba(0,229,160,0.20)">
+      <div class="lbl" style="color:#00E5A0">Tabela Alergia</div>
+      <div class="ti">Lista de alergias</div>
+      <div class="ds">Cada alergia separada como linha (ex: "Dipirona", "Penicilina"). IA normaliza nomes (Novalgina → Dipirona).</div>
+      <div class="fix">Preenchido no Passo 4 do Quiz vita id</div>
+    </div>
+    <div class="bug-card" style="border-color:rgba(0,229,160,0.20)">
+      <div class="lbl" style="color:#00E5A0">Tabela Medicamento</div>
+      <div class="ti">Remédios em uso</div>
+      <div class="ds">Nome, dose, frequência, motivo. Sistema cruza com Alergias automaticamente — alerta vermelho se conflito.</div>
+      <div class="fix">Preenchido no Passo 5 do Quiz vita id</div>
+    </div>
+    <div class="bug-card" style="border-color:rgba(0,229,160,0.20)">
+      <div class="lbl" style="color:#00E5A0">Tabela Exame + ParametroExame</div>
+      <div class="ti">Exames anexados + parâmetros extraídos</div>
+      <div class="ds">PDF/foto vai pro Supabase Storage. Claude Vision lê e extrai parâmetros (hemoglobina, glicose, etc) com valor + referência + status (Normal/Atenção/Crítico).</div>
+      <div class="fix">Preenchido no Passo 6 do Quiz vita id</div>
+    </div>
+    <div class="bug-card" style="border-color:rgba(0,180,216,0.25)">
+      <div class="lbl" style="color:#00B4D8">Tabela PreConsulta</div>
+      <div class="ti">A pré-consulta em si</div>
+      <div class="ds">Token único (vai no link), médico, paciente vinculado, status (PENDENTE → ABERTO → RESPONDIDA), respostas em JSON com a estrutura V4, áudio, summary gerado pela IA.</div>
+      <div class="fix">Atualizado durante toda a Etapa 4 (quiz V4)</div>
+    </div>
+    <div class="bug-card" style="border-color:rgba(245,158,11,0.25)">
+      <div class="lbl" style="color:#F59E0B">Tabela TarefaPendente</div>
+      <div class="ti">Fila de processamento</div>
+      <div class="ds">Quando paciente clica "Enviar pro médico", uma tarefa entra nessa fila. Worker processa em segundo plano: gera summary, áudio TTS, anamnese estruturada.</div>
+      <div class="fix">Criada na Etapa 4 (quando finaliza). Worker resolve em 30s-2min.</div>
+    </div>
+    <div class="bug-card" style="border-color:rgba(139,92,246,0.25)">
+      <div class="lbl" style="color:#A78BFA">Tabela AutorizacaoAcesso</div>
+      <div class="ti">Médico ↔ Paciente vinculado</div>
+      <div class="ds">Quando paciente cria conta respondendo pré-consulta, sistema cria automaticamente a autorização pro médico ver os dados desse paciente. Sem isso, médico não vê.</div>
+      <div class="fix">Criada automaticamente após o login da Etapa 2</div>
+    </div>
+  </div>
+
+  <!-- COMO CHEGA AO MÉDICO -->
+  <div style="margin-top:36px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:800;color:#00B4D8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Como tudo chega ao médico</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px">
+    <div class="bug-card" style="border-color:rgba(0,180,216,0.25)">
+      <div class="lbl" style="color:#00B4D8">Painel desktop do médico</div>
+      <div class="ti">desktop/app.html</div>
+      <div class="ds" style="margin-bottom:10px">Médico abre o navegador no PC, vê dashboard com pré-consultas pendentes/respondidas. Clica numa, abre painel completo:</div>
+      <ul style="list-style:none;padding:0;margin:0">
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.5;padding-left:14px;position:relative;margin-bottom:4px">
+          <span style="position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:#00B4D8"></span>
+          Resumo de 1 minuto em texto + áudio TTS (ElevenLabs)
+        </li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.5;padding-left:14px;position:relative;margin-bottom:4px">
+          <span style="position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:#00B4D8"></span>
+          Anamnese com 11 campos + fonte rastreável (verde/azul/amarelo/cinza)
+        </li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.5;padding-left:14px;position:relative;margin-bottom:4px">
+          <span style="position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:#00B4D8"></span>
+          RG da Saúde do paciente: alergias, medicamentos, condições, exames
+        </li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.5;padding-left:14px;position:relative">
+          <span style="position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:#00B4D8"></span>
+          Padrões observados (cardio, neurológico, etc — IA detecta cruzando dados)
+        </li>
+      </ul>
+      <div class="fix" style="margin-top:10px">JÁ FUNCIONA · refatoração não mexe</div>
+    </div>
+    <div class="bug-card" style="border-color:rgba(0,180,216,0.25)">
+      <div class="lbl" style="color:#00B4D8">Painel celular do médico</div>
+      <div class="ti">25-summary.html</div>
+      <div class="ds" style="margin-bottom:10px">Mesmas informações do desktop, adaptado pra celular. Médico recebe push/email avisando que paciente respondeu, abre no celular antes da consulta.</div>
+      <ul style="list-style:none;padding:0;margin:0">
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.5;padding-left:14px;position:relative;margin-bottom:4px">
+          <span style="position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:#00B4D8"></span>
+          Player Apple-style pro áudio do briefing
+        </li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.5;padding-left:14px;position:relative;margin-bottom:4px">
+          <span style="position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:#00B4D8"></span>
+          Anamnese estruturada idêntica ao desktop
+        </li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.5;padding-left:14px;position:relative">
+          <span style="position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:#00B4D8"></span>
+          Card "Pontos de atenção" com red flags clínicos
+        </li>
+      </ul>
+      <div class="fix" style="margin-top:10px">JÁ FUNCIONA · refatoração não mexe</div>
+    </div>
+  </div>
+
+  <!-- WORKER -->
+  <div style="margin-top:36px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:800;color:#F59E0B;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Trabalhador automático (worker) que processa em segundo plano</div>
+  </div>
+
+  <div class="bug-card" style="border-color:rgba(245,158,11,0.25);max-width:none">
+    <div class="lbl" style="color:#F59E0B">Worker do Railway</div>
+    <div class="ti">Processa TarefaPendente a cada 30 segundos</div>
+    <div class="ds" style="margin-bottom:10px">Quando paciente envia, a tarefa entra na fila. Worker pega e:</div>
+    <ol style="padding-left:18px;margin:0">
+      <li style="font-size:12.5px;color:#C4C9D4;line-height:1.6;font-weight:500;margin-bottom:5px"><strong>Whisper transcreve cada áudio</strong> (já fez no momento da resposta, mas worker reconfere e concatena tudo).</li>
+      <li style="font-size:12.5px;color:#C4C9D4;line-height:1.6;font-weight:500;margin-bottom:5px"><strong>Gemini gera o summary de 1 minuto</strong> + anamnese estruturada com 11 campos.</li>
+      <li style="font-size:12.5px;color:#C4C9D4;line-height:1.6;font-weight:500;margin-bottom:5px"><strong>ElevenLabs gera áudio TTS</strong> em PT-BR (voz brasileira).</li>
+      <li style="font-size:12.5px;color:#C4C9D4;line-height:1.6;font-weight:500;margin-bottom:5px"><strong>Pipeline V2 detecta padrões clínicos</strong> (cefaleia, cardio, etc) cruzando perguntas + medicamentos + alergias.</li>
+      <li style="font-size:12.5px;color:#C4C9D4;line-height:1.6;font-weight:500"><strong>Tudo é salvo em PreConsulta.summaryJson</strong> — telas do médico leem dali.</li>
+    </ol>
+    <div class="fix" style="margin-top:14px">Tempo total: 30s a 2min após envio · Retry automático: 30s, 2min, 10min, 30min, 2h se falhar</div>
+  </div>
+
+  <!-- POSSÍVEIS ERROS POR ETAPA -->
+  <div style="margin-top:36px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:800;color:#EF4444;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Possíveis erros por etapa · plano B de cada</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px">
+    <div class="bug-card">
+      <div class="lbl">Cadastro / Login</div>
+      <div class="ti">Erros possíveis</div>
+      <ul style="list-style:none;padding:0;margin:6px 0 10px">
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative;margin-bottom:3px"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Email já cadastrado → modo login com email pré-preenchido</li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative;margin-bottom:3px"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Google OAuth falhou → fallback pra email/senha</li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Senha fraca → aviso inline ("Adiciona um número")</li>
+      </ul>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Quiz vita id</div>
+      <div class="ti">Erros possíveis</div>
+      <ul style="list-style:none;padding:0;margin:6px 0 10px">
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative;margin-bottom:3px"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>CPF inválido → erro inline + permite corrigir</li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative;margin-bottom:3px"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Foto muito grande → comprime automaticamente antes de subir</li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative;margin-bottom:3px"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Exame não-legível → marca como "extração manual depois"</li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Conflito alergia↔medicamento → alerta vermelho ANTES de salvar</li>
+      </ul>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Quiz V4 (pré-consulta)</div>
+      <div class="ti">Erros possíveis</div>
+      <ul style="list-style:none;padding:0;margin:6px 0 10px">
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative;margin-bottom:3px"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Whisper retornou lixo → mostra falha educativa amarela</li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative;margin-bottom:3px"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Gemini confiança baixa → pede confirmação ao paciente</li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative;margin-bottom:3px"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Falha de rede no envio → fila local + retry exponencial</li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Cobertura &lt; 11 → bloqueia botão "Enviar"</li>
+      </ul>
+    </div>
+    <div class="bug-card">
+      <div class="lbl">Worker / IA</div>
+      <div class="ti">Erros possíveis</div>
+      <ul style="list-style:none;padding:0;margin:6px 0 10px">
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative;margin-bottom:3px"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Gemini fora do ar → fallback Claude</li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative;margin-bottom:3px"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>ElevenLabs caiu → summary só em texto, sem TTS</li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative;margin-bottom:3px"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>5 tentativas falharam → marca como DEAD, médico vê badge "Conteúdo curto"</li>
+        <li style="font-size:11.5px;color:#9CA3AF;line-height:1.55;padding-left:14px;position:relative"><span style="position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:#EF4444"></span>Lucas pode rodar regenerarSummary manualmente via console</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- AVISO FINAL: REGRA CRÍTICA DO BANCO -->
+  <div style="margin-top:36px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.20);border-radius:18px;padding:22px 26px">
+    <div style="display:flex;align-items:flex-start;gap:14px">
+      <div style="width:34px;height:34px;border-radius:12px;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;color:#EF4444;flex-shrink:0;font-weight:900;font-size:18px">!</div>
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#EF4444;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:6px">Regra inviolável · refatoração só toca no frontend</div>
+        <p style="font-size:13.5px;color:#C4C9D4;line-height:1.55;font-weight:500">Em <strong>17/04/2026</strong>, outra sessão Claude apagou dados de produção reais ao mexer no banco (paciente Daniel + autorizações). O CLAUDE.md tem aviso permanente sobre isso.</p>
+        <p style="font-size:12.5px;color:#9CA3AF;line-height:1.55;font-weight:500;margin-top:8px"><strong>Eu NÃO vou:</strong> tocar no banco · alterar tabelas Prisma · mexer em endpoints · alterar o worker · mexer nas telas do médico (desktop/app.html, 25-summary.html). Só substituo o frontend do paciente. Tudo o que tá aqui em cima de banco e médico <strong>continua igual e segue funcionando como hoje</strong>.</p>
+      </div>
     </div>
   </div>
 </div>
