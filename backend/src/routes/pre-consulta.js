@@ -1048,10 +1048,36 @@ router.post('/t/:token/responder-pergunta', v4ChunkUpload.single('audioChunk'), 
     }
 
     // ────────────────────────────────────────────────────────────────
+    // FIX: Se classificador disse que NAO respondeu em modo audio/texto,
+    // NAO tenta salvar — retorna 200 com motivo pro frontend mostrar
+    // "Nao captei sua fala" e paciente tentar de novo. Sem isso, o codigo
+    // tentava salvar com valor=null e validarRespostaV4 rejeitava com 400,
+    // que o frontend antigo traduzia errado como "internet falhou".
+    // ────────────────────────────────────────────────────────────────
+    if ((modo === 'audio' || modo === 'texto') && !resultadoClassificador.respondeu) {
+      return res.status(200).json({
+        modo,
+        respondeu: false,
+        valor: null,
+        confianca: resultadoClassificador.confianca || 0,
+        motivo: resultadoClassificador.motivo || (modo === 'audio' ? 'transcricao_falhou' : 'sem_resposta'),
+        transcricao,
+        audioUrl,
+        perguntaId,
+      });
+    }
+
+    // Fallback: se classificador retornou respondeu=true mas valor=null em modo audio,
+    // usa transcricao bruta como valor (pelo menos tem ALGUMA coisa salva).
+    const valorFinal = resultadoClassificador.valor
+      || (modo === 'audio' && transcricao ? transcricao.slice(0, 200) : null)
+      || (modo === 'texto' ? transcricao : null);
+
+    // ────────────────────────────────────────────────────────────────
     // SALVAR no banco
     // ────────────────────────────────────────────────────────────────
     const novaResposta = v4.criarResposta({
-      valor: resultadoClassificador.valor || (modo === 'texto' ? transcricao : null),
+      valor: valorFinal,
       modo,
       confianca: resultadoClassificador.confianca,
       transcricaoBruta: transcricao,
@@ -1061,8 +1087,20 @@ router.post('/t/:token/responder-pergunta', v4ChunkUpload.single('audioChunk'), 
 
     const validacao = v4.validarRespostaV4(novaResposta);
     if (!validacao.ok) {
-      console.error('[V4 RESPONDER] Validação falhou:', validacao.erro);
-      return res.status(400).json({ erro: validacao.erro });
+      console.error('[V4 RESPONDER] Validação falhou:', validacao.erro, 'novaResposta:', JSON.stringify(novaResposta));
+      // Em vez de 400 (que viraria erro pro paciente), retorna 200 com motivo
+      // pro frontend mostrar "Nao captei sua fala" e paciente refazer.
+      return res.status(200).json({
+        modo,
+        respondeu: false,
+        valor: null,
+        confianca: 0,
+        motivo: 'transcricao_falhou',
+        transcricao,
+        audioUrl,
+        perguntaId,
+        debugErro: validacao.erro,
+      });
     }
 
     const respostasAtualizadas = v4.salvarRespostaNoEstado(
