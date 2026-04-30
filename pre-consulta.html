@@ -1714,10 +1714,18 @@ async function processarAudio(blob) {
   const p = ESTADO.perguntas[ESTADO.perguntaAtualIdx];
   const dados = { perguntaId: p.id, modo: 'audio', attemptId: ESTADO.attemptId };
 
+  // Sanity-check do blob — se tá vazio ou minúsculo, é problema de captura, não de rede
+  if (!blob || blob.size < 500) {
+    console.error('[AUDIO] Blob inválido:', blob && blob.size, 'bytes');
+    return mostrarFalha('sem_voz');
+  }
+  console.log('[AUDIO] Enviando chunk de', blob.size, 'bytes, tipo:', blob.type);
+
   const timeoutLento = setTimeout(() => {
     mostrarBanner('info', '<strong>Sua internet tá lenta.</strong> Sua fala foi gravada, segura aí.');
   }, CFG.redeLentaMs);
 
+  let respStatus = 0;
   try {
     const fd = new FormData();
     fd.append('audioChunk', blob, 'chunk.webm');
@@ -1726,11 +1734,19 @@ async function processarAudio(blob) {
     const resp = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token + '/responder-pergunta', {
       method: 'POST', body: fd, headers: authHeaders()
     });
+    respStatus = resp.status;
     clearTimeout(timeoutLento);
     limparBanner();
 
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    if (!resp.ok) {
+      // Captura corpo do erro pra logar
+      let corpo = '';
+      try { corpo = await resp.text(); } catch(_) {}
+      console.error('[AUDIO] Backend retornou ' + resp.status, corpo);
+      throw new Error('HTTP ' + resp.status + (corpo ? ' — ' + corpo.slice(0, 200) : ''));
+    }
     const r = await resp.json();
+    console.log('[AUDIO] Resposta do backend:', r);
 
     if (!r.respondeu || r.confianca < CFG.thresholdAmbiguo) return mostrarFalha(r.motivo || 'sem_resposta');
 
@@ -1744,8 +1760,21 @@ async function processarAudio(blob) {
     }
   } catch (err) {
     clearTimeout(timeoutLento);
-    console.error('processarAudio:', err);
-    mostrarFalha('rede');
+    console.error('[AUDIO] processarAudio falhou — status:', respStatus, 'erro:', err);
+    // Distingue erro de rede REAL vs erro do servidor
+    if (respStatus === 0) {
+      // fetch falhou antes de receber resposta — rede de verdade
+      mostrarFalha('rede');
+    } else if (respStatus >= 500) {
+      // Servidor caiu
+      mostrarFalha('servidor');
+    } else if (respStatus >= 400) {
+      // Backend rejeitou — provavelmente token, campo, etc
+      mostrarFalha('backend', err.message);
+    } else {
+      // JSON parse falhou ou erro inesperado
+      mostrarFalha('rede');
+    }
   }
 }
 
@@ -1762,19 +1791,28 @@ function mostrarAmbiguo(valor, classificResp) {
   irPara('ambiguo');
 }
 
-function mostrarFalha(motivo) {
+function mostrarFalha(motivo, detalhe) {
   let titulo = 'Acho que não te ouvi bem';
   let dica = '<strong>Não é problema seu.</strong> Pode ter sido barulho ou o celular um pouco longe da boca. Tenta de novo, falando com calma.';
 
   if (motivo === 'sem_voz') {
     titulo = 'Não consegui te ouvir';
-    dica = '<strong>Não é problema seu.</strong> O microfone pode ter ficado muito longe ou houve barulho. Aproxima do rosto e tenta de novo.';
+    dica = '<strong>O microfone não captou sua voz.</strong> Aproxima do rosto, fala um pouco mais alto, e tenta de novo. Se preferir, dá pra responder digitando — link embaixo.';
   } else if (motivo === 'transcricao_falhou' || motivo === 'transcricao_vazia') {
-    titulo = 'Não captei sua fala';
-    dica = '<strong>Não é problema seu.</strong> Pode ter sido conexão ruim. Tenta de novo — sua resposta tá segura.';
+    titulo = 'Não captei o que você disse';
+    dica = '<strong>O áudio chegou, mas não conseguimos transcrever.</strong> Pode ter sido barulho de fundo ou voz baixa. Tenta de novo falando perto do celular.';
   } else if (motivo === 'rede') {
-    titulo = 'Sua internet falhou';
-    dica = '<strong>Não perdeu nada.</strong> Sua fala foi gravada. Quando a internet voltar, pode tentar enviar de novo.';
+    titulo = 'Sem conexão com o servidor';
+    dica = '<strong>Não perdeu nada — sua fala tá gravada no celular.</strong> Verifica sua internet (WiFi ou 4G) e tenta de novo. Se persistir, pode digitar a resposta no campo acima.';
+  } else if (motivo === 'servidor') {
+    titulo = 'Servidor com problema temporário';
+    dica = '<strong>Não é sua internet — é nosso servidor.</strong> Sua fala foi gravada no celular. Espera uns segundos e tenta de novo.';
+  } else if (motivo === 'backend') {
+    titulo = 'Não conseguimos processar';
+    dica = '<strong>Tivemos um problema enviando seu áudio.</strong> Tenta de novo. Se persistir, pode digitar a resposta no campo acima.' + (detalhe ? '<br><br><span style="font-size:11px;color:var(--ink-4)">Detalhe técnico: ' + escapeHtml(traduzirErro(detalhe)) + '</span>' : '');
+  } else if (motivo === 'sem_resposta') {
+    titulo = 'Não entendi sua resposta';
+    dica = '<strong>Sua fala foi captada, mas não bateu com a pergunta.</strong> Tenta responder de novo, ou se preferir digita a resposta.';
   }
 
   el('falhaTitulo').textContent = titulo;
