@@ -1020,7 +1020,17 @@ router.post('/t/:token/responder-pergunta', v4ChunkUpload.single('audioChunk'), 
         });
       }
 
-      resultadoClassificador = await classificarRespostaIndividual(perguntaTemplate, transcricao);
+      // CAMINHO A (Sessao 17, 30/04/2026): IA NAO julga mais respostas de audio.
+      // Transcreveu? Salva como resposta direta. Paciente confirma na tela seguinte.
+      // Decisao do Lucas apos bug recorrente do classificador rejeitar respostas validas
+      // ("muito forte" sem numero, "faz uns dias" vago) com mensagem enganosa de "audio falhou".
+      // Trade-off aceito: medico recebe transcricao bruta em vez de valor estruturado.
+      resultadoClassificador = {
+        respondeu: true,
+        valor: transcricao.trim().slice(0, 500),
+        confianca: 1,
+        motivo: 'audio_direto',
+      };
     }
 
     // ────────────────────────────────────────────────────────────────

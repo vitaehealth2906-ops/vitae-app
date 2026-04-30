@@ -576,6 +576,57 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 17 — 30/04/2026 (PC casa) — Caminho A: IA nao julga audio
+
+**Contexto:** Lucas voltou pro PC de casa apos sessao no notebook (Sessao 16 com 10+ commits). Reportou que o bug do audio AINDA persiste mesmo apos os fixes da Sessao 16: paciente grava no celular e ve "Acho que nao te ouvi bem" ou "Internet falhou" mesmo com internet/microfone OK.
+
+**Diagnostico (sem mexer em codigo, so investigacao):**
+
+A Sessao 16 corrigiu 3 dos 4 caminhos do erro (backend rejeitando 400, navigator.onLine falso positivo, threshold RMS de captura). Mas o 4o caminho ficou de fora: o **classificador rigoroso demais**.
+
+Fluxo problematico:
+1. Paciente fala normal → Whisper transcreve OK
+2. Gemini classifica como "respondeu=false" ou "confianca < 0.60"
+3. Frontend mostra `mostrarFalha('sem_resposta')` → mensagem **"Acho que nao te ouvi bem"**
+
+A mensagem e **enganosa** — sugere falha de audio, mas e falha de **classificacao**. O classificador tem instrucao no prompt: "Seja rigoroso na confianca: so acima de 0.85 quando tem certeza absoluta. Prefira erro de subestimacao ao erro de alucinacao." Combinado com `thresholdAmbiguo: 0.60` no frontend, qualquer resposta vaga ("muito forte", "faz uns dias") cai em mostrarFalha.
+
+**Decisao do Lucas (CEO):** Caminho A — Remover totalmente o juiz no audio. IA vira so "secretaria" — transcreve e salva direto. Paciente sempre confirma ou regrava na tela seguinte.
+
+3 caminhos foram apresentados:
+- A: remover juiz totalmente (escolhido)
+- B: manter juiz mas sempre mostrar confirmacao (recomendacao tecnica)
+- C: afrouxar regua do classificador
+
+Lucas escolheu A pela simplicidade e pela frustracao acumulada com o bug. Aceitou trade-off: medico recebe transcricao bruta em vez de valor estruturado (ex: "ah faz uns 3 semanas" em vez de "3 semanas" limpo).
+
+**Implementacao (mudanca minima, cirurgica):**
+
+`backend/src/routes/pre-consulta.js` linha ~1023:
+- Removida chamada `classificarRespostaIndividual` no modo audio
+- Substituida por objeto fixo: `{ respondeu: true, valor: transcricao.slice(0, 500), confianca: 1, motivo: 'audio_direto' }`
+- Modo texto MANTEM o classificador (texto nao tem problema reportado e ajuda a estruturar)
+
+Frontend `pre-consulta.html` NAO precisou ser mexido — como `confianca=1 >= thresholdConfianca=0.85`, o fluxo entra naturalmente em `mostrarConfirmacao(transcricao)` que mostra a tela de confirmar/refazer. Detecao de transcricao_vazia/falhou (erros REAIS de audio) preservada.
+
+**Arquivos modificados:** `backend/src/routes/pre-consulta.js` (4 linhas trocadas + comentario explicativo)
+
+**Pendencias da Sessao 16 que continuam abertas (Lucas testa apos esse fix subir):**
+1. Cadastro novo + quiz vita id (email novo)
+2. Quiz V4 com audio real no iPhone — agora sem rejeicao por classificador
+3. Editar resposta na revisao (pre-preenchimento)
+4. Confirmar medico recebe paciente vinculado
+5. Bug Google Sign-In Alvaro (config Console pendente)
+
+**Pegadinhas pra proximas sessoes:**
+- Anamnese estruturada (11 campos no `desktop/app.html`) NAO foi afetada — esse sistema roda no FINAL da pre-consulta, em cima da transcricao+formulario completo. So o classificador pergunta-por-pergunta foi removido.
+- Modo texto continua estruturando ("3 semanas" extraido de "uns três semanas"). Inconsistencia aceita por Lucas em troca de paciente nao bloquear.
+- Threshold RMS 0.006 e thresholds de confianca 0.85/0.60 viraram codigo morto em modo audio mas estao preservados no codigo (custos zero, futura reativacao se Lucas mudar de ideia).
+
+**Skills usadas:** Grep + Read pra mapear o fluxo. Edit minimo.
+
+---
+
 ### Sessao 16 — 29/04 a 30/04/2026 — V4 quiz hibrido + Refator unico + 7 bugs UX + Tradutor de erros + Bug audio raiz
 
 **Contexto:** Sessao MASSIVA de 2 dias atravessando varios PCs e contextos (notebook + PC casa). Comecou com finalizacao do V4 (quiz hibrido Duolingo-style) e evoluiu pra refator completo de arquitetura por causa de bugs em cadeia.
