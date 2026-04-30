@@ -1257,6 +1257,7 @@
         }
 
         try {
+            console.log('[QUIZ] Enviando profileData:', JSON.stringify(profileData, null, 2));
             await vitaeAPI.atualizarPerfil(profileData);
             if (formData.fotoUrl) {
                 try { await vitaeAPI.uploadFoto(formData.fotoUrl); }
@@ -1264,8 +1265,9 @@
             }
             saveSuccess = true;
         } catch (e) {
-            console.error('[QUIZ] Erro ao salvar:', e);
-            const errMsg = e.message || 'Erro de conexão';
+            console.error('[QUIZ] Erro ao salvar perfil. profileData enviado:', profileData);
+            console.error('[QUIZ] Erro completo:', e);
+            const errMsg = (e && e.message) ? e.message : 'Erro de conexão';
             // Show error in UI
             const btn = document.getElementById('btnConcluir');
             if (btn) {
@@ -1280,7 +1282,15 @@
                 }, 4000);
             }
             _concluindo = false; // libera pra retry
-            alert('Não foi possível salvar: ' + errMsg);
+            // Mostra erro detalhado do backend (Zod retorna lista de campos invalidos)
+            // Ex: "Dados invalidos. Verifique os campos\nalturaCm: Altura minima 50cm\ncpf: CPF deve ter 11 digitos"
+            let detalhe = errMsg;
+            // Tenta extrair só o nome do campo problematico pra ficar amigavel
+            const linhas = errMsg.split('\n').filter(Boolean);
+            if (linhas.length > 1) {
+              detalhe = 'Verifica esses campos:\n\n' + linhas.slice(1).map(l => '• ' + l).join('\n');
+            }
+            alert(detalhe);
             return;
         }
 
