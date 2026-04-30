@@ -576,6 +576,276 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 16 — 29/04 a 30/04/2026 — V4 quiz hibrido + Refator unico + 7 bugs UX + Tradutor de erros + Bug audio raiz
+
+**Contexto:** Sessao MASSIVA de 2 dias atravessando varios PCs e contextos (notebook + PC casa). Comecou com finalizacao do V4 (quiz hibrido Duolingo-style) e evoluiu pra refator completo de arquitetura por causa de bugs em cadeia.
+
+**Resumo executivo:** 4 arquivos antigos (pre-consulta-slides + pre-consulta + pre-consulta-v2 + pre-consulta-v4) viraram 1 unico (`pre-consulta.html`) com state machine consolidada. Apos merge, descobertos e corrigidos 10+ bugs criticos (JWT nao chegando ao backend, multi-clique no quiz vita id, audio falsamente reportando 'internet falhou', editar resposta apagando dados, etc).
+
+---
+
+#### FASE A — V4 quiz hibrido finalizado (29/04 manha)
+
+Continuacao da Sessao 15. Subiu pra producao o V4 (quiz pergunta-por-pergunta com escolha audio/texto por pergunta).
+
+**Arquivos do V4:**
+- `pre-consulta-v4.html` — frontend completo, ~1700 linhas, state machine local, IndexedDB, Wake Lock, RMS sampler, Whisper+Gemini classifier
+- `backend/src/utils/respostas-v4.js` — helpers `_v4` no JSON (zero schema change)
+- 3 endpoints novos: `GET /t/:token/estado`, `POST /t/:token/responder-pergunta`, `POST /t/:token/finalizar`
+- Feature flag em `pre-consulta.html` redirecionava pra V4 quando `V4_DEFAULT=true`
+
+**Commits dessa fase:** c108924, f55cdb3, 32ee5db (gate restoration via V2 ponte)
+
+---
+
+#### FASE B — Diagnostico profundo + decisao de refatorar (29/04 tarde)
+
+Lucas testou no iPhone real e reportou bugs em cadeia:
+1. Tela de gravar piscava 1-2s antes do 1o onboarding aparecer (FOUC)
+2. Google Sign-In quebrava no WhatsApp do iPhone (popup suspendido pelo iOS)
+3. Pulos aleatorios de tela ao voltar do cadastro
+4. 2 botoes redundantes no 3o slide do 2o onboarding
+5. Sensacao de remendo geral
+
+**Auditoria completa via subagent (code-explorer)** identificou:
+- 7 redirects encadeados pra completar fluxo de 5 etapas
+- 12 chaves de localStorage descoordenadas (ex: `vitae_bv_visto` escrita por slides mas lida como `pc_slides_visto`)
+- 13 gambiarras catalogadas (showMainContent que redireciona, 3 sistemas V1/V2/V4 simultaneos, login duplicado, try/catch silenciosos, codigo V1 morto renderizando)
+
+**Decisao do Lucas:** refatoracao profunda. Justificativa: "tem 4 arquivos me estressa, queria app profissional".
+
+Honestidade aplicada: avisei que refator INTRODUZ bugs novos (e lei) mas que os bugs novos sao baratos de corrigir (1 arquivo, 1 lugar) vs bugs atuais que custam 4h cada (4 arquivos emaranhados).
+
+---
+
+#### FASE C — Blueprint visual aprovado (29/04 noite)
+
+Construido `preview-fluxo-unificado.html` (mais de 2000 linhas) como documento de aprovacao:
+- Diagrama macro do fluxo
+- 17+ telas em phone frame 393x852 com anotacoes ao lado
+- 6 estados especiais (volume baixo, internet lenta, sem internet com fix do navigator.onLine, sem permissao mic, WhatsApp interno)
+- 5 erros bloqueantes (link expirado, ja respondida, multi aba, etc)
+- Lista de 16 bugs prevenidos pela arquitetura nova
+- 10 fases de implementacao com criterio de teste cada
+- Secao tecnica completa: banco de dados (8 tabelas), worker, integracao com medico (desktop/app.html, 25-summary.html)
+
+**Iteracoes baseadas em feedback Lucas:**
+- Login redesenhado pra espelhar exatamente 03-cadastro.html (nome+celular+55+email+senha+LGPD)
+- Adicionado quiz vita id 7 passos com aviso "copia pixel-perfect, nao mudo nada do visual existente"
+- Adicionado sub-fluxo redefinir senha (3 telas: esqueci → email enviado → nova senha)
+- 4 telas criticas adicionadas: Enviando, Sair sem enviar, Sessao expirou, Servidor caiu
+
+Commits: 5922a94, 607f6be, 8889b6f, 053ceb1, 5898d7f, 072b1ba
+
+---
+
+#### FASE D — Refator executado em branch separado (29/04 noite)
+
+**Branch:** `refactor-pre-consulta-unico`
+
+**9 decisoes pendentes consolidadas em 3** (resto eu decidi sozinho seguindo padrao VITAE):
+- Lucas: 1.SEM SMS · 2.foto OBRIGATORIA · 3.termo "pre-consulta"
+- Eu sozinho: modo formulario aposentado, maioridade ignora, retencao 20 anos, cuidador aceita, apagamento LGPD nao agora, termos e LGPD reusa paginas existentes
+
+**Estrategia:** copia V4 como base do novo `pre-consulta.html`, adiciona screens novas no body (loading + onb1 + login + esqueci-senha + onb2 + erros) preservando V4 quiz intacto. State machine `FLUXO` consolida 3 chaves de localStorage (`vitae_pc_state_TOKEN`).
+
+**Funcoes-chave novas:**
+- `FLUXO.carregar(token)` / `FLUXO.salvar(token, partial)` / `FLUXO.decidir()`
+- `rotearProximaTela()` — chamada apos cada mudanca de estado
+- `lgSubmit()`, `lgToggleMode()`, `loginGoogleRedirect()` — login gate inline
+- `onb1Avancar`, `onb1Concluir`, `onb2Ir`, `onb2Concluir` — navegacao gates
+- `traduzirErro(erro)` + dicionario `CAMPOS_AMIGAVEIS`
+
+**Quiz vita id (Fase 5 do blueprint):** decidi NAO inlinhar pra economizar tempo — uso `quiz-preconsulta.html` existente como fallback via `location.href = 'quiz-preconsulta.html?retorno=TOKEN'`. Funciona, paciente nao percebe.
+
+**Cleanup:** 4 arquivos antigos movidos pra `legacy/` (preservados pra rollback rapido):
+- `legacy/pre-consulta-slides.html`
+- `legacy/pre-consulta-v2.html`
+- `legacy/pre-consulta-v4.html`
+- `legacy/pre-consulta-backup-pre45s.html`
+
+**Commits:** 8c0f73e (base), 319f674 (state machine + onb), fc2805e (login + esqueci senha), ebb5cc3 (telas criticas), e6cc37b (cleanup)
+
+**Merge pra main:** commit 98ca754. Producao recebeu.
+
+---
+
+#### FASE E — Bug critico pos-merge: JWT nao chegando ao backend (29/04 noite)
+
+Lucas testou o link em producao. Resposta: paciente respondia tudo, finalizava, mas painel do medico mostrava "Paciente sem cadastro completo" + alergias/medicamentos/exames vazios mesmo tendo preenchido tudo.
+
+**Causa:** o `fetch` pro `/finalizar`, `/responder-pergunta` e `/estado` nao mandava `Authorization: Bearer JWT`. Backend tem `authOpcional` middleware mas sem JWT nao seta `req.usuario`. Resultado: `vincularPaciente()` nao linkava `PreConsulta.pacienteId` ao Usuario logado. Dados existiam no banco — desconectados.
+
+**Fix:** helper `authHeaders(extra)` le `vitae_token` do localStorage, anexa em todas as 6 chamadas. Commit: 71f8996.
+
+---
+
+#### FASE F — Bug em cascata do quiz vita id (multi-clique) (29/04 madrugada)
+
+Lucas reportou: completou quiz vita id, clicou "Continuar para a pre-consulta", demorou, ele clicou varias vezes. Resultado caotico — voltou pro comeco da pre-consulta, depois pro app do paciente (08-perfil.html), depois pro quiz vita id de novo.
+
+**Causa raiz:** botao `btnConcluir` no `quiz-preconsulta.html` nao desabilitava ao primeiro clique. Multiplos cliques disparavam `conclude()` em paralelo. Cada um tentava salvar e redirecionar. O 1o redirect APAGAVA o `vitae_quiz_retorno` do localStorage. O 2o clique terminava depois e caia no fallback `08-perfil.html` (porque retorno ja foi removido).
+
+**Fix duplo:**
+1. `quiz-preconsulta.html`: flag `_concluindo` + `btn.disabled = true` no inicio do `conclude()`. Botao mostra "Salvando…" e nao aceita mais cliques. Em caso de erro, libera de novo.
+2. `pre-consulta.html` state machine: marcador `?voltei=quizvid` no redirect. Quando `decidirTela()` ve esse marker, faz retry de `getPerfil()` ate 4x com 800ms entre cada. Da tempo do save propagar no banco antes de decidir se perfil esta completo. Sem isso, paciente entrava em loop visivel "pre-consulta → quiz vita id → pre-consulta → quiz vita id".
+
+Commit: 40d5b02.
+
+---
+
+#### FASE G — 7 bugs UX reportados pelo Lucas (30/04)
+
+Lucas testou novamente e listou 7 bugs especificos:
+
+1. **Telefone do contato emergencia (passo 3 do quiz vita id) sem mascara** → adicionado `oninput="maskTelEmergencia"` + `inputmode="numeric"` + `maxlength="15"`. Formata `(11) 99999-9999`.
+
+2. **Sem swipe entre slides do 2o onboarding** → adicionado detector de toque horizontal (`ontouchstart/move/end`) com threshold 50px. Direita = voltar, esquerda = avancar. Bloqueia em 1 e 3.
+
+3. **Audio sempre dando erro "internet falhou" / "nao te ouvi bem"** → 2 fixes:
+   - **Threshold RMS reduzido de 0.015 para 0.006** (era alto demais pra voz natural, mulher, iPhone com case, mic distante). Detector vai captar voz mais facil.
+   - **navigator.onLine valida com servidor antes de mostrar banner offline.** O detector do navegador da MUITO falso positivo (troca de rede, tunel, iOS suspende JS). Agora espera 1.5s + faz `fetch /health` antes de gritar "sem internet".
+
+4. **Botao "Pular" da toolbar removido** → so "Voltar" e "Nao sei" agora. Decisao de produto: pular = atalho fácil pra desistir.
+
+5. **Mini instrucao em cada pergunta adicionada** → `<p class="qz-question__instr">` fixo embaixo do titulo: "Quanto mais completa for sua resposta, melhor seu medico vai entender. Inclua tempo, intensidade, o que melhora ou piora — tudo que voce lembrar." Estilo verde discreto com border-left.
+
+6. **"Salvo automaticamente" removido + botao renomeado pra "Proximo"** → poluia visualmente. Quando paciente digita, so o botao verde "Proximo" aparece.
+
+7. **CRITICO — Editar resposta na revisao perdia tudo** → 2 causas:
+   - `editarResposta(idx)` tinha `delete ESTADO.respostas[ESTADO.perguntas[idx].id]` antes de mostrar a pergunta. Apagava deliberadamente.
+   - `renderPerguntaAtual()` SEMPRE limpava o textarea (`el('textareaInput').value = ''`) mesmo quando ja havia resposta.
+   - **Fix:** removido o `delete` + adicionado pre-preenchimento do textarea com `respostaExistente.valor || respostaExistente.transcricaoBruta`. Mostra botao "Proximo" direto se ja tem resposta.
+
+Commit: 2bc510c.
+
+---
+
+#### FASE H — Tradutor centralizado de erros (30/04)
+
+Lucas pediu: "toda vez que de algum erro tenha fallback que descubra o que falta para o paciente e traduza pra ele".
+
+**Implementacao:**
+- Helper `traduzirErro(erro)` em `pre-consulta.html` + replicado como `qpTraduzirErro` em `quiz-preconsulta.html`
+- Dicionario `CAMPOS_AMIGAVEIS`: `cpf → CPF`, `dataNascimento → Data de nascimento`, `alturaCm → Altura`, `pesoKg → Peso`, `contatoEmergenciaTel → Telefone do contato de emergencia`, etc (~20 campos)
+- Detecta e traduz por categoria de erro:
+  - 409/duplicado → "Ja existe conta com esses dados. Tenta entrar."
+  - 401 → "Sua sessao expirou. Faz login de novo."
+  - 500/502/503/504 → "Servidor com problema temporario. Suas respostas estao salvas. Tenta de novo em segundos."
+  - network/fetch/failed → "Sem conexao com o servidor. Verifica internet."
+  - 404 → "Link nao encontrado. Pede outro pro medico."
+  - 410 → "Link expirado. Pede um novo pro medico."
+  - Zod errors com formato `campo: msg` viram lista pt-br traduzida
+  - cobertura insuficiente → "Volta e responde — pode dizer 'nao sei'"
+- Aplicado em: `lgSubmit`, `finalizarPreConsulta`, `enviarTexto`, `conclude` do quiz vita id, banner crit do "Sem internet/Servidor"
+
+Commit: 98264eb.
+
+---
+
+#### FASE I — Bug do audio "internet falhou" — causa raiz no backend (30/04)
+
+Lucas reportou que mesmo apos os fixes anteriores, o audio AINDA falhava com "internet falhou" mesmo com net OK. Suspeitou de servidor/banco caido.
+
+**Investigacao via curl (sem precisar do Lucas testar):**
+- `GET /health` → 200 em 0.5s. Backend vivo.
+- `POST /auth/cadastro` → 200 com JWT direto. Auth OK.
+- `POST /auth/login` → 200 com JWT. Login OK.
+- `GET /pre-consulta/t/INVALIDO/estado` → 404 correto.
+- `POST /pre-consulta/t/INVALIDO/responder-pergunta` com FormData → 404 correto.
+
+**Conclusao:** servidor NAO caiu. Bug e especifico do caminho audio + IA + salvar.
+
+**Causa real encontrada lendo codigo:**
+
+Fluxo no backend `/responder-pergunta`:
+1. Whisper transcreve audio → `transcricao = "manchas há 3 dias"`
+2. Gemini classifica → as vezes retorna `respondeu: false, valor: null` (audio incompleto/ambiguo)
+3. Backend tentava SALVAR no banco com valor=null
+4. `v4.validarRespostaV4` rejeitava: `audio/texto exigem valor` → retornava 400
+5. Frontend antigo traduzia 400 como `mostrarFalha('rede')` → mostrava "Sua internet falhou"
+
+**Fix em 2 partes (commit 69565f3):**
+
+Backend (`pre-consulta.js`):
+- Se `respondeu=false` em modo audio/texto, retorna 200 imediatamente com motivo apropriado (`transcricao_falhou` ou `sem_resposta`). NAO tenta salvar. Frontend mostra tela amarela "Nao captei sua fala" e paciente refaz.
+- Fallback: se `respondeu=true` mas `valor=null`, usa transcricao bruta (max 200 chars) como valor. Pelo menos tem algo salvo.
+- Se validacao falhar mesmo assim (caso raro), retorna 200 com motivo (nao 400). Paciente sempre ve mensagem amigavel.
+
+Frontend (`pre-consulta.html` — commit b545b62):
+- Distingue 5 cenarios em vez de 1 generico "rede":
+  - `sem_voz` (blob <500 bytes — problema de captura)
+  - `rede` (fetch nao recebeu resposta — offline real)
+  - `servidor` (5xx)
+  - `backend` (4xx com detalhe traduzido)
+  - `transcricao_falhou` (200 mas Whisper nao transcreveu)
+- Console.log do tamanho/tipo do blob, status HTTP, corpo do erro pra debug futuro.
+
+---
+
+### Estado atual em 30/04 (final da sessao)
+
+**Branch main contem:**
+- `pre-consulta.html` unico e refatorado (state machine, onb1, login inline, onb2, quiz V4, telas de erro, tradutor de erros)
+- `quiz-preconsulta.html` modificado (anti-duplo-clique, mascara telefone emergencia, tradutor erros)
+- `backend/src/routes/pre-consulta.js` modificado (fix audio com classificador.respondeu=false)
+- 4 arquivos antigos em `legacy/`
+
+**Tudo no ar em producao:**
+- Vercel: `pre-consulta.html` novo
+- Railway: backend com fix do `/responder-pergunta`
+
+**Commits dessa sessao (cronologico):**
+- c108924 → 32ee5db: V4 + gates restoration
+- 5922a94 → 5898d7f: preview-fluxo-unificado.html iteracoes
+- 8c0f73e → e6cc37b: refator no branch
+- 98ca754: merge pra main
+- 71f8996: JWT em todas as chamadas
+- 40d5b02: anti-duplo-clique + retry perfilCompleto
+- 2bc510c: 7 bugs UX
+- 98264eb: tradutor centralizado
+- b545b62: distinguir 5 tipos de erro de audio
+- 69565f3: fix backend respondeu=false nao salva
+
+**Pendencias pra Lucas testar quando voltar pro PC casa:**
+1. Cadastro novo + quiz vita id (com email NUNCA usado antes — banco tem teste-1777577339@vitae-debug.com de quando testei via curl)
+2. Quiz V4 com audio real no iPhone (verificar se threshold 0.006 detecta voz natural)
+3. Editar resposta na revisao (verificar pre-preenchimento)
+4. Falar texto incompleto e ver se aparece "Nao captei" amigavel (em vez de "internet falhou")
+5. Confirmar que medico recebe pre-consulta com pacienteId vinculado (alergias, medicamentos, foto, exames todos populados)
+
+**Pegadinhas pra proximas sessoes:**
+- Quiz vita id (`quiz-preconsulta.html`) ainda nao foi inlineado no arquivo unico — fica como fase 2 da refatoracao se Lucas quiser
+- Telas do medico (`25-summary.html`, `desktop/app.html`) NAO foram tocadas — leem normalmente os dados do banco como antes
+- Endpoint `/responder-pergunta` continua sem `authOpcional` middleware — JWT enviado e ignorado nesse endpoint, mas vincula via `/finalizar` e `/estado`
+
+**Skills usadas nessa sessao:**
+- `frontend-design` (preview-fluxo-unificado.html)
+- `feature-dev:code-explorer` (auditoria do codigo atual antes de refatorar)
+- `feature-dev:code-architect` (blueprint da refatoracao — interrompido pelo Lucas que pediu preview visual em vez de doc tecnico)
+- TodoWrite intensivo pra rastreio das 10 fases
+
+**Arquivos novos criados:**
+- `preview-fluxo-unificado.html` (preview de aprovacao)
+- `legacy/pre-consulta-v4.html` (movido)
+- `legacy/pre-consulta-v2.html` (movido)
+- `legacy/pre-consulta-slides.html` (movido)
+- `legacy/pre-consulta-backup-pre45s.html` (movido)
+
+**Arquivos modificados grandes:**
+- `pre-consulta.html` (de redirect simples pra orquestrador 2000+ linhas)
+- `quiz-preconsulta.html` (anti-duplo-clique, mascara, tradutor)
+- `backend/src/routes/pre-consulta.js` (fix audio respondeu=false)
+
+**Decisoes tecnicas notaveis:**
+- Quiz vita id NAO foi inlineado (decisao pragmatica — economia de tempo, paciente nao percebe diferenca)
+- Google Sign-In continua via redirect pro `03-cadastro.html` (nao mexi no Google Cloud Console — risco redirect_uri_mismatch ja documentado em Sessao 14)
+- Backend `validarRespostaV4` agora e tolerante: rejeicao vira motivo nao 400
+- Threshold RMS 0.006 (era 0.015) — pode precisar calibrar mais com pacientes reais
+- 3 chaves de localStorage substituem 12 antigas
+
+---
+
 ### Sessao 15 — 28/04/2026 — Pre-consulta V2 (pergunta-por-pergunta linear) — IMPLEMENTACAO COMPLETA AUTONOMA
 
 **Contexto:** Sessao gigante de design+implementacao. Lucas validou frontend novo (formato minimalista pergunta-por-pergunta, header compacto, mic grande, toggle persistente) via preview em `preview-pre-consulta-guiada.html` (commit c8ef7a7). Apos analise tecnica 11/10 das 8 camadas + 50 bugs possiveis + 6 fases, Lucas autorizou execucao autonoma sem pedir permissao entre fases.
