@@ -828,6 +828,101 @@ function authHeaders(extra) {
   } catch(e) {}
   return h;
 }
+
+// ════════════════════════════════════════════════════════════════
+// TRADUTOR DE ERROS — centraliza mensagens pro paciente nunca ver técnico.
+// Aceita: e.message (do api.js), string raw, objeto com .erro/.detalhes
+// ════════════════════════════════════════════════════════════════
+const CAMPOS_AMIGAVEIS = {
+  cpf: 'CPF',
+  dataNascimento: 'Data de nascimento',
+  alturaCm: 'Altura',
+  pesoKg: 'Peso',
+  email: 'Email',
+  senha: 'Senha',
+  nome: 'Nome',
+  celular: 'Celular',
+  tipoSanguineo: 'Tipo sanguíneo',
+  genero: 'Sexo',
+  historicoFamiliar: 'Histórico familiar',
+  cirurgias: 'Cirurgias anteriores',
+  planoSaude: 'Plano de saúde',
+  carteirinhaPlano: 'Carteirinha do plano',
+  condicoes: 'Condições crônicas',
+  contatoEmergenciaNome: 'Nome do contato de emergência',
+  contatoEmergenciaTel: 'Telefone do contato de emergência',
+  fotoUrl: 'Foto',
+  perguntaId: 'pergunta',
+  modo: 'tipo de resposta',
+  valor: 'resposta',
+  audioChunk: 'áudio',
+  token: 'link da pré-consulta',
+};
+
+function traduzirCampoBackend(detalheLinha) {
+  // Linha tipo: "alturaCm: Altura minima 50cm"
+  const m = detalheLinha.match(/^([a-zA-Z][a-zA-Z0-9_.]*)\s*:\s*(.+)$/);
+  if (!m) return '• ' + detalheLinha;
+  const campo = CAMPOS_AMIGAVEIS[m[1]] || m[1];
+  let mensagem = m[2]
+    .replace(/Required/i, 'precisa ser preenchido')
+    .replace(/Invalid/i, 'inválido')
+    .replace(/minimo/gi, 'mínimo')
+    .replace(/maximo/gi, 'máximo')
+    .replace(/digitos?/gi, 'dígitos')
+    .replace(/Data deve estar no formato YYYY-MM-DD/i, 'use o calendário pra escolher');
+  return campo + ' — ' + mensagem;
+}
+
+function traduzirErro(erro) {
+  if (!erro) return 'Algo deu errado. Tenta de novo em alguns segundos.';
+  const msg = (typeof erro === 'string') ? erro : (erro.message || String(erro));
+
+  // Email já cadastrado
+  if (/409/.test(msg) || /ja existe/i.test(msg) || /already exists/i.test(msg) || /duplicad/i.test(msg)) {
+    return 'Já existe uma conta com esses dados. Tenta entrar com seu email e senha.';
+  }
+  // Auth
+  if (/401/.test(msg) || /unauthorized/i.test(msg) || /n[aã]o autorizado/i.test(msg)) {
+    return 'Sua sessão expirou ou os dados estão errados. Faz login de novo.';
+  }
+  if (/senha incorret|email.*senha|invalid.*credenciais/i.test(msg)) {
+    return 'Email ou senha incorretos.';
+  }
+  // Servidor caiu
+  if (/500|503|502|504|server error|gateway/i.test(msg)) {
+    return 'Nosso servidor tá com problema temporário. Suas respostas estão salvas. Tenta de novo em alguns segundos.';
+  }
+  // Sem rede
+  if (/network|fetch|connection|offline|failed to fetch/i.test(msg)) {
+    return 'Sem conexão com o servidor. Verifica sua internet e tenta de novo.';
+  }
+  // Token / link inválido
+  if (/404|nao encontrad|not found/i.test(msg)) {
+    return 'Link de pré-consulta não encontrado. Pede outro pro seu médico.';
+  }
+  if (/410|expirad/i.test(msg)) {
+    return 'Esse link já expirou. Pede um novo pro seu médico.';
+  }
+  // Zod com detalhes (formato: "Dados invalidos\ncampo: msg\ncampo2: msg2")
+  if (msg.includes('\n')) {
+    const linhas = msg.split('\n').map(s => s.trim()).filter(Boolean);
+    if (linhas.length > 1) {
+      const campos = linhas.slice(1).map(traduzirCampoBackend);
+      return 'Confere esses campos antes de continuar:\n\n' + campos.join('\n');
+    }
+  }
+  // Cobertura insuficiente
+  if (/cobertura insuficien/i.test(msg)) {
+    return 'Você ainda não respondeu todas as 11 perguntas. Volta e responde — pode dizer "não sei" se preferir.';
+  }
+  // Já respondida
+  if (/ja respondid/i.test(msg)) {
+    return 'Essa pré-consulta já foi enviada antes. Não dá pra responder de novo.';
+  }
+  // Default — retorna mensagem do backend mas sem o termo "técnico"
+  return msg.replace(/HTTP \d+/i, '').trim() || 'Algo deu errado. Tenta de novo.';
+}
 </script>
 
 <script>
@@ -1116,10 +1211,7 @@ async function lgSubmit() {
     // Sucesso — reroteia
     await rotearProximaTela();
   } catch (err) {
-    let msg = (err && err.message) || 'Erro inesperado';
-    if (msg.includes('409') || msg.toLowerCase().includes('ja existe')) msg = 'Esse email já tem conta. Toca em "Entrar".';
-    if (msg.includes('401') || msg.toLowerCase().includes('senha')) msg = 'Email ou senha incorretos.';
-    lgErro(msg);
+    lgErro(traduzirErro(err));
     btn.disabled = false;
     btn.textContent = txtOriginal;
   }
@@ -1422,6 +1514,9 @@ function focarTexto() {
   if (ta) { ta.focus(); ta.classList.add('qz-textarea--focus'); }
 }
 
+// Helper exposto pro quiz vita id também (caso algum dia inline)
+window.traduzirErro = traduzirErro;
+
 async function enviarTexto() {
   const ta = el('textareaInput');
   if (!ta) return;
@@ -1460,7 +1555,7 @@ async function enviarTexto() {
     console.error('enviarTexto:', err);
     btn.disabled = false;
     btn.innerHTML = 'Tentar de novo';
-    mostrarBanner('crit', '<strong>Não conseguimos enviar.</strong> Verifica sua internet e tenta de novo.');
+    mostrarBanner('crit', '<strong>Não conseguimos enviar.</strong> ' + escapeHtml(traduzirErro(err)));
   }
 }
 
@@ -1872,7 +1967,8 @@ async function finalizarPreConsulta() {
   } catch (err) {
     console.error('finalizar:', err);
     if (btn) { btn.disabled = false; btn.textContent = 'Tentar enviar de novo'; }
-    mostrarBanner('crit', '<strong>Não conseguimos enviar.</strong> Verifica sua internet e tenta de novo.');
+    const msgAmigavel = traduzirErro(err);
+    mostrarBanner('crit', '<strong>Não conseguimos enviar.</strong> ' + escapeHtml(msgAmigavel));
   }
 }
 

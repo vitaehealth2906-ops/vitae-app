@@ -1156,6 +1156,45 @@
         'Masculino': 'MASCULINO', 'Feminino': 'FEMININO', 'Outro': 'OUTRO',
     };
 
+    // ═══ TRADUTOR DE ERROS — paciente nunca vê mensagem técnica ═══
+    const QP_CAMPOS = {
+      cpf: 'CPF', dataNascimento: 'Data de nascimento', alturaCm: 'Altura', pesoKg: 'Peso',
+      email: 'Email', senha: 'Senha', nome: 'Nome', celular: 'Celular',
+      tipoSanguineo: 'Tipo sanguíneo', genero: 'Sexo',
+      historicoFamiliar: 'Histórico familiar', cirurgias: 'Cirurgias anteriores',
+      planoSaude: 'Plano de saúde', carteirinhaPlano: 'Carteirinha do plano',
+      condicoes: 'Condições crônicas',
+      contatoEmergenciaNome: 'Nome do contato de emergência',
+      contatoEmergenciaTel: 'Telefone do contato de emergência',
+      fotoUrl: 'Foto'
+    };
+    function qpTraduzirCampo(linha) {
+      const m = linha.match(/^([a-zA-Z][a-zA-Z0-9_.]*)\s*:\s*(.+)$/);
+      if (!m) return '• ' + linha;
+      const campo = QP_CAMPOS[m[1]] || m[1];
+      const msg = m[2]
+        .replace(/Required/i, 'precisa ser preenchido')
+        .replace(/Invalid/i, 'inválido')
+        .replace(/minimo/gi, 'mínimo')
+        .replace(/maximo/gi, 'máximo')
+        .replace(/digitos?/gi, 'dígitos')
+        .replace(/Data deve estar no formato YYYY-MM-DD/i, 'use o calendário pra escolher');
+      return campo + ' — ' + msg;
+    }
+    function qpTraduzirErro(erro) {
+      if (!erro) return 'Algo deu errado. Tenta de novo.';
+      const msg = (typeof erro === 'string') ? erro : (erro.message || String(erro));
+      if (/409|ja existe|already exists/i.test(msg)) return 'Já existe uma conta com esses dados. Tenta entrar.';
+      if (/401|unauthorized/i.test(msg)) return 'Sua sessão expirou. Faz login de novo.';
+      if (/500|503|502|504|server/i.test(msg)) return 'Servidor com problema temporário. Tenta de novo em segundos.';
+      if (/network|fetch|failed to fetch|connection/i.test(msg)) return 'Sem conexão com o servidor. Verifica sua internet.';
+      if (msg.includes('\n')) {
+        const linhas = msg.split('\n').map(s=>s.trim()).filter(Boolean);
+        if (linhas.length > 1) return 'Confere esses campos:\n\n' + linhas.slice(1).map(qpTraduzirCampo).join('\n');
+      }
+      return msg.replace(/HTTP \d+/i, '').trim() || 'Algo deu errado. Tenta de novo.';
+    }
+
     // ===== Máscara de telefone do contato de emergência =====
     function maskTelEmergencia(input) {
       let v = (input.value || '').replace(/\D/g, '').slice(0, 11);
@@ -1282,15 +1321,7 @@
                 }, 4000);
             }
             _concluindo = false; // libera pra retry
-            // Mostra erro detalhado do backend (Zod retorna lista de campos invalidos)
-            // Ex: "Dados invalidos. Verifique os campos\nalturaCm: Altura minima 50cm\ncpf: CPF deve ter 11 digitos"
-            let detalhe = errMsg;
-            // Tenta extrair só o nome do campo problematico pra ficar amigavel
-            const linhas = errMsg.split('\n').filter(Boolean);
-            if (linhas.length > 1) {
-              detalhe = 'Verifica esses campos:\n\n' + linhas.slice(1).map(l => '• ' + l).join('\n');
-            }
-            alert(detalhe);
+            alert(qpTraduzirErro(e));
             return;
         }
 
