@@ -1823,26 +1823,6 @@ body.dark-mode .cfm-disclaimer strong{color:#93C5FD}
             </div>
           </div>
 
-          <div class="pfn-sg soon">
-            <span class="pfn-soon-badge">Em breve</span>
-            <div class="pfn-sg-hd">
-              <div class="pfn-sg-title">Seguranca</div>
-              <div class="pfn-sg-meta">Protecao adicional da sua conta</div>
-            </div>
-            <div class="pfn-sg-row">
-              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Autenticacao em 2 fatores</div><div class="pfn-sg-row-val">Recomendado — codigo por SMS ao fazer login</div></div>
-              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
-            </div>
-            <div class="pfn-sg-row">
-              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Sessoes ativas</div><div class="pfn-sg-row-val">1 dispositivo — este navegador</div></div>
-              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
-            </div>
-            <div class="pfn-sg-row">
-              <div class="pfn-sg-row-l"><div class="pfn-sg-row-title">Sair de todas as sessoes</div><div class="pfn-sg-row-val">Encerra acesso em qualquer outro dispositivo</div></div>
-              <span class="pfn-sg-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
-            </div>
-          </div>
-
           <div class="pfn-sg">
             <div class="pfn-sg-hd">
               <div class="pfn-sg-title">Conta</div>
@@ -7251,11 +7231,21 @@ function pfRenderClinicMap(m){
     return;
   }
 
+  pfDrawClinicMap(lat, lng, name, addr);
+}
+
+function pfDrawClinicMap(lat, lng, name, addr){
+  var inner = document.getElementById('pf-clinicMapInner');
+  var footer = document.getElementById('pf-clinicMapFooter');
+  if(!inner) return;
+
+  if(window._pfLeafletMap){ try{ window._pfLeafletMap.remove(); }catch(e){} window._pfLeafletMap = null; }
+  inner.innerHTML = '';
+
   footer.style.display = 'block';
   document.getElementById('pf-clinicName').textContent = name || 'Sua clinica';
   document.getElementById('pf-clinicAddr').textContent = addr;
 
-  // Cria Leaflet com tiles dark da CartoDB
   var map = L.map(inner, {
     center: [lat, lng],
     zoom: 16,
@@ -7282,7 +7272,6 @@ function pfRenderClinicMap(m){
     .bindPopup('<strong>'+ (name || 'Sua clinica') +'</strong><br>'+ addr);
 
   window._pfLeafletMap = map;
-  // Fix tamanho apos a view ficar visivel
   setTimeout(function(){ try{ map.invalidateSize(); }catch(e){} }, 80);
 }
 
@@ -7317,10 +7306,12 @@ async function pfSaveEdit(){
   try{
     var body = {};
     body[pfState.editField.apiField] = pfState.editField.apiField === 'valorConsulta' ? parseFloat(val) : val;
-    await vitaeAPI.atualizarMedico(body);
-    // Atualiza state.medico em memoria
-    state.medico = state.medico || {};
-    state.medico[pfState.editField.apiField] = body[pfState.editField.apiField];
+    var resp = await vitaeAPI.atualizarMedico(body);
+    // Mescla o medico retornado pelo backend (inclui lat/lng re-geocodificados quando endereco muda)
+    state.medico = (resp && resp.medico) ? Object.assign({}, state.medico || {}, resp.medico) : (state.medico || {});
+    if(!resp || !resp.medico){
+      state.medico[pfState.editField.apiField] = body[pfState.editField.apiField];
+    }
     state._ts.medico = Date.now();
     toast('Dado atualizado com sucesso.', 'ok');
     pfCloseEdit();
