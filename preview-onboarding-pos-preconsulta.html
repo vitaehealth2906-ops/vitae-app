@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>vita id — Onboarding pós pré-consulta (preview)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+:root{
+  --green:#00E5A0;
+  --green-2:#00C47A;
+  --cyan:#00B4D8;
+  --gradient:linear-gradient(120deg,#00E5A0 0%,#00B4D8 100%);
+  --gradient-soft:linear-gradient(135deg,rgba(0,229,160,.18) 0%,rgba(0,180,216,.18) 100%);
+  --dark:#0D0F14;
+  --bg:#F5F7FA;
+  --surface:#FFFFFF;
+  --hairline:rgba(0,0,0,0.07);
+  --hairline-2:rgba(0,0,0,0.13);
+  --text-1:#0D0F14;
+  --text-2:#4B5563;
+  --text-3:#9CA3AF;
+  --shadow-card:0 1px 12px rgba(0,0,0,.07);
+  --shadow-glow:0 4px 30px rgba(0,229,160,.28),0 8px 60px rgba(0,180,216,.14);
+  --shadow-glow-2:0 8px 50px rgba(0,229,160,.45),0 16px 80px rgba(0,180,216,.22);
+  --font:'Plus Jakarta Sans',sans-serif;
+  --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
+  --ease-smooth:cubic-bezier(0.4,0,0.2,1);
+  --ease-out:cubic-bezier(0.16,1,0.3,1);
+}
+
+html,body{
+  width:100%;min-height:100vh;
+  background:radial-gradient(ellipse at top,#1a1f2a 0%,#0a0c10 100%);
+  font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;
+  -webkit-font-smoothing:antialiased;
+  padding:32px 16px 64px;
+  color:#fff;
+  gap:24px;
+}
+
+/* ── HEADER (fora do device — só pra preview) ── */
+.preview-bar{
+  display:flex;align-items:center;gap:16px;
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(20px) saturate(140%);
+  -webkit-backdrop-filter:blur(20px) saturate(140%);
+  border:1px solid rgba(255,255,255,.08);
+  padding:10px 16px;border-radius:100px;
+  font-size:12px;letter-spacing:.04em;text-transform:uppercase;font-weight:700;
+  color:rgba(255,255,255,.7);
+}
+.preview-bar .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);animation:livePulse 1.6s ease-in-out infinite}
+@keyframes livePulse{0%,100%{opacity:.6}50%{opacity:1}}
+.preview-bar .label{color:#fff;font-weight:800}
+
+/* ── PHONE SHELL ── */
+.shell{
+  width:393px;height:852px;
+  background:var(--surface);
+  border-radius:52px;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.10),
+    0 0 0 10px #1C1C1E,
+    0 0 0 11px rgba(255,255,255,.12),
+    0 60px 120px rgba(0,0,0,.55),
+    0 20px 40px rgba(0,0,0,.30);
+  overflow:hidden;
+  position:relative;
+  display:flex;flex-direction:column;
+  flex-shrink:0;
+}
+.island{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  width:126px;height:34px;background:#0a0a0a;border-radius:20px;z-index:50;
+}
+
+/* STATUS BAR */
+.sbar{
+  height:54px;display:flex;align-items:flex-end;
+  justify-content:space-between;padding:0 28px 8px;flex-shrink:0;
+  position:relative;z-index:5;
+}
+.st-time{font-size:15px;font-weight:700;color:var(--text-1);letter-spacing:-.02em}
+.st-r{display:flex;align-items:center;gap:5px}
+.st-bars{display:flex;gap:2px;align-items:flex-end}
+.st-bars span{width:3px;background:var(--text-1);border-radius:1px}
+.st-bars span:nth-child(1){height:5px}
+.st-bars span:nth-child(2){height:8px}
+.st-bars span:nth-child(3){height:11px}
+.st-bars span:nth-child(4){height:14px}
+.st-batt{
+  width:24px;height:13px;border:1.5px solid var(--text-1);
+  border-radius:3px;padding:1px;position:relative;display:flex;align-items:center;
+}
+.st-batt::after{
+  content:'';position:absolute;right:-3px;top:3px;
+  width:2px;height:7px;background:var(--text-1);border-radius:0 1px 1px 0;
+}
+.st-batt span{display:block;width:75%;height:100%;background:var(--text-1);border-radius:1px}
+
+/* ── STAGE ── */
+.stage{flex:1;position:relative;overflow:hidden}
+
+/* Aurora background — sempre presente, sutil */
+.aurora{
+  position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.7;
+}
+.aurora::before,.aurora::after{
+  content:'';position:absolute;border-radius:50%;filter:blur(80px);
+}
+.aurora::before{
+  width:340px;height:340px;
+  background:radial-gradient(circle,rgba(0,229,160,.35) 0%,transparent 70%);
+  top:-100px;left:-80px;
+  animation:auroraDrift1 14s ease-in-out infinite;
+}
+.aurora::after{
+  width:380px;height:380px;
+  background:radial-gradient(circle,rgba(0,180,216,.30) 0%,transparent 70%);
+  bottom:-120px;right:-100px;
+  animation:auroraDrift2 18s ease-in-out infinite;
+}
+@keyframes auroraDrift1{
+  0%,100%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(40px,30px) scale(1.1)}
+}
+@keyframes auroraDrift2{
+  0%,100%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(-30px,-40px) scale(1.15)}
+}
+
+/* ── SCREEN (cada uma das 5 telas) ── */
+.screen{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  padding:24px 28px 100px;
+  opacity:0;visibility:hidden;
+  transform:scale(.96);
+  transition:opacity 600ms var(--ease-smooth),transform 700ms var(--ease-out),visibility 0s 700ms;
+  z-index:1;
+}
+.screen.active{
+  opacity:1;visibility:visible;transform:scale(1);
+  transition:opacity 600ms var(--ease-smooth),transform 700ms var(--ease-out);
+  z-index:2;
+}
+.screen.active .anim{animation-play-state:running}
+.screen .anim{animation-play-state:paused}
+
+/* ── SKIP ── */
+.skip{
+  position:absolute;top:64px;right:24px;z-index:30;
+  background:rgba(255,255,255,.6);
+  backdrop-filter:blur(10px);
+  border:1px solid var(--hairline);
+  padding:6px 14px;border-radius:100px;
+  font-size:12px;font-weight:700;color:var(--text-2);
+  cursor:pointer;letter-spacing:.02em;
+  transition:all 200ms;
+}
+.skip:hover{background:#fff;color:var(--text-1)}
+
+/* ── PROG DOTS ── */
+.dots{
+  position:absolute;bottom:36px;left:50%;transform:translateX(-50%);
+  display:flex;gap:8px;z-index:30;
+}
+.dot-i{
+  width:8px;height:8px;border-radius:50%;
+  background:rgba(0,0,0,.13);
+  transition:all 400ms var(--ease-out);
+}
+.dot-i.active{
+  width:28px;background:var(--gradient);
+  box-shadow:0 0 12px rgba(0,229,160,.5);
+}
+.dot-i.done{background:rgba(0,229,160,.4)}
+
+/* ── CONTENT BLOCKS ── */
+.center-flex{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+
+.headline{
+  font-size:30px;font-weight:900;letter-spacing:-.04em;color:var(--text-1);
+  line-height:1.08;
+  margin-bottom:16px;
+}
+.headline em{
+  font-style:italic;
+  background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent;
+  font-weight:900;
+}
+.subhead{
+  font-size:16px;font-weight:500;color:var(--text-2);
+  line-height:1.45;
+  letter-spacing:-.01em;
+  max-width:300px;
+}
+
+/* ═══════════════════════════════════════════════
+   TELA 1 — Check + headline
+═══════════════════════════════════════════════ */
+.s1-orbit{
+  position:relative;width:200px;height:200px;
+  margin-bottom:40px;
+  display:flex;align-items:center;justify-content:center;
+}
+/* Anéis pulsantes */
+.s1-ring{
+  position:absolute;inset:0;border-radius:50%;
+  border:2px solid var(--green);
+  opacity:0;
+}
+.screen.active .s1-ring{
+  animation:ringExpand 2.4s var(--ease-out) infinite;
+}
+.screen.active .s1-ring:nth-child(2){animation-delay:.4s}
+.screen.active .s1-ring:nth-child(3){animation-delay:.8s}
+@keyframes ringExpand{
+  0%{transform:scale(.5);opacity:.7}
+  100%{transform:scale(1.5);opacity:0}
+}
+/* Círculo central com gradient */
+.s1-circle{
+  width:120px;height:120px;border-radius:50%;
+  background:var(--gradient);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--shadow-glow-2);
+  position:relative;z-index:2;
+}
+.screen.active .s1-circle{
+  animation:checkPop 900ms var(--ease-spring);
+}
+@keyframes checkPop{
+  0%{transform:scale(0) rotate(-180deg);opacity:0}
+  60%{transform:scale(1.15) rotate(8deg)}
+  100%{transform:scale(1) rotate(0);opacity:1}
+}
+.s1-check{
+  width:60px;height:60px;
+  stroke:#fff;stroke-width:3.5;fill:none;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:30;stroke-dashoffset:30;
+}
+.screen.active .s1-check{
+  animation:drawCheck 600ms var(--ease-out) 500ms forwards;
+}
+@keyframes drawCheck{to{stroke-dashoffset:0}}
+
+/* Partículas saindo */
+.s1-particles{position:absolute;inset:-40px;pointer-events:none}
+.s1-particle{
+  position:absolute;top:50%;left:50%;width:6px;height:6px;border-radius:50%;
+  background:var(--green);opacity:0;
+}
+.screen.active .s1-particle{
+  animation:particleBurst 1.8s var(--ease-out) 700ms forwards;
+}
+@keyframes particleBurst{
+  0%{transform:translate(-50%,-50%) scale(.5);opacity:0}
+  20%{opacity:1}
+  100%{opacity:0}
+}
+
+.s1-text{
+  opacity:0;transform:translateY(20px);
+}
+.screen.active .s1-text{
+  animation:fadeUp 700ms var(--ease-out) 900ms forwards;
+}
+@keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
+
+/* ═══════════════════════════════════════════════
+   TELA 2 — Ondas → Cartão RG (transformação)
+═══════════════════════════════════════════════ */
+.s2-stage{
+  position:relative;width:320px;height:240px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:32px;
+}
+
+/* Ondas de áudio */
+.s2-waves{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.s2-wave{
+  width:6px;border-radius:6px;
+  background:var(--gradient);
+  box-shadow:0 0 16px rgba(0,229,160,.5);
+  transform-origin:center;
+}
+.screen.active .s2-wave{
+  animation:waveDance 1.2s var(--ease-smooth) infinite,waveFade 800ms var(--ease-out) 1800ms forwards;
+}
+.screen.active .s2-wave:nth-child(1){animation-delay:0ms,1800ms;height:30px}
+.screen.active .s2-wave:nth-child(2){animation-delay:80ms,1820ms;height:50px}
+.screen.active .s2-wave:nth-child(3){animation-delay:160ms,1840ms;height:90px}
+.screen.active .s2-wave:nth-child(4){animation-delay:240ms,1860ms;height:130px}
+.screen.active .s2-wave:nth-child(5){animation-delay:320ms,1880ms;height:170px}
+.screen.active .s2-wave:nth-child(6){animation-delay:280ms,1900ms;height:130px}
+.screen.active .s2-wave:nth-child(7){animation-delay:200ms,1920ms;height:90px}
+.screen.active .s2-wave:nth-child(8){animation-delay:120ms,1940ms;height:50px}
+.screen.active .s2-wave:nth-child(9){animation-delay:40ms,1960ms;height:30px}
+@keyframes waveDance{
+  0%,100%{transform:scaleY(.6)}
+  50%{transform:scaleY(1.1)}
+}
+@keyframes waveFade{
+  0%{opacity:1;transform:scaleY(1) translateY(0)}
+  100%{opacity:0;transform:scaleY(.05) translateY(0)}
+}
+
+/* Cartão RG aparecendo */
+.s2-card{
+  position:absolute;
+  width:300px;height:188px;border-radius:22px;
+  background:linear-gradient(135deg,#FFFFFF 0%,#F8FAFC 100%);
+  box-shadow:0 20px 60px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.04);
+  padding:20px;
+  opacity:0;
+  transform:scale(.4) rotateY(60deg);
+  overflow:hidden;
+}
+.screen.active .s2-card{
+  animation:cardMaterialize 1.4s var(--ease-spring) 2200ms forwards;
+}
+@keyframes cardMaterialize{
+  0%{opacity:0;transform:scale(.4) rotateY(60deg)}
+  60%{opacity:1;transform:scale(1.04) rotateY(-6deg)}
+  100%{opacity:1;transform:scale(1) rotateY(0)}
+}
+.s2-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 0%,rgba(0,229,160,.10) 0%,transparent 50%);
+  pointer-events:none;
+}
+.s2-card-stripe{
+  position:absolute;top:0;left:0;right:0;height:6px;
+  background:var(--gradient);
+}
+.s2-card-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.s2-card-avatar{
+  width:48px;height:48px;border-radius:14px;
+  background:var(--gradient-soft);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:800;color:var(--green-2);
+  border:1.5px solid var(--accent-border,rgba(0,229,160,.20));
+}
+.s2-card-meta-row{display:flex;flex-direction:column}
+.s2-card-tag{
+  font-size:10px;font-weight:800;color:var(--text-3);letter-spacing:.12em;text-transform:uppercase;
+}
+.s2-card-name{font-size:18px;font-weight:900;color:var(--text-1);letter-spacing:-.02em;line-height:1.1;margin-top:2px}
+.s2-card-id{
+  font-size:11px;font-weight:600;color:var(--text-3);
+  letter-spacing:.08em;margin-bottom:8px;font-variant-numeric:tabular-nums;
+}
+.s2-card-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;
+}
+.s2-card-mini{
+  background:var(--surface2,#F4F6F9);
+  border-radius:10px;padding:8px 10px;
+  border:1px solid var(--hairline);
+}
+.s2-card-mini-l{font-size:9px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.s2-card-mini-v{font-size:13px;font-weight:800;color:var(--text-1);letter-spacing:-.02em}
+.s2-card-mini-v.danger{color:#E11D48}
+
+.s2-text{
+  opacity:0;transform:translateY(20px);
+}
+.screen.active .s2-text{
+  animation:fadeUp 700ms var(--ease-out) 3400ms forwards;
+}
+
+/* ═══════════════════════════════════════════════
+   TELA 3 — Cartão grande flutuante
+═══════════════════════════════════════════════ */
+.s3-stage{
+  position:relative;width:100%;height:280px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:24px;
+}
+.s3-card{
+  width:280px;height:200px;border-radius:24px;
+  background:linear-gradient(135deg,#FFFFFF 0%,#F8FAFC 100%);
+  box-shadow:var(--shadow-glow-2);
+  padding:22px;position:relative;overflow:hidden;
+  transform:scale(0);
+}
+.screen.active .s3-card{
+  animation:s3CardEntry 1.2s var(--ease-spring) 200ms forwards,s3Float 5s var(--ease-smooth) 1400ms infinite;
+}
+@keyframes s3CardEntry{
+  0%{transform:scale(0) rotate(-12deg);opacity:0}
+  60%{transform:scale(1.06) rotate(3deg);opacity:1}
+  100%{transform:scale(1) rotate(0);opacity:1}
+}
+@keyframes s3Float{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-8px)}
+}
+.s3-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 20% 0%,rgba(0,229,160,.14) 0%,transparent 60%);
+  pointer-events:none;
+}
+.s3-card-stripe{
+  position:absolute;top:0;left:0;right:0;height:6px;
+  background:var(--gradient);
+}
+.s3-glow{
+  position:absolute;width:340px;height:340px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,229,160,.35) 0%,transparent 60%);
+  filter:blur(40px);
+  z-index:-1;opacity:0;
+}
+.screen.active .s3-glow{animation:s3GlowPulse 3s var(--ease-smooth) 1200ms infinite}
+@keyframes s3GlowPulse{
+  0%,100%{opacity:.5;transform:scale(1)}
+  50%{opacity:.9;transform:scale(1.15)}
+}
+
+.s3-card-tag{
+  font-size:10px;font-weight:800;color:var(--text-3);
+  letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;
+}
+.s3-card-name{
+  font-size:24px;font-weight:900;color:var(--text-1);
+  letter-spacing:-.03em;line-height:1.05;margin-bottom:14px;
+}
+.s3-card-name em{
+  font-style:italic;
+  background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.s3-card-row{display:flex;gap:10px;margin-top:12px}
+.s3-card-pill{
+  background:var(--gradient-soft);
+  border:1px solid rgba(0,229,160,.25);
+  border-radius:100px;padding:5px 12px;
+  font-size:11px;font-weight:700;color:var(--green-2);
+  letter-spacing:.02em;
+}
+.s3-card-pill.danger{
+  background:rgba(225,29,72,.08);border-color:rgba(225,29,72,.25);color:#E11D48;
+}
+
+.s3-text{opacity:0;transform:translateY(20px)}
+.screen.active .s3-text{animation:fadeUp 700ms var(--ease-out) 1600ms forwards}
+
+/* ═══════════════════════════════════════════════
+   TELA 4 — 3 ícones com features
+═══════════════════════════════════════════════ */
+.s4-list{
+  display:flex;flex-direction:column;gap:16px;width:100%;max-width:340px;
+  margin-bottom:24px;
+}
+.s4-item{
+  display:flex;align-items:center;gap:16px;
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:18px;padding:16px;
+  box-shadow:var(--shadow-card);
+  opacity:0;transform:translateX(-30px);
+}
+.screen.active .s4-item{animation:s4ItemIn 700ms var(--ease-out) forwards}
+.screen.active .s4-item:nth-child(1){animation-delay:200ms}
+.screen.active .s4-item:nth-child(2){animation-delay:400ms}
+.screen.active .s4-item:nth-child(3){animation-delay:600ms}
+@keyframes s4ItemIn{
+  0%{opacity:0;transform:translateX(-30px)}
+  100%{opacity:1;transform:translateX(0)}
+}
+.s4-icon{
+  width:48px;height:48px;border-radius:14px;
+  background:var(--gradient-soft);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  position:relative;
+}
+.s4-icon svg{
+  width:24px;height:24px;fill:none;
+  stroke:var(--green-2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:60;stroke-dashoffset:60;
+}
+.screen.active .s4-icon svg{animation:drawIcon 800ms var(--ease-out) forwards}
+.screen.active .s4-item:nth-child(1) .s4-icon svg{animation-delay:600ms}
+.screen.active .s4-item:nth-child(2) .s4-icon svg{animation-delay:800ms}
+.screen.active .s4-item:nth-child(3) .s4-icon svg{animation-delay:1000ms}
+@keyframes drawIcon{to{stroke-dashoffset:0}}
+
+.s4-item-text{flex:1;text-align:left}
+.s4-item-title{font-size:15px;font-weight:800;color:var(--text-1);letter-spacing:-.01em;line-height:1.2;margin-bottom:2px}
+.s4-item-sub{font-size:13px;font-weight:500;color:var(--text-2);line-height:1.35}
+
+.s4-link{
+  font-size:13px;font-weight:700;color:var(--green-2);
+  text-decoration:none;border-bottom:1px dashed rgba(0,196,122,.4);
+  padding-bottom:1px;cursor:pointer;
+  opacity:0;
+}
+.screen.active .s4-link{animation:fadeUp 700ms var(--ease-out) 1200ms forwards}
+
+.s4-text{opacity:0}
+.screen.active .s4-text{animation:fadeUp 600ms var(--ease-out) 100ms forwards}
+
+/* ═══════════════════════════════════════════════
+   TELA 5 — Cartão maior + CTA
+═══════════════════════════════════════════════ */
+.s5-stage{
+  position:relative;width:100%;height:300px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:20px;
+}
+.s5-card{
+  width:300px;height:220px;border-radius:26px;
+  background:linear-gradient(135deg,#FFFFFF 0%,#F8FAFC 100%);
+  box-shadow:0 30px 80px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.04);
+  padding:24px;position:relative;overflow:hidden;
+  transform:perspective(1200px) rotateX(8deg) rotateY(-4deg);
+  opacity:0;
+}
+.screen.active .s5-card{
+  animation:s5Entry 1.4s var(--ease-spring) 200ms forwards,s5Hover 6s var(--ease-smooth) 1600ms infinite;
+}
+@keyframes s5Entry{
+  0%{opacity:0;transform:perspective(1200px) rotateX(60deg) rotateY(0) translateY(80px) scale(.7)}
+  100%{opacity:1;transform:perspective(1200px) rotateX(8deg) rotateY(-4deg) translateY(0) scale(1)}
+}
+@keyframes s5Hover{
+  0%,100%{transform:perspective(1200px) rotateX(8deg) rotateY(-4deg) translateY(0)}
+  25%{transform:perspective(1200px) rotateX(6deg) rotateY(-6deg) translateY(-6px)}
+  50%{transform:perspective(1200px) rotateX(10deg) rotateY(0) translateY(-10px)}
+  75%{transform:perspective(1200px) rotateX(6deg) rotateY(2deg) translateY(-4px)}
+}
+.s5-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 0%,rgba(0,229,160,.18) 0%,transparent 55%);
+  pointer-events:none;
+}
+.s5-card::after{
+  content:'';position:absolute;top:-50%;left:-100%;width:120%;height:200%;
+  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);
+  pointer-events:none;
+}
+.screen.active .s5-card::after{animation:s5Shine 4s var(--ease-smooth) 2000ms infinite}
+@keyframes s5Shine{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(180%)}
+}
+.s5-card-stripe{
+  position:absolute;top:0;left:0;right:0;height:6px;
+  background:var(--gradient);
+}
+.s5-glow-1{
+  position:absolute;width:380px;height:380px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,229,160,.3) 0%,transparent 60%);
+  filter:blur(60px);z-index:-1;
+}
+.s5-glow-2{
+  position:absolute;width:340px;height:340px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,180,216,.28) 0%,transparent 60%);
+  filter:blur(50px);z-index:-1;left:60%;top:20%;
+}
+.screen.active .s5-glow-1{animation:s5Glow1 5s var(--ease-smooth) infinite}
+.screen.active .s5-glow-2{animation:s5Glow2 7s var(--ease-smooth) infinite}
+@keyframes s5Glow1{
+  0%,100%{transform:translate(0,0) scale(1);opacity:.6}
+  50%{transform:translate(-30px,20px) scale(1.2);opacity:1}
+}
+@keyframes s5Glow2{
+  0%,100%{transform:translate(0,0) scale(1);opacity:.5}
+  50%{transform:translate(40px,-20px) scale(1.3);opacity:.9}
+}
+
+.s5-card-tag{font-size:10px;font-weight:800;color:var(--text-3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;position:relative;z-index:2}
+.s5-card-name{font-size:22px;font-weight:900;color:var(--text-1);letter-spacing:-.03em;line-height:1.05;margin-bottom:12px;position:relative;z-index:2}
+.s5-card-name em{font-style:italic;background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
+.s5-card-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;position:relative;z-index:2}
+.s5-card-pill{background:var(--gradient-soft);border:1px solid rgba(0,229,160,.25);border-radius:100px;padding:4px 11px;font-size:10px;font-weight:700;color:var(--green-2);letter-spacing:.02em}
+.s5-card-pill.danger{background:rgba(225,29,72,.08);border-color:rgba(225,29,72,.25);color:#E11D48}
+.s5-qrslot{position:absolute;bottom:18px;right:18px;width:48px;height:48px;border-radius:10px;background:var(--text-1);padding:6px;display:flex;align-items:center;justify-content:center}
+.s5-qrslot svg{width:100%;height:100%}
+
+.s5-text{opacity:0;transform:translateY(20px)}
+.screen.active .s5-text{animation:fadeUp 700ms var(--ease-out) 1400ms forwards}
+
+.cta-primary{
+  width:100%;max-width:340px;
+  padding:16px 20px;border-radius:16px;border:0;
+  background:var(--gradient);color:#fff;
+  font-family:var(--font);font-size:15px;font-weight:800;letter-spacing:-.01em;
+  cursor:pointer;
+  box-shadow:var(--shadow-glow);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform 200ms var(--ease-spring),box-shadow 300ms;
+  margin-top:12px;
+  opacity:0;transform:translateY(30px);
+  position:relative;overflow:hidden;
+}
+.cta-primary::before{
+  content:'';position:absolute;top:-50%;left:-100%;width:120%;height:200%;
+  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);
+}
+.screen.active .cta-primary{
+  animation:fadeUp 700ms var(--ease-out) 1700ms forwards,ctaPulse 2.4s var(--ease-smooth) 2400ms infinite;
+}
+.screen.active .cta-primary::before{animation:s5Shine 3.5s var(--ease-smooth) 2400ms infinite}
+@keyframes ctaPulse{
+  0%,100%{box-shadow:var(--shadow-glow)}
+  50%{box-shadow:0 8px 50px rgba(0,229,160,.55),0 16px 80px rgba(0,180,216,.35)}
+}
+.cta-primary:hover{transform:translateY(-2px) scale(1.02)}
+.cta-primary svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+
+.cta-secondary{
+  font-size:12px;font-weight:600;color:var(--text-3);
+  background:none;border:0;cursor:pointer;
+  padding:12px;text-decoration:underline;text-decoration-color:rgba(156,163,175,.4);
+  text-underline-offset:3px;
+  font-family:var(--font);
+  opacity:0;
+  transition:color 200ms;
+}
+.cta-secondary:hover{color:var(--text-2)}
+.screen.active .cta-secondary{animation:fadeUp 700ms var(--ease-out) 2000ms forwards}
+
+/* ── Cinema bar (preview controls) ── */
+.controls{
+  display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(20px) saturate(140%);
+  border:1px solid rgba(255,255,255,.08);
+  padding:10px 12px;border-radius:100px;
+}
+.controls button{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.10);
+  color:#fff;font-family:var(--font);
+  width:42px;height:42px;border-radius:50%;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all 200ms;
+}
+.controls button:hover{background:rgba(255,255,255,.14);transform:scale(1.05)}
+.controls button:disabled{opacity:.3;cursor:not-allowed}
+.controls button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.controls .replay{
+  background:var(--gradient);border:0;
+  box-shadow:0 4px 20px rgba(0,229,160,.4);
+}
+.controls .meta{
+  font-size:12px;font-weight:700;color:rgba(255,255,255,.7);
+  padding:0 8px;letter-spacing:.04em;text-transform:uppercase;
+  font-variant-numeric:tabular-nums;
+}
+.controls .meta span{color:#fff}
+
+.tip{
+  font-size:11px;color:rgba(255,255,255,.5);font-weight:500;
+  letter-spacing:.04em;
+  text-align:center;
+  max-width:480px;line-height:1.5;
+}
+
+@media(max-width:480px){
+  body{padding:12px 8px 32px}
+  .shell{transform:scale(.92);transform-origin:top center;margin-bottom:-60px}
+  .preview-bar,.controls{font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<div class="preview-bar">
+  <span class="dot"></span>
+  <span>Preview · <span class="label">Onboarding pós pré-consulta</span> · 5 telas · 40-60s</span>
+</div>
+
+<div class="shell">
+  <div class="island"></div>
+  <div class="sbar">
+    <div class="st-time">9:41</div>
+    <div class="st-r">
+      <div class="st-bars"><span></span><span></span><span></span><span></span></div>
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10C8 10 11 7 14.5 7C14.5 7 13 4 8 4C3 4 1.5 7 1.5 7C5 7 8 10 8 10Z" fill="#0D0F14"/><path d="M8 7L9.5 5.5L11 7L9.5 8.5L8 7Z" fill="#0D0F14"/></svg>
+      <div class="st-batt"><span></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="aurora"></div>
+    <button class="skip" id="skipBtn">Pular</button>
+
+    <!-- ════════ TELA 1 ════════ -->
+    <div class="screen active" id="s1">
+      <div class="center-flex">
+        <div class="s1-orbit">
+          <div class="s1-ring anim"></div>
+          <div class="s1-ring anim"></div>
+          <div class="s1-ring anim"></div>
+          <div class="s1-circle anim">
+            <svg class="s1-check" viewBox="0 0 24 24"><polyline points="5 12 10 17 19 7"/></svg>
+          </div>
+          <div class="s1-particles">
+            <div class="s1-particle anim" style="--x:80px;--y:-90px;animation-delay:.7s !important"></div>
+            <div class="s1-particle anim" style="--x:-80px;--y:-70px;animation-delay:.9s !important"></div>
+            <div class="s1-particle anim" style="--x:90px;--y:80px;animation-delay:.8s !important"></div>
+            <div class="s1-particle anim" style="--x:-100px;--y:60px;animation-delay:1s !important"></div>
+            <div class="s1-particle anim" style="--x:0;--y:-110px;animation-delay:.75s !important"></div>
+            <div class="s1-particle anim" style="--x:0;--y:110px;animation-delay:.95s !important"></div>
+          </div>
+        </div>
+        <div class="s1-text anim">
+          <h1 class="headline">Pronto. Agora seu corpo<br>tem <em>voz</em>.</h1>
+          <p class="subhead">Seu médico já recebeu tudo que você falou.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ TELA 2 ════════ -->
+    <div class="screen" id="s2">
+      <div class="center-flex">
+        <div class="s2-stage">
+          <div class="s2-waves">
+            <div class="s2-wave anim"></div>
+            <div class="s2-wave anim"></div>
+            <div class="s2-wave anim"></div>
+            <div class="s2-wave anim"></div>
+            <div class="s2-wave anim"></div>
+            <div class="s2-wave anim"></div>
+            <div class="s2-wave anim"></div>
+            <div class="s2-wave anim"></div>
+            <div class="s2-wave anim"></div>
+          </div>
+          <div class="s2-card anim">
+            <div class="s2-card-stripe"></div>
+            <div class="s2-card-row">
+              <div class="s2-card-avatar">JA</div>
+              <div class="s2-card-meta-row">
+                <div class="s2-card-tag">vita id</div>
+                <div class="s2-card-name">Júlia Alves</div>
+              </div>
+            </div>
+            <div class="s2-card-id">RG SAÚDE · 0421 7758 90</div>
+            <div class="s2-card-grid">
+              <div class="s2-card-mini"><div class="s2-card-mini-l">Sangue</div><div class="s2-card-mini-v">O+</div></div>
+              <div class="s2-card-mini"><div class="s2-card-mini-l">Alergia</div><div class="s2-card-mini-v danger">Dipirona</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="s2-text anim">
+          <h1 class="headline">Sua fala virou <em>identidade</em>.</h1>
+          <p class="subhead">Tudo que você contou agora vive em um lugar — só seu.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ TELA 3 ════════ -->
+    <div class="screen" id="s3">
+      <div class="center-flex">
+        <div class="s3-stage">
+          <div class="s3-glow anim"></div>
+          <div class="s3-card anim">
+            <div class="s3-card-stripe"></div>
+            <div class="s3-card-tag">vita id</div>
+            <div class="s3-card-name">Esse é o seu<br><em>RG da saúde</em>.</div>
+            <div class="s3-card-row">
+              <div class="s3-card-pill">O+</div>
+              <div class="s3-card-pill danger">Dipirona</div>
+              <div class="s3-card-pill">19 anos</div>
+            </div>
+          </div>
+        </div>
+        <div class="s3-text anim">
+          <h1 class="headline">Só <em>seu</em>.</h1>
+          <p class="subhead">Não é do plano, não é do hospital, não é nosso.<br>É seu — e vai com você pra qualquer lugar.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ TELA 4 ════════ -->
+    <div class="screen" id="s4">
+      <div class="center-flex">
+        <div class="s4-text anim" style="margin-bottom:24px">
+          <h1 class="headline">Como o vita id <em>cuida</em> de você.</h1>
+        </div>
+        <div class="s4-list">
+          <div class="s4-item anim">
+            <div class="s4-icon">
+              <svg viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div class="s4-item-text">
+              <div class="s4-item-title">Seu médico entende em 30 segundos</div>
+              <div class="s4-item-sub">Áudio, exames e histórico já chegam organizados.</div>
+            </div>
+          </div>
+          <div class="s4-item anim">
+            <div class="s4-icon">
+              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div class="s4-item-text">
+              <div class="s4-item-title">Você controla quem vê</div>
+              <div class="s4-item-sub">Nada vai pro plano. Nada é vendido. Você decide.</div>
+            </div>
+          </div>
+          <div class="s4-item anim">
+            <div class="s4-icon">
+              <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </div>
+            <div class="s4-item-text">
+              <div class="s4-item-title">Fica com você pra sempre</div>
+              <div class="s4-item-sub">Trocou de médico, plano ou cidade? Seus dados vão junto.</div>
+            </div>
+          </div>
+        </div>
+        <a class="s4-link anim">como protegemos seus dados</a>
+      </div>
+    </div>
+
+    <!-- ════════ TELA 5 ════════ -->
+    <div class="screen" id="s5">
+      <div class="center-flex">
+        <div class="s5-stage">
+          <div class="s5-glow-1 anim"></div>
+          <div class="s5-glow-2 anim"></div>
+          <div class="s5-card anim">
+            <div class="s5-card-stripe"></div>
+            <div class="s5-card-tag">vita id · RG da saúde</div>
+            <div class="s5-card-name">Júlia<br><em>Alves</em></div>
+            <div class="s5-card-meta">
+              <div class="s5-card-pill">O+</div>
+              <div class="s5-card-pill danger">Dipirona</div>
+              <div class="s5-card-pill">19 anos</div>
+              <div class="s5-card-pill">SP</div>
+            </div>
+            <div class="s5-qrslot">
+              <svg viewBox="0 0 24 24" fill="#fff"><path d="M3 3h7v7H3V3zm2 2v3h3V5H5zm-2 9h7v7H3v-7zm2 2v3h3v-3H5zm9-13h7v7h-7V3zm2 2v3h3V5h-3zm-2 9h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm2 2h2v2h-2v-2zm2-6h2v2h-2v-2zm0 4h2v2h-2v-2zm0-2h2v2h-2v-2z"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="s5-text anim">
+          <h1 class="headline">Sempre que você <em>quiser</em>.</h1>
+          <p class="subhead">Seu RG da saúde está pronto. Aberto, em 1 toque.</p>
+        </div>
+        <button class="cta-primary" id="ctaFinal" onclick="document.getElementById('replayBtn').click()">
+          Ver meu vita id
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="cta-secondary">Receber por WhatsApp depois</button>
+      </div>
+    </div>
+
+    <div class="dots" id="dots">
+      <div class="dot-i active"></div>
+      <div class="dot-i"></div>
+      <div class="dot-i"></div>
+      <div class="dot-i"></div>
+      <div class="dot-i"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="prevBtn" title="Anterior">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <div class="meta">Tela <span id="curN">1</span> / 5</div>
+  <button id="replayBtn" class="replay" title="Reiniciar">
+    <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+  </button>
+  <button id="nextBtn" title="Próxima">
+    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+</div>
+
+<p class="tip">
+  Toque nas setas pra navegar manualmente · Use <strong>↻</strong> pra ver as animações de novo<br>
+  Avanço automático: T1 → T2 (3s) · T2 → T3 (4.5s) · T3 → T4 (3.5s) · T4 → T5 (4s)
+</p>
+
+<script>
+  const screens = ['s1','s2','s3','s4','s5'];
+  const durations = [3000,4500,3500,4000,99999];
+  let cur = 0;
+  let timer = null;
+
+  const dots = document.querySelectorAll('.dot-i');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const replayBtn = document.getElementById('replayBtn');
+  const skipBtn = document.getElementById('skipBtn');
+  const curN = document.getElementById('curN');
+
+  function go(i, autoNext){
+    if(i<0) i=0;
+    if(i>=screens.length) i=screens.length-1;
+    cur = i;
+    screens.forEach((id,idx)=>{
+      const el = document.getElementById(id);
+      el.classList.toggle('active', idx===i);
+    });
+    dots.forEach((d,idx)=>{
+      d.classList.toggle('active', idx===i);
+      d.classList.toggle('done', idx<i);
+    });
+    curN.textContent = (i+1);
+    prevBtn.disabled = (i===0);
+    nextBtn.disabled = (i===screens.length-1);
+    skipBtn.style.display = (i===screens.length-1) ? 'none' : 'block';
+
+    if(timer){ clearTimeout(timer); timer=null; }
+    if(autoNext && i<screens.length-1){
+      timer = setTimeout(()=>go(i+1,true), durations[i]);
+    }
+  }
+
+  prevBtn.onclick = ()=>go(cur-1, false);
+  nextBtn.onclick = ()=>go(cur+1, false);
+  replayBtn.onclick = ()=>{
+    // Re-disparar animações: remove active, força reflow, adiciona de novo
+    screens.forEach(id=>document.getElementById(id).classList.remove('active'));
+    cur = -1;
+    setTimeout(()=>go(0,true), 50);
+  };
+  skipBtn.onclick = ()=>go(screens.length-1, false);
+
+  // Keyboard
+  document.addEventListener('keydown',(e)=>{
+    if(e.key==='ArrowRight') nextBtn.click();
+    if(e.key==='ArrowLeft') prevBtn.click();
+    if(e.key==='r' || e.key==='R') replayBtn.click();
+  });
+
+  // Auto-start
+  go(0, true);
+</script>
+
+</body>
+</html>
