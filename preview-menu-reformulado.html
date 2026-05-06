@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>VITAE — Estudo CEO · Preview comparativo</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: 'Plus Jakarta Sans', sans-serif; background: #0D0F14; color: #fff; -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+  .topbar {
+    position: relative; z-index: 10;
+    height: 56px; background: #0D0F14; border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; padding: 0 20px; gap: 18px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 2px; font-size: 18px; font-weight: 900; letter-spacing: -0.04em; }
+  .brand .ib { background: linear-gradient(120deg, #00E5A0, #00B4D8); color: #0D0F14; padding: 2px 7px; border-radius: 6px; font-weight: 900; }
+  .label { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.40); padding-left: 14px; border-left: 1px solid rgba(255,255,255,0.10); }
+  .label strong { color: #00E5A0; font-weight: 800; letter-spacing: 0.16em; }
+
+  .toggle { margin-left: auto; display: flex; gap: 4px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 100px; padding: 4px; }
+  .toggle button {
+    background: transparent; border: 0; color: rgba(255,255,255,0.55);
+    font-family: inherit; font-size: 12px; font-weight: 700; padding: 7px 16px; border-radius: 100px; cursor: pointer; transition: all .18s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toggle button:hover { color: #fff; }
+  .toggle button.active { background: linear-gradient(120deg, #00E5A0, #00B4D8); color: #0D0F14; }
+  .toggle button .dot { width: 6px; height: 6px; border-radius: 100px; background: currentColor; opacity: 0.55; }
+  .toggle button.active .dot { opacity: 1; }
+  .badge-old { font-size: 9px; padding: 2px 7px; border-radius: 100px; background: rgba(239,68,68,0.18); color: #FCA5A5; font-weight: 800; letter-spacing: 0.04em; }
+  .toggle button.active .badge-old { background: rgba(13,15,20,0.20); color: #0D0F14; }
+  .badge-new { font-size: 9px; padding: 2px 7px; border-radius: 100px; background: rgba(0,229,160,0.18); color: #00E5A0; font-weight: 800; letter-spacing: 0.04em; }
+  .toggle button.active .badge-new { background: rgba(13,15,20,0.20); color: #0D0F14; }
+
+  .info-btn { background: transparent; border: 1px solid rgba(255,255,255,0.10); color: rgba(255,255,255,0.65); padding: 7px 13px; border-radius: 100px; font-family: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+  .info-btn:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+  .stage { position: relative; height: calc(100vh - 56px); background: #F7F8FA; }
+  iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #F7F8FA; }
+  iframe.hidden { display: none; }
+
+  /* DECISION DOCK — flutuante no canto inferior direito */
+  .dock {
+    position: fixed; right: 20px; bottom: 20px; z-index: 100;
+    width: 360px; max-height: calc(100vh - 120px);
+    background: rgba(13,15,20,0.96); backdrop-filter: blur(24px);
+    border: 1px solid rgba(0,229,160,0.30); border-radius: 16px;
+    padding: 18px 20px; color: #fff;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+    overflow-y: auto;
+  }
+  .dock.hidden { display: none; }
+  .dock-title { font-size: 10px; font-weight: 900; letter-spacing: 0.10em; color: #00E5A0; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .dock-close { position: absolute; top: 12px; right: 14px; background: transparent; border: 0; color: rgba(255,255,255,0.50); cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px; }
+  .dock-close:hover { color: #fff; }
+  .dock-body { font-size: 12.5px; line-height: 1.6; color: rgba(255,255,255,0.86); }
+  .dock-body strong { color: #fff; font-weight: 700; }
+  .dock-body em { color: #00E5A0; font-style: normal; font-weight: 600; }
+  .dock-body ul { margin: 8px 0 4px; padding-left: 18px; }
+  .dock-body li { margin-bottom: 5px; }
+  .dock-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .dock-section h4 { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 6px; }
+  .dock-pill { display: inline-block; font-size: 10px; padding: 3px 8px; border-radius: 100px; font-weight: 700; margin-right: 4px; margin-top: 4px; }
+  .pill-kill { background: rgba(239,68,68,0.18); color: #FCA5A5; }
+  .pill-move { background: rgba(59,130,246,0.18); color: #93C5FD; }
+  .pill-trans { background: rgba(0,229,160,0.18); color: #00E5A0; }
+  .pill-keep { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); }
+
+  .reopen-fab {
+    position: fixed; right: 20px; bottom: 20px; z-index: 99;
+    width: 48px; height: 48px; border-radius: 100px;
+    background: linear-gradient(120deg, #00E5A0, #00B4D8); color: #0D0F14;
+    border: 0; cursor: pointer; display: none;
+    align-items: center; justify-content: center; font-weight: 900; font-size: 18px;
+    box-shadow: 0 8px 28px rgba(0,229,160,0.35);
+  }
+  .reopen-fab.visible { display: flex; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">vita<span class="ib">id</span></div>
+  <div class="label">Estudo <strong>CEO</strong> · Preview comparativo navegável</div>
+  <div class="toggle">
+    <button id="btn-old" onclick="setView('old')">
+      <span class="dot"></span>Versão atual<span class="badge-old">8 ABAS</span>
+    </button>
+    <button id="btn-new" class="active" onclick="setView('new')">
+      <span class="dot"></span>Versão reformulada<span class="badge-new">4 ABAS</span>
+    </button>
+  </div>
+  <button class="info-btn" onclick="toggleDock()">Por que mudei?</button>
+</div>
+
+<div class="stage">
+  <iframe id="frame-old" class="hidden" src="desktop/preview-app-atual.html"></iframe>
+  <iframe id="frame-new" src="desktop/preview-app-reformulado.html"></iframe>
+</div>
+
+<div class="dock hidden" id="dock">
+  <button class="dock-close" onclick="toggleDock()">×</button>
+  <div class="dock-title">⚡ Estudo CEO — Reformulação do menu</div>
+  <div class="dock-body">
+    Antes do redesign: 8 abas inflando o sidebar e competindo com iClinic/Voa em terreno onde a gente perde. <em>Pré-consulta é o único diferencial real do VITAE</em> — o resto era feature creep.
+
+    <div class="dock-section">
+      <h4>Sidebar antes vs depois</h4>
+      <div><span class="dock-pill pill-trans">Hoje</span><span class="dock-pill pill-keep">Pré-Consultas</span><span class="dock-pill pill-trans">Pacientes (timeline)</span><span class="dock-pill pill-keep">Meu Perfil</span></div>
+      <div style="margin-top:10px"><span class="dock-pill pill-kill">CRM & Retornos</span><span class="dock-pill pill-kill">Agenda</span><span class="dock-pill pill-kill">RG da Saúde</span><span class="dock-pill pill-move">Templates → Perfil</span></div>
+    </div>
+
+    <div class="dock-section">
+      <h4>Lógica das decisões</h4>
+      <ul>
+        <li><strong>Hoje</strong> (era Dashboard): cockpit cirúrgico, só do que pré-consulta gerou. Não é dashboard genérico.</li>
+        <li><strong>Pacientes</strong>: deixa de ser CRUD e vira <em>timeline de anamneses</em>. Comparativo histórico que SÓ VITAE consegue.</li>
+        <li><strong>Agenda</strong>: integra com Google Calendar, não duplica. Não vamos vencer iClinic em Agenda.</li>
+        <li><strong>CRM/Retornos</strong>: vira automação invisível disparada pela pré-consulta, não aba.</li>
+        <li><strong>Templates</strong>: é configuração, não fluxo diário. Vai pra dentro do Perfil.</li>
+      </ul>
+    </div>
+
+    <div class="dock-section">
+      <h4>Como navegar</h4>
+      <ul>
+        <li>Toggle no topo alterna entre <em>app real de hoje</em> e a <em>versão reformulada</em>.</li>
+        <li>Em <strong>ambas</strong> dá pra clicar em pré-consulta e ver o resumo de 1 minuto, anamnese 11 campos, padrões observados, transcrição — tudo funcionando.</li>
+        <li>Na versão reformulada o menu mudou; o resto do app é idêntico (cópia funcional do app.html).</li>
+      </ul>
+    </div>
+
+    <div class="dock-section">
+      <h4>O que ainda não está no preview</h4>
+      <ul>
+        <li>Aba <em>Hoje</em> reformulada (cards "anamnese pronta / alerta áudio / não gravou") — hoje carrega o Dashboard atual.</li>
+        <li>Aba <em>Pacientes</em> como timeline — hoje carrega a lista CRUD atual.</li>
+        <li>Templates dentro do Perfil — hoje ainda aparecem como aba (com tag → PERFIL).</li>
+      </ul>
+      <p style="margin-top:8px;color:rgba(255,255,255,0.60);font-size:11.5px">Esses 3 são as próximas reformas. Antes de codar: estudo de uso real + benchmark inverso (iClinic, Voa).</p>
+    </div>
+  </div>
+</div>
+
+<button class="reopen-fab visible" id="reopenFab" onclick="toggleDock()" title="Reabrir explicação">?</button>
+
+<script>
+  function setView(v) {
+    var oldF = document.getElementById('frame-old');
+    var newF = document.getElementById('frame-new');
+    var bO = document.getElementById('btn-old');
+    var bN = document.getElementById('btn-new');
+    if (v === 'old') {
+      oldF.classList.remove('hidden');
+      newF.classList.add('hidden');
+      bO.classList.add('active');
+      bN.classList.remove('active');
+    } else {
+      newF.classList.remove('hidden');
+      oldF.classList.add('hidden');
+      bN.classList.add('active');
+      bO.classList.remove('active');
+    }
+  }
+  function toggleDock() {
+    var d = document.getElementById('dock');
+    var f = document.getElementById('reopenFab');
+    if (d.classList.contains('hidden')) {
+      d.classList.remove('hidden');
+      f.classList.remove('visible');
+    } else {
+      d.classList.add('hidden');
+      f.classList.add('visible');
+    }
+  }
+</script>
+
+</body>
+</html>

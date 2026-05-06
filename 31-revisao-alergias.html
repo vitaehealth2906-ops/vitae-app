@@ -140,10 +140,12 @@
 
 <script src="api.js"></script>
 <script>
+(function(){
     // Try to load real scan results from API, fallback to demo data
     const scanResult = JSON.parse(sessionStorage.getItem('vitae_scan_result') || 'null');
 
-    let scannedAllergies = [];
+    var scannedAllergies = [];
+    window.scannedAllergies = scannedAllergies;
 
     if (scanResult && scanResult.alergias && scanResult.alergias.length > 0) {
         scannedAllergies = scanResult.alergias.map(a => ({
@@ -154,9 +156,11 @@
             enabled: true,
             uncertain: a.uncertain || false,
         }));
+        window.scannedAllergies = scannedAllergies;
     } else {
         // No scan result — show error, NOT demo data
         scannedAllergies = [];
+        window.scannedAllergies = scannedAllergies;
         document.getElementById('allergiesContainer').innerHTML = `
             <div style="text-align:center;padding:40px 20px;">
                 <div style="width:64px;height:64px;border-radius:20px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
@@ -169,8 +173,9 @@
             </div>
         `;
         document.getElementById('confirmBtn').style.display = 'none';
-        return;
+        return; // sai da IIFE — JS legal
     }
+})();
 
     // Check existing allergies
     async function checkExisting() {

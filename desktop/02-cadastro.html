@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vitaid — Criar conta médica</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="desktop-core.css" rel="stylesheet">
+<style>
+.login-card{width:480px}
+.row2{display:grid;grid-template-columns:120px 1fr;gap:10px}
+.tel-prefix{display:flex;align-items:center;justify-content:center;background:#F2F4F7;border:1.5px solid #E2E5EA;border-radius:10px;font-size:13px;font-weight:600;color:#4B5563;height:48px}
+.terms{display:flex;align-items:flex-start;gap:9px;margin:14px 0 4px;font-size:12.5px;color:#4B5563;line-height:1.5}
+.terms input{margin-top:3px;flex-shrink:0;width:16px;height:16px;cursor:pointer;accent-color:#00B4D8}
+.terms a{color:#0D0F14;font-weight:600;text-decoration:none;border-bottom:1px solid #C9CDD4}
+.title{font-size:22px;font-weight:800;letter-spacing:-0.4px;color:#0D0F14;text-align:center;margin-bottom:6px}
+.title em{font-style:normal;background:linear-gradient(120deg,#00E5A0,#00B4D8);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ===== Override de inputs (polido) ===== */
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12px;font-weight:600;color:#4B5563;letter-spacing:0.01em;text-transform:none;margin-bottom:7px}
+.field input,.field select{
+  width:100%;
+  padding:13px 15px;
+  background:#fff;
+  border:1.5px solid #E2E5EA;
+  border-radius:10px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:14px;
+  font-weight:500;
+  color:#0D0F14;
+  outline:none;
+  transition:border-color .18s,box-shadow .18s,background .18s;
+  -webkit-appearance:none;
+  height:48px;
+  box-sizing:border-box;
+}
+.field input:hover,.field select:hover{border-color:#C9CDD4}
+.field input:focus,.field select:focus{
+  border-color:#00B4D8;
+  box-shadow:0 0 0 3px rgba(0,180,216,0.10);
+  background:#FBFDFE;
+}
+.field input::placeholder{color:#9CA3AF;font-weight:400}
+</style>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">vita<span class="ib">id</span></div>
+    <div class="title">Criar conta <em>médica</em></div>
+    <div class="login-sub">Cadastro exclusivo para profissionais de medicina</div>
+
+    <div class="login-error" id="err"></div>
+
+    <div class="field">
+      <label>Nome completo</label>
+      <input type="text" id="nome" placeholder="Dr(a). Seu Nome" autocomplete="name">
+    </div>
+    <div class="field">
+      <label>E-mail profissional</label>
+      <input type="email" id="email" placeholder="seu@email.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Celular</label>
+      <div class="row2">
+        <div class="tel-prefix">BR +55</div>
+        <input type="tel" id="celular" placeholder="(11) 99999-9999" maxlength="15" oninput="mask(this)">
+      </div>
+    </div>
+    <div class="field">
+      <label>Senha (mínimo 8 caracteres)</label>
+      <input type="password" id="senha" placeholder="••••••••" minlength="8" autocomplete="new-password">
+    </div>
+
+    <label class="terms">
+      <input type="checkbox" id="aceite">
+      <span>Li e aceito os <a href="../termos.html" target="_blank">Termos de Uso</a> e a <a href="../lgpd.html" target="_blank">Política de Privacidade</a></span>
+    </label>
+
+    <button class="login-btn" id="btn" onclick="cadastrar()" style="margin-top:16px">Criar conta</button>
+
+    <div class="login-footer">
+      Já tem conta? <a href="01-login.html" style="color:var(--green);font-weight:600;text-decoration:none">Entrar</a>
+    </div>
+  </div>
+</div>
+
+<script src="auth-errors.js"></script>
+<script>
+const API_BASE = 'https://vitae-app-production.up.railway.app';
+const errEl = document.getElementById('err');
+
+function mask(el){
+  var v = el.value.replace(/\D/g,'').slice(0,11);
+  if (v.length > 6) v = '('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
+  else if (v.length > 2) v = '('+v.slice(0,2)+') '+v.slice(2);
+  el.value = v;
+}
+
+function showErr(titulo, msg, severidade){
+  vitaeAuthError.mostrar(errEl, { titulo, msg, severidade: severidade || 'error' });
+}
+
+async function cadastrar(){
+  var nome = document.getElementById('nome').value.trim();
+  var email = document.getElementById('email').value.trim();
+  var celular = document.getElementById('celular').value.replace(/\D/g,'');
+  var senha = document.getElementById('senha').value;
+  var aceite = document.getElementById('aceite').checked;
+  var btn = document.getElementById('btn');
+  vitaeAuthError.limpar(errEl);
+
+  if (!nome || nome.split(' ').length < 2) return showErr('Informe seu nome completo', 'Inclua nome e sobrenome para o registro profissional.');
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('E-mail inválido', 'Digite um e-mail no formato seu@email.com.');
+  if (celular.length < 10) return showErr('Celular inválido', 'Inclua o DDD e o número completo.');
+  if (senha.length < 8) return showErr('Senha curta demais', 'Sua senha precisa ter pelo menos 8 caracteres.');
+  if (!aceite) return showErr('Aceite necessário', 'Você precisa aceitar os Termos de Uso e a Política de Privacidade para continuar.', 'warn');
+
+  btn.disabled = true; btn.textContent = 'Criando…';
+  try {
+    var res = await fetch(API_BASE + '/auth/cadastro', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ nome, email, celular: '+55'+celular, senha, tipo:'MEDICO' })
+    });
+    var data = await res.json().catch(()=>({}));
+    if (!res.ok) {
+      vitaeAuthError.mostrar(errEl, vitaeAuthError.traduzir({ res, data, contexto: 'cadastro' }));
+      btn.disabled = false; btn.textContent = 'Criar conta';
+      return;
+    }
+    // Salva sessão e marca consentimentos LGPD
+    localStorage.setItem('vitae_token', data.token);
+    if (data.refreshToken) localStorage.setItem('vitae_refresh_token', data.refreshToken);
+    localStorage.setItem('vitae_usuario', JSON.stringify(data.usuario));
+    // Registra consentimento Termos + LGPD em background (não bloqueia)
+    try {
+      var headers = {'Content-Type':'application/json','Authorization':'Bearer '+data.token};
+      fetch(API_BASE+'/consentimento', {method:'POST', headers, body: JSON.stringify({tipo:'TERMOS_USO', aceito:true, versao:'1.0'})});
+      fetch(API_BASE+'/consentimento', {method:'POST', headers, body: JSON.stringify({tipo:'POLITICA_PRIVACIDADE', aceito:true, versao:'1.0'})});
+    } catch(e){}
+    // Vai pro quiz de perfil médico
+    window.location.href = '03-quiz-medico.html';
+  } catch(e) {
+    vitaeAuthError.mostrar(errEl, vitaeAuthError.traduzir({ network: true, exception: e, contexto: 'cadastro' }));
+    btn.disabled = false; btn.textContent = 'Criar conta';
+  }
+}
+
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Enter') cadastrar();
+});
+</script>
+</body>
+</html>

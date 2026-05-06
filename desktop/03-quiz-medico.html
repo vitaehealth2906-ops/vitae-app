@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vitaid — Perfil médico</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="desktop-core.css" rel="stylesheet">
+<style>
+.login-card{width:640px;padding:36px 44px}
+.title{font-size:24px;font-weight:900;letter-spacing:-0.5px;color:var(--t1);margin-bottom:4px}
+.title em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:13px;color:var(--t3);margin-bottom:24px}
+.steps{display:flex;align-items:center;gap:6px;margin-bottom:24px}
+.step{flex:1;height:4px;border-radius:100px;background:var(--s3);transition:background .3s}
+.step.done{background:var(--grad)}
+.step-label{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--t3);margin-bottom:14px}
+.step-label .num{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--grad);color:var(--dark);font-size:11px;line-height:22px;text-align:center;margin-right:8px;font-weight:800}
+.row{display:grid;gap:10px}
+.row.r2-110{grid-template-columns:120px 1fr}
+.row.r2{grid-template-columns:1fr 1fr}
+.row.r3{grid-template-columns:1fr 1fr 1fr}
+.actions{display:flex;justify-content:space-between;align-items:center;margin-top:24px;gap:10px}
+.btn-back{background:transparent;border:1px solid var(--border);color:var(--t2);height:42px;padding:0 18px;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+.btn-back:hover{background:var(--s2)}
+.btn-back:disabled{opacity:0.4;cursor:not-allowed}
+.btn-skip{background:transparent;border:0;color:var(--t3);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;padding:8px 12px;text-decoration:underline;text-decoration-color:var(--border);text-underline-offset:3px}
+.btn-skip:hover{color:var(--t1)}
+.btn-next{background:var(--grad);color:var(--dark);border:0;height:42px;padding:0 24px;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.btn-next:hover{opacity:.9}
+.btn-next:disabled{opacity:.5;cursor:wait}
+.panel{display:none}
+.panel.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.hint{font-size:11.5px;color:var(--t3);margin-top:4px;line-height:1.5}
+.success{text-align:center;padding:24px 10px}
+.success-icon{width:72px;height:72px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:var(--dark);font-size:34px;font-weight:900}
+.success h2{font-size:20px;font-weight:800;margin-bottom:8px}
+.success p{font-size:13px;color:var(--t3);margin-bottom:20px;line-height:1.6}
+
+/* Chips selecionáveis */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{padding:7px 13px;background:var(--surface);border:1.5px solid var(--border);border-radius:100px;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .15s;user-select:none}
+.chip:hover{border-color:rgba(0,229,160,.35);color:var(--t1)}
+.chip.on{background:var(--acc);border-color:rgba(0,229,160,.5);color:var(--green)}
+.chip-add{display:flex;gap:6px;margin-top:8px}
+.chip-add input{flex:1;padding:8px 11px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px;color:var(--t1);outline:none}
+.chip-add button{padding:0 14px;background:var(--s2);border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer}
+.chip-add button:hover{background:var(--s3)}
+
+/* Toggles dias e turnos */
+.toggles{display:flex;gap:6px;flex-wrap:wrap}
+.toggle-pill{padding:8px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:12.5px;font-weight:700;color:var(--t2);cursor:pointer;transition:all .15s;user-select:none;min-width:48px;text-align:center}
+.toggle-pill:hover{border-color:rgba(0,229,160,.35)}
+.toggle-pill.on{background:var(--acc);border-color:rgba(0,229,160,.5);color:var(--green)}
+
+/* Foto upload */
+.foto-wrap{display:flex;align-items:center;gap:18px;margin-bottom:6px}
+.foto-preview{width:96px;height:96px;border-radius:50%;background:var(--s2);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:11px;font-weight:600;text-align:center;overflow:hidden;flex-shrink:0;background-size:cover;background-position:center}
+.foto-actions button{display:block;width:100%;text-align:left;padding:8px 14px;margin-bottom:6px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--t1);cursor:pointer;transition:background .15s}
+.foto-actions button:hover{background:var(--s2)}
+.foto-actions input[type=file]{display:none}
+
+textarea.field-input{width:100%;padding:13px 15px;background:#fff;border:1.5px solid #E2E5EA;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:500;color:#0D0F14;outline:none;resize:vertical;min-height:96px;line-height:1.55;transition:border-color .18s,box-shadow .18s,background .18s;box-sizing:border-box}
+textarea.field-input:hover{border-color:#C9CDD4}
+textarea.field-input:focus{border-color:#00B4D8;box-shadow:0 0 0 3px rgba(0,180,216,0.10);background:#FBFDFE}
+textarea.field-input::placeholder{color:#9CA3AF;font-weight:400}
+.char-count{font-size:11.5px;color:#6B7280;text-align:right;margin-top:4px;font-weight:500}
+
+/* ===== Override de inputs do quiz (polido) ===== */
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12px;font-weight:600;color:#4B5563;letter-spacing:0.01em;text-transform:none;margin-bottom:7px}
+.field input:not([type=checkbox]):not([type=file]),.field select{
+  width:100%;
+  padding:13px 15px;
+  background:#fff;
+  border:1.5px solid #E2E5EA;
+  border-radius:10px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:14px;
+  font-weight:500;
+  color:#0D0F14;
+  outline:none;
+  transition:border-color .18s,box-shadow .18s,background .18s;
+  -webkit-appearance:none;
+  height:48px;
+  box-sizing:border-box;
+}
+.field input:not([type=checkbox]):not([type=file]):hover,.field select:hover{border-color:#C9CDD4}
+.field input:not([type=checkbox]):not([type=file]):focus,.field select:focus{
+  border-color:#00B4D8;
+  box-shadow:0 0 0 3px rgba(0,180,216,0.10);
+  background:#FBFDFE;
+}
+.field input::placeholder{color:#9CA3AF;font-weight:400}
+.field select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 14px center;
+  background-size:14px;
+  padding-right:38px;
+  cursor:pointer;
+}
+
+/* Hint mais legível */
+.hint{font-size:12px;color:#6B7280;margin-top:6px;line-height:1.5}
+
+/* Chip-add e chips: dar respiro */
+.chip-add{margin-top:10px;gap:8px}
+.chip-add input{height:42px;padding:11px 14px;font-size:13.5px;border-radius:9px}
+.chip-add button{height:42px;padding:0 16px;border-radius:9px;font-size:13px;font-weight:600;background:#F2F4F7;border:1.5px solid #E2E5EA;color:#4B5563}
+.chip-add button:hover{background:#E8EBF0;border-color:#C9CDD4}
+.chip{padding:8px 14px;font-size:13px;font-weight:600}
+
+/* Toggles dias e turnos: maior */
+.toggle-pill{padding:10px 16px;font-size:13px;font-weight:600;border-radius:10px;border-width:1.5px;border-color:#E2E5EA}
+.toggle-pill:hover{border-color:#C9CDD4}
+.toggle-pill.on{background:rgba(0,229,160,0.10);border-color:rgba(0,180,216,0.45);color:#0D0F14}
+</style>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">vita<span class="ib">id</span></div>
+    <div class="title">Bem-<em>vindo</em></div>
+    <div class="lede">Vamos preencher seu perfil profissional. Os 5 passos levam ~3 minutos.</div>
+
+    <div class="steps">
+      <div class="step done" id="bar1"></div>
+      <div class="step" id="bar2"></div>
+      <div class="step" id="bar3"></div>
+      <div class="step" id="bar4"></div>
+      <div class="step" id="bar5"></div>
+    </div>
+
+    <div class="login-error" id="err"></div>
+
+    <!-- ============ PASSO 1: Identidade ============ -->
+    <div class="panel active" data-step="1">
+      <div class="step-label"><span class="num">1</span>Sua identidade profissional</div>
+      <div class="field">
+        <label>Registro CRM</label>
+        <div class="row r2-110">
+          <select id="uf">
+            <option value="">UF</option>
+            <option>AC</option><option>AL</option><option>AM</option><option>AP</option>
+            <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+            <option>GO</option><option>MA</option><option>MG</option><option>MS</option>
+            <option>MT</option><option>PA</option><option>PB</option><option>PE</option>
+            <option>PI</option><option>PR</option><option>RJ</option><option>RN</option>
+            <option>RO</option><option>RR</option><option>RS</option><option selected>SP</option>
+            <option>SE</option><option>TO</option>
+          </select>
+          <input type="text" id="crm" placeholder="123456" inputmode="numeric">
+        </div>
+        <div class="hint">Apenas números do seu registro no Conselho Regional de Medicina.</div>
+      </div>
+      <div class="field">
+        <label>Especialidade principal</label>
+        <input type="text" id="esp" placeholder="Ex: Cardiologia" list="espOptions" autocomplete="off">
+        <datalist id="espOptions">
+          <option>Clínica Geral</option><option>Cardiologia</option>
+          <option>Dermatologia</option><option>Endocrinologia</option>
+          <option>Gastroenterologia</option><option>Ginecologia e Obstetrícia</option>
+          <option>Neurologia</option><option>Oftalmologia</option>
+          <option>Ortopedia</option><option>Otorrinolaringologia</option>
+          <option>Pediatria</option><option>Psiquiatria</option>
+          <option>Urologia</option><option>Reumatologia</option>
+          <option>Geriatria</option><option>Pneumologia</option>
+          <option>Medicina Intensiva</option><option>Anestesiologia</option>
+          <option>Radiologia</option><option>Patologia Clínica</option>
+        </datalist>
+      </div>
+      <div class="field">
+        <label>Sub-especialidades (opcional)</label>
+        <div class="chips" id="subChips"></div>
+        <div class="chip-add">
+          <input type="text" id="subInput" placeholder="Ex: Eletrofisiologia" onkeydown="if(event.key==='Enter'){event.preventDefault();addSub()}">
+          <button type="button" onclick="addSub()">Adicionar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ PASSO 2: Formação ============ -->
+    <div class="panel" data-step="2">
+      <div class="step-label"><span class="num">2</span>Sua formação</div>
+      <div class="row r2">
+        <div class="field">
+          <label>Universidade</label>
+          <input type="text" id="universidade" placeholder="Ex: USP, UNICAMP, UFMG" list="uniOptions" autocomplete="off">
+          <datalist id="uniOptions">
+            <option>USP — Universidade de São Paulo</option>
+            <option>UNICAMP — Universidade Estadual de Campinas</option>
+            <option>UFRJ — Universidade Federal do Rio de Janeiro</option>
+            <option>UFMG — Universidade Federal de Minas Gerais</option>
+            <option>UNIFESP — Universidade Federal de São Paulo</option>
+            <option>UNESP — Universidade Estadual Paulista</option>
+            <option>UFRGS — Universidade Federal do Rio Grande do Sul</option>
+            <option>UFBA — Universidade Federal da Bahia</option>
+            <option>PUC-SP</option><option>PUC-RS</option>
+            <option>FMUSP</option><option>EPM</option>
+          </datalist>
+        </div>
+        <div class="field">
+          <label>Ano de formação</label>
+          <input type="number" id="anoFormacao" placeholder="2015" min="1960" max="2026">
+        </div>
+      </div>
+      <div class="field">
+        <label>Bio profissional curta (opcional)</label>
+        <textarea class="field-input" id="bio" maxlength="240" placeholder="Ex: Cardiologista com 10 anos de experiência em arritmias complexas. Atendo casos eletivos e urgências." oninput="updateBioCount()"></textarea>
+        <div class="char-count"><span id="bioCount">0</span> / 240</div>
+        <div class="hint">Aparece no seu perfil compartilhado e no link da pré-consulta. Mantenha institucional.</div>
+      </div>
+    </div>
+
+    <!-- ============ PASSO 3: Onde atende ============ -->
+    <div class="panel" data-step="3">
+      <div class="step-label"><span class="num">3</span>Onde você atende</div>
+      <div class="field">
+        <label>Nome da clínica ou consultório</label>
+        <input type="text" id="clinica" placeholder="Ex: Clínica São Lucas">
+      </div>
+      <div class="field">
+        <label>Endereço completo</label>
+        <input type="text" id="endereco" placeholder="Rua, número, bairro, cidade — UF">
+      </div>
+      <div class="field">
+        <label>Telefone do consultório</label>
+        <input type="tel" id="tel" placeholder="(11) 3333-4444" oninput="maskTel(this)" maxlength="15">
+      </div>
+      <div class="field">
+        <label>Tipos de atendimento</label>
+        <div class="toggles" id="tiposAtend">
+          <div class="toggle-pill on" data-val="presencial">Presencial</div>
+          <div class="toggle-pill" data-val="online">Online (telemedicina)</div>
+          <div class="toggle-pill" data-val="domicilio">Domicílio</div>
+        </div>
+        <div class="hint">Selecione todos que você atende. Pelo menos 1.</div>
+      </div>
+      <div class="field">
+        <label>Convênios aceitos (opcional)</label>
+        <div class="chips" id="convChips"></div>
+        <div class="chip-add">
+          <input type="text" id="convInput" placeholder="Ex: Unimed, Bradesco Saúde, SulAmérica…" onkeydown="if(event.key==='Enter'){event.preventDefault();addConv()}">
+          <button type="button" onclick="addConv()">Adicionar</button>
+        </div>
+        <div class="hint">Deixe vazio se atende apenas particular.</div>
+      </div>
+    </div>
+
+    <!-- ============ PASSO 4: Sua consulta ============ -->
+    <div class="panel" data-step="4">
+      <div class="step-label"><span class="num">4</span>Sobre suas consultas</div>
+      <div class="row r2">
+        <div class="field">
+          <label>Valor padrão da consulta</label>
+          <input type="text" id="valor" placeholder="R$ 400" inputmode="numeric" oninput="maskValor(this)">
+        </div>
+        <div class="field">
+          <label>Tempo médio (minutos)</label>
+          <input type="number" id="tempo" placeholder="30" min="10" max="120" value="30">
+        </div>
+      </div>
+      <div class="field">
+        <label>Dias da semana que atende</label>
+        <div class="toggles" id="dias">
+          <div class="toggle-pill on" data-val="seg">Seg</div>
+          <div class="toggle-pill on" data-val="ter">Ter</div>
+          <div class="toggle-pill on" data-val="qua">Qua</div>
+          <div class="toggle-pill on" data-val="qui">Qui</div>
+          <div class="toggle-pill on" data-val="sex">Sex</div>
+          <div class="toggle-pill" data-val="sab">Sáb</div>
+          <div class="toggle-pill" data-val="dom">Dom</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Turnos de atendimento</label>
+        <div class="toggles" id="turnos">
+          <div class="toggle-pill on" data-val="manha">Manhã (08-12h)</div>
+          <div class="toggle-pill on" data-val="tarde">Tarde (13-18h)</div>
+          <div class="toggle-pill" data-val="noite">Noite (19-22h)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ PASSO 5: Toque final ============ -->
+    <div class="panel" data-step="5">
+      <div class="step-label"><span class="num">5</span>Toque final</div>
+      <div class="field">
+        <label>Foto profissional (opcional)</label>
+        <div class="foto-wrap">
+          <div class="foto-preview" id="fotoPrev">Sem foto</div>
+          <div class="foto-actions" style="flex:1">
+            <button type="button" onclick="document.getElementById('fotoFile').click()">Escolher imagem</button>
+            <button type="button" onclick="removerFoto()" id="btnRemoverFoto" style="display:none">Remover foto</button>
+            <input type="file" id="fotoFile" accept="image/*" onchange="lerFoto(event)">
+          </div>
+        </div>
+        <div class="hint">JPG ou PNG, até 2 MB. A foto fica salva no rascunho até a próxima sincronização com o servidor.</div>
+      </div>
+      <div class="field">
+        <label>Mensagem padrão de WhatsApp para pacientes</label>
+        <textarea class="field-input" id="msgWpp" maxlength="320" placeholder="Olá [Nome], aqui é [Médico]. Sua consulta está marcada para [Data] às [Hora]. Por favor, responda a pré-consulta antes pelo link [Link]." oninput="updateMsgCount()"></textarea>
+        <div class="char-count"><span id="msgCount">0</span> / 320</div>
+        <div class="hint">Use os campos entre colchetes — eles são preenchidos automaticamente.</div>
+      </div>
+    </div>
+
+    <!-- ============ TELA FINAL ============ -->
+    <div class="panel" data-step="6">
+      <div class="success">
+        <div class="success-icon">✓</div>
+        <h2>Tudo pronto, <span id="nomeOk">médico</span></h2>
+        <p>Seu perfil foi salvo. Os campos extras ficam guardados como rascunho até a próxima atualização do sistema.</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-back" id="btnBack" onclick="back()">Voltar</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="btn-skip" id="btnSkip" onclick="skip()" style="display:none">Pular este passo</button>
+        <button class="btn-next" id="btnNext" onclick="next()">Avançar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="auth-errors.js"></script>
+<script>
+const API_BASE = 'https://vitae-app-production.up.railway.app';
+const errEl = document.getElementById('err');
+
+// AUTH gate
+(function(){
+  try {
+    var t = localStorage.getItem('vitae_token');
+    var raw = localStorage.getItem('vitae_usuario');
+    var u = raw ? JSON.parse(raw) : null;
+    if (!t || !u || u.tipo !== 'MEDICO') {
+      window.location.replace('01-login.html');
+      return;
+    }
+    document.getElementById('nomeOk').textContent = (u.nome||'médico').split(' ')[0];
+  } catch(e) {
+    window.location.replace('01-login.html');
+  }
+})();
+
+// Valida em background que o token aponta pra um usuário real
+(async function validarSessao(){
+  try {
+    var token = localStorage.getItem('vitae_token');
+    if (!token) return;
+    var res = await fetch('https://vitae-app-production.up.railway.app/perfil', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (res.status === 401 || res.status === 404) {
+      // Token aponta pra usuário inexistente — sessão inválida
+      ['vitae_token','vitae_refresh_token','vitae_usuario'].forEach(k => localStorage.removeItem(k));
+      alert('Sua sessão expirou ou o usuário foi removido. Faça login novamente.');
+      window.location.replace('01-login.html');
+    }
+  } catch(e) {}
+})();
+
+let step = 1;
+const TOTAL = 5;
+
+// ----- estado de chips e toggles -----
+const subEspecialidades = [];
+const convenios = [];
+let fotoBase64 = null;
+
+function showErr(titulo, msg, severidade){
+  // Aceita também chamada antiga: showErr('mensagem completa')
+  if (msg === undefined) {
+    vitaeAuthError.mostrar(errEl, { titulo: 'Confira o passo', msg: titulo, severidade: 'error' });
+  } else {
+    vitaeAuthError.mostrar(errEl, { titulo, msg, severidade: severidade || 'error' });
+  }
+}
+function clearErr(){ vitaeAuthError.limpar(errEl); }
+
+function render(){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  var active = document.querySelector('[data-step="'+step+'"]');
+  if (active) active.classList.add('active');
+  for (var i = 1; i <= TOTAL; i++) {
+    var bar = document.getElementById('bar'+i);
+    if (bar) bar.classList.toggle('done', step >= i);
+  }
+  var btnBack = document.getElementById('btnBack');
+  var btnNext = document.getElementById('btnNext');
+  var btnSkip = document.getElementById('btnSkip');
+  btnBack.disabled = step === 1 || step === 6;
+  btnBack.style.visibility = step === 6 ? 'hidden' : 'visible';
+  // Skip aparece nos passos opcionais (2 e 5)
+  btnSkip.style.display = (step === 2 || step === 5) ? 'inline-block' : 'none';
+  if (step === 6) {
+    btnNext.textContent = 'Entrar no app';
+  } else if (step === TOTAL) {
+    btnNext.textContent = 'Salvar e continuar';
+  } else {
+    btnNext.textContent = 'Avançar';
+  }
+  clearErr();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ----- Máscaras -----
+function maskTel(el){
+  var v = el.value.replace(/\D/g,'').slice(0,11);
+  if (v.length > 10) v = '('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
+  else if (v.length > 6) v = '('+v.slice(0,2)+') '+v.slice(2,6)+'-'+v.slice(6);
+  else if (v.length > 2) v = '('+v.slice(0,2)+') '+v.slice(2);
+  el.value = v;
+}
+function maskValor(el){
+  var v = el.value.replace(/\D/g,'');
+  if (!v) { el.value=''; return; }
+  el.value = 'R$ ' + parseInt(v,10).toLocaleString('pt-BR');
+}
+function updateBioCount(){ document.getElementById('bioCount').textContent = document.getElementById('bio').value.length; }
+function updateMsgCount(){ document.getElementById('msgCount').textContent = document.getElementById('msgWpp').value.length; }
+
+// ----- Sub-especialidades -----
+function renderSubChips(){
+  var el = document.getElementById('subChips');
+  el.innerHTML = subEspecialidades.map((s,i) => '<div class="chip on" onclick="rmSub('+i+')">'+escapeHtml(s)+' ×</div>').join('');
+}
+function addSub(){
+  var inp = document.getElementById('subInput');
+  var v = inp.value.trim();
+  if (!v) return;
+  if (subEspecialidades.includes(v)) { inp.value=''; return; }
+  subEspecialidades.push(v); inp.value=''; renderSubChips();
+}
+function rmSub(i){ subEspecialidades.splice(i,1); renderSubChips(); }
+
+// ----- Convênios -----
+function renderConvChips(){
+  var el = document.getElementById('convChips');
+  el.innerHTML = convenios.map((s,i) => '<div class="chip on" onclick="rmConv('+i+')">'+escapeHtml(s)+' ×</div>').join('');
+}
+function addConv(){
+  var inp = document.getElementById('convInput');
+  var v = inp.value.trim();
+  if (!v) return;
+  if (convenios.includes(v)) { inp.value=''; return; }
+  convenios.push(v); inp.value=''; renderConvChips();
+}
+function rmConv(i){ convenios.splice(i,1); renderConvChips(); }
+
+// ----- Toggles (tipos atendimento, dias, turnos) -----
+document.querySelectorAll('.toggle-pill').forEach(p => {
+  p.addEventListener('click', () => p.classList.toggle('on'));
+});
+function getToggleVals(containerId){
+  return Array.from(document.getElementById(containerId).querySelectorAll('.toggle-pill.on')).map(el => el.dataset.val);
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+
+// ----- Foto -----
+function lerFoto(ev){
+  var f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  if (!/^image\/(jpe?g|png|webp)$/i.test(f.type)) {
+    showErr('Formato não suportado', 'Use uma imagem em JPG, PNG ou WEBP.');
+    ev.target.value = ''; return;
+  }
+  if (f.size > 2*1024*1024) {
+    showErr('Imagem muito grande', 'A foto excede o limite de 2 MB. Escolha uma imagem menor ou comprima antes de enviar.');
+    ev.target.value = ''; return;
+  }
+  var rd = new FileReader();
+  rd.onerror = function(){
+    showErr('Não foi possível ler a imagem', 'Tente outra foto. Se persistir, salve em outro formato.');
+  };
+  rd.onload = function(e){
+    fotoBase64 = e.target.result;
+    var prev = document.getElementById('fotoPrev');
+    prev.style.backgroundImage = 'url('+fotoBase64+')';
+    prev.textContent = '';
+    document.getElementById('btnRemoverFoto').style.display = 'block';
+  };
+  rd.readAsDataURL(f);
+}
+function removerFoto(){
+  fotoBase64 = null;
+  var prev = document.getElementById('fotoPrev');
+  prev.style.backgroundImage = '';
+  prev.textContent = 'Sem foto';
+  document.getElementById('btnRemoverFoto').style.display = 'none';
+  document.getElementById('fotoFile').value = '';
+}
+
+// ----- Validação por passo (retorna {titulo,msg} ou null) -----
+function validateStep(s){
+  if (s === 1) {
+    if (!document.getElementById('uf').value) return {titulo:'Selecione o UF do CRM', msg:'Escolha o estado em que seu CRM foi emitido.'};
+    var crm = document.getElementById('crm').value.trim();
+    if (!crm) return {titulo:'CRM em branco', msg:'Informe o número do seu registro profissional.'};
+    if (!/^\d{4,20}$/.test(crm)) return {titulo:'CRM inválido', msg:'Use apenas números (de 4 a 20 dígitos).'};
+    if (!document.getElementById('esp').value.trim()) return {titulo:'Especialidade obrigatória', msg:'Informe sua especialidade principal.'};
+  }
+  if (s === 2) {
+    var ano = document.getElementById('anoFormacao').value;
+    if (ano && (parseInt(ano,10) < 1960 || parseInt(ano,10) > 2026)) return {titulo:'Ano de formação inválido', msg:'O ano precisa estar entre 1960 e 2026.'};
+    var bio = document.getElementById('bio').value;
+    if (bio.length > 240) return {titulo:'Bio muito longa', msg:'Reduza para até 240 caracteres.'};
+  }
+  if (s === 3) {
+    if (!document.getElementById('clinica').value.trim()) return {titulo:'Local de atendimento', msg:'Informe o nome da clínica ou consultório.'};
+    if (!document.getElementById('endereco').value.trim()) return {titulo:'Endereço obrigatório', msg:'Informe o endereço completo do local.'};
+    var tel = document.getElementById('tel').value.replace(/\D/g,'');
+    if (tel.length < 10) return {titulo:'Telefone inválido', msg:'Inclua o DDD e número completo do consultório.'};
+    if (getToggleVals('tiposAtend').length === 0) return {titulo:'Tipos de atendimento', msg:'Selecione pelo menos uma opção (presencial, online ou domicílio).'};
+  }
+  if (s === 4) {
+    var v = document.getElementById('valor').value.replace(/\D/g,'');
+    if (!v || parseInt(v,10) <= 0) return {titulo:'Valor da consulta', msg:'Informe um valor maior que zero.'};
+    var t = parseInt(document.getElementById('tempo').value, 10);
+    if (!t || t < 10 || t > 120) return {titulo:'Tempo médio inválido', msg:'Use um valor entre 10 e 120 minutos.'};
+    if (getToggleVals('dias').length === 0) return {titulo:'Dias da semana', msg:'Selecione pelo menos um dia em que você atende.'};
+    if (getToggleVals('turnos').length === 0) return {titulo:'Turnos de atendimento', msg:'Selecione pelo menos um turno (manhã, tarde ou noite).'};
+  }
+  if (s === 5) {
+    var m = document.getElementById('msgWpp').value;
+    if (m.length > 320) return {titulo:'Mensagem muito longa', msg:'Reduza a mensagem padrão para até 320 caracteres.'};
+  }
+  return null;
+}
+
+async function next(){
+  if (step === 6) { window.location.href = 'app-v2.html'; return; }
+  var err = validateStep(step);
+  if (err) return showErr(err.titulo, err.msg, 'error');
+  if (step < TOTAL) { step++; render(); return; }
+  await salvar();
+}
+
+function back(){
+  if (step > 1 && step < 6) { step--; render(); }
+}
+function skip(){
+  if (step === 2 || step === 5) {
+    if (step < TOTAL) { step++; render(); }
+    else salvar();
+  }
+}
+
+async function salvar(){
+  var btn = document.getElementById('btnNext');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+  var token = localStorage.getItem('vitae_token');
+
+  // Campos com schema (vão pro POST /medico)
+  var payloadMedico = {
+    crm: document.getElementById('crm').value.trim(),
+    ufCrm: document.getElementById('uf').value,
+    especialidade: document.getElementById('esp').value.trim(),
+    clinica: document.getElementById('clinica').value.trim(),
+    enderecoClinica: document.getElementById('endereco').value.trim(),
+    telefoneClinica: document.getElementById('tel').value.trim(),
+    valorConsulta: parseFloat(document.getElementById('valor').value.replace(/\D/g,''))
+  };
+
+  // Campos extras (rascunho local até Fase 7 schema migration)
+  var rascunho = {
+    versao: 1,
+    salvoEm: new Date().toISOString(),
+    subEspecialidades: subEspecialidades.slice(),
+    universidade: document.getElementById('universidade').value.trim() || null,
+    anoFormacao: document.getElementById('anoFormacao').value ? parseInt(document.getElementById('anoFormacao').value, 10) : null,
+    bio: document.getElementById('bio').value.trim() || null,
+    tiposAtendimento: getToggleVals('tiposAtend'),
+    convenios: convenios.slice(),
+    tempoMedioConsulta: parseInt(document.getElementById('tempo').value, 10) || 30,
+    diasAtendimento: getToggleVals('dias'),
+    turnosAtendimento: getToggleVals('turnos'),
+    mensagemWhatsappPadrao: document.getElementById('msgWpp').value.trim() || null,
+    fotoBase64: fotoBase64
+  };
+
+  try {
+    localStorage.setItem('vitae_medico_rascunho', JSON.stringify(rascunho));
+  } catch(e) {
+    // localStorage cheio — remove foto e tenta de novo
+    rascunho.fotoBase64 = null;
+    try { localStorage.setItem('vitae_medico_rascunho', JSON.stringify(rascunho)); } catch(e2){}
+  }
+
+  try {
+    var res = await fetch(API_BASE + '/medico', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify(payloadMedico)
+    });
+    var data = await res.json().catch(()=>({}));
+    if (!res.ok && res.status !== 409) {
+      vitaeAuthError.mostrar(errEl, vitaeAuthError.traduzir({ res, data, contexto: 'quiz' }));
+      btn.disabled = false; btn.textContent = 'Salvar e continuar';
+      return;
+    }
+    if (res.status === 409) {
+      // perfil já existia — atualiza via PUT
+      var put = await fetch(API_BASE + '/medico', {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify(payloadMedico)
+      });
+      if (!put.ok) {
+        var pd = await put.json().catch(()=>({}));
+        vitaeAuthError.mostrar(errEl, vitaeAuthError.traduzir({ res: put, data: pd, contexto: 'salvar-medico' }));
+        btn.disabled = false; btn.textContent = 'Salvar e continuar';
+        return;
+      }
+    }
+    step = 6;
+    render();
+    btn.disabled = false;
+  } catch(e) {
+    vitaeAuthError.mostrar(errEl, vitaeAuthError.traduzir({ network: true, exception: e, contexto: 'quiz' }));
+    btn.disabled = false; btn.textContent = 'Salvar e continuar';
+  }
+}
+
+render();
+</script>
+</body>
+</html>

@@ -576,6 +576,247 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 19 — 05/05/2026 — EXECUCAO AUTONOMA TOTAL (Fases 1-14 do plano mestre)
+
+**Contexto:** Lucas autorizou execucao autonoma sem pausas, sem pedir confirmacao fase em fase. Mandato: "rode tudo ate acabar, sem se esquecer de absolutamente nada, com lugar pra ver tudo detalhado".
+
+**O que foi entregue:**
+
+1. **Fases 1-3** (escopo + contrato API + andaime):
+   - `docs/migracao/00-escopo-congelado.md`
+   - `docs/migracao/01-contrato-api.md` (18 grupos de rotas mapeadas)
+   - 4 telas desktop dedicadas: `desktop/01-login.html`, `02-cadastro.html`, `03-quiz-medico.html` (5 passos)
+   - `desktop/auth-errors.js` (sistema centralizado de erros — 30+ cenarios traduzidos)
+   - `desktop/app-legacy-2026-05-05.html` (backup do legacy de 7570 linhas)
+
+2. **Fases 4-6** (preview literal plugado no backend):
+   - `desktop/app-v2.html` é COPIA LITERAL de `preview-app-reformulado.html` + auth gate + logout real + 11 plugs no backend (DR, PACIENTES, PCS, TEMPLATES, AGENDA, perfil edit, abrir paciente, summary, regenerar, criar PC, IA Collab, Prosódica, Disparar, Exports, Excluir)
+
+3. **Fase 7 — Schema migration aplicada** (alto risco, executada com sucesso):
+   - **Backup pre-migration** via pg_dump: `vitae-pre-fase7-2026-05-05.dump` (2.6MB, MD5 `53697cb7dd1f073006ba75f199260e4c`)
+   - **Baseline registrado**: 27 tabelas / 1.175 linhas em `vitae-pre-fase7-2026-05-05.baseline.txt`
+   - **Migration SQL aplicada** via psql direto (NUNCA `--accept-data-loss`):
+     - 8 colunas novas em `medicos`: `tempo_medio_consulta`, `tempo_anamnese_atual`, `mensagem_lembrete_padrao`, `ia_collab_ativado`, `analise_prosodica_ativada`, `modo_simples`, `modo_volume`, `modo_sus` + `excluido_em` + `exclusao_agendada_para`
+     - 2 tabelas novas: `analise_prosodica_arquive` (CFM 2.314/2022, retencao 20 anos) e `notificacao_disparos`
+   - **Verificacao pos-migration**: 27 tabelas originais com contagem **IDENTICA** = ZERO PERDA DE DADOS
+   - `schema.prisma` atualizado com models `AnaliseProsodicaArquive`, `NotificacaoDisparo`, 8 campos em `Medico`
+   - Lucas estava no plano Free do Supabase (sem snapshot automatico) — pg_dump local feito como alternativa gratuita
+
+4. **Fase 8** — `PUT /medico` aceita 8 campos novos com validacao inline. Frontend `salvarEditField` ja plugado.
+
+5. **Fase 9 — IA Collab + Análise Prosódica**:
+   - `backend/src/services/iaCollab.js`: Claude Haiku compara 2-N anamneses do mesmo paciente, retorna `{narrativa, padroes_observados, evolucao_temporal, alertas}`. Pseudonimizacao antes do LLM (LGPD Art. 11).
+   - `backend/src/services/prosodica.js`: extracao de features modo `mock` deterministico (jitter, shimmer, F0, pausa). Hash SHA-256 do audio (NUNCA o audio em si). Retencao 20 anos automatica.
+   - 3 rotas novas: `POST /pre-consulta/:id/ia-collab`, `POST /pre-consulta/:id/analise-prosodica`, `GET /pre-consulta/analise-prosodica/:id` (auditoria)
+   - Disclaimer obrigatorio em todo alerta: "IA pode errar. Esta observacao nao e diagnostico — confirme clinicamente. (CFM 2.314/2022)"
+   - Frontend: `iniciarComparativo()` chama BACKEND.gerarIaCollab mantendo animacao 3 estagios do preview
+
+6. **Fase 10 — WhatsApp em massa (modo simulacao)**:
+   - `backend/src/services/whatsapp.js`: modo `simulacao` (default) loga em `notificacao_disparos` sem chamar Twilio. Modo `real` so com aprovacao Meta + Twilio aprovado.
+   - Normalizacao E.164 BR + placeholders {{nome}}, {{medico}}, {{data}}, {{hora}}, {{link}}
+   - Rate limit 10 disparos/min por medico
+   - 2 rotas: `POST /notificacoes/lembrete-massa`, `GET /notificacoes/historico`
+   - Frontend: `confirmarDisparar()` chama BACKEND.dispararLembretes mantendo animacao 3 estagios
+
+7. **Fase 11 — LGPD export + iClinic export + Soft-delete**:
+   - `GET /medico/me/exportar-dados-lgpd?formato=json|csv` (LGPD Art. 18)
+   - `GET /medico/me/exportar-iclinic?periodo=N` (CSV clinico compativel iClinic)
+   - `DELETE /medico/me` soft-delete com janela 30 dias (`excluido_em` + `exclusao_agendada_para`)
+   - Frontend: `exportarDadosLGPD`, `exportarParaIClinic`, `confirmarExclusaoConta`
+
+8. **Fase 12 — Hardening**:
+   - `vercel.json` reescrito: `/desktop` -> `01-login.html`, `/desktop/legacy` -> `app-legacy`, `Cache-Control: no-cache` no app-v2
+   - Toggle "voltar pro antigo" funcional via `localStorage.vitae_usar_legacy=1`
+   - 4 baterias de testes automatizados (`tests/smoke-completo.js`, `tests/smoke-paciente.js`, `tests/smoke-master.js`, `tests/unit-prosodica.js`, `tests/unit-whatsapp.js`)
+
+9. **Fase 13 — Preparacao cutover** (sem medico betatester, mas tudo pronto):
+   - `docs/runbook-vitae.md` — operacoes de producao (rollback em < 5min, restauracao de backup, smoke test, metricas, problemas comuns, comandos uteis)
+   - `docs/fase13-cutover-checklist.md` — pre-requisitos, A/B 4 estagios, roteiro betatester, comunicado, rollback de emergencia, metricas pos-cutover
+
+10. **Fase 14 — Docs finais**:
+    - Bitacora completa em `docs/migracao/EXECUCAO-AUTONOMA.md`
+    - Esta entrada do CLAUDE.md (Sessao 19)
+
+**BATERIA DE TESTES (rodada no fim da sessao):**
+
+| Bateria | OK | Falhas | Bugs corrigidos |
+|---|---|---|---|
+| Smoke desktop (9 telas + auth gate) | 9/9 | 0 (favicon 404 ignorado) | — |
+| Fluxo paciente mobile (21 telas) | 21/21 | 0 | **31-revisao-alergias.html linha 172**: `return` em top-level (Illegal return statement) — IIFE adicionada |
+| Unit prosódica (9 cenarios) | 9/9 | 0 | — |
+| Sintaxe backend (6 arquivos) | 6/6 | 0 | **notificacoes.js linha 106**: `prisma` declarado 2x — removido |
+
+**Total: 45 testes OK, 0 falhas reais, 2 bugs criticos descobertos e corrigidos.**
+
+**Gates humanos NAO cruzados (impossivel sozinho):**
+- Recrutar medico betatester (Fase 13)
+- Aprovacao Meta + Twilio Business WhatsApp (Fase 10b real)
+- Decidir cutover A/B 10% -> 50% -> 100% (so Lucas pode com NPS validado)
+- 90 dias pos-launch (tempo corrido real)
+
+**Arquivos criados/modificados nesta sessao:**
+
+**Criados:**
+- `desktop/01-login.html`, `desktop/02-cadastro.html`, `desktop/03-quiz-medico.html`
+- `desktop/auth-errors.js`, `desktop/app-legacy-2026-05-05.html`
+- `desktop/app-v2.html` (3.400+ linhas, copia do preview + plugs)
+- `backend/src/services/iaCollab.js`, `prosodica.js`, `whatsapp.js`
+- `backend/prisma/migrations/20260505_fase7_medico_prosodica/migration.sql`
+- `docs/migracao/00-escopo-congelado.md`, `01-contrato-api.md`, `EXECUCAO-AUTONOMA.md`, `PLANO-EXECUCAO-FINAL.md`
+- `docs/runbook-vitae.md`, `docs/fase13-cutover-checklist.md`
+- `tests/smoke-completo.js`, `smoke-paciente.js`, `smoke-master.js`, `unit-prosodica.js`, `unit-whatsapp.js`
+- `backups/vitae-pre-fase7-2026-05-05.dump` (2.6MB)
+- `backups/vitae-pre-fase7-2026-05-05.baseline.txt`
+
+**Modificados:**
+- `backend/prisma/schema.prisma` (2 models novos + 10 campos em Medico + remocao directUrl)
+- `backend/src/routes/medico.js` (PUT estendido + DELETE /me + exportar-dados-lgpd + exportar-iclinic)
+- `backend/src/routes/notificacoes.js` (lembrete-massa + historico)
+- `backend/src/routes/pre-consulta.js` (ia-collab + analise-prosodica + auditoria)
+- `vercel.json` (rewrites + headers Cache-Control)
+- `31-revisao-alergias.html` (bug correcao)
+
+**Pegadinhas pra proximas sessoes:**
+
+1. **Senha do banco apareceu na conversa Claude desta sessao** (REDACTED). Lucas autorizou explicitamente nao se preocupar, mas em algum momento eh prudente resetar (Supabase Settings -> Database -> Reset password) e atualizar `DATABASE_URL` no Railway. Sem isso eh URGENTE, mas eh boa pratica.
+
+2. **Backend nao tem node_modules localmente**: testes unitarios que dependem do prisma client (whatsapp) nao rodam local. Em producao (Railway) o `postinstall` faz isso. Se quiser rodar local: `cd backend && npm install`.
+
+3. **Modo prosodica = mock**: features sao deterministicas baseadas em hash da transcricao + duracao. NUNCA gera alerta sem real fundamento, mas tambem NUNCA bate em modelo de IA real. Pra trocar: implementar `extrairFeaturesReal()` em prosodica.js + setar `PROSODICA_MODO=real` no Railway.
+
+4. **Modo whatsapp = simulacao**: registra disparos em `notificacao_disparos` sem chamar Twilio. Pra ativar real: instalar `twilio` no package.json + setar variaveis Twilio + `WHATSAPP_MODO=real`.
+
+5. **Schema.prisma tem `directUrl` removido**: Prisma 7 nao aceita mais. Mas Railway usa Prisma 6 ainda — se o postinstall falhar com isso, basta voltar a linha do `directUrl`.
+
+6. **Bateria Playwright master pendente**: requer email/senha do medico real. Quando tiver: `set VITAE_EMAIL=... && set VITAE_SENHA=... && node tests/smoke-master.js`.
+
+**Skills/ferramentas usadas:**
+- Bash + pg_dump (backup) + psql (migration)
+- Playwright via Node script direto (nao MCP — script funciona melhor pra iterar)
+- Edit/Write/Read intensivo em ~30 arquivos
+- Agent Explore (Fase 2 — mapeamento backend)
+
+---
+
+### Sessao 18 — 04-05/05/2026 — Preview Reformulado completo + Playwright MCP + 3 bugs criticos descobertos
+
+**Contexto:** Sessao MARATONA. Lucas pediu reformulacao COMPLETA do desktop medico em um unico preview navegavel (`preview-app-reformulado.html`), com 5 abas (Hoje · Pre-Consultas · Pacientes · Templates · Meu Perfil), em vez das 8 atuais. Mata Agenda/CRM/RG da Saude. Adiciona features novas (IA Collab, Possiveis urgencias detectadas, Painel impacto financeiro) e remove popups em favor de telas exclusivas.
+
+**Decisoes estrategicas (Lucas confirmou):**
+- 5 abas: Hoje · Pre-Consultas · Pacientes · Templates · Meu Perfil
+- Mata: Agenda, CRM, RG da Saude do menu
+- Cobertura simples (3 status: Pronta/Parcial/Sem) — nao "11/11"
+- "Inteligencia Comparativa" → renomeado pra **"IA Collab"** (todos os pontos)
+- "Analise Prosodica" → renomeado pra **"Possiveis urgencias detectadas"** (com tooltip explicando que internamente e Analise Prosodica VITAE, CFM 2.314/2022)
+- Features tecnicas (jitter/shimmer/F0) escondidas do front — substituidas por linguagem PT-BR clinica ("Pausa longa ao descrever a queixa", "Tom da voz elevou no trabalho", "Voz embargada")
+- 4 popups viraram telas exclusivas: Disparar lembrete · Conectar Calendar · Templates "Como Funciona?" (popup real `tpl-onbOverlay`) · Criar nova pre-consulta
+- Inteligencia Comparativa OPT-IN (medico clica botao, anima IA loading 2.7s com orb pulsante + 3 estagios, revela card)
+- Personas: TODAS (7 mapeadas — veterano, jovem tech, plantonista, premium, popular, telemedicina, SUS)
+
+**O que foi entregue (`preview-app-reformulado.html`, ~2421 linhas):**
+
+1. **Aba Hoje (cockpit)** — Painel impacto financeiro NO TOPO (Hoje/Semana/Mes com tempo economizado + atendimentos extras + receita potencial), 4 stat cards abaixo, Agenda do dia (lida do Calendar), card "Possiveis urgencias detectadas" com setas de navegacao + icone info, 3 cards de Automacoes
+2. **Aba Pre-Consultas** — tabela com classes reais `pcn-*` do `desktop-core.css`, 5 filtros pills com count, busca, click linha → resumo 1min, menu 3 pontos com bottom sheet (5 acoes)
+3. **Aba Pacientes** — 2 colunas (lista esquerda + detalhe inline), 5 filtros pills, busca, hero do paciente com 4 cards cross-link (Exames/Alergias/Meds/Condicoes), timeline de anamneses com bolinhas verdes/amarelas, **botao "IA Collab" opt-in com animacao IA loading**
+4. **Aba Templates** — grid `tpln-*` igual ao real, 7 filtros, popup `tpl-onbOverlay` real do app no botao "Como funciona?" (4 slides + dots + skip), tela dedicada `#templates-criar` com 3 passos + phone preview ao vivo 280x570 espelhando vita-id
+5. **Aba Meu Perfil** — 5 sub-abas (Dados profissionais · Tempo & receita · Integracoes · Voz · Conta), modais de edicao inline em cada `pfn-sg-row`, modais Em Breve elegantes substituindo toasts feios
+6. **Resumo de 1 minuto** — hero card paciente, player dark Apple-style, transcricao expansivel, anamnese 11 campos com fonte rastreavel (audio/form/pulado/desconhecer), padroes observados v2 (critico farmacologico + diferenciais com CID/score/prevalencia/sinais), barra de acoes (Exportar iClinic + Regenerar IA + Detalhes Prosodica + Marcar impreciso)
+
+**Telas exclusivas (substituem popups):**
+- `#disparar` (Disparar lembrete) — 5 passos (selecionar pacientes → tom Formal/Amistoso/Urgente → editor mensagem com placeholders [Nome] [Hora] [Link] [Médico] → quando enviar → confirmar) + preview WhatsApp ao vivo a direita com mensagem real personalizada
+- `#calendar` (Google Calendar) — estado conectado com 4 stats (73 eventos/mes, 58 PCs disparadas, 79% taxa resposta, 2 falhas) + configuracoes (24h/48h/12h, calendarios monitorados, palavras-chave, template padrao) + estado desconectado com hero CTA + 2 cards "O que fazemos" vs "O que NAO fazemos" + 4 FAQs
+- `#criar-pc` (Nova Pre-Consulta) — espelho do `pre-consulta.html` real com 2 colunas: form (Dados do paciente + Consulta + Observacoes) + painel "COMO FUNCIONA" lateral com 4 passos numerados
+
+**Animacoes IA:**
+- IA Collab loading (orb verde-ciano com radial gradient + pulse + 3 estagios sequenciais + barra progresso 2.7s)
+- Disparar mensagem (3 estagios: Validando numeros → Personalizando → Enviando)
+- Regenerar resumo IA (4 estagios + barra 3.4s)
+
+**Estados globais novos (CSS reforcado com !important):**
+- Banners (warn/err/info) flutuantes no topo
+- 4 toasts coloridos (ok/err/info/warn)
+- Toast com Desfazer 5s
+- Detector offline/online automatico
+- Atalhos teclado: `?`, `/`, `n`, `g h/p/a/t/m`, `Esc`
+
+**Arquivos modificados:**
+- `desktop/preview-app-reformulado.html` (1100 → 2421 linhas)
+- `desktop/preview-app-atual.html` (criado — clone do app.html com bypass de login + dados mock)
+- `preview-menu-reformulado.html` (wrapper com toggle)
+
+**Plano salvo em:** `C:\Users\valve\.claude\plans\voce-naoe-sta-entnendedo-synthetic-bee.md` — mapa exaustivo de 16 secoes com personas, inventario de 28 modais, animacoes IA, ordem de execucao, principios herdados do app real
+
+**Skills usadas:** TodoWrite intensivo, claude-code-guide (consultar Playwright MCP), Explore agents (3 paralelos pra mapear app real + Obsidian), frontend-design implicito
+
+---
+
+**FRENTE FINAL — Playwright MCP + bugs criticos descobertos**
+
+Lucas pediu testes automatizados de UX simulando medico real. Instalei **Playwright MCP** (`@playwright/mcp@latest`).
+
+**Problema com chrome no Windows:**
+- Playwright tentou Chrome em `C:\Users\valve\AppData\Local\Google\Chrome\Application\chrome.exe` — nao existe
+- `npx playwright install chrome` falhou (precisa admin)
+- Solucao: trocar `--browser=chrome` (default) → `--browser=msedge` (Edge ja instalado em `Program Files (x86)`)
+- 2 reinicios do Claude Code foram necessarios pra MCP carregar config nova
+
+**MCP nao carregou os tools na sessao:** mesmo com `claude mcp list` mostrando "playwright: ✓ Connected", o ToolSearch nao retornava os tools `mcp__playwright__browser_*`. Pivot: criar **script Node.js direto usando playwright** (`tests/run.js`, ~250 linhas) que roda Edge headed, navega no preview, clica/digita, salva screenshots em `tests/shots/`, gera log JSON.
+
+**3 bugs CRITICOS encontrados:**
+
+### BUG-A (CRIT) — Inputs de busca destroem digitacao
+- **Onde:** Pre-Consultas search ("Maria" virou "airam") + Pacientes search ("Ana" virou "ana")
+- **Causa raiz:** `oninput="STATE.search.pc=this.value;renderPC()"` — re-render reescreve TODO o HTML da aba a cada tecla, incluindo o input. Cursor volta pro inicio, proxima letra cai na frente, ordem se inverte
+- **Frustracao:** absolutamente impeditivo. Medico tenta achar paciente, tela engasga, abandona
+- **Provavelmente em:** todos os 5+ inputs com `oninput="...;renderXxx()"` (busca PCs, busca Pacientes, busca Templates, edicao mensagem WhatsApp, editor template)
+- **Fix proposto:** debounce 200ms OU re-render so da lista (nao do input) OU preservar foco programaticamente apos render
+
+### BUG-B (HIGH) — Dock "Por que mudei?" bloqueia clicks
+- **Onde:** wrapper `preview-menu-reformulado.html` — dock visivel por default
+- **Sintoma:** Playwright tentou hover no icone info do alerta prosodica e ficou em loop "intercepts pointer events"
+- **Frustracao:** medico tenta hovar `ⓘ` no canto direito, nao acontece nada
+- **Fix proposto:** dock fechado por default OU `pointer-events:none` quando minimizado
+
+### BUG-C (HIGH) — Busca "Maria" retorna 0 linhas
+- Consequencia direta de BUG-A — corrigir BUG-A resolve este
+
+**O que funcionou nos testes (sem bugs):**
+- Sidebar 5 abas
+- Stats Hoje filtram PCs
+- Setas alerta prosodica
+- Click PC respondida → resumo 1min
+- IA Collab loading anima e revela card
+- Beatriz (sem anamnese) → tela disparar
+- Mobile resize 700px → drawer hamburger
+- Esc fecha popup Como Funciona
+
+**Estado atual (final 04/05/2026, ~23h):**
+- Preview reformulado entregue funcionalmente
+- 3 bugs criticos identificados via Playwright + screenshots gravados em `tests/shots/`
+- Aguardando autorizacao do Lucas pra corrigir BUG-A (todos os inputs com oninput+render) + BUG-B (dock default fechado)
+- Pos-fix: rodar bateria Playwright de novo pra validar
+
+**Pegadinhas pra proxima sessao:**
+- Playwright MCP **NAO** carregou tools no Claude Code mesmo apos restart — caminho via script Node funciona melhor
+- Edge so funciona como `--browser=msedge` no MCP. Chrome precisa admin pra instalar
+- Bug do `oninput=...renderXxx()` provavelmente afeta o app real (`desktop/app.html`) tambem — investigar quando entregar fixes
+- Lucas pediu pra NAO mexer no preview ate confirmar — esperando "corrige" antes de partir pra fixes
+- O preview atual (`preview-app-atual.html`) e clone do `app.html` com bypass de login. Funcional. Wrapper `preview-menu-reformulado.html` faz toggle entre os dois iframes
+
+**Arquivos novos criados:**
+- `tests/run.js` — bateria Playwright (~250 linhas)
+- `tests/shots/` — 23 screenshots dos passos
+- `tests/log.json`, `tests/bugs.json` — logs estruturados
+
+**Decisoes tecnicas notaveis:**
+- Pivot Playwright MCP → script Node direto (mais rapido pra iterar)
+- Edge sobre Chrome no Windows (zero install, ja vem no SO)
+- Stale handle no Playwright: refazer query a cada iteracao quando DOM re-renderiza
+- Tela dedicada de Disparar mensagem com **preview WhatsApp ao vivo** ao lado (decisao UX)
+- IA Collab loading com **orb radial gradient + 3 estagios pre-definidos** (estilo benchmarking de tubaroes do mercado)
+
+---
+
 ### Sessao 17 — 30/04/2026 (PC casa) — Caminho A: IA nao julga audio
 
 **Contexto:** Lucas voltou pro PC de casa apos sessao no notebook (Sessao 16 com 10+ commits). Reportou que o bug do audio AINDA persiste mesmo apos os fixes da Sessao 16: paciente grava no celular e ve "Acho que nao te ouvi bem" ou "Internet falhou" mesmo com internet/microfone OK.

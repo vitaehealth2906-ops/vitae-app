@@ -101,7 +101,25 @@ router.get('/', async (req, res, next) => {
 
 router.put('/', async (req, res, next) => {
   try {
-    const { especialidade, clinica, enderecoClinica, telefoneClinica, valorConsulta } = req.body;
+    const {
+      // Campos antigos
+      especialidade, clinica, enderecoClinica, telefoneClinica, valorConsulta,
+      // Fase 7 — campos novos
+      tempoMedioConsulta, tempoAnamneseAtual, mensagemLembretePadrao,
+      iaCollabAtivado, analiseProsodicaAtivada,
+      modoSimples, modoVolume, modoSUS,
+    } = req.body;
+
+    // Validações leves (defesa em profundidade)
+    if (tempoMedioConsulta != null && (tempoMedioConsulta < 5 || tempoMedioConsulta > 240)) {
+      return res.status(400).json({ erro: 'tempoMedioConsulta deve estar entre 5 e 240 minutos' });
+    }
+    if (tempoAnamneseAtual != null && (tempoAnamneseAtual < 0 || tempoAnamneseAtual > 60)) {
+      return res.status(400).json({ erro: 'tempoAnamneseAtual deve estar entre 0 e 60 minutos' });
+    }
+    if (mensagemLembretePadrao != null && String(mensagemLembretePadrao).length > 1000) {
+      return res.status(400).json({ erro: 'mensagemLembretePadrao acima de 1000 caracteres' });
+    }
 
     // Se o endereco mudou, re-geocodifica pra atualizar lat/lng do mapa
     let geoPatch = {};
@@ -121,10 +139,170 @@ router.put('/', async (req, res, next) => {
         ...(enderecoClinica !== undefined && { enderecoClinica, ...geoPatch }),
         ...(telefoneClinica !== undefined && { telefoneClinica }),
         ...(valorConsulta !== undefined && { valorConsulta: valorConsulta === null ? null : Number(valorConsulta) }),
+        // Fase 7 — campos novos
+        ...(tempoMedioConsulta !== undefined && { tempoMedioConsulta: Number(tempoMedioConsulta) }),
+        ...(tempoAnamneseAtual !== undefined && { tempoAnamneseAtual: Number(tempoAnamneseAtual) }),
+        ...(mensagemLembretePadrao !== undefined && { mensagemLembretePadrao: String(mensagemLembretePadrao) }),
+        ...(iaCollabAtivado !== undefined && { iaCollabAtivado: !!iaCollabAtivado }),
+        ...(analiseProsodicaAtivada !== undefined && { analiseProsodicaAtivada: !!analiseProsodicaAtivada }),
+        ...(modoSimples !== undefined && { modoSimples: !!modoSimples }),
+        ...(modoVolume !== undefined && { modoVolume: !!modoVolume }),
+        ...(modoSUS !== undefined && { modoSUS: !!modoSUS }),
       },
     });
 
     return res.status(200).json({ medico });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /medico/me — Soft-delete com janela de 30 dias (LGPD)
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// FASE 11 — Exportar dados LGPD
+// ---------------------------------------------------------------------------
+
+router.get('/me/exportar-dados-lgpd', async (req, res, next) => {
+  try {
+    const formato = (req.query.formato || 'json').toLowerCase();
+    const usuarioId = req.usuario.id;
+
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      include: {
+        medico: true,
+        consentimentos: true,
+      },
+    });
+    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    const preConsultas = await prisma.preConsulta.findMany({
+      where: { medicoId: usuario.medico?.id },
+      orderBy: { criadoEm: 'desc' },
+    });
+
+    const templates = await prisma.formTemplate.findMany({
+      where: { medicoId: usuario.medico?.id },
+    });
+
+    const disparos = await prisma.notificacaoDisparo.findMany({
+      where: { medicoId: usuario.medico?.id },
+      orderBy: { criadoEm: 'desc' },
+      take: 1000,
+    });
+
+    const pacote = {
+      exportadoEm: new Date().toISOString(),
+      lei: 'LGPD - Art. 18 - Direito de portabilidade',
+      titular: {
+        id: usuario.id, nome: usuario.nome, email: usuario.email, celular: usuario.celular,
+        criadoEm: usuario.criadoEm, ultimoLogin: usuario.ultimoLogin,
+      },
+      medico: usuario.medico,
+      consentimentos: usuario.consentimentos,
+      preConsultas: preConsultas,
+      templates: templates,
+      historicoDisparos: disparos,
+    };
+
+    if (formato === 'csv') {
+      // Gera CSV simplificado das pré-consultas
+      const linhas = ['id,paciente,status,criadoEm,respondidaEm,queixa'];
+      preConsultas.forEach(pc => {
+        const queixa = (pc.summaryJson?.queixaPrincipal || '').replace(/"/g, '""');
+        linhas.push(`${pc.id},"${(pc.pacienteNome||'').replace(/"/g,'""')}",${pc.status},${pc.criadoEm?.toISOString()||''},${pc.respondidaEm?.toISOString()||''},"${queixa}"`);
+      });
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="vitae-dados-lgpd-${Date.now()}.csv"`);
+      return res.status(200).send(linhas.join('\n'));
+    }
+
+    // PDF — formato JSON simplificado por enquanto, frontend monta o PDF
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="vitae-dados-lgpd-${Date.now()}.json"`);
+    return res.status(200).json(pacote);
+  } catch (err) { next(err); }
+});
+
+// ---------------------------------------------------------------------------
+// FASE 11 — Exportar para iClinic (CSV clínico)
+// ---------------------------------------------------------------------------
+
+router.get('/me/exportar-iclinic', async (req, res, next) => {
+  try {
+    const dias = Math.min(Math.max(parseInt(req.query.periodo, 10) || 90, 1), 365);
+    const desde = new Date(Date.now() - dias * 86400000);
+    const usuarioId = req.usuario.id;
+    const medico = await prisma.medico.findUnique({ where: { usuarioId } });
+    if (!medico) return res.status(404).json({ erro: 'Perfil médico não encontrado' });
+
+    const pcs = await prisma.preConsulta.findMany({
+      where: { medicoId: medico.id, criadoEm: { gte: desde }, status: 'RESPONDIDA' },
+      orderBy: { criadoEm: 'desc' },
+      take: 5000,
+    });
+
+    // Formato iClinic compatível (cabeçalho clínico simplificado)
+    const linhas = ['Data,Paciente,Telefone,Email,Queixa,TempoSintomas,Intensidade,SintomasAssociados,Tratamento,Observacoes'];
+    pcs.forEach(pc => {
+      const sj = pc.summaryJson || {};
+      const a = sj.anamneseEstruturada || {};
+      const get = (k) => (a[k]?.valor ? String(a[k].valor).replace(/"/g, '""').replace(/[\r\n]/g, ' ') : '');
+      const dataBR = pc.respondidaEm ? new Date(pc.respondidaEm).toLocaleDateString('pt-BR') : '';
+      linhas.push([
+        dataBR,
+        `"${(pc.pacienteNome||'').replace(/"/g,'""')}"`,
+        pc.pacienteTel || '',
+        pc.pacienteEmail || '',
+        `"${get('queixaPrincipal')}"`,
+        `"${get('tempoEvolucao')}"`,
+        `"${get('intensidade')}"`,
+        `"${get('sintomasAssociados')}"`,
+        `"${get('tratamentoPrevio')}"`,
+        `"${(sj.summaryTexto||'').replace(/"/g,'""').replace(/[\r\n]/g,' ')}"`,
+      ].join(','));
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="vitae-iclinic-${Date.now()}.csv"`);
+    return res.status(200).send(linhas.join('\n'));
+  } catch (err) { next(err); }
+});
+
+router.delete('/me', async (req, res, next) => {
+  try {
+    const { confirmacao } = req.body || {};
+    if (confirmacao !== 'EXCLUIR') {
+      return res.status(400).json({ erro: 'Para confirmar a exclusão, envie {"confirmacao":"EXCLUIR"}' });
+    }
+    const agora = new Date();
+    const em30dias = new Date(agora);
+    em30dias.setDate(em30dias.getDate() + 30);
+
+    const medico = await prisma.medico.update({
+      where: { usuarioId: req.usuario.id },
+      data: {
+        excluidoEm: agora,
+        exclusaoAgendadaPara: em30dias,
+        ativo: false,
+      },
+    });
+
+    await prisma.usuario.update({
+      where: { id: req.usuario.id },
+      data: { status: 'EXCLUSAO_AGENDADA' },
+    });
+
+    try { await auditar({ usuarioId: req.usuario.id, acao: 'EXCLUSAO_CONTA_SOLICITADA', meta: { exclusaoAgendadaPara: em30dias } }); } catch(e){}
+
+    return res.status(200).json({
+      ok: true,
+      mensagem: 'Sua conta entrou em janela de 30 dias para arrependimento. Para reativar, basta fazer login dentro deste período.',
+      exclusaoAgendadaPara: em30dias,
+    });
   } catch (err) {
     next(err);
   }

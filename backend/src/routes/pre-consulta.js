@@ -1642,4 +1642,178 @@ router.delete('/:id', verificarAuth, async (req, res, next) => {
   }
 });
 
+// =====================================================================
+// FASE 9 — IA Collab + Análise Prosódica
+// =====================================================================
+const { compararAnamneses } = require('../services/iaCollab');
+const prosodica = require('../services/prosodica');
+
+/**
+ * POST /pre-consulta/:id/ia-collab
+ * Body: { outrosPCs: [id1, id2, ...] } — outras PCs do mesmo paciente pra comparar
+ * Retorna: { narrativa, padroes_observados, evolucao_temporal, alertas }
+ */
+router.post('/:id/ia-collab', verificarAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { outrosPCs = [] } = req.body || {};
+
+    // Carrega PC base
+    const pcBase = await prisma.preConsulta.findFirst({
+      where: { id, medicoId: { not: null } },
+      include: { medico: { select: { id: true, usuarioId: true, iaCollabAtivado: true } } },
+    });
+    if (!pcBase) return res.status(404).json({ erro: 'Pré-consulta não encontrada' });
+    if (!pcBase.medico || pcBase.medico.usuarioId !== req.usuario.id) {
+      return res.status(403).json({ erro: 'Sem acesso a esta pré-consulta' });
+    }
+    if (!pcBase.medico.iaCollabAtivado) {
+      return res.status(403).json({ erro: 'IA Collab desativada. Ative em Meu Perfil → Voz & IA.' });
+    }
+    if (!pcBase.pacienteId) {
+      return res.status(400).json({ erro: 'PC sem paciente vinculado — não dá pra comparar.' });
+    }
+
+    // Carrega outras PCs do MESMO paciente que o médico tem acesso
+    const ids = [id, ...outrosPCs.filter(x => x && x !== id)];
+    const lista = await prisma.preConsulta.findMany({
+      where: {
+        id: { in: ids },
+        pacienteId: pcBase.pacienteId,
+        medicoId: pcBase.medicoId,
+      },
+      orderBy: { criadoEm: 'asc' },
+    });
+    if (lista.length < 2) {
+      return res.status(400).json({ erro: 'Mínimo 2 pré-consultas do mesmo paciente para comparar.' });
+    }
+
+    const resultado = await compararAnamneses(lista);
+
+    try { await auditar({ usuarioId: req.usuario.id, acao: 'IA_COLLAB_GERADA', meta: { preConsultaId: id, comparadas: lista.length } }); } catch(e){}
+
+    return res.status(200).json(resultado);
+  } catch (err) { next(err); }
+});
+
+/**
+ * POST /pre-consulta/:id/analise-prosodica
+ * Processa features prosódicas, grava em AnaliseProsodicaArquive,
+ * retorna alerta (ou null).
+ */
+router.post('/:id/analise-prosodica', verificarAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const pc = await prisma.preConsulta.findFirst({
+      where: { id },
+      include: { medico: { select: { id: true, usuarioId: true, analiseProsodicaAtivada: true } } },
+    });
+    if (!pc) return res.status(404).json({ erro: 'Pré-consulta não encontrada' });
+    if (!pc.medico || pc.medico.usuarioId !== req.usuario.id) {
+      return res.status(403).json({ erro: 'Sem acesso' });
+    }
+    if (!pc.medico.analiseProsodicaAtivada) {
+      return res.status(403).json({ erro: 'Análise Prosódica desativada. Ative em Meu Perfil → Voz & IA.' });
+    }
+    if (!pc.pacienteId) {
+      return res.status(400).json({ erro: 'PC sem paciente vinculado.' });
+    }
+    if (!pc.audioUrl) {
+      return res.status(400).json({ erro: 'PC sem áudio — análise prosódica indisponível.' });
+    }
+
+    // No modo mock, usa transcrição + duração estimada
+    const transcricao = pc.transcricao || (pc.summaryJson && pc.summaryJson.transcricao) || '';
+    const duracaoSegundos = pc.duracaoAudioSegundos || Math.max(60, Math.round(transcricao.split(/\s+/).filter(Boolean).length / 2.5));
+
+    const resultado = prosodica.analisar({
+      transcricao,
+      duracaoSegundos,
+      summaryJson: pc.summaryJson || {},
+    });
+
+    if (!resultado.features) {
+      return res.status(200).json({ alerta: null, motivo: resultado.motivo || 'features_indisponiveis' });
+    }
+
+    // Grava no archive
+    const registro = await prisma.analiseProsodicaArquive.create({
+      data: {
+        preConsultaId: pc.id,
+        medicoId: pc.medicoId,
+        pacienteId: pc.pacienteId,
+        features: resultado.features,
+        thresholds: resultado.thresholds,
+        trechoInicioMs: resultado.trecho.inicio_ms,
+        trechoFimMs: resultado.trecho.fim_ms,
+        hashAudio: resultado.hashAudio || 'no-audio-buffer',
+        retencaoAte: resultado.retencaoAte,
+        alertaSeveridade: resultado.alerta?.severidade || null,
+        alertaMensagem: resultado.alerta?.mensagem || null,
+      },
+    });
+
+    // Atualiza summaryJson com o alerta (não-destrutivo)
+    if (resultado.alerta) {
+      try {
+        const sjAtual = pc.summaryJson || {};
+        await prisma.preConsulta.update({
+          where: { id: pc.id },
+          data: {
+            summaryJson: {
+              ...sjAtual,
+              alertaProsodico: {
+                id: registro.id,
+                severidade: resultado.alerta.severidade,
+                mensagem: resultado.alerta.mensagem,
+                sinais: resultado.alerta.sinais,
+                disclaimer: resultado.alerta.disclaimer,
+                geradoEm: new Date().toISOString(),
+              },
+            },
+          },
+        });
+      } catch(e) { console.error('[prosodica] erro ao atualizar summaryJson:', e.message); }
+    }
+
+    try { await auditar({ usuarioId: req.usuario.id, acao: 'ANALISE_PROSODICA_GERADA', meta: { preConsultaId: id, registroId: registro.id, severidade: resultado.alerta?.severidade } }); } catch(e){}
+
+    return res.status(200).json({
+      alerta: resultado.alerta,
+      registroId: registro.id,
+      modo: resultado.modo,
+    });
+  } catch (err) { next(err); }
+});
+
+/**
+ * GET /pre-consulta/analise-prosodica/:registroId
+ * Auditoria — só médico dono pode ver o registro completo.
+ */
+router.get('/analise-prosodica/:registroId', verificarAuth, async (req, res, next) => {
+  try {
+    const { registroId } = req.params;
+    const reg = await prisma.analiseProsodicaArquive.findUnique({
+      where: { id: registroId },
+      include: { medico: { select: { usuarioId: true } } },
+    });
+    if (!reg) return res.status(404).json({ erro: 'Registro não encontrado' });
+    if (reg.medico.usuarioId !== req.usuario.id) {
+      return res.status(403).json({ erro: 'Sem acesso a este registro' });
+    }
+
+    // Marca como auditado
+    if (!reg.auditadoEm) {
+      await prisma.analiseProsodicaArquive.update({
+        where: { id: registroId },
+        data: { auditadoEm: new Date(), auditadoPor: req.usuario.id },
+      });
+    }
+
+    try { await auditar({ usuarioId: req.usuario.id, acao: 'ANALISE_PROSODICA_AUDITADA', meta: { registroId } }); } catch(e){}
+
+    return res.status(200).json({ registro: reg });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

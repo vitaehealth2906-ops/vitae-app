@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vitaid — Acesso Médico</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="desktop-core.css" rel="stylesheet">
+<style>
+/* ===== Override de inputs (polido, não amador) ===== */
+.login-card .field{margin-bottom:18px}
+.login-card .field label{font-size:12px;font-weight:600;color:#4B5563;letter-spacing:0.01em;text-transform:none;margin-bottom:7px}
+.login-card .field input,
+.login-card .field select{
+  width:100%;
+  padding:13px 15px;
+  background:#fff;
+  border:1.5px solid #E2E5EA;
+  border-radius:10px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:14px;
+  font-weight:500;
+  color:#0D0F14;
+  outline:none;
+  transition:border-color .18s,box-shadow .18s,background .18s;
+  -webkit-appearance:none;
+}
+.login-card .field input:hover,
+.login-card .field select:hover{border-color:#C9CDD4}
+.login-card .field input:focus,
+.login-card .field select:focus{
+  border-color:#00B4D8;
+  box-shadow:0 0 0 3px rgba(0,180,216,0.10);
+  background:#FBFDFE;
+}
+.login-card .field input::placeholder{color:#9CA3AF;font-weight:400}
+</style>
+</head>
+<body>
+<div class="toast-stack" id="toastStack"></div>
+
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">vita<span class="ib">id</span></div>
+    <div class="login-sub">Acesso exclusivo para médicos</div>
+
+    <div class="login-error" id="loginError"></div>
+
+    <div class="field">
+      <label>E-mail</label>
+      <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="loginSenha" placeholder="Digite sua senha" autocomplete="current-password">
+    </div>
+
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Entrar</button>
+
+    <div class="login-footer">
+      <a href="../14-esqueci-senha.html" style="color:#6B7280;font-size:13px;text-decoration:none;">Esqueci minha senha</a>
+    </div>
+    <div class="login-footer" style="margin-top:8px;">
+      Ainda não tem conta? <a href="02-cadastro.html">Criar conta</a>
+    </div>
+  </div>
+</div>
+
+<script src="auth-errors.js"></script>
+<script>
+const API_BASE = 'https://vitae-app-production.up.railway.app';
+const errEl = document.getElementById('loginError');
+
+(function() {
+  try {
+    var token = localStorage.getItem('vitae_token');
+    var raw = localStorage.getItem('vitae_usuario');
+    var u = raw ? JSON.parse(raw) : null;
+    if (token && u && u.tipo === 'MEDICO') { window.location.replace('app-v2.html'); return; }
+  } catch(e) {}
+})();
+
+function showLocalErr(titulo, msg, severidade){
+  vitaeAuthError.mostrar(errEl, { titulo, msg, severidade: severidade || 'error' });
+}
+
+async function doLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var senha = document.getElementById('loginSenha').value;
+  var btn = document.getElementById('loginBtn');
+  vitaeAuthError.limpar(errEl);
+
+  if (!email) return showLocalErr('Informe seu e-mail', 'Preencha o campo de e-mail para continuar.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showLocalErr('E-mail inválido', 'Digite um e-mail no formato seu@email.com.');
+  if (!senha) return showLocalErr('Informe sua senha', 'Preencha sua senha para entrar.');
+
+  btn.textContent = 'Entrando...';
+  btn.disabled = true;
+
+  try {
+    var res = await fetch(API_BASE + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, senha: senha })
+    });
+    var data = await res.json().catch(function(){ return {}; });
+
+    if (!res.ok) {
+      vitaeAuthError.mostrar(errEl, vitaeAuthError.traduzir({ res, data, contexto: 'login' }));
+      btn.textContent = 'Entrar'; btn.disabled = false;
+      return;
+    }
+
+    var u = data.usuario || {};
+    if (u.tipo !== 'MEDICO') {
+      vitaeAuthError.mostrar(errEl, {
+        titulo: 'Área exclusiva para médicos',
+        msg: 'Esta tela é restrita a profissionais. Use o app do paciente em outra URL.',
+        severidade: 'warn'
+      });
+      btn.textContent = 'Entrar'; btn.disabled = false;
+      return;
+    }
+
+    localStorage.setItem('vitae_token', data.token);
+    if (data.refreshToken) localStorage.setItem('vitae_refresh_token', data.refreshToken);
+    localStorage.setItem('vitae_usuario', JSON.stringify(data.usuario));
+
+    window.location.href = 'app-v2.html';
+  } catch (err) {
+    vitaeAuthError.mostrar(errEl, vitaeAuthError.traduzir({ network: true, exception: err, contexto: 'login' }));
+    btn.textContent = 'Entrar'; btn.disabled = false;
+  }
+}
+
+document.getElementById('loginSenha').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('loginEmail').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('loginSenha').focus();
+});
+</script>
+</body>
+</html>
