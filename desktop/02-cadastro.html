@@ -6,6 +6,7 @@
 <title>vitaid — Criar conta médica</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="desktop-core.css" rel="stylesheet">
+<script src="form-helpers.js" defer></script>
 <style>
 .login-card{width:480px}
 .row2{display:grid;grid-template-columns:120px 1fr;gap:10px}
@@ -51,26 +52,31 @@
     <div class="title">Criar conta <em>médica</em></div>
     <div class="login-sub">Cadastro exclusivo para profissionais de medicina</div>
 
-    <div class="login-error" id="err"></div>
+    <div class="login-error" id="err" role="alert" aria-live="polite"></div>
 
     <div class="field">
-      <label>Nome completo</label>
-      <input type="text" id="nome" placeholder="Dr(a). Seu Nome" autocomplete="name">
+      <label for="nome">Nome completo</label>
+      <input type="text" id="nome" placeholder="Dr(a). Seu Nome" autocomplete="name" data-nome-capitalize="1" autofocus>
     </div>
     <div class="field">
-      <label>E-mail profissional</label>
-      <input type="email" id="email" placeholder="seu@email.com" autocomplete="email">
+      <label for="email">E-mail profissional</label>
+      <input type="email" id="email" placeholder="seu@email.com" autocomplete="email" inputmode="email" data-email-normalize="1">
     </div>
     <div class="field">
-      <label>Celular</label>
+      <label for="celular">Celular</label>
       <div class="row2">
         <div class="tel-prefix">BR +55</div>
-        <input type="tel" id="celular" placeholder="(11) 99999-9999" maxlength="15" oninput="mask(this)">
+        <input type="tel" id="celular" placeholder="(11) 99999-9999" maxlength="15" inputmode="numeric" autocomplete="tel" data-mask="celular" data-paste-digits="1">
       </div>
     </div>
     <div class="field">
-      <label>Senha (mínimo 8 caracteres)</label>
-      <input type="password" id="senha" placeholder="••••••••" minlength="8" autocomplete="new-password">
+      <label for="senha">Senha (mínimo 8 caracteres)</label>
+      <input type="password" id="senha" placeholder="••••••••" minlength="8" autocomplete="new-password" data-pw-toggle="1" data-pw-strength="1" data-caps-warn="1">
+    </div>
+    <div class="field">
+      <label for="senha2">Confirme a senha</label>
+      <input type="password" id="senha2" placeholder="••••••••" minlength="8" autocomplete="new-password" data-pw-toggle="1">
+      <div id="senhaMatch" style="font-size:11.5px;font-weight:600;margin-top:6px;display:none"></div>
     </div>
 
     <label class="terms">
@@ -91,12 +97,30 @@
 const API_BASE = 'https://vitae-app-production.up.railway.app';
 const errEl = document.getElementById('err');
 
-function mask(el){
-  var v = el.value.replace(/\D/g,'').slice(0,11);
-  if (v.length > 6) v = '('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
-  else if (v.length > 2) v = '('+v.slice(0,2)+') '+v.slice(2);
-  el.value = v;
-}
+// Validação visual da confirmação de senha
+document.addEventListener('DOMContentLoaded', function(){
+  var s1 = document.getElementById('senha');
+  var s2 = document.getElementById('senha2');
+  var lab = document.getElementById('senhaMatch');
+  function check(){
+    if (!s2.value) { lab.style.display = 'none'; return; }
+    var igual = s1.value === s2.value;
+    lab.style.display = 'block';
+    lab.textContent = igual ? '✓ Senhas conferem' : '✗ As senhas não coincidem';
+    lab.style.color = igual ? '#00C47A' : '#EF4444';
+  }
+  s1.addEventListener('input', check);
+  s2.addEventListener('input', check);
+  // Enter chain
+  if (window.vitaeForm) {
+    window.vitaeForm.attachEnterChain([
+      document.getElementById('nome'),
+      document.getElementById('email'),
+      document.getElementById('celular'),
+      s1, s2
+    ], cadastrar);
+  }
+});
 
 function showErr(titulo, msg, severidade){
   vitaeAuthError.mostrar(errEl, { titulo, msg, severidade: severidade || 'error' });
@@ -104,17 +128,24 @@ function showErr(titulo, msg, severidade){
 
 async function cadastrar(){
   var nome = document.getElementById('nome').value.trim();
-  var email = document.getElementById('email').value.trim();
+  var email = document.getElementById('email').value.trim().toLowerCase();
   var celular = document.getElementById('celular').value.replace(/\D/g,'');
   var senha = document.getElementById('senha').value;
+  var senha2 = document.getElementById('senha2').value;
   var aceite = document.getElementById('aceite').checked;
   var btn = document.getElementById('btn');
   vitaeAuthError.limpar(errEl);
+  var V = window.vitaeForm || {};
 
-  if (!nome || nome.split(' ').length < 2) return showErr('Informe seu nome completo', 'Inclua nome e sobrenome para o registro profissional.');
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('E-mail inválido', 'Digite um e-mail no formato seu@email.com.');
-  if (celular.length < 10) return showErr('Celular inválido', 'Inclua o DDD e o número completo.');
+  if (!nome || nome.split(' ').filter(Boolean).length < 2) return showErr('Informe seu nome completo', 'Inclua nome e sobrenome para o registro profissional.');
+  if (!email || !(V.isEmailValido ? V.isEmailValido(email) : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return showErr('E-mail inválido', 'Digite um e-mail no formato seu@email.com.');
+  if (V.isCelularValido ? !V.isCelularValido(celular) : celular.length < 10) return showErr('Celular inválido', 'Inclua o DDD e o número completo.');
   if (senha.length < 8) return showErr('Senha curta demais', 'Sua senha precisa ter pelo menos 8 caracteres.');
+  if (V.isSenhaForte) {
+    var f = V.isSenhaForte(senha);
+    if (!f.ok) return showErr('Senha fraca', 'Use letras, números e pelo menos um símbolo. Mínimo 8 caracteres.', 'warn');
+  }
+  if (senha !== senha2) return showErr('As senhas não coincidem', 'Confira sua senha e a confirmação.');
   if (!aceite) return showErr('Aceite necessário', 'Você precisa aceitar os Termos de Uso e a Política de Privacidade para continuar.', 'warn');
 
   btn.disabled = true; btn.textContent = 'Criando…';

@@ -6,6 +6,7 @@
 <title>vitaid — Perfil médico</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="desktop-core.css" rel="stylesheet">
+<script src="form-helpers.js" defer></script>
 <style>
 .login-card{width:640px;padding:36px 44px}
 .title{font-size:24px;font-weight:900;letter-spacing:-0.5px;color:var(--t1);margin-bottom:4px}
@@ -133,7 +134,7 @@ textarea.field-input::placeholder{color:#9CA3AF;font-weight:400}
       <div class="step" id="bar5"></div>
     </div>
 
-    <div class="login-error" id="err"></div>
+    <div class="login-error" id="err" role="alert" aria-live="polite"></div>
 
     <!-- ============ PASSO 1: Identidade ============ -->
     <div class="panel active" data-step="1">
@@ -151,12 +152,12 @@ textarea.field-input::placeholder{color:#9CA3AF;font-weight:400}
             <option>RO</option><option>RR</option><option>RS</option><option selected>SP</option>
             <option>SE</option><option>TO</option>
           </select>
-          <input type="text" id="crm" placeholder="123456" inputmode="numeric">
+          <input type="text" id="crm" placeholder="123456" inputmode="numeric" maxlength="20" data-mask="crm" data-paste-digits="1" autocomplete="off">
         </div>
         <div class="hint">Apenas números do seu registro no Conselho Regional de Medicina.</div>
       </div>
       <div class="field">
-        <label>Especialidade principal</label>
+        <label for="esp">Especialidade principal</label>
         <input type="text" id="esp" placeholder="Ex: Cardiologia" list="espOptions" autocomplete="off">
         <datalist id="espOptions">
           <option>Clínica Geral</option><option>Cardiologia</option>
@@ -222,12 +223,16 @@ textarea.field-input::placeholder{color:#9CA3AF;font-weight:400}
         <input type="text" id="clinica" placeholder="Ex: Clínica São Lucas">
       </div>
       <div class="field">
-        <label>Endereço completo</label>
-        <input type="text" id="endereco" placeholder="Rua, número, bairro, cidade — UF">
+        <label for="cep">CEP <span style="font-weight:400;color:#9CA3AF">(opcional · auto-preenche endereço)</span></label>
+        <input type="text" id="cep" placeholder="01310-100" inputmode="numeric" maxlength="9" data-mask="cep" data-paste-digits="1" autocomplete="postal-code" onblur="autoPreencherEnderecoPorCEP()">
       </div>
       <div class="field">
-        <label>Telefone do consultório</label>
-        <input type="tel" id="tel" placeholder="(11) 3333-4444" oninput="maskTel(this)" maxlength="15">
+        <label for="endereco">Endereço completo</label>
+        <input type="text" id="endereco" placeholder="Rua, número, bairro, cidade — UF" autocomplete="street-address">
+      </div>
+      <div class="field">
+        <label for="tel">Telefone do consultório</label>
+        <input type="tel" id="tel" placeholder="(11) 3333-4444" maxlength="15" inputmode="numeric" autocomplete="tel" data-mask="celular" data-paste-digits="1">
       </div>
       <div class="field">
         <label>Tipos de atendimento</label>
@@ -254,12 +259,12 @@ textarea.field-input::placeholder{color:#9CA3AF;font-weight:400}
       <div class="step-label"><span class="num">4</span>Sobre suas consultas</div>
       <div class="row r2">
         <div class="field">
-          <label>Valor padrão da consulta</label>
-          <input type="text" id="valor" placeholder="R$ 400" inputmode="numeric" oninput="maskValor(this)">
+          <label for="valor">Valor padrão da consulta</label>
+          <input type="text" id="valor" placeholder="R$ 400" inputmode="numeric" data-mask="valor">
         </div>
         <div class="field">
-          <label>Tempo médio (minutos)</label>
-          <input type="number" id="tempo" placeholder="30" min="10" max="120" value="30">
+          <label for="tempo">Tempo médio (minutos)</label>
+          <input type="number" id="tempo" placeholder="30" min="10" max="120" value="30" inputmode="numeric">
         </div>
       </div>
       <div class="field">
@@ -408,19 +413,24 @@ function render(){
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
-// ----- Máscaras -----
-function maskTel(el){
-  var v = el.value.replace(/\D/g,'').slice(0,11);
-  if (v.length > 10) v = '('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
-  else if (v.length > 6) v = '('+v.slice(0,2)+') '+v.slice(2,6)+'-'+v.slice(6);
-  else if (v.length > 2) v = '('+v.slice(0,2)+') '+v.slice(2);
-  el.value = v;
+// ----- Máscaras (compatibilidade — agora form-helpers.js cuida via data-mask) -----
+function maskTel(el){ if (window.vitaeForm) window.vitaeForm.maskCelular(el); }
+function maskValor(el){ if (window.vitaeForm) window.vitaeForm.maskValor(el); }
+
+// ----- Auto-preenche endereço a partir do CEP via ViaCEP -----
+async function autoPreencherEnderecoPorCEP(){
+  var cep = document.getElementById('cep').value;
+  if (!cep || cep.replace(/\D/g,'').length !== 8) return;
+  if (!window.vitaeForm) return;
+  var enderEl = document.getElementById('endereco');
+  if (enderEl.value) return; // não sobrescreve se já tem
+  var dados = await window.vitaeForm.buscarCEP(cep);
+  if (dados && dados.completo) {
+    enderEl.value = dados.completo;
+    enderEl.dispatchEvent(new Event('input', { bubbles: true }));
+  }
 }
-function maskValor(el){
-  var v = el.value.replace(/\D/g,'');
-  if (!v) { el.value=''; return; }
-  el.value = 'R$ ' + parseInt(v,10).toLocaleString('pt-BR');
-}
+window.autoPreencherEnderecoPorCEP = autoPreencherEnderecoPorCEP;
 function updateBioCount(){ document.getElementById('bioCount').textContent = document.getElementById('bio').value.length; }
 function updateMsgCount(){ document.getElementById('msgCount').textContent = document.getElementById('msgWpp').value.length; }
 
