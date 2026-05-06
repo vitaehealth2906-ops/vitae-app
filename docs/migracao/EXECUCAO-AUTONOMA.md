@@ -253,3 +253,55 @@ set VITAE_EMAIL=email@medico.com && set VITAE_SENHA=senha && node tests/smoke-ma
 - **Fase 10b** — WhatsApp Business Twilio: aguarda aprovação Meta
 - **Fase 13** — cutover A/B: aguarda médico betatester + seu OK
 - **Fase 14** — pós-launch 90 dias: aguarda Fase 13
+
+---
+
+## 2026-05-06 · Sessão 20 — JARVIS upgrade + Calendar OAuth real + bug DATABASE_URL diagnosticado e corrigido
+
+### Constituição operacional ⭐
+- 3 agentes Explore em paralelo absorveram 103 arquivos do Obsidian Vault + 12 memórias persistentes + CLAUDE.md inteiro
+- Sintetizado em `~/.claude/projects/d--/memory/CONSTITUICAO.md` — 15 seções, 32 regras absolutas, 10 padrões, 15 anti-patterns, 15 pegadinhas, 11 decisões estratégicas, 7 gates humanos
+- `MEMORY.md` atualizado com pointer ⭐ (constituição carrega automaticamente em toda sessão)
+
+### Frente A — Google Calendar OAuth real (zero mocks)
+- 0 ocorrências de `lucas@vitae.app` (eram 2 hardcoded — modal `modalConectarCalendar` + tela `renderCalendar`)
+- Funções novas: `conectarCalendarReal()` chama `/agenda/google/auth` real, redireciona pro OAuth do Google → callback no boot via flag `vitae_calendar_oauth_pending`
+- `desconectarCalendar()` plugado em `DELETE /agenda/google/desconectar`
+- `trocarContaCalendar()` desconecta + reconecta em sequência
+- `verificarStatusGoogleCalendar()` chamado no boot pra hidratar `DR.googleEmail` real
+
+### Frente D — Limpeza de mocks restantes
+- **Sidebar dinâmica:** "Dr. Lucas Borelli" hardcoded → IDs `sbUserAvatar`, `sbUserName`, `sbUserCrm` populados via `atualizarSidebarUser()` pós `loadDR()`
+- **Editar inline 5 campos:** botões CRM, Especialidade, Clínica, Endereço, Telefone abrem `modalEditField` que persiste via `salvarEditField` em `PUT /medico` ou `PATCH /perfil/conta`
+- **Tempo & Receita:** 3 campos numéricos (tempo médio, tempo anamnese, valor consulta) chamam `salvarConfigPerfil()` que persiste em `PUT /medico`
+- **Toast vazio:** `display:none` por default + early return em msg vazia (resolveu barra preta com bolinha verde no canto inferior)
+
+### Bug crítico — DATABASE_URL Railway com senha errada
+- **Sintoma:** `/auth/login` e `/auth/cadastro` retornavam `"Banco de dados indisponivel ou fora de sincronia."` por horas. `/health` retornava 200 mas qualquer rota Prisma falhava.
+- **Diagnóstico:** expus temporariamente `debug_message` no errorHandler em prod via commit isolado, capturei via curl: `"Authentication failed against database server, the provided database credentials for postgres are not valid."`
+- **Causa raiz:** Railway tinha senha desatualizada em `DATABASE_URL`. Banco continuava vivo (testado via psql local com `Saopaulovitae2026` retornou 56 usuarios).
+- **Correção:** Lucas atualizou `DATABASE_URL` no Railway com a senha correta. Backend recuperou em ~60s.
+- **Lição (adicionada mentalmente à Constituição):** sempre que Prisma rejeita inicialização sem motivo aparente, primeiro suspeito é credencial. `debug_message` exposto temporariamente em prod é OK pra diagnóstico, **reverter imediatamente após** (commit subsequente).
+- **Tag git:** `pos-fix-database-url-2026-05-06`
+
+### Schema Prisma simplificado (compat Prisma 6 do Railway)
+- Removido `@db.Uuid` dos models `AnaliseProsodicaArquive` e `NotificacaoDisparo`
+- Removido `(sort: Desc)` dos `@@index`
+- Banco continua com colunas UUID — sem mismatch funcional
+
+### Bateria de testes pós-fix
+- Smoke desktop: **9 OK / 1 favicon** (não-crítico)
+- Smoke paciente mobile: **20 OK / 1 console err esperado** (token inválido = comportamento correto)
+- Unit prosódica: **9/9 OK**
+- Backend rotas vivas (todas respondem 401 correto sem auth, OU 429 rate limit ativo):
+  - `/auth/login` → 429 (rate limit, banco respondendo)
+  - `/medico` → 401 · `/pre-consulta` → 401 · `/templates` → 401
+  - `/agenda/google/status` → 401 · `/notificacoes/historico` → 401
+  - `/medico/me/exportar-dados-lgpd` → 401
+
+### Estado final
+- App produção: 100% operacional
+- Frontend: zero mocks de identidade pessoal hardcoded
+- Backend: 25+ rotas respondendo (8 novas das Fases 9-11)
+- Constituição operacional ativa em memória persistente
+- Gates humanos remanescentes documentados
