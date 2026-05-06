@@ -322,52 +322,52 @@ model Medico {
 
 // ---- ANÁLISE PROSÓDICA (Fase 9 — CFM 2.314/2022, retenção 20 anos) ----
 model AnaliseProsodicaArquive {
-  id              String   @id @default(uuid()) @db.Uuid
-  preConsultaId   String?  @map("pre_consulta_id")
-  medicoId        String   @map("medico_id")
-  pacienteId      String   @map("paciente_id")
-  criadoEm        DateTime @default(now()) @map("criado_em")
+  id              String    @id @default(uuid()) @db.Uuid
+  preConsultaId   String?   @map("pre_consulta_id")
+  medicoId        String    @map("medico_id")
+  pacienteId      String    @map("paciente_id")
+  criadoEm        DateTime  @default(now()) @map("criado_em")
   features        Json
   thresholds      Json
-  trechoInicioMs  Int      @map("trecho_inicio_ms")
-  trechoFimMs     Int      @map("trecho_fim_ms")
-  hashAudio       String   @map("hash_audio") // SHA-256, NÃO o áudio
-  retencaoAte     DateTime @map("retencao_ate") // criado_em + 20 anos
-  alertaSeveridade String? @map("alerta_severidade") // baixa | media | alta
-  alertaMensagem   String? @map("alerta_mensagem")
+  trechoInicioMs  Int       @map("trecho_inicio_ms")
+  trechoFimMs     Int       @map("trecho_fim_ms")
+  hashAudio       String    @map("hash_audio")
+  retencaoAte     DateTime  @map("retencao_ate")
+  alertaSeveridade String?  @map("alerta_severidade")
+  alertaMensagem   String?  @map("alerta_mensagem")
   auditadoEm       DateTime? @map("auditado_em")
   auditadoPor      String?   @map("auditado_por")
 
   medico      Medico       @relation(fields: [medicoId], references: [id], onDelete: Restrict)
   preConsulta PreConsulta? @relation(fields: [preConsultaId], references: [id], onDelete: SetNull)
 
-  @@index([medicoId, criadoEm(sort: Desc)], map: "apa_medico_criado_idx")
-  @@index([pacienteId, criadoEm(sort: Desc)], map: "apa_paciente_criado_idx")
+  @@index([medicoId, criadoEm], map: "apa_medico_criado_idx")
+  @@index([pacienteId, criadoEm], map: "apa_paciente_criado_idx")
   @@index([preConsultaId], map: "apa_pre_consulta_idx")
   @@map("analise_prosodica_arquive")
 }
 
 // ---- HISTÓRICO DE DISPAROS WHATSAPP (Fase 10) ----
 model NotificacaoDisparo {
-  id            String   @id @default(uuid()) @db.Uuid
-  medicoId      String   @map("medico_id")
-  pacienteId    String?  @map("paciente_id")
+  id            String    @id @default(uuid()) @db.Uuid
+  medicoId      String    @map("medico_id")
+  pacienteId    String?   @map("paciente_id")
   destinatario  String
-  canal         String   @default("whatsapp") // whatsapp | sms | email
-  mensagem      String   @db.Text
-  templateSid   String?  @map("template_sid")
-  status        String   @default("enfileirado") // enfileirado | enviado | entregue | falhou
-  modo          String   @default("simulacao")   // simulacao | real
+  canal         String    @default("whatsapp")
+  mensagem      String    @db.Text
+  templateSid   String?   @map("template_sid")
+  status        String    @default("enfileirado")
+  modo          String    @default("simulacao")
   agendadoPara  DateTime? @map("agendado_para")
   enviadoEm     DateTime? @map("enviado_em")
   entregueEm    DateTime? @map("entregue_em")
   erro          String?
-  twilioSid     String?  @map("twilio_sid")
-  criadoEm      DateTime @default(now()) @map("criado_em")
+  twilioSid     String?   @map("twilio_sid")
+  criadoEm      DateTime  @default(now()) @map("criado_em")
 
   medico Medico @relation(fields: [medicoId], references: [id], onDelete: Cascade)
 
-  @@index([medicoId, criadoEm(sort: Desc)], map: "nd_medico_criado_idx")
+  @@index([medicoId, criadoEm], map: "nd_medico_criado_idx")
   @@index([status], map: "nd_status_idx")
   @@map("notificacao_disparos")
 }
