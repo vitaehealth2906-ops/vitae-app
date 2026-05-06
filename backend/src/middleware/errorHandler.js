@@ -56,7 +56,9 @@ function errorHandler(err, req, res, _next) {
   if (err instanceof Prisma.PrismaClientInitializationError || err instanceof Prisma.PrismaClientUnknownRequestError) {
     console.error('[PRISMA_INIT_OR_UNKNOWN]', err.message);
     const body = { erro: 'Banco de dados indisponivel ou fora de sincronia.' };
-    if (isDev && err.message) body.debug_message = err.message.substring(0, 800);
+    // TEMP: expor detalhe em prod pra debugar incidente 2026-05-06
+    if (err.message) body.debug_message = err.message.substring(0, 800);
+    if (err.errorCode) body.debug_code = err.errorCode;
     return res.status(500).json(body);
   }
 
