@@ -1602,16 +1602,24 @@ if (typeof window.escapeHtml !== 'function') {
 
 // Verifica status de conexão Google Calendar no boot
 async function verificarStatusGoogleCalendar(){
+  // PROTEÇÃO: começa sempre como NÃO conectado até o backend confirmar
+  DR.config.googleCalendarConectado = false;
+  DR.googleEmail = null;
   if (!window.BACKEND) return;
   try {
     var res = await window.BACKEND.api('/agenda/google/status');
     if (!res.ok) return;
     var d = await res.json().catch(()=>({}));
     var dados = d.data || d;
-    var conectado = !!(dados && (dados.conectado || dados.token || dados.googleEmail));
+    // Só considera conectado se TIVER email real do Google (token sozinho não conta)
     var email = (dados && (dados.googleEmail || dados.email)) || null;
+    var conectado = !!(email);
     DR.config.googleCalendarConectado = conectado;
-    if (email) DR.googleEmail = email;
+    DR.googleEmail = email;
+    // Re-renderiza a view atual se for hoje/calendar/perfil
+    if (typeof renderHoje === 'function' && STATE.view === 'hoje') renderHoje();
+    if (typeof renderCalendar === 'function' && STATE.view === 'calendar') renderCalendar();
+    if (typeof renderPerfil === 'function' && STATE.view === 'perfil') renderPerfil();
   } catch(e){}
 }
 window.verificarStatusGoogleCalendar = verificarStatusGoogleCalendar;
@@ -2514,7 +2522,7 @@ function renderCalendar(){
     html+='<div style="width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,rgba(0,229,160,.10),rgba(0,180,216,.08));border:1px solid rgba(0,229,160,.18);display:inline-flex;align-items:center;justify-content:center;margin-bottom:18px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>';
     html+='<div style="font-size:22px;font-weight:900;letter-spacing:-.4px;margin-bottom:8px">Conecte seu Google Calendar</div>';
     html+='<div style="font-size:13.5px;color:var(--t3);line-height:1.55;max-width:480px;margin:0 auto 22px">VITAE lê os eventos do seu calendário e dispara automaticamente uma pré-consulta para o paciente 24h antes da consulta. Você economiza tempo, paciente chega preparado.</div>';
-    html+='<button class="btn btn-p" style="height:44px;padding:0 28px;font-size:14px" onclick="DR.config.googleCalendarConectado=true;renderCalendar();toastT(\'Google Calendar conectado\',\'ok\');renderHoje()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Conectar com Google</button>';
+    html+='<button class="btn btn-p" style="height:44px;padding:0 28px;font-size:14px" onclick="conectarCalendarReal()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Conectar com Google</button>';
     html+='</div>';
 
     html+='<div class="cm-grid">';
