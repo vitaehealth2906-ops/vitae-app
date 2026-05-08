@@ -964,8 +964,31 @@ function renderHoje(){
       var p = a.pacienteId ? PACIENTES.find(function(x){return x.id===a.pacienteId;}) : null;
       var pc = a.pcId ? PCS[a.pcId] : null;
       var nomeMostrar = p ? p.nome : (a.paciente || 'Sem nome');
-      var st='miss',stTxt='Sem anamnese',q='Não gravou pré-consulta';
-      if(pc){q=pc.queixaSnippet||'';if(pc.alerta){st='alert';stTxt='Trecho marcado';}else if(pc.cobertura==='pronta'){st='ready';stTxt='Anamnese pronta';}else if(pc.cobertura==='parcial'){st='partial';stTxt='Parcial';}}
+      // Cruza com PC pelo nome se nao tiver pcId direto (caso slot Google + paciente nao vinculado)
+      if (!pc && nomeMostrar && nomeMostrar !== 'Sem nome') {
+        var nomeNorm = nomeMostrar.toLowerCase().trim();
+        pc = Object.values(PCS||{}).find(function(x){
+          return x.paciente && x.paciente.toLowerCase().trim() === nomeNorm;
+        }) || null;
+      }
+      // STATUS TEMPORAL: depende de tempo desde envio + resposta
+      var st='miss', stTxt='Sem PC criada', q='Médico ainda não enviou pré-consulta';
+      if (pc) {
+        q = pc.queixaSnippet || '';
+        if (pc.alerta) { st='alert'; stTxt='Trecho marcado'; }
+        else if (pc.cobertura === 'pronta') { st='ready'; stTxt='Anamnese pronta'; }
+        else if (pc.cobertura === 'parcial') { st='partial'; stTxt='Parcial'; }
+        else {
+          // PC criada mas sem resposta — calcula tempo desde envio
+          var enviadaEm = pc.criadaEm ? new Date(pc.criadaEm).getTime() : 0;
+          var horasDesdeEnvio = enviadaEm ? (Date.now() - enviadaEm) / (1000 * 60 * 60) : 0;
+          if (horasDesdeEnvio > 24) {
+            st = 'miss'; stTxt = 'Não respondeu'; q = 'Paciente recebeu há +24h e não gravou';
+          } else {
+            st = 'partial'; stTxt = 'Enviada'; q = 'Aguardando paciente responder';
+          }
+        }
+      }
       var click = pc ? 'openSummary(\''+a.pcId+'\')' : (p ? 'modalDispararLembrete(\''+p.id+'\')' : '');
       var qStyle = pc ? '' : 'style="color:var(--t3)"';
       // Mostra dia (Hoje/Amanhã/Sex 09) se filtro != hoje
@@ -1004,7 +1027,12 @@ function renderHoje(){
     '</div>';
   }
   html+='<div class="h-card"><div class="h-card-h"><div class="h-card-t">Automações</div><div class="h-card-s">Lembretes e integrações que rodam no fundo</div></div><div class="auto-stack">'+
-    '<div class="auto-card"><div class="auto-ico"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div><div class="auto-t">'+hojeSem+' pacientes ainda não gravaram</div><div class="auto-d">Roberto e Beatriz. Mandar lembrete WhatsApp?</div></div><button class="auto-btn" onclick="modalDispararLembrete()">Disparar</button></div>'+
+    (function(){
+      var pendNomes = PACIENTES.filter(function(p){ return p.anamneses === 0; }).slice(0,3).map(function(p){ return p.nome.split(' ')[0]; });
+      var subtitulo = pendNomes.length === 0 ? 'Todos seus pacientes responderam.' : (pendNomes.join(', ') + (PACIENTES.filter(function(p){ return p.anamneses === 0; }).length > 3 ? ' e outros' : '') + '. Mandar lembrete WhatsApp?');
+      var qtdPend = PACIENTES.filter(function(p){ return p.anamneses === 0; }).length;
+      return '<div class="auto-card"><div class="auto-ico"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div><div class="auto-t">'+qtdPend+' paciente'+(qtdPend===1?'':'s')+' ainda não gravaram</div><div class="auto-d">'+escapeHtml(subtitulo)+'</div></div>'+(qtdPend>0?'<button class="auto-btn" onclick="modalDispararLembrete()">Disparar</button>':'')+'</div>';
+    })()+
     '<div class="auto-card"><div class="auto-ico"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div><div><div class="auto-t">3 consultas previstas esta semana</div><div class="auto-d">Sistema dispara pré-consulta automática 48h antes</div></div><button class="auto-btn" onclick="goto(\'pre-consultas\')">Ver</button></div>'+
     '<div class="auto-card"><div class="auto-ico" style="color:'+(hasCalendar?'#00C47A':'var(--t3)')+'"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div><div class="auto-t">Google Calendar '+(hasCalendar?'conectado':'desconectado')+'</div><div class="auto-d">'+(hasCalendar?'Sua agenda é lida automaticamente':'Conecte pra ver consultas em Hoje')+'</div></div><button class="auto-btn" onclick="modalConectarCalendar()">'+(hasCalendar?'Configurar':'Conectar')+'</button></div>'+
   '</div></div>';
@@ -1050,18 +1078,25 @@ function renderPC(){
     html+='<div class="pcn-empty"><div class="pcn-empty-ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="pcn-empty-t">Nenhuma pré-consulta encontrada</div><div class="pcn-empty-d">Tenta limpar o filtro ou criar uma nova pré-consulta.</div><button class="btn btn-p" onclick="modalCriarPC()" style="margin-top:10px">Criar pré-consulta</button></div>';
   }else{
     filtered.forEach(function(p){
+      // Status temporal: Respondida (verde) > Trecho marcado (laranja) > Parcial (azul)
+      // > Enviada/Aguardando (laranja claro <24h) > Não respondeu (vermelho >24h)
       var bcls='warn',btxt='Enviada';
-      if(p.alerta){bcls='warn';btxt='Trecho marcado';}
-      else if(p.cobertura==='pronta'){bcls='ok';btxt='Respondida';}
-      else if(p.cobertura==='parcial'){bcls='info';btxt='Parcial';}
-      else if(p.status==='PENDENTE'||p.status==='ABERTO'){bcls='warn';btxt='Aguardando';}
+      if (p.alerta) { bcls='warn'; btxt='Trecho marcado'; }
+      else if (p.cobertura === 'pronta') { bcls='ok'; btxt='Respondida'; }
+      else if (p.cobertura === 'parcial') { bcls='info'; btxt='Parcial'; }
+      else {
+        var enviadaEm = p.criadaEm ? new Date(p.criadaEm).getTime() : 0;
+        var horasDesdeEnvio = enviadaEm ? (Date.now() - enviadaEm) / (1000 * 60 * 60) : 0;
+        if (horasDesdeEnvio > 24) { bcls='bad'; btxt='Não respondeu'; }
+        else { bcls='warn'; btxt='Enviada'; }
+      }
       var click=p.cobertura&&p.cobertura!=='sem'?'openSummary(\''+p.id+'\')':'modalDispararLembrete(\''+p.pacienteId+'\')';
       html+='<div class="pcn-trow" onclick="'+click+'">'+
         '<div class="pcn-tr-pat"><div class="pcn-tr-av">'+p.ini+'</div><div style="min-width:0"><div class="pcn-tr-name">'+p.paciente+'</div><div class="pcn-tr-sub">'+(p.queixaSnippet||'—')+'</div></div></div>'+
         '<div class="pcn-tr-tpl">'+(p.templateNome||'Geral')+'</div>'+
         '<div><span class="pcn-tr-badge '+bcls+'"><span class="dot"></span>'+btxt+'</span></div>'+
         '<div class="pcn-tr-date">'+(p.recordedAt||'—')+'<div class="when">'+(new Date(p.criadaEm)).toLocaleDateString('pt-BR')+'</div></div>'+
-        '<div class="pcn-tr-act"><button class="pcn-tr-btn" onclick="event.stopPropagation();toast(\'Link copiado\')"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><button class="pcn-tr-btn del" onclick="event.stopPropagation();toast(\'Pré-consulta excluída\')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div>'+
+        '<div class="pcn-tr-act"><button class="pcn-tr-btn" title="Copiar link" onclick="event.stopPropagation();copiarLinkPC(\''+p.id+'\')"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><button class="pcn-tr-btn del" title="Excluir" onclick="event.stopPropagation();excluirPCConfirma(\''+p.id+'\')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div>'+
       '</div>';
     });
   }
@@ -1069,6 +1104,63 @@ function renderPC(){
   $('v-pre-consultas').innerHTML=html;
 }
 function setPCFilter(f){STATE.filters.pc=f;renderPC();}
+
+// ---------- Acoes inline da lista de Pre-Consultas ----------
+async function copiarLinkPC(pcId){
+  var pc = PCS[pcId];
+  if (!pc) { toast('Pré-consulta não encontrada'); return; }
+  // Tenta pegar token salvo na PC; senao monta URL com id
+  var token = pc.linkToken || pc.token || pc.id;
+  var url = 'https://vitae-app.vercel.app/pre-consulta.html?token=' + encodeURIComponent(token);
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(url);
+      toast('Link copiado · pronto pra colar');
+    } else {
+      // Fallback: cria textarea temporario
+      var ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      toast('Link copiado');
+    }
+  } catch(e) { toast('Não consegui copiar — tenta de novo'); }
+}
+
+function excluirPCConfirma(pcId){
+  var pc = PCS[pcId];
+  if (!pc) { toast('Pré-consulta não encontrada'); return; }
+  var nome = pc.paciente || pc.pacienteNome || 'esta pré-consulta';
+  var html = '<div class="modal-h"><div><div class="modal-step">CONFIRMAR</div><div class="modal-t">Excluir pré-consulta?</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
+  html += '<div class="modal-body"><p style="font-size:13.5px;line-height:1.5;color:var(--t1)">Tem certeza que quer excluir a pré-consulta de <strong>'+escapeHtml(nome)+'</strong>?</p><p style="font-size:12px;color:var(--t3);margin-top:8px">Esta ação não pode ser desfeita. Áudio e respostas serão removidos permanentemente.</p></div>';
+  html += '<div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-danger-x" onclick="excluirPCExecutar(\''+pcId+'\')">Excluir definitivamente</button></div>';
+  openModal(html, true);
+}
+
+async function excluirPCExecutar(pcId){
+  closeModal();
+  if (!window.BACKEND) { toast('Sistema indisponível'); return; }
+  try {
+    var res = await window.BACKEND.api('/pre-consulta/'+encodeURIComponent(pcId), { method: 'DELETE' });
+    if (!res.ok) {
+      var d = await res.json().catch(()=>({}));
+      toast('Não foi possível excluir: ' + (d.erro || res.status));
+      return;
+    }
+    delete PCS[pcId];
+    if (typeof window.renderPC === 'function' && STATE.view === 'pre-consultas') window.renderPC();
+    toast('Pré-consulta excluída');
+  } catch(e) { toast('Sem conexão'); }
+}
+
+try {
+  window.copiarLinkPC = copiarLinkPC;
+  window.excluirPCConfirma = excluirPCConfirma;
+  window.excluirPCExecutar = excluirPCExecutar;
+} catch(_e){}
 
 /* ============================================================
    RENDER: PACIENTES (2 colunas: lista + detail timeline)
@@ -1526,12 +1618,39 @@ function renderModalCriarPC(){
 function addPh(p,id,key){var ta=document.getElementById(id);if(!ta)return;var s=ta.selectionStart;ta.value=ta.value.slice(0,s)+p+ta.value.slice(ta.selectionEnd);if(STATE[key])STATE[key].mensagem=ta.value;ta.focus();ta.selectionStart=ta.selectionEnd=s+p.length;}
 
 function modalDispararLembrete(pacienteId){
-  STATE._lembrete={selecionados:pacienteId?[pacienteId]:['p6','p7'],mensagem:DR.config.mensagemLembrete,agendar:'agora'};
+  // Pacientes pendentes = quem nao respondeu nenhuma PC ainda OU PC pendente
+  var pendentesIds = PACIENTES.filter(function(p){
+    if (p.anamneses === 0) return true;
+    // Procura PC ainda pendente desse paciente
+    var temPendente = Object.values(PCS||{}).some(function(pc){
+      return pc.pacienteId === p.id && (pc.status === 'aguardando' || pc.status === 'PENDENTE' || pc.status === 'ABERTO');
+    });
+    return temPendente;
+  }).slice(0, 10).map(function(p){ return p.id; });
+  STATE._lembrete={
+    selecionados: pacienteId ? [pacienteId] : pendentesIds,
+    mensagem: DR.config.mensagemLembrete || 'Olá {nome}, sua pré-consulta está pronta. Acesse: {link}',
+    agendar: 'agora'
+  };
   renderModalLembrete();
 }
 function renderModalLembrete(){
   var s=STATE._lembrete;
-  var pendentes=PACIENTES.filter(function(p){return p.id==='p6'||p.id==='p7';});
+  // Pacientes pendentes reais (sem anamnese OU com PC aguardando)
+  var pendentes = PACIENTES.filter(function(p){
+    if (p.anamneses === 0) return true;
+    var temPendente = Object.values(PCS||{}).some(function(pc){
+      return pc.pacienteId === p.id && (pc.status === 'aguardando' || pc.status === 'PENDENTE' || pc.status === 'ABERTO');
+    });
+    return temPendente;
+  }).slice(0, 10);
+  if (pendentes.length === 0) {
+    var html = '<div class="modal-h"><div><div class="modal-step">LEMBRETE WHATSAPP</div><div class="modal-t">Disparar lembrete</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
+    html += '<div class="modal-body"><div style="text-align:center;padding:30px 20px;color:var(--t3)"><div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:8px">Ninguém pra lembrar</div><div style="font-size:12.5px">Todos os seus pacientes já responderam suas pré-consultas. Bom trabalho.</div></div></div>';
+    html += '<div class="modal-foot"><button class="btn btn-p" onclick="closeModal()">Fechar</button></div>';
+    openModal(html, true);
+    return;
+  }
   var html='<div class="modal-h"><div><div class="modal-step">LEMBRETE WHATSAPP</div><div class="modal-t">Disparar lembrete</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
   html+='<div class="modal-body">';
   html+='<div class="field-block"><label>Pacientes que vão receber <small>Desmarque pra não enviar</small></label>';
@@ -3736,6 +3855,7 @@ window.BACKEND = (function(){
           template: (p.template && p.template.nome) || p.templateNome || 'Geral',
           templateNome: (p.template && p.template.nome) || p.templateNome || 'Geral',
           status: statusUI,
+          linkToken: p.linkToken || p.token || null,
           criada: p.criadoEm,
           criadaEm: p.criadoEm,
           recordedAt: recordedAt,
@@ -3752,7 +3872,7 @@ window.BACKEND = (function(){
           transcricao: p.transcricao || sj.transcricao || null,
           audioUrl: p.audioUrl || null,
           alertaProsodico: !!(sj && sj.alertaProsodico),
-          cobertura: anam ? 'completa' : (statusUI === 'respondida' ? 'parcial' : 'sem')
+          cobertura: anam ? 'pronta' : (statusUI === 'respondida' ? 'parcial' : 'sem')
         };
       });
       // sobrescreve PCS preservando referência
@@ -4284,22 +4404,31 @@ window.salvarTemplate = async function(){
 // --- Paciente: ao abrir detalhe, busca dados completos antes de renderizar ---
 var _origRenderPacienteDetail = window.renderPacienteDetail;
 window.renderPacienteDetail = function(){
-  // chama o original primeiro pra mostrar skeleton
   _origRenderPacienteDetail && _origRenderPacienteDetail.apply(this, arguments);
-  // dispara load do detalhe real em paralelo
+  _disparaLoadDetalheSelecionado();
+};
+
+// --- Painel inline na tela Pacientes (lista esquerda + detalhe direita) ---
+// Tambem busca o detalhe ao trocar de paciente selecionado.
+var _origRenderPacienteDetailInline = window.renderPacienteDetailInline;
+window.renderPacienteDetailInline = function(){
+  _origRenderPacienteDetailInline && _origRenderPacienteDetailInline.apply(this, arguments);
+  _disparaLoadDetalheSelecionado();
+};
+
+function _disparaLoadDetalheSelecionado(){
   var pid = STATE && STATE.selectedPaciente;
-  if (!pid) return;
-  // só carrega uma vez por paciente por sessão (evita loop)
+  if (!pid || !window.BACKEND) return;
   if (!window._pacDetalheCache) window._pacDetalheCache = {};
   if (window._pacDetalheCache[pid]) return;
   window._pacDetalheCache[pid] = true;
   window.BACKEND.loadPacienteDetalhe(pid).then(function(p){
-    if (!p) return;
-    // re-renderiza pra refletir EXAMES_MOCK/MEDS_MOCK/etc atualizados
-    if (STATE.view === 'pacientes-detail') _origRenderPacienteDetail();
-    if (STATE.view === 'pacientes' && typeof renderPacientes === 'function') renderPacientes();
-  });
-};
+    if (!p) { delete window._pacDetalheCache[pid]; return; } // permite retry
+    // Re-renderiza a view atual com dados frescos
+    if (STATE.view === 'pacientes-detail' && typeof _origRenderPacienteDetail === 'function') _origRenderPacienteDetail();
+    if (STATE.view === 'pacientes' && typeof _origRenderPacienteDetailInline === 'function') _origRenderPacienteDetailInline();
+  }).catch(function(){ delete window._pacDetalheCache[pid]; });
+}
 
 // --- Summary PC: ao abrir, garante dados completos do servidor ---
 var _origOpenSummary = window.openSummary;
