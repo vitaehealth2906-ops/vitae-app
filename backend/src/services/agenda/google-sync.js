@@ -253,14 +253,23 @@ async function sincronizar(medicoId, diasFuturo = 90) {
 
   for (const ev of eventos) {
     if (!ev.id || !ev.start || !ev.end) continue;
-    const inicio = ev.start.dateTime || ev.start.date;
-    const fim = ev.end.dateTime || ev.end.date;
-    if (!inicio || !fim) continue;
 
+    // FILTRO CLINICO: ignora eventos sem horario especifico (all-day).
+    // Aniversarios, feriados, datas comemorativas, lembretes anuais — todos
+    // SEMPRE sao all-day no Google. Consulta medica SEMPRE tem horario.
+    // Esse filtro elimina 99% do ruido sem precisar regex de palavra-chave.
+    if (!ev.start.dateTime || !ev.end.dateTime) continue;
+
+    const inicio = ev.start.dateTime;
+    const fim = ev.end.dateTime;
     idsRecebidos.add(ev.id);
     const inicioDate = new Date(inicio);
     const fimDate = new Date(fim);
     const duracaoMin = Math.round((fimDate - inicioDate) / 60000);
+
+    // FILTRO ADICIONAL: ignora eventos muito curtos (<10min) ou muito longos
+    // (>12h). Consulta clinica tipica e 15min-2h.
+    if (duracaoMin < 10 || duracaoMin > 720) continue;
 
     // Titulo do evento (resumo) — usado pra medico identificar consulta na lista
     const titulo = ev.summary || null;
