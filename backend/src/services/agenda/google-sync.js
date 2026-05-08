@@ -127,22 +127,22 @@ async function listarCalendars(medicoId) {
     const agora = new Date();
     const fim = new Date(agora.getTime() + 90 * 24 * 60 * 60 * 1000);
     const lista = await Promise.all(items.map(async (item) => {
-      // Categorizacao
+      // Categorizacao — normaliza pra remover acentos (Aniversários -> aniversarios)
       let categoria = 'outras';
       let recomendado = false;
-      const summary = (item.summary || '').toLowerCase();
+      const summaryNorm = (item.summary || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      const isGoogleAuto = /aniversari|birthday|feriado|holiday|tarefa|task|reminder|lembrete/i.test(summaryNorm)
+        || item.id === 'addressbook#contacts@group.v.calendar.google.com'
+        || /^(en\.brazilian|pt\.brazilian|en\.usa|pt\.|tasks)/i.test(item.id || '');
       if (item.primary) {
         categoria = 'principal';
         recomendado = true;
+      } else if (isGoogleAuto) {
+        categoria = 'google_automatica';
+        recomendado = false;
       } else if (item.accessRole === 'owner') {
         categoria = 'criada_por_voce';
         recomendado = true;
-      } else if (/aniversario|birthday/i.test(item.summary || '') || item.id === 'addressbook#contacts@group.v.calendar.google.com') {
-        categoria = 'google_automatica';
-        recomendado = false;
-      } else if (/feriado|holiday/i.test(item.summary || '')) {
-        categoria = 'google_automatica';
-        recomendado = false;
       } else if (item.accessRole === 'reader' || item.accessRole === 'freeBusyReader') {
         categoria = 'compartilhada';
         recomendado = true;
@@ -200,9 +200,15 @@ async function sincronizar(medicoId, diasFuturo = 90) {
     const cal = g.calendar({ version: 'v3', auth: auth.oauth2 });
     const agora = new Date();
     const fim = new Date(agora.getTime() + diasFuturo * 24 * 60 * 60 * 1000);
-    // Busca em PARALELO de cada agenda selecionada
+    // Busca em PARALELO de cada agenda selecionada (com nome da agenda)
     const resultadosPorAgenda = await Promise.all(calendarIds.map(async (calId) => {
       try {
+        // Pega metadata da agenda (nome) — 1 chamada leve
+        let calNome = calId;
+        try {
+          const metaRes = await cal.calendars.get({ calendarId: calId });
+          calNome = metaRes.data?.summary || calId;
+        } catch (_e) { /* fallback ao id */ }
         const res = await cal.events.list({
           calendarId: calId,
           timeMin: agora.toISOString(),
@@ -211,7 +217,7 @@ async function sincronizar(medicoId, diasFuturo = 90) {
           orderBy: 'startTime',
           maxResults: 250,
         });
-        return (res.data.items || []).map(ev => ({ ...ev, _calendarId: calId }));
+        return (res.data.items || []).map(ev => ({ ...ev, _calendarId: calId, _calNome: calNome }));
       } catch (e) {
         // Se uma agenda especifica falhar (ex: removida pelo medico), continua com as outras
         if (e.code === 401 || /invalid_grant/.test(e.message || '')) throw e;
@@ -256,6 +262,10 @@ async function sincronizar(medicoId, diasFuturo = 90) {
     const fimDate = new Date(fim);
     const duracaoMin = Math.round((fimDate - inicioDate) / 60000);
 
+    // Titulo do evento (resumo) — usado pra medico identificar consulta na lista
+    const titulo = ev.summary || null;
+    const calNome = ev._calNome || null;
+
     if (mapaExistentes.has(ev.id)) {
       // Atualiza
       await prisma.agendaSlot.update({
@@ -264,6 +274,8 @@ async function sincronizar(medicoId, diasFuturo = 90) {
           inicio: inicioDate,
           fim: fimDate,
           duracaoMin,
+          tituloEvento: titulo,
+          calendarNome: calNome,
           googleSyncedAt: new Date(),
         },
       });
@@ -282,8 +294,9 @@ async function sincronizar(medicoId, diasFuturo = 90) {
             origem: 'GOOGLE_IMPORT',
             googleEventId: ev.id,
             googleSyncedAt: new Date(),
+            tituloEvento: titulo,
+            calendarNome: calNome,
             criadoPor: 'GOOGLE_SYNC',
-            // motivo/observacoes ficam null pra LGPD
           },
         });
         inseridos++;

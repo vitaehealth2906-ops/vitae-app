@@ -2566,8 +2566,29 @@ function renderCalendar(){
 }
 
 // ---------- BUSCA dados frescos do backend pra home ----------
-async function fetchCalendarHomeData(){
+// Estratégia: ao chegar na home Calendar, força sync com Google ANTES
+// de exibir status. Assim, eventos que o medico criou no Google aparecem
+// automaticamente sem precisar clicar em ↻ manual.
+async function fetchCalendarHomeData(forceSync){
   if (!window.BACKEND) return;
+  try {
+    // Se forceSync ou nao temos dados ainda, dispara sync-now em paralelo
+    // (nao espera — atualiza UI quando voltar)
+    if (forceSync !== false) {
+      window.BACKEND.api('/agenda/google/sync-now', { method: 'POST' })
+        .then(function(r){ return r.json().catch(function(){ return {}; }); })
+        .then(function(){
+          // Apos sync, busca dados frescos
+          buscarStatusEHistorico();
+        })
+        .catch(function(){ /* offline ou token expirou — banner cuida */ });
+    }
+    // Em paralelo busca o que ja tem (UI mostra rapido)
+    buscarStatusEHistorico();
+  } catch(e) { /* silencioso — banner offline cuida */ }
+}
+
+async function buscarStatusEHistorico(){
   try {
     var statusRes = await window.BACKEND.api('/agenda/google/status');
     var statusData = await statusRes.json().catch(function(){ return {}; });
@@ -2583,7 +2604,7 @@ async function fetchCalendarHomeData(){
     if (STATE.view === 'calendar' && (DR.config.googleCalendarConectado) && (STATE.calendar.step !== 'historico') && (STATE.calendar.step !== 'selecionar-agendas')) {
       renderCalendar();
     }
-  } catch(e) { /* silencioso — banner offline cuida */ }
+  } catch(e) { /* silencioso */ }
 }
 
 // ---------- TELA 1 — Por que conectar ----------
@@ -2733,14 +2754,15 @@ function renderCalendarConectado(){
     +'</button></div>';
   html += '</div>';
 
-  // BLOCO 2 — Resumo da semana (métricas reais)
-  var m = st.metricas || { eventosSemana: 0, totalImportados: 0 };
-  var qtdProximos = (hist.proximos || []).length;
-  var qtdIgnorados = Math.max(0, (m.eventosSemana || 0) - qtdProximos);
-  html += '<div class="cal-section-h">Resumo · próximos 7 dias</div>';
+  // BLOCO 2 — Resumo dos próximos 90 dias (período coerente — eventos detectados pelo VITAE)
+  var proximosAll = (hist.proximos || []);
+  var totalDetectados = proximosAll.length;
+  var qtdAtivas = proximosAll.filter(function(s){ return !s.ignorado; }).length;
+  var qtdIgnorados = proximosAll.filter(function(s){ return s.ignorado; }).length;
+  html += '<div class="cal-section-h">Resumo · próximos 90 dias</div>';
   html += '<div class="cal-metrics-grid">';
-  html += '<div class="cal-metric"><div class="cal-metric-n">'+(m.eventosSemana||0)+'</div><div class="cal-metric-l">eventos detectados</div></div>';
-  html += '<div class="cal-metric cal-metric-pos"><div class="cal-metric-n">'+qtdProximos+'</div><div class="cal-metric-l">vão virar pré-consulta</div></div>';
+  html += '<div class="cal-metric"><div class="cal-metric-n">'+totalDetectados+'</div><div class="cal-metric-l">eventos detectados</div></div>';
+  html += '<div class="cal-metric cal-metric-pos"><div class="cal-metric-n">'+qtdAtivas+'</div><div class="cal-metric-l">vão virar pré-consulta</div></div>';
   html += '<div class="cal-metric cal-metric-mute"><div class="cal-metric-n">'+qtdIgnorados+'</div><div class="cal-metric-l">ignorados</div></div>';
   html += '</div>';
 
@@ -2760,8 +2782,10 @@ function renderCalendarConectado(){
       var actBtn = s.ignorado
         ? '<button class="cal-event-btn" onclick="reativarSlot(\''+s.id+'\')">Reativar</button>'
         : '<button class="cal-event-btn" onclick="ignorarSlot(\''+s.id+'\')">Ignorar</button>';
+      var nomeEv = s.tituloEvento || '(sem título)';
+      var origemAgenda = s.calendarNome ? '<span class="cal-event-origem">· '+escapeHtml(s.calendarNome)+'</span>' : '';
       html += '<div class="cal-event"><div class="cal-event-time"><div class="cal-event-time-d">'+escapeHtml(data)+'</div><div class="cal-event-time-h">'+escapeHtml(hora)+'</div></div>'
-        +'<div class="cal-event-info"><div class="cal-event-name">'+escapeHtml(s.googleEventId ? 'Evento Google' : '—')+'</div><div class="cal-event-meta">'+statusBadge+'</div></div>'
+        +'<div class="cal-event-info"><div class="cal-event-name">'+escapeHtml(nomeEv)+origemAgenda+'</div><div class="cal-event-meta">'+statusBadge+'</div></div>'
         +'<div class="cal-event-act">'+actBtn+'</div></div>';
     });
     html += '</div>';
@@ -2919,7 +2943,9 @@ function renderCalendarHistorico(){
       var actBtn = s.ignorado
         ? '<button class="cal-event-btn" onclick="reativarSlot(\''+s.id+'\')">Reativar</button>'
         : '<button class="cal-event-btn" onclick="ignorarSlot(\''+s.id+'\')">Ignorar</button>';
-      html += '<div class="cal-event"><div class="cal-event-time"><div class="cal-event-time-d">'+escapeHtml(data)+'</div><div class="cal-event-time-h">'+escapeHtml(hora)+'</div></div><div class="cal-event-info"><div class="cal-event-name">Evento Google</div><div class="cal-event-meta">'+badge+'</div></div><div class="cal-event-act">'+actBtn+'</div></div>';
+      var nomeEv = s.tituloEvento || '(sem título)';
+      var origemAgenda = s.calendarNome ? '<span class="cal-event-origem">· '+escapeHtml(s.calendarNome)+'</span>' : '';
+      html += '<div class="cal-event"><div class="cal-event-time"><div class="cal-event-time-d">'+escapeHtml(data)+'</div><div class="cal-event-time-h">'+escapeHtml(hora)+'</div></div><div class="cal-event-info"><div class="cal-event-name">'+escapeHtml(nomeEv)+origemAgenda+'</div><div class="cal-event-meta">'+badge+'</div></div><div class="cal-event-act">'+actBtn+'</div></div>';
     });
     html += '</div>';
   }
@@ -3213,6 +3239,7 @@ function setQuandoDispararPc(val){
   .cal-event-time-h{font-size:14px;font-weight:800;color:var(--t1);margin-top:2px}\
   .cal-event-info{flex:1;min-width:0}\
   .cal-event-name{font-size:13.5px;font-weight:700;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\
+  .cal-event-origem{font-weight:500;color:var(--t3);font-size:12px;margin-left:6px}\
   .cal-event-meta{margin-top:4px;display:flex;align-items:center;gap:6px}\
   .cal-event-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.02em}\
   .cal-event-badge.ok{background:rgba(0,196,122,.10);color:#00A86F}\

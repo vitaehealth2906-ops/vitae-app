@@ -714,6 +714,8 @@ router.get('/pcs-historico', perm.medicoOnly, async (req, res, next) => {
         fim: true,
         googleEventId: true,
         ignorado: true,
+        tituloEvento: true,
+        calendarNome: true,
       },
     }).catch(() => []);
     // Histórico: PCs ja criadas/disparadas pra esses slots
