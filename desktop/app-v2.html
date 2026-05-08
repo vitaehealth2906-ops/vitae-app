@@ -1090,7 +1090,15 @@ function renderPC(){
         if (horasDesdeEnvio > 24) { bcls='bad'; btxt='Não respondeu'; }
         else { bcls='warn'; btxt='Enviada'; }
       }
-      var click=p.cobertura&&p.cobertura!=='sem'?'openSummary(\''+p.id+'\')':'modalDispararLembrete(\''+p.pacienteId+'\')';
+      // Click no card: respondida -> One Minute Summary | nao respondida -> tela Disparar (sem popup)
+      var click;
+      if (p.cobertura && p.cobertura !== 'sem') {
+        click = 'openSummary(\''+p.id+'\')';
+      } else if (p.pacienteId) {
+        click = 'goto(\'disparar\')';
+      } else {
+        click = 'goto(\'disparar\')';
+      }
       html+='<div class="pcn-trow" onclick="'+click+'">'+
         '<div class="pcn-tr-pat"><div class="pcn-tr-av">'+p.ini+'</div><div style="min-width:0"><div class="pcn-tr-name">'+p.paciente+'</div><div class="pcn-tr-sub">'+(p.queixaSnippet||'—')+'</div></div></div>'+
         '<div class="pcn-tr-tpl">'+(p.templateNome||'Geral')+'</div>'+
@@ -2373,15 +2381,10 @@ goto=function(view){
 var _renderPCOrig=renderPC;
 renderPC=function(){
   _renderPCOrig();
-  /* substitui handlers da linha PC pra abrir sheet em vez de navegar */
-  document.querySelectorAll('#v-pre-consultas .pcn-trow').forEach(function(row,i){
-    var actBtns=row.querySelectorAll('.pcn-tr-btn');
-    if(actBtns.length>=2){
-      actBtns[0].onclick=function(e){e.stopPropagation();var ids=Object.keys(PCS);if(ids[i])sheetPC(ids[i]);};
-      actBtns[0].innerHTML='<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>';
-      actBtns[1].onclick=function(e){e.stopPropagation();var ids=Object.keys(PCS);if(ids[i])modalExcluirPC(ids[i]);};
-    }
-  });
+  // Override DESLIGADO: a versao original ja deixa botao Copiar (real) e
+  // botao Excluir (real). Antes, este override forcava o 1o virar 3 pontinhos
+  // que abriam sheet popup confuso, e o 2o abria modalExcluirPC redundante.
+  // Lucas pediu so 2 botoes inline. Agora respeitamos.
 };
 
 /* atualizar Templates pra abrir tela dedicada */
