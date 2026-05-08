@@ -4002,25 +4002,86 @@ window.BACKEND = (function(){
       }
     } catch(e){}
 
-    // Em paralelo: tudo o que a sidebar precisa pra abrir bem.
-    var resultados = await Promise.allSettled([loadDR(), loadPACIENTES(), loadPCS(), loadTEMPLATES(), loadAGENDA()]);
-    // Atualiza sidebar com nome/CRM real
-    if (typeof window.atualizarSidebarUser === 'function') window.atualizarSidebarUser();
-    // Verifica status Calendar em paralelo (não bloqueia)
+    // ============================================================
+    // CACHE LOCAL (hidratacao instantanea pra UI nao ficar em branco)
+    // ============================================================
+    // Antes de chamar API: hidrata DR/PACIENTES/PCS/TEMPLATES com cache
+    // do localStorage se disponivel (TTL 24h). Render imediato.
+    try {
+      var CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
+      function _hidratar(key, target){
+        try {
+          var raw = localStorage.getItem(key);
+          if (!raw) return false;
+          var pkg = JSON.parse(raw);
+          if (!pkg || (Date.now() - pkg.ts) > CACHE_TTL) return false;
+          if (Array.isArray(pkg.data) && Array.isArray(target)) {
+            target.length = 0;
+            Array.prototype.push.apply(target, pkg.data);
+            return true;
+          }
+          if (typeof pkg.data === 'object' && typeof target === 'object') {
+            Object.assign(target, pkg.data);
+            return true;
+          }
+        } catch(_e){}
+        return false;
+      }
+      if (typeof DR === 'object') _hidratar('vitae_cache_dr', DR);
+      if (typeof PACIENTES !== 'undefined') _hidratar('vitae_cache_pacientes', PACIENTES);
+      if (typeof PCS !== 'undefined') _hidratar('vitae_cache_pcs', PCS);
+      if (typeof TEMPLATES !== 'undefined') _hidratar('vitae_cache_templates', TEMPLATES);
+      // Render imediato com cache se houver
+      if (typeof window.atualizarSidebarUser === 'function') window.atualizarSidebarUser();
+      var viewCached = (STATE && STATE.view) || 'hoje';
+      if (viewCached === 'hoje' && typeof renderHoje === 'function') renderHoje();
+      else if (viewCached === 'pre-consultas' && typeof renderPCsList === 'function') renderPCsList();
+      else if (viewCached === 'pacientes' && typeof renderPacientes === 'function') renderPacientes();
+      else if (viewCached === 'templates' && typeof renderTemplates === 'function') renderTemplates();
+      else if (viewCached === 'perfil' && typeof renderPerfil === 'function') renderPerfil();
+    } catch(_e){}
+
+    // ============================================================
+    // FETCH em paralelo (NAO espera — renderiza a medida que chega)
+    // ============================================================
+    var promiseMap = {
+      DR: loadDR().then(function(ok){
+        if (ok) try { localStorage.setItem('vitae_cache_dr', JSON.stringify({ts:Date.now(), data: DR})); } catch(_e){}
+        return ok;
+      }),
+      PAC: loadPACIENTES().then(function(ok){
+        if (ok) try { localStorage.setItem('vitae_cache_pacientes', JSON.stringify({ts:Date.now(), data: PACIENTES})); } catch(_e){}
+        return ok;
+      }),
+      PCS: loadPCS().then(function(ok){
+        if (ok) try { localStorage.setItem('vitae_cache_pcs', JSON.stringify({ts:Date.now(), data: PCS})); } catch(_e){}
+        return ok;
+      }),
+      TPL: loadTEMPLATES().then(function(ok){
+        if (ok) try { localStorage.setItem('vitae_cache_templates', JSON.stringify({ts:Date.now(), data: TEMPLATES})); } catch(_e){}
+        return ok;
+      }),
+      AGD: loadAGENDA(),
+    };
+    // Cada promise re-renderiza a view ATIVA quando volta (UI fica viva)
+    Object.keys(promiseMap).forEach(function(k){
+      promiseMap[k].then(function(){
+        try {
+          if (typeof window.atualizarSidebarUser === 'function') window.atualizarSidebarUser();
+          var view = (STATE && STATE.view) || 'hoje';
+          if (view === 'hoje' && typeof renderHoje === 'function') renderHoje();
+          else if (view === 'pre-consultas' && typeof renderPCsList === 'function') renderPCsList();
+          else if (view === 'pacientes' && typeof renderPacientes === 'function') renderPacientes();
+          else if (view === 'templates' && typeof renderTemplates === 'function') renderTemplates();
+          else if (view === 'perfil' && typeof renderPerfil === 'function') renderPerfil();
+        } catch(_e){}
+      });
+    });
+    // Verifica status Calendar (non-blocking)
     if (typeof window.verificarStatusGoogleCalendar === 'function') {
       window.verificarStatusGoogleCalendar();
     }
-    var falhas = resultados.filter(function(r){ return r.status==='rejected' || r.value === false; }).length;
-    // Tenta reaplicar a view ativa pra refletir dados reais
-    var view = (STATE && STATE.view) || 'hoje';
-    try {
-      if (view === 'hoje') renderHoje();
-      else if (view === 'pre-consultas') renderPCsList && renderPCsList();
-      else if (view === 'pacientes') renderPacientes && renderPacientes();
-      else if (view === 'templates') renderTemplates && renderTemplates();
-      else if (view === 'perfil') renderPerfil && renderPerfil();
-    } catch(e){}
-    return { falhas: falhas, total: resultados.length };
+    return { ok: true, modo: 'cache+stream' };
   }
 
   // ---------- FASE 9: IA Collab + Análise Prosódica ----------
