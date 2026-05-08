@@ -932,15 +932,50 @@ function renderHoje(){
 
   html+='<div class="hoje-grid"><div>';
   if(hasCalendar){
-    html+='<div class="h-card"><div class="h-card-h"><div class="h-card-t">Agenda do dia</div><div class="h-card-s">Lida do Google Calendar · '+AGENDA_HOJE.length+' consultas</div></div><div>';
-    AGENDA_HOJE.forEach(function(a){
-      var p=PACIENTES.find(function(x){return x.id===a.pacienteId;});
-      var pc=a.pcId?PCS[a.pcId]:null;
+    // Filtra eventos conforme toggle Hoje/Semana/Mês
+    var hojeStart = new Date(); hojeStart.setHours(0,0,0,0);
+    var fimRange;
+    var tituloAgenda = 'Agenda';
+    if (STATE.impactoTab === 'hoje' || !STATE.impactoTab) {
+      fimRange = new Date(hojeStart); fimRange.setHours(23,59,59,999);
+      tituloAgenda = 'Agenda do dia';
+    } else if (STATE.impactoTab === 'semana') {
+      fimRange = new Date(hojeStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+      tituloAgenda = 'Agenda da semana';
+    } else {
+      fimRange = new Date(hojeStart.getTime() + 30 * 24 * 60 * 60 * 1000);
+      tituloAgenda = 'Agenda do mês';
+    }
+    var filtrados = AGENDA_HOJE.filter(function(a){
+      if (!a.inicio) return STATE.impactoTab === 'hoje' || !STATE.impactoTab;
+      var t = new Date(a.inicio).getTime();
+      return t >= hojeStart.getTime() && t <= fimRange.getTime();
+    });
+    html+='<div class="h-card"><div class="h-card-h"><div class="h-card-t">'+tituloAgenda+'</div><div class="h-card-s">Lida do Google Calendar · '+filtrados.length+' '+(filtrados.length===1?'consulta':'consultas')+'</div></div><div>';
+    if (filtrados.length === 0) {
+      html+='<div style="padding:20px;text-align:center;color:var(--t3);font-size:13px">Nenhuma consulta '+(STATE.impactoTab==='hoje'||!STATE.impactoTab?'hoje':STATE.impactoTab==='semana'?'esta semana':'este mês')+'.</div>';
+    }
+    filtrados.forEach(function(a){
+      var p = a.pacienteId ? PACIENTES.find(function(x){return x.id===a.pacienteId;}) : null;
+      var pc = a.pcId ? PCS[a.pcId] : null;
+      var nomeMostrar = p ? p.nome : (a.paciente || 'Sem nome');
       var st='miss',stTxt='Sem anamnese',q='Não gravou pré-consulta';
       if(pc){q=pc.queixaSnippet||'';if(pc.alerta){st='alert';stTxt='Trecho marcado';}else if(pc.cobertura==='pronta'){st='ready';stTxt='Anamnese pronta';}else if(pc.cobertura==='parcial'){st='partial';stTxt='Parcial';}}
-      var click=pc?'openSummary(\''+a.pcId+'\')':'modalDispararLembrete(\''+p.id+'\')';
-      var qStyle=pc?'':'style="color:var(--bad)"';
-      html+='<div class="ag-row" onclick="'+click+'"><div class="ag-time">'+a.hora+'</div><div><div class="ag-name">'+p.nome+'</div><div class="ag-q" '+qStyle+'>'+q+'</div></div><span class="ag-st '+st+'"><span class="dot"></span>'+stTxt+'</span></div>';
+      var click = pc ? 'openSummary(\''+a.pcId+'\')' : (p ? 'modalDispararLembrete(\''+p.id+'\')' : '');
+      var qStyle = pc ? '' : 'style="color:var(--t3)"';
+      // Mostra dia (Hoje/Amanhã/Sex 09) se filtro != hoje
+      var dataStr = '';
+      if (a.inicio && (STATE.impactoTab === 'semana' || STATE.impactoTab === 'mes')) {
+        var dt = new Date(a.inicio);
+        var dtStart = new Date(dt); dtStart.setHours(0,0,0,0);
+        var diff = Math.round((dtStart.getTime() - hojeStart.getTime()) / (24*60*60*1000));
+        if (diff === 0) dataStr = 'Hoje';
+        else if (diff === 1) dataStr = 'Amanhã';
+        else dataStr = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dt.getDay()] + ' ' + String(dt.getDate()).padStart(2,'0');
+      }
+      var horaCol = dataStr ? '<div class="ag-time" style="display:flex;flex-direction:column;align-items:center;line-height:1.2"><div style="font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase">'+dataStr+'</div><div>'+a.hora+'</div></div>' : '<div class="ag-time">'+a.hora+'</div>';
+      var origem = a.calendarNome ? '<span style="font-weight:500;color:var(--t3);font-size:11.5px;margin-left:6px">· '+escapeHtml(a.calendarNome)+'</span>' : '';
+      html+='<div class="ag-row"'+(click?' onclick="'+click+'"':'')+'>'+horaCol+'<div><div class="ag-name">'+escapeHtml(nomeMostrar)+origem+'</div><div class="ag-q" '+qStyle+'>'+q+'</div></div><span class="ag-st '+st+'"><span class="dot"></span>'+stTxt+'</span></div>';
     });
     html+='</div></div>';
   }else{
@@ -3724,21 +3759,31 @@ window.BACKEND = (function(){
 
   async function loadAGENDA(){
     try {
-      var hoje = new Date(); var ini = new Date(hoje); ini.setHours(0,0,0,0);
-      var fim = new Date(hoje); fim.setHours(23,59,59,999);
+      // Busca os proximos 7 dias (agenda da semana). Renderizacao filtra
+      // por Hoje/Semana/Mes conforme escolha do medico no toggle superior.
+      var agora = new Date();
+      var ini = new Date(agora); ini.setHours(0,0,0,0);
+      var fim = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000); fim.setHours(23,59,59,999);
       var res = await api('/agenda/slots?inicio='+encodeURIComponent(ini.toISOString())+'&fim='+encodeURIComponent(fim.toISOString()));
       if (!res.ok) return false;
       var d = await res.json();
       var slots = (d && (d.data||d.slots)) || [];
       if (!Array.isArray(slots) || !slots.length) return false;
-      var conv = slots.filter(function(s){ return !s.cancelado; }).sort(function(a,b){
+      var conv = slots.filter(function(s){ return !s.cancelado && !s.ignorado; }).sort(function(a,b){
         return new Date(a.inicio) - new Date(b.inicio);
       }).map(function(s){
-        var nome = s.pacienteNome || (s.paciente && s.paciente.nome) || s.pacienteNomeLivre || (String(s.tipo||'').toLowerCase().includes('bloqueio') ? 'Bloqueio' : '—');
+        // Prioridade: paciente cadastrado > tituloEvento (Google) > nomeLivre > Bloqueio fallback
+        var nome = (s.paciente && s.paciente.nome)
+          || s.pacienteNome
+          || s.tituloEvento
+          || s.pacienteNomeLivre
+          || (String(s.tipo||'').toLowerCase().includes('bloqueio') ? 'Sem nome' : '—');
         return {
+          inicio: s.inicio,
           hora: fmtH(s.inicio),
           paciente: nome,
           motivo: s.motivo || s.observacoes || '',
+          calendarNome: s.calendarNome || null,
           status: String(s.tipo||'').toLowerCase().includes('retorno') ? 'retorno' : 'consulta'
         };
       });
