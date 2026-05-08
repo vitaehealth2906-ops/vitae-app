@@ -521,10 +521,15 @@ router.get('/google/auth', perm.medicoOnly, async (req, res, next) => {
     if (!agendaSvc.gcalEnabled()) {
       return res.status(503).json({ ok: false, code: 'GCAL_DESATIVADO' });
     }
-    const state = require('crypto').randomBytes(16).toString('hex');
-    res.cookie('gcal_oauth_state', `${state}:${req.user.medicoId}`, {
-      httpOnly: true, secure: true, sameSite: 'lax', maxAge: 10 * 60 * 1000,
-    });
+    // State como JWT signed (10 min TTL). Resolve cookie cross-site
+    // bloqueado por navegadores quando frontend (Vercel) e backend (Railway)
+    // estao em dominios diferentes.
+    const jwt = require('jsonwebtoken');
+    const state = jwt.sign(
+      { medicoId: req.user.medicoId, type: 'gcal_oauth' },
+      process.env.JWT_SECRET,
+      { expiresIn: '10m' }
+    );
     const url = gcalSvc.gerarAuthUrl(state);
     res.json({ ok: true, data: { url } });
   } catch (e) { next(e); }
@@ -532,10 +537,16 @@ router.get('/google/auth', perm.medicoOnly, async (req, res, next) => {
 
 router.get('/google/callback', async (req, res, next) => {
   try {
-    const stateCookie = req.cookies?.gcal_oauth_state || '';
-    const [stateExpected, medicoId] = stateCookie.split(':');
-    if (!stateExpected || !medicoId || stateExpected !== req.query.state) {
-      return res.status(401).send('<h1>State CSRF invalido. Tente novamente.</h1>');
+    const jwt = require('jsonwebtoken');
+    let medicoId = null;
+    try {
+      const payload = jwt.verify(req.query.state || '', process.env.JWT_SECRET);
+      if (payload.type !== 'gcal_oauth' || !payload.medicoId) {
+        throw new Error('payload invalido');
+      }
+      medicoId = payload.medicoId;
+    } catch (_e) {
+      return res.status(401).send('<h1>Sessao OAuth expirada ou invalida. Volte ao app e tente conectar novamente.</h1>');
     }
     if (!req.query.code) return res.status(400).send('<h1>Code ausente</h1>');
 
@@ -545,13 +556,14 @@ router.get('/google/callback', async (req, res, next) => {
     // Inicia sync inicial async (nao bloqueia)
     gcalSvc.sincronizar(medicoId, 90).catch(() => {});
 
-    res.clearCookie('gcal_oauth_state');
+    const frontendUrl = process.env.FRONTEND_URL || 'https://vitae-app.vercel.app';
     res.send(`
       <html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0A0A0A;color:#fff;">
       <h1 style="color:#00E5A0;">Google Calendar conectado</h1>
       <p>Conta: ${result.data.email}</p>
-      <p>vita id NUNCA escreve no seu Google. Apenas leitura.</p>
-      <a href="/desktop/app.html#agenda" style="color:#00B4D8;">Voltar para agenda</a>
+      <p>VITAE NUNCA escreve no seu Google. Apenas leitura.</p>
+      <p style="margin-top:30px"><a href="${frontendUrl}/desktop/app-v2.html#perfil" style="color:#00B4D8;font-size:18px;text-decoration:none;padding:12px 24px;border:1px solid #00B4D8;border-radius:8px;display:inline-block;">Voltar ao VITAE</a></p>
+      <script>setTimeout(function(){location.href='${frontendUrl}/desktop/app-v2.html#perfil';}, 2500);</script>
       </body></html>
     `);
   } catch (e) { next(e); }
