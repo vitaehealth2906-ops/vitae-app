@@ -252,7 +252,7 @@ router.post('/', verificarAuth, validate(criarPreConsultaSchema), async (req, re
       },
     });
 
-    const baseUrl = process.env.FRONTEND_URL || 'https://vitaehealth2906-ops.github.io/vitae-app';
+    const baseUrl = process.env.FRONTEND_URL || 'https://vitae-app.vercel.app';
     const link = `${baseUrl}/pre-consulta.html?token=${linkToken}`;
 
     return res.status(201).json({
@@ -593,7 +593,7 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
     const nomeMedico = preConsulta.medico.usuario.nome;
     const emailMedico = preConsulta.medico.usuario.email;
     const nomePaciente = preConsulta.pacienteNome;
-    const baseUrl = process.env.FRONTEND_URL || 'https://vitaehealth2906-ops.github.io/vitae-app';
+    const baseUrl = process.env.FRONTEND_URL || 'https://vitae-app.vercel.app';
     if (emailMedico) {
       enviarEmailPreConsultaRespondida(emailMedico, nomeMedico, nomePaciente, summaryIA, `${baseUrl}/20-medico-dashboard.html`)
         .catch(e => console.error('[EMAIL] Erro:', e.message));
