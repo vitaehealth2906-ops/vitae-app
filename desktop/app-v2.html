@@ -1122,12 +1122,20 @@ function renderPC(){
       } else {
         click = 'goto(\'disparar\')';
       }
+      // Botao Copiar so faz sentido enquanto PC nao foi respondida.
+      // Respondida = paciente nao precisa receber link de novo.
+      var jaRespondida = (p.cobertura === 'pronta' || p.cobertura === 'parcial');
+      var botoesAcao = '';
+      if (!jaRespondida) {
+        botoesAcao += '<button class="pcn-tr-btn" title="Copiar link" onclick="event.stopPropagation();copiarLinkPC(\''+p.id+'\')"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>';
+      }
+      botoesAcao += '<button class="pcn-tr-btn del" title="Excluir" onclick="event.stopPropagation();excluirPCConfirma(\''+p.id+'\')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>';
       html+='<div class="pcn-trow" onclick="'+click+'">'+
         '<div class="pcn-tr-pat"><div class="pcn-tr-av">'+p.ini+'</div><div style="min-width:0"><div class="pcn-tr-name">'+p.paciente+'</div></div></div>'+
         '<div class="pcn-tr-tpl">'+(p.templateNome||'Geral')+'</div>'+
         '<div><span class="pcn-tr-badge '+bcls+'"><span class="dot"></span>'+btxt+'</span></div>'+
         '<div class="pcn-tr-date">'+(p.recordedAt||'—')+'<div class="when">'+(new Date(p.criadaEm)).toLocaleDateString('pt-BR')+'</div></div>'+
-        '<div class="pcn-tr-act"><button class="pcn-tr-btn" title="Copiar link" onclick="event.stopPropagation();copiarLinkPC(\''+p.id+'\')"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><button class="pcn-tr-btn del" title="Excluir" onclick="event.stopPropagation();excluirPCConfirma(\''+p.id+'\')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div>'+
+        '<div class="pcn-tr-act">'+botoesAcao+'</div>'+
       '</div>';
     });
   }
@@ -1266,7 +1274,16 @@ function renderPacienteDetailInline(){
   html+='<div style="display:flex;align-items:center;gap:14px;padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:22px"><div class="pat-item-av" style="width:54px;height:54px;font-size:17px">'+p.ini+'</div><div style="flex:1;min-width:0"><div style="font-size:21px;font-weight:900;letter-spacing:-.4px">'+p.nome+'</div><div style="font-size:12px;color:var(--t3);margin-top:3px">'+p.idade+' anos · '+(p.sexo==='F'?'feminino':'masculino')+' · sangue '+p.sangue+(p.anamneses>0?' · '+p.anamneses+' pré-consulta'+(p.anamneses>1?'s':''):'')+'</div></div></div>';
 
   if(!eventos.length){
-    html+='<div class="pat-empty-detail"><div style="width:48px;height:48px;border-radius:14px;background:var(--bg);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;color:var(--t3)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:6px">Sem anamneses ainda</div><div style="font-size:12.5px;color:var(--t3);max-width:380px;margin:0 auto 18px;line-height:1.55">Quando este paciente gravar a primeira pré-consulta, aparece aqui na linha do tempo.</div><button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')">Enviar pré-consulta</button></div>';
+    // Lista de pacientes ja filtra so respondidos (Mudanca 4) — todo paciente
+    // clicado tem anamnese. Se eventos local vazio, e porque ainda nao buscou
+    // detalhe do servidor. Mostra skeleton em vez de "Sem anamneses ainda".
+    html+='<div style="margin-top:0">';
+    html+='<div class="section-lbl" style="margin-top:0">Linha do tempo de anamneses</div>';
+    html+='<div style="display:flex;flex-direction:column;gap:10px">';
+    for (var __i = 0; __i < 3; __i++) {
+      html+='<div class="pat-skel" style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:14px 16px;display:flex;align-items:center;gap:14px"><div style="width:60px;height:38px;background:var(--bg);border-radius:6px;animation:patSkelPulse 1.4s ease-in-out infinite"></div><div style="flex:1"><div style="height:11px;width:60%;background:var(--bg);border-radius:4px;margin-bottom:8px;animation:patSkelPulse 1.4s ease-in-out infinite"></div><div style="height:9px;width:40%;background:var(--bg);border-radius:4px;animation:patSkelPulse 1.4s ease-in-out infinite"></div></div></div>';
+    }
+    html+='</div></div>';
   }else{
     html+='<div class="section-lbl" style="margin-top:0">Linha do tempo de anamneses</div><div class="tl-strip">';
     eventos.forEach(function(e){
@@ -1477,7 +1494,22 @@ function renderPerfil(){
 var FONTE_LBL={audio:'áudio',formulario:'form',pulado:'pulado',desconhecer:'?'};
 function openSummary(id){
   var s=PCS[id];
-  if(!s||!s.descricao){toast('Esta pré-consulta ainda não foi respondida');return;}
+  if(!s){toast('Pré-consulta não encontrada');return;}
+  // Aceita PC respondida mesmo sem descricao curta. Considera respondida se:
+  // tem respondidaEm OU tem qualquer dado clinico (anamnese, transcricao, summaryTexto)
+  var foiRespondida = s.respondidaEm || s.cobertura === 'pronta' || s.cobertura === 'parcial' ||
+                       s.transcricao || s.summaryTexto || s.anamnese ||
+                       (s.summaryJson && (s.summaryJson.summaryTexto || s.summaryJson.anamneseEstruturada || s.summaryJson.transcricao));
+  if (!foiRespondida) { toast('Esta pré-consulta ainda não foi respondida'); return; }
+
+  // Defaults seguros pra renderizacao quando algum campo nao veio
+  if (!s.descricao) s.descricao = s.summaryTexto || 'Resumo em processamento. Áudio e anamnese disponíveis abaixo.';
+  if (!s.recordedAt) s.recordedAt = 'agora há pouco';
+  if (!s.ini) s.ini = (s.paciente||'P').split(' ').slice(0,2).map(function(x){return x[0]||'';}).join('').toUpperCase();
+  if (!s.meta) s.meta = '';
+  if (!s.chips) s.chips = [];
+  if (!s.duracao) s.duracao = '—';
+  if (!s.transcricao) s.transcricao = '<em style="color:var(--t3)">Transcrição em processamento</em>';
   STATE._fromView=STATE.view==='summary'?STATE._fromView:STATE.view;
   var anam=s.anamnese;
   var anamFields=[['queixaPrincipal','Queixa Principal'],['tempoEvolucao','Tempo de Evolução'],['intensidade','Intensidade'],['fatoresAgravantes','Fatores Agravantes'],['fatoresAtenuantes','Fatores Atenuantes'],['sintomasAssociados','Sintomas Associados'],['tratamentoPrevio','Tratamento Prévio'],['antecedentesPessoais','Antecedentes Pessoais'],['antecedentesFamiliares','Antecedentes Familiares'],['habitos','Hábitos'],['sono','Sono']];
@@ -3612,6 +3644,7 @@ try {
   .cal-loading p{margin-top:12px;font-size:13px}\
   .spinner{display:inline-block;width:36px;height:36px;border:3px solid rgba(0,229,160,.20);border-top-color:#00C47A;border-radius:50%;animation:spin .8s linear infinite}\
   @keyframes spin{to{transform:rotate(360deg)}}\
+  @keyframes patSkelPulse{0%,100%{opacity:.6}50%{opacity:1}}\
   ';
   document.head.appendChild(s);
 })();
