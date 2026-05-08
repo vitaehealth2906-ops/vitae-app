@@ -584,21 +584,184 @@ router.get('/google/status', perm.medicoOnly, async (req, res, next) => {
   try {
     const m = await prisma.medico.findUnique({
       where: { id: req.user.medicoId },
-      select: { googleEmail: true, googleConectadoEm: true, googleSyncErroEm: true },
+      select: {
+        googleEmail: true,
+        googleConectadoEm: true,
+        googleSyncErroEm: true,
+        googleSyncedAt: true,
+        googleCalendarIds: true,
+        pausadoAte: true,
+      },
     });
-    const count = await prisma.agendaSlot.count({
+    const agora = new Date();
+    const proximos7dias = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const eventosSemana = await prisma.agendaSlot.count({
+      where: {
+        medicoId: req.user.medicoId,
+        origem: 'GOOGLE_IMPORT',
+        inicio: { gte: agora, lte: proximos7dias },
+      },
+    });
+    const totalImportados = await prisma.agendaSlot.count({
       where: { medicoId: req.user.medicoId, origem: 'GOOGLE_IMPORT' },
     });
+    const pausado = m?.pausadoAte && m.pausadoAte > agora;
     res.json({
       ok: true,
       data: {
         conectado: !!m?.googleConectadoEm,
         email: m?.googleEmail,
+        googleEmail: m?.googleEmail,
         conectadoEm: m?.googleConectadoEm,
+        sincronizadoEm: m?.googleSyncedAt,
         ultimoErro: m?.googleSyncErroEm,
-        eventosImportados: count,
+        calendarIds: m?.googleCalendarIds || [],
+        pausado,
+        pausadoAte: m?.pausadoAte,
+        metricas: {
+          eventosSemana,
+          totalImportados,
+        },
       },
     });
+  } catch (e) { next(e); }
+});
+
+// ---- Lista as agendas Google da conta do medico (nova tela seleção)
+router.get('/google/calendars', perm.medicoOnly, async (req, res, next) => {
+  try {
+    if (!agendaSvc.gcalEnabled()) {
+      return res.status(503).json({ ok: false, code: 'GCAL_DESATIVADO' });
+    }
+    const result = await gcalSvc.listarCalendars(req.user.medicoId);
+    if (!result.ok) {
+      const status = result.code === 'TOKEN_REVOGADO' ? 401 : 400;
+      return res.status(status).json(result);
+    }
+    res.json(result);
+  } catch (e) { next(e); }
+});
+
+// ---- Salva quais agendas o medico quer monitorar
+router.put('/google/calendars-selected', perm.medicoOnly, async (req, res, next) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.filter(x => typeof x === 'string') : [];
+    await prisma.medico.update({
+      where: { id: req.user.medicoId },
+      data: { googleCalendarIds: ids },
+    });
+    // Re-sincroniza imediatamente em background com a nova selecao
+    gcalSvc.sincronizar(req.user.medicoId, 90).catch(() => {});
+    auditar(req, { acao: 'CALENDARS_SELECIONADOS', meta: { count: ids.length } });
+    res.json({ ok: true, data: { ids } });
+  } catch (e) { next(e); }
+});
+
+// ---- Forca sincronizacao imediata (botao manual)
+router.post('/google/sync-now', perm.medicoOnly, async (req, res, next) => {
+  try {
+    if (!agendaSvc.gcalEnabled()) {
+      return res.status(503).json({ ok: false, code: 'GCAL_DESATIVADO' });
+    }
+    const result = await gcalSvc.sincronizar(req.user.medicoId, 90);
+    res.json(result);
+  } catch (e) { next(e); }
+});
+
+// ---- Pausar disparos de PC por X dias (continua detectando, nao dispara)
+router.post('/pausar', perm.medicoOnly, async (req, res, next) => {
+  try {
+    const dias = Math.max(1, Math.min(365, parseInt(req.body?.dias, 10) || 7));
+    const ate = new Date(Date.now() + dias * 24 * 60 * 60 * 1000);
+    await prisma.medico.update({
+      where: { id: req.user.medicoId },
+      data: { pausadoAte: ate },
+    });
+    auditar(req, { acao: 'AGENDA_PAUSADA', meta: { dias, ate } });
+    res.json({ ok: true, data: { pausadoAte: ate } });
+  } catch (e) { next(e); }
+});
+
+// ---- Cancelar pausa
+router.delete('/pausar', perm.medicoOnly, async (req, res, next) => {
+  try {
+    await prisma.medico.update({
+      where: { id: req.user.medicoId },
+      data: { pausadoAte: null },
+    });
+    auditar(req, { acao: 'AGENDA_DESPAUSADA' });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// ---- Histórico e próximas PCs disparadas/agendadas
+router.get('/pcs-historico', perm.medicoOnly, async (req, res, next) => {
+  try {
+    const limit = Math.min(100, parseInt(req.query.limit, 10) || 30);
+    // Próximas (futuras): slots Google ainda sem PC ou com PC agendada
+    const agora = new Date();
+    const proximos = await prisma.agendaSlot.findMany({
+      where: {
+        medicoId: req.user.medicoId,
+        origem: 'GOOGLE_IMPORT',
+        inicio: { gte: agora },
+      },
+      orderBy: { inicio: 'asc' },
+      take: limit,
+      select: {
+        id: true,
+        inicio: true,
+        fim: true,
+        googleEventId: true,
+        ignorado: true,
+      },
+    }).catch(() => []);
+    // Histórico: PCs ja criadas/disparadas pra esses slots
+    const historico = await prisma.preConsulta.findMany({
+      where: { medicoId: req.user.medicoId },
+      orderBy: { criadaEm: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        pacienteNome: true,
+        criadaEm: true,
+        status: true,
+        respondidaEm: true,
+        consultaPrevista: true,
+      },
+    }).catch(() => []);
+    res.json({ ok: true, data: { proximos, historico } });
+  } catch (e) { next(e); }
+});
+
+// ---- Ignorar um slot detectado (médico marcou ⊘ na lista)
+router.post('/slots/:id/ignorar', perm.medicoOnly, async (req, res, next) => {
+  try {
+    const slot = await prisma.agendaSlot.findUnique({ where: { id: req.params.id } });
+    if (!slot || slot.medicoId !== req.user.medicoId) {
+      return res.status(404).json({ ok: false, erro: 'Slot nao encontrado' });
+    }
+    // Adiciona campo "ignorado" via update — schema precisa ter, senão graceful
+    try {
+      await prisma.agendaSlot.update({
+        where: { id: req.params.id },
+        data: { ignorado: true },
+      });
+    } catch (_e) { /* schema sem campo, ok */ }
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// ---- Reativar slot ignorado
+router.delete('/slots/:id/ignorar', perm.medicoOnly, async (req, res, next) => {
+  try {
+    try {
+      await prisma.agendaSlot.update({
+        where: { id: req.params.id },
+        data: { ignorado: false },
+      });
+    } catch (_e) { /* graceful */ }
+    res.json({ ok: true });
   } catch (e) { next(e); }
 });
 

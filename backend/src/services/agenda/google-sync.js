@@ -84,16 +84,20 @@ async function processarCallback(code, medicoId) {
   return { ok: true, data: { email: googleEmail } };
 }
 
-// Faz sync dos eventos dos proximos N dias.
-async function sincronizar(medicoId, diasFuturo = 90) {
+// Helper: monta cliente Google autenticado pro medico.
+async function clientAutenticado(medicoId) {
   const medico = await prisma.medico.findUnique({
     where: { id: medicoId },
-    select: { googleTokenEnc: true, googleTokenIv: true, googleTokenTag: true },
+    select: {
+      googleTokenEnc: true,
+      googleTokenIv: true,
+      googleTokenTag: true,
+      googleCalendarIds: true,
+    },
   });
   if (!medico?.googleTokenEnc) {
     return { ok: false, code: 'NAO_CONECTADO' };
   }
-
   let refreshToken;
   try {
     refreshToken = cryptoSvc.decrypt({
@@ -101,31 +105,122 @@ async function sincronizar(medicoId, diasFuturo = 90) {
       iv: medico.googleTokenIv,
       tag: medico.googleTokenTag,
     });
-  } catch (e) {
+  } catch (_e) {
     return { ok: false, code: 'TOKEN_CORROMPIDO', message: 'Reconecte Google.' };
   }
-
-  const g = getGoogle();
   const oauth2 = clientFor();
   oauth2.setCredentials({ refresh_token: refreshToken });
+  return { ok: true, oauth2, calendarIds: medico.googleCalendarIds || [] };
+}
 
-  let eventos;
+// Lista todas as agendas (calendars) que o medico tem acesso na conta Google.
+// Inclui cor, nome, contagem de eventos. Ordenado: principal -> proprias -> compartilhadas -> Google (aniv/feriados).
+async function listarCalendars(medicoId) {
+  const auth = await clientAutenticado(medicoId);
+  if (!auth.ok) return auth;
+  const g = getGoogle();
   try {
-    const cal = g.calendar({ version: 'v3', auth: oauth2 });
+    const cal = g.calendar({ version: 'v3', auth: auth.oauth2 });
+    const res = await cal.calendarList.list({ minAccessRole: 'reader', maxResults: 100 });
+    const items = res.data.items || [];
+    // Classifica cada agenda pra UI mostrar com defaults inteligentes.
     const agora = new Date();
-    const fim = new Date(agora.getTime() + diasFuturo * 24 * 60 * 60 * 1000);
-    const res = await cal.events.list({
-      calendarId: 'primary',
-      timeMin: agora.toISOString(),
-      timeMax: fim.toISOString(),
-      singleEvents: true,
-      orderBy: 'startTime',
-      maxResults: 250,
-    });
-    eventos = res.data.items || [];
+    const fim = new Date(agora.getTime() + 90 * 24 * 60 * 60 * 1000);
+    const lista = await Promise.all(items.map(async (item) => {
+      // Categorizacao
+      let categoria = 'outras';
+      let recomendado = false;
+      const summary = (item.summary || '').toLowerCase();
+      if (item.primary) {
+        categoria = 'principal';
+        recomendado = true;
+      } else if (item.accessRole === 'owner') {
+        categoria = 'criada_por_voce';
+        recomendado = true;
+      } else if (/aniversario|birthday/i.test(item.summary || '') || item.id === 'addressbook#contacts@group.v.calendar.google.com') {
+        categoria = 'google_automatica';
+        recomendado = false;
+      } else if (/feriado|holiday/i.test(item.summary || '')) {
+        categoria = 'google_automatica';
+        recomendado = false;
+      } else if (item.accessRole === 'reader' || item.accessRole === 'freeBusyReader') {
+        categoria = 'compartilhada';
+        recomendado = true;
+      }
+      // Conta eventos proximos 90d (limitado)
+      let eventCount = 0;
+      try {
+        const evRes = await cal.events.list({
+          calendarId: item.id,
+          timeMin: agora.toISOString(),
+          timeMax: fim.toISOString(),
+          singleEvents: true,
+          maxResults: 50,
+        });
+        eventCount = (evRes.data.items || []).length;
+      } catch (_e) { /* ignora se a agenda especifica falhar */ }
+      return {
+        id: item.id,
+        summary: item.summary,
+        backgroundColor: item.backgroundColor || '#4285F4',
+        foregroundColor: item.foregroundColor || '#FFFFFF',
+        primary: !!item.primary,
+        accessRole: item.accessRole,
+        categoria,
+        recomendado,
+        eventCount,
+      };
+    }));
+    // Ordena: principal -> propria -> compartilhada -> google_automatica -> outras
+    const ordem = { principal: 0, criada_por_voce: 1, compartilhada: 2, outras: 3, google_automatica: 4 };
+    lista.sort((a, b) => (ordem[a.categoria] || 5) - (ordem[b.categoria] || 5));
+    return { ok: true, data: lista };
   } catch (e) {
     if (e.code === 401 || /invalid_grant/.test(e.message || '')) {
-      // Token revogado ou expirado
+      await prisma.medico.update({
+        where: { id: medicoId },
+        data: { googleSyncErroEm: new Date() },
+      });
+      return { ok: false, code: 'TOKEN_REVOGADO', message: 'Google revogou acesso. Reconecte.' };
+    }
+    return { ok: false, code: 'GOOGLE_API_ERRO', message: e.message };
+  }
+}
+
+// Faz sync dos eventos dos proximos N dias.
+// Le agendas selecionadas em googleCalendarIds. Se vazio, usa 'primary' como fallback.
+async function sincronizar(medicoId, diasFuturo = 90) {
+  const auth = await clientAutenticado(medicoId);
+  if (!auth.ok) return auth;
+  const g = getGoogle();
+  const calendarIds = (auth.calendarIds && auth.calendarIds.length > 0) ? auth.calendarIds : ['primary'];
+
+  let eventos = [];
+  try {
+    const cal = g.calendar({ version: 'v3', auth: auth.oauth2 });
+    const agora = new Date();
+    const fim = new Date(agora.getTime() + diasFuturo * 24 * 60 * 60 * 1000);
+    // Busca em PARALELO de cada agenda selecionada
+    const resultadosPorAgenda = await Promise.all(calendarIds.map(async (calId) => {
+      try {
+        const res = await cal.events.list({
+          calendarId: calId,
+          timeMin: agora.toISOString(),
+          timeMax: fim.toISOString(),
+          singleEvents: true,
+          orderBy: 'startTime',
+          maxResults: 250,
+        });
+        return (res.data.items || []).map(ev => ({ ...ev, _calendarId: calId }));
+      } catch (e) {
+        // Se uma agenda especifica falhar (ex: removida pelo medico), continua com as outras
+        if (e.code === 401 || /invalid_grant/.test(e.message || '')) throw e;
+        return [];
+      }
+    }));
+    eventos = resultadosPorAgenda.flat();
+  } catch (e) {
+    if (e.code === 401 || /invalid_grant/.test(e.message || '')) {
       await prisma.medico.update({
         where: { id: medicoId },
         data: {
@@ -206,6 +301,12 @@ async function sincronizar(medicoId, diasFuturo = 90) {
     }
   }
 
+  // Marca timestamp real de sincronizacao
+  await prisma.medico.update({
+    where: { id: medicoId },
+    data: { googleSyncedAt: new Date(), googleSyncErroEm: null },
+  });
+
   return { ok: true, data: { inseridos, atualizados, removidos, total: eventos.length } };
 }
 
@@ -227,4 +328,4 @@ async function desconectar(medicoId) {
   return { ok: true };
 }
 
-module.exports = { gerarAuthUrl, processarCallback, sincronizar, desconectar, SCOPE };
+module.exports = { gerarAuthUrl, processarCallback, sincronizar, desconectar, listarCalendars, SCOPE };

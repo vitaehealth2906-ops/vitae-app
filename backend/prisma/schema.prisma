@@ -300,6 +300,12 @@ model Medico {
   googleScope       String?   @map("google_scope")
   googleConectadoEm DateTime? @map("google_conectado_em")
   googleSyncErroEm  DateTime? @map("google_sync_erro_em")
+  // IDs das agendas Google selecionadas pelo medico pra detectar consultas.
+  // Vazio = usa 'primary' como fallback. Multipla = le todas as marcadas.
+  googleCalendarIds String[]  @default([]) @map("google_calendar_ids")
+  googleSyncedAt    DateTime? @map("google_synced_at")
+  // Pausa temporaria: medico viajando, ferias, etc. Continua detectando, mas nao dispara PC.
+  pausadoAte        DateTime? @map("pausado_ate")
 
   // ---- Fase 7 (2026-05-05) — Configurações pessoais e modos persona ----
   tempoMedioConsulta     Int      @default(30) @map("tempo_medio_consulta")
@@ -636,6 +642,8 @@ model AgendaSlot {
   desfeitoAte          DateTime? @map("desfeito_ate") // janela 10s pra desfazer
   estadoAnterior       Json?     @map("estado_anterior") // snapshot pra desfazer
   noShowConfirmar48h   Boolean   @default(false) @map("no_show_confirmar_48h") // se 2 faltas
+  // Slot importado do Google que medico marcou pra ignorar (nao virar PC)
+  ignorado             Boolean   @default(false) @map("ignorado")
   criadoPor            String    @map("criado_por") // usuarioId (medico OU secretaria)
   criadoEm             DateTime  @default(now()) @map("criado_em")
   atualizadoEm         DateTime  @updatedAt @map("atualizado_em")

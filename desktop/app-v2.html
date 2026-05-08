@@ -2533,10 +2533,26 @@ function renderCalendar(){
     return;
   }
 
-  // ===== ESTADO CONECTADO (Tela 4) =====
+  // ===== TELA NOVA: SELECIONAR AGENDAS (após OAuth + antes do home) =====
+  if (conectado && step === 'selecionar-agendas') {
+    html += renderCalendarSelecionarAgendas();
+    $('v-calendar').innerHTML = html;
+    return;
+  }
+
+  // ===== TELA NOVA: HISTÓRICO PCs =====
+  if (conectado && step === 'historico') {
+    html += renderCalendarHistorico();
+    $('v-calendar').innerHTML = html;
+    return;
+  }
+
+  // ===== ESTADO CONECTADO (Tela 4 home reformulada) =====
   if (conectado) {
     html += renderCalendarConectado();
     $('v-calendar').innerHTML = html;
+    // Ao mostrar home, dispara fetch dos dados frescos em paralelo
+    setTimeout(function(){ fetchCalendarHomeData(); }, 50);
     return;
   }
 
@@ -2547,6 +2563,27 @@ function renderCalendar(){
   else html += renderCalendarTela1(); // default = 1
 
   $('v-calendar').innerHTML = html;
+}
+
+// ---------- BUSCA dados frescos do backend pra home ----------
+async function fetchCalendarHomeData(){
+  if (!window.BACKEND) return;
+  try {
+    var statusRes = await window.BACKEND.api('/agenda/google/status');
+    var statusData = await statusRes.json().catch(function(){ return {}; });
+    var st = (statusData && statusData.data) || {};
+    if (!STATE.calendar) STATE.calendar = {};
+    STATE.calendar.statusReal = st;
+
+    var histRes = await window.BACKEND.api('/agenda/pcs-historico?limit=10');
+    var histData = await histRes.json().catch(function(){ return {}; });
+    STATE.calendar.historicoData = (histData && histData.data) || { proximos: [], historico: [] };
+
+    // Re-renderiza apenas se ainda estiver na tela
+    if (STATE.view === 'calendar' && (DR.config.googleCalendarConectado) && (STATE.calendar.step !== 'historico') && (STATE.calendar.step !== 'selecionar-agendas')) {
+      renderCalendar();
+    }
+  } catch(e) { /* silencioso — banner offline cuida */ }
 }
 
 // ---------- TELA 1 — Por que conectar ----------
@@ -2666,52 +2703,402 @@ function renderCalendarEmBreve(){
 }
 
 // ---------- TELA 4 — Conectado ----------
+// ---------- TELA HOME CONECTADO (reformulada — 5 blocos progressive disclosure) ----------
 function renderCalendarConectado(){
-  var emailReal = (DR.googleEmail) || (DR.config && DR.config.googleEmail) || '';
-  var preCfg = preConfigCalendarPorEspecialidade();
-  var palavras = (DR.config && DR.config.calendarPalavras) || preCfg.palavras.join(', ');
-  var modoSilencio = (DR.config && DR.config.modoSilencio) || preCfg.horario;
+  var st = (STATE.calendar && STATE.calendar.statusReal) || {};
+  var emailReal = st.googleEmail || st.email || (DR.googleEmail) || '';
+  var hist = (STATE.calendar && STATE.calendar.historicoData) || { proximos: [], historico: [] };
 
-  var html = '<div class="ph"><div><h1>Google <em>Calendar</em></h1><p>Sua agenda lida automaticamente · VITAE nunca escreve nada</p></div></div>';
-
-  // Status conectado
-  html += '<div class="cal-conn-card">';
-  html += '<div class="cal-conn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>';
-  html += '<div class="cal-conn-body"><div class="cal-conn-title">Conectado'+(emailReal?' como <code>'+escapeHtml(emailReal)+'</code>':'')+'</div><div class="cal-conn-meta">Última leitura há 2 min · Próxima em 6 min</div></div>';
-  html += '<div class="cal-conn-actions"><button class="btn btn-ghost btn-sm" onclick="trocarContaCalendar()">Trocar conta</button><button class="btn btn-danger-x btn-sm" onclick="desconectarCalendar()">Desconectar</button></div>';
-  html += '</div>';
-
-  // Primeiro evento detectado (feedback imediato)
-  var slots = (typeof DATA !== 'undefined' && DATA.agendaHoje) ? DATA.agendaHoje : (AGENDA_HOJE || []);
-  if (slots && slots.length) {
-    html += '<div class="cal-section-h">Primeira leitura — encontramos <strong>'+slots.length+' consulta'+(slots.length>1?'s':'')+'</strong> hoje</div>';
-    html += '<div class="cal-events-list">';
-    slots.slice(0,3).forEach(function(s){
-      var nome = s.paciente || s.pacienteNome || '—';
-      var hora = s.hora || (s.inicio ? new Date(s.inicio).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '');
-      html += '<div class="cal-event"><div class="cal-event-time">'+escapeHtml(hora)+'</div><div class="cal-event-info"><div class="cal-event-name">'+escapeHtml(nome)+'</div><div class="cal-event-meta">PC dispara 24h antes</div></div></div>';
-    });
-    html += '</div>';
-  } else {
-    html += '<div class="cal-empty-feedback">Nenhuma consulta detectada na sua agenda de hoje. Verifique as palavras-chave abaixo se esperava ver eventos aqui.</div>';
+  // Banners de erro/aviso (Estados E3, E7)
+  var html = '';
+  if (st.ultimoErro) {
+    html += '<div class="cal-banner cal-banner-warn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Conexão Google expirou. <button class="cal-banner-act" onclick="conectarCalendarReal()">Reconectar agora</button></div>';
+  }
+  if (st.pausado) {
+    var ate = st.pausadoAte ? new Date(st.pausadoAte) : null;
+    var ateStr = ate ? ate.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : '';
+    html += '<div class="cal-banner cal-banner-info"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Disparos pausados até '+ateStr+'. <button class="cal-banner-act" onclick="cancelarPausa()">Reativar agora</button></div>';
   }
 
-  // Modo silêncio visível
-  html += '<div class="cal-section-h">Modo silêncio</div>';
-  html += '<div class="cal-silence-summary"><div class="cal-silence-state on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ativo · '+(modoSilencio==='8h-18h-segsex'?'8h-18h, seg-sex':modoSilencio==='7h-22h-todos'?'7h-22h, todos os dias':modoSilencio==='turno'?'Por turno':'24h')+'</div><button class="btn btn-ghost btn-sm" onclick="STATE.calendar.step=2.5;renderCalendar()">Editar</button></div>';
+  // Header
+  html += '<div class="ph"><div><h1>Google <em>Calendar</em></h1><p>Sua agenda lida automaticamente · VITAE nunca escreve nada</p></div></div>';
 
-  // Configurações
-  html += '<div class="cal-section-h">Configurações</div>';
-  html += '<div class="cm-card">';
-  html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Quando disparar pré-consulta</div><div class="cm-tog-d">Antes do horário marcado da consulta</div></div><div style="display:flex;gap:6px"><button class="pcn-pill on">24h antes</button><button class="pcn-pill">48h antes</button><button class="pcn-pill">12h antes</button><button class="pcn-pill">Manual</button></div></div>';
-  html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Palavras-chave clínicas</div><div class="cm-tog-d">VITAE só dispara se o evento contiver essas palavras</div></div><input type="text" value="'+escapeHtml(palavras)+'" style="max-width:300px" onchange="DR.config.calendarPalavras=this.value;toast(\'Palavras atualizadas\')"/></div>';
+  // BLOCO 1 — Status real
+  var sincStr = formatarTempoRelativo(st.sincronizadoEm) || 'agora';
+  html += '<div class="cal-conn-card">';
+  html += '<div class="cal-conn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>';
+  html += '<div class="cal-conn-body"><div class="cal-conn-title">Conectado'+(emailReal?' como <code>'+escapeHtml(emailReal)+'</code>':'')+'</div><div class="cal-conn-meta">Sincronizado '+sincStr+'</div></div>';
+  html += '<div class="cal-conn-actions"><button class="btn btn-ghost btn-sm" onclick="resyncCalendarAgora()" title="Sincronizar agora">'
+    +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>'
+    +'</button></div>';
   html += '</div>';
 
-  // Multi-conta
-  html += '<div class="cal-section-h">Adicionar outra conta?</div>';
-  html += '<div class="cal-multi-card"><p>Você pode conectar mais de uma agenda Google (ex: pessoal + clínica). Cada conta fica visível separada.</p><button class="btn btn-s btn-sm" onclick="conectarCalendarReal()">+ Adicionar Google Calendar</button></div>';
+  // BLOCO 2 — Resumo da semana (métricas reais)
+  var m = st.metricas || { eventosSemana: 0, totalImportados: 0 };
+  var qtdProximos = (hist.proximos || []).length;
+  var qtdIgnorados = Math.max(0, (m.eventosSemana || 0) - qtdProximos);
+  html += '<div class="cal-section-h">Resumo · próximos 7 dias</div>';
+  html += '<div class="cal-metrics-grid">';
+  html += '<div class="cal-metric"><div class="cal-metric-n">'+(m.eventosSemana||0)+'</div><div class="cal-metric-l">eventos detectados</div></div>';
+  html += '<div class="cal-metric cal-metric-pos"><div class="cal-metric-n">'+qtdProximos+'</div><div class="cal-metric-l">vão virar pré-consulta</div></div>';
+  html += '<div class="cal-metric cal-metric-mute"><div class="cal-metric-n">'+qtdIgnorados+'</div><div class="cal-metric-l">ignorados</div></div>';
+  html += '</div>';
+
+  // BLOCO 3 — Próximas consultas detectadas
+  html += '<div class="cal-section-h">Próximas consultas detectadas</div>';
+  if ((hist.proximos || []).length === 0) {
+    html += '<div class="cal-empty-feedback">Nenhuma consulta nos próximos 7 dias. Quando você criar um evento na sua agenda Google, ele aparece aqui automaticamente.</div>';
+  } else {
+    html += '<div class="cal-events-list">';
+    (hist.proximos || []).slice(0,5).forEach(function(s){
+      var inicio = s.inicio ? new Date(s.inicio) : null;
+      var data = inicio ? inicio.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : '';
+      var hora = inicio ? inicio.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+      var statusBadge = s.ignorado
+        ? '<span class="cal-event-badge ig">⊘ ignorado</span>'
+        : '<span class="cal-event-badge ok">✓ vai disparar PC</span>';
+      var actBtn = s.ignorado
+        ? '<button class="cal-event-btn" onclick="reativarSlot(\''+s.id+'\')">Reativar</button>'
+        : '<button class="cal-event-btn" onclick="ignorarSlot(\''+s.id+'\')">Ignorar</button>';
+      html += '<div class="cal-event"><div class="cal-event-time"><div class="cal-event-time-d">'+escapeHtml(data)+'</div><div class="cal-event-time-h">'+escapeHtml(hora)+'</div></div>'
+        +'<div class="cal-event-info"><div class="cal-event-name">'+escapeHtml(s.googleEventId ? 'Evento Google' : '—')+'</div><div class="cal-event-meta">'+statusBadge+'</div></div>'
+        +'<div class="cal-event-act">'+actBtn+'</div></div>';
+    });
+    html += '</div>';
+    if ((hist.proximos || []).length > 5) {
+      html += '<div style="text-align:center;margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="STATE.calendar.step=\'historico\';renderCalendar()">Ver todas ('+(hist.proximos.length)+')</button></div>';
+    }
+  }
+
+  // BLOCO 4 — Ações rápidas
+  html += '<div class="cal-section-h">Ações rápidas</div>';
+  html += '<div class="cal-quick-actions">';
+  if (!st.pausado) {
+    html += '<button class="cal-quick-btn" onclick="modalPausarDisparos()">'
+      +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
+      +'<span>Pausar disparos por X dias</span></button>';
+  }
+  html += '<button class="cal-quick-btn" onclick="STATE.calendar.step=\'historico\';renderCalendar()">'
+    +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'
+    +'<span>Ver histórico de pré-consultas</span></button>';
+  html += '</div>';
+
+  // BLOCO 5 — Configurações avançadas (progressive disclosure)
+  var aberto = !!STATE.calendar.advOpen;
+  html += '<div class="cal-adv-wrap">';
+  html += '<button class="cal-adv-toggle'+(aberto?' open':'')+'" onclick="STATE.calendar.advOpen='+(!aberto)+';renderCalendar()">'
+    +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>'
+    +'<span>Configurações avançadas</span>'
+    +'<svg class="cal-adv-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>'
+    +'</button>';
+
+  if (aberto) {
+    html += '<div class="cal-adv-body">';
+
+    // Sub-bloco: agendas detectadas
+    var nIds = (st.calendarIds || []).length;
+    html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Quais agendas detectar</div><div class="cm-tog-d">'+(nIds === 0 ? 'Usando agenda principal' : nIds+' agenda'+(nIds>1?'s':'')+' selecionada'+(nIds>1?'s':''))+'</div></div><button class="btn btn-ghost btn-sm" onclick="STATE.calendar.step=\'selecionar-agendas\';renderCalendar()">Ajustar</button></div>';
+
+    // Sub-bloco: quando disparar PC
+    var quando = (DR.config && DR.config.quandoDispararPc) || '24h';
+    html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Quando disparar pré-consulta</div><div class="cm-tog-d">Antes da consulta marcada</div></div><div class="cal-pills">'
+      +pillBtn('24h','24h antes',quando)
+      +pillBtn('48h','48h antes',quando)
+      +pillBtn('12h','12h antes',quando)
+      +pillBtn('manual','Manual',quando)
+      +'</div></div>';
+
+    // Sub-bloco: modo silêncio
+    var modoSil = (DR.config && DR.config.modoSilencio) || '8h-18h-segsex';
+    var modoStr = modoSil==='8h-18h-segsex'?'8h-18h, seg-sex':modoSil==='7h-22h-todos'?'7h-22h, todos os dias':modoSil==='turno'?'Por turno':'24h';
+    html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Modo silêncio</div><div class="cm-tog-d">Quando NÃO mandar pré-consulta</div></div><div style="display:flex;align-items:center;gap:8px"><span class="cal-pill-state">'+modoStr+'</span><button class="btn btn-ghost btn-sm" onclick="STATE.calendar.step=2.5;renderCalendar()">Editar</button></div></div>';
+
+    // Sub-bloco: conta + multi-conta
+    html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Conta Google</div><div class="cm-tog-d"><code>'+escapeHtml(emailReal||'—')+'</code></div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="trocarContaCalendar()">Trocar</button><button class="btn btn-danger-x btn-sm" onclick="desconectarCalendar()">Desconectar</button></div></div>';
+
+    // Sub-bloco: multi-conta (em breve)
+    html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Adicionar 2ª conta Google</div><div class="cm-tog-d">Em breve · você poderá conectar agenda pessoal + clínica</div></div><button class="btn btn-ghost btn-sm" disabled style="opacity:.5;cursor:not-allowed">Em breve</button></div>';
+
+    html += '</div>';
+  }
+  html += '</div>';
 
   return html;
+}
+
+// ---------- TELA SELECIONAR AGENDAS ----------
+function renderCalendarSelecionarAgendas(){
+  var lista = (STATE.calendar && STATE.calendar.calendarsList) || null;
+
+  var html = '<div class="ph"><div><h1>Suas <em>agendas</em></h1><p>Encontramos as agendas da sua conta Google. Marque quais o VITAE deve verificar para detectar consultas.</p></div></div>';
+
+  if (lista === null) {
+    html += '<div class="cal-loading"><div class="spinner"></div><p>Buscando suas agendas no Google...</p></div>';
+    setTimeout(carregarCalendarsLista, 50);
+    return html;
+  }
+
+  if (lista === 'erro') {
+    html += '<div class="cal-empty-feedback">Não conseguimos buscar suas agendas agora. <button class="btn btn-ghost btn-sm" onclick="STATE.calendar.calendarsList=null;renderCalendar()">Tentar de novo</button></div>';
+    return html;
+  }
+
+  if (lista.length === 0) {
+    html += '<div class="cal-empty-feedback">Sua conta Google não tem nenhuma agenda. Crie uma em <a href="https://calendar.google.com" target="_blank" rel="noopener">calendar.google.com</a> e tente novamente.</div>';
+    return html;
+  }
+
+  // Agrupa por categoria
+  var grupos = {
+    principal: { titulo: 'Agenda principal', items: [] },
+    criada_por_voce: { titulo: 'Suas agendas', items: [] },
+    compartilhada: { titulo: 'Compartilhadas com você', items: [] },
+    google_automatica: { titulo: 'Agendas automáticas do Google', items: [] },
+    outras: { titulo: 'Outras', items: [] },
+  };
+  lista.forEach(function(c){
+    if (grupos[c.categoria]) grupos[c.categoria].items.push(c);
+    else grupos.outras.items.push(c);
+  });
+
+  // Selecionados em estado
+  if (!STATE.calendar.selecaoTemp) {
+    var statusIds = (STATE.calendar.statusReal && STATE.calendar.statusReal.calendarIds) || [];
+    if (statusIds.length > 0) {
+      STATE.calendar.selecaoTemp = statusIds.slice();
+    } else {
+      // Defaults inteligentes
+      STATE.calendar.selecaoTemp = lista.filter(function(c){ return c.recomendado; }).map(function(c){ return c.id; });
+    }
+  }
+
+  Object.keys(grupos).forEach(function(k){
+    var grp = grupos[k];
+    if (grp.items.length === 0) return;
+    html += '<div class="cal-section-h">'+escapeHtml(grp.titulo)+'</div>';
+    html += '<div class="cal-cals-list">';
+    grp.items.forEach(function(c){
+      var marcado = STATE.calendar.selecaoTemp.indexOf(c.id) >= 0;
+      var color = c.backgroundColor || '#4285F4';
+      html += '<label class="cal-cal-item'+(marcado?' on':'')+'">';
+      html += '<span class="cal-cal-dot" style="background:'+escapeHtml(color)+'"></span>';
+      html += '<span class="cal-cal-info"><span class="cal-cal-name">'+escapeHtml(c.summary||'(sem nome)')+'</span><span class="cal-cal-meta">'+(c.eventCount||0)+' evento'+(c.eventCount===1?'':'s')+' nos próximos 90 dias</span></span>';
+      html += '<input type="checkbox" '+(marcado?'checked':'')+' onchange="toggleCalendarSelecao(\''+escapeHtml(c.id)+'\', this.checked)"/>';
+      html += '</label>';
+    });
+    html += '</div>';
+  });
+
+  // Resumo + ação
+  var totalEventos = 0;
+  STATE.calendar.selecaoTemp.forEach(function(id){
+    var c = lista.find(function(x){ return x.id === id; });
+    if (c) totalEventos += c.eventCount || 0;
+  });
+  html += '<div class="cal-resumo">↓ '+totalEventos+' evento'+(totalEventos===1?'':'s')+' detectado'+(totalEventos===1?'':'s')+' nos próximos 90 dias</div>';
+  html += '<div class="cal-step-actions"><button class="btn btn-ghost btn-sm" onclick="STATE.calendar.step=null;STATE.calendar.selecaoTemp=null;renderCalendar()">Voltar</button><button class="btn btn-p btn-lg" onclick="salvarCalendarSelecao()">Salvar e continuar</button></div>';
+
+  return html;
+}
+
+// ---------- TELA HISTÓRICO PCs ----------
+function renderCalendarHistorico(){
+  var hist = (STATE.calendar && STATE.calendar.historicoData) || { proximos: [], historico: [] };
+  var html = '<div class="ph"><div><h1>Histórico <em>de pré-consultas</em></h1><p>Tudo que o VITAE detectou e disparou pra você</p></div></div>';
+
+  html += '<div class="cal-section-h">Próximas (futuras)</div>';
+  if ((hist.proximos || []).length === 0) {
+    html += '<div class="cal-empty-feedback">Nenhuma consulta agendada nos próximos 90 dias.</div>';
+  } else {
+    html += '<div class="cal-events-list">';
+    (hist.proximos || []).forEach(function(s){
+      var inicio = s.inicio ? new Date(s.inicio) : null;
+      var data = inicio ? inicio.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}) : '';
+      var hora = inicio ? inicio.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+      var badge = s.ignorado ? '<span class="cal-event-badge ig">⊘ ignorado</span>' : '<span class="cal-event-badge ok">✓ vai disparar PC</span>';
+      var actBtn = s.ignorado
+        ? '<button class="cal-event-btn" onclick="reativarSlot(\''+s.id+'\')">Reativar</button>'
+        : '<button class="cal-event-btn" onclick="ignorarSlot(\''+s.id+'\')">Ignorar</button>';
+      html += '<div class="cal-event"><div class="cal-event-time"><div class="cal-event-time-d">'+escapeHtml(data)+'</div><div class="cal-event-time-h">'+escapeHtml(hora)+'</div></div><div class="cal-event-info"><div class="cal-event-name">Evento Google</div><div class="cal-event-meta">'+badge+'</div></div><div class="cal-event-act">'+actBtn+'</div></div>';
+    });
+    html += '</div>';
+  }
+
+  html += '<div class="cal-section-h">PCs já disparadas</div>';
+  if ((hist.historico || []).length === 0) {
+    html += '<div class="cal-empty-feedback">Nenhuma pré-consulta disparada ainda.</div>';
+  } else {
+    html += '<div class="cal-events-list">';
+    (hist.historico || []).forEach(function(p){
+      var dt = p.criadaEm ? new Date(p.criadaEm) : null;
+      var data = dt ? dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : '';
+      var statusBadge = p.respondidaEm ? '<span class="cal-event-badge ok">✓✓ respondida</span>' :
+                        p.status === 'EXPIRADA' ? '<span class="cal-event-badge ig">⊘ expirou</span>' :
+                        '<span class="cal-event-badge w">⏳ aguardando paciente</span>';
+      html += '<div class="cal-event"><div class="cal-event-time"><div class="cal-event-time-d">'+escapeHtml(data)+'</div></div><div class="cal-event-info"><div class="cal-event-name">'+escapeHtml(p.pacienteNome || '—')+'</div><div class="cal-event-meta">'+statusBadge+'</div></div></div>';
+    });
+    html += '</div>';
+  }
+
+  html += '<div class="cal-step-actions"><button class="btn btn-ghost btn-sm" onclick="STATE.calendar.step=null;renderCalendar()">Voltar</button></div>';
+
+  return html;
+}
+
+// ---------- HELPER: pill button reutilizavel ----------
+function pillBtn(val, label, atual){
+  var on = (val === atual);
+  return '<button class="pcn-pill'+(on?' on':'')+'" onclick="setQuandoDispararPc(\''+val+'\')">'+escapeHtml(label)+'</button>';
+}
+
+// ---------- HELPER: tempo relativo ----------
+function formatarTempoRelativo(iso){
+  if (!iso) return null;
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  var diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return 'agora';
+  if (diff < 3600) return 'há '+Math.floor(diff/60)+' min';
+  if (diff < 86400) return 'há '+Math.floor(diff/3600)+'h';
+  return 'há '+Math.floor(diff/86400)+' dias';
+}
+
+// ---------- AÇÕES da home Calendar ----------
+async function carregarCalendarsLista(){
+  if (!window.BACKEND) return;
+  try {
+    var res = await window.BACKEND.api('/agenda/google/calendars');
+    if (res.status === 401) {
+      // Token revogado
+      DR.config.googleCalendarConectado = false;
+      STATE.calendar.step = null;
+      toast('Sua conexão Google expirou. Reconecte.');
+      renderCalendar();
+      return;
+    }
+    if (!res.ok) {
+      STATE.calendar.calendarsList = 'erro';
+      renderCalendar();
+      return;
+    }
+    var d = await res.json().catch(function(){ return {}; });
+    STATE.calendar.calendarsList = (d && d.data) || [];
+    renderCalendar();
+  } catch(e) {
+    STATE.calendar.calendarsList = 'erro';
+    renderCalendar();
+  }
+}
+
+function toggleCalendarSelecao(id, marcado){
+  if (!STATE.calendar.selecaoTemp) STATE.calendar.selecaoTemp = [];
+  var idx = STATE.calendar.selecaoTemp.indexOf(id);
+  if (marcado && idx < 0) STATE.calendar.selecaoTemp.push(id);
+  if (!marcado && idx >= 0) STATE.calendar.selecaoTemp.splice(idx, 1);
+  renderCalendar();
+}
+
+async function salvarCalendarSelecao(){
+  if (!window.BACKEND) { toast('Sistema indisponível'); return; }
+  var ids = (STATE.calendar.selecaoTemp || []);
+  try {
+    var res = await window.BACKEND.api('/agenda/google/calendars-selected', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ids })
+    });
+    if (!res.ok) { toast('Não foi possível salvar agora'); return; }
+    toast('Agendas atualizadas — sincronizando...');
+    STATE.calendar.step = null;
+    STATE.calendar.selecaoTemp = null;
+    STATE.calendar.calendarsList = null;
+    // Refetch status + historico
+    fetchCalendarHomeData();
+    renderCalendar();
+  } catch(e) {
+    toast('Sem conexão');
+  }
+}
+
+async function resyncCalendarAgora(){
+  if (!window.BACKEND) return;
+  toast('Sincronizando...');
+  try {
+    var res = await window.BACKEND.api('/agenda/google/sync-now', { method: 'POST' });
+    if (res.status === 401) {
+      DR.config.googleCalendarConectado = false;
+      toast('Conexão expirou. Reconecte.');
+      STATE.calendar.step = null;
+      renderCalendar();
+      return;
+    }
+    if (!res.ok) { toast('Falhou. Tente daqui a alguns minutos.'); return; }
+    toast('Sincronizado');
+    fetchCalendarHomeData();
+  } catch(e) { toast('Sem conexão'); }
+}
+
+function modalPausarDisparos(){
+  var html = '<div style="text-align:center"><h2 style="font-size:20px;font-weight:900;margin-bottom:8px">Pausar disparos</h2><p style="font-size:13px;color:var(--t3);margin-bottom:20px">VITAE continua detectando consultas, mas não dispara pré-consultas até você reativar.</p>';
+  html += '<div style="display:flex;flex-direction:column;gap:8px;max-width:280px;margin:0 auto">';
+  ['1','3','7','14','30'].forEach(function(d){
+    html += '<button class="btn btn-p btn-lg" onclick="pausarDisparos('+d+');closeModal()">Pausar por '+d+' dia'+(d==='1'?'':'s')+'</button>';
+  });
+  html += '</div></div>';
+  openModal(html);
+}
+
+async function pausarDisparos(dias){
+  if (!window.BACKEND) return;
+  try {
+    var res = await window.BACKEND.api('/agenda/pausar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dias: parseInt(dias,10) })
+    });
+    if (!res.ok) { toast('Não foi possível pausar agora'); return; }
+    toast('Pausado por '+dias+' dia'+(dias==1?'':'s'));
+    fetchCalendarHomeData();
+  } catch(e) { toast('Sem conexão'); }
+}
+
+async function cancelarPausa(){
+  if (!window.BACKEND) return;
+  try {
+    var res = await window.BACKEND.api('/agenda/pausar', { method: 'DELETE' });
+    if (!res.ok) { toast('Não foi possível reativar agora'); return; }
+    toast('Disparos reativados');
+    fetchCalendarHomeData();
+  } catch(e) { toast('Sem conexão'); }
+}
+
+async function ignorarSlot(slotId){
+  if (!window.BACKEND) return;
+  try {
+    var res = await window.BACKEND.api('/agenda/slots/'+encodeURIComponent(slotId)+'/ignorar', { method: 'POST' });
+    if (!res.ok) { toast('Não foi possível ignorar agora'); return; }
+    toast('Ignorado · não vai virar PC');
+    fetchCalendarHomeData();
+  } catch(e) { toast('Sem conexão'); }
+}
+
+async function reativarSlot(slotId){
+  if (!window.BACKEND) return;
+  try {
+    var res = await window.BACKEND.api('/agenda/slots/'+encodeURIComponent(slotId)+'/ignorar', { method: 'DELETE' });
+    if (!res.ok) { toast('Não foi possível reativar agora'); return; }
+    toast('Reativado · vai virar PC');
+    fetchCalendarHomeData();
+  } catch(e) { toast('Sem conexão'); }
+}
+
+function setQuandoDispararPc(val){
+  if (DR.config) DR.config.quandoDispararPc = val;
+  // Salva no backend
+  if (window.BACKEND && typeof window.salvarConfigPerfil === 'function') {
+    window.salvarConfigPerfil('quandoDispararPc', val);
+  }
+  renderCalendar();
 }
 
 // CSS pra novas telas Calendar
@@ -2797,6 +3184,74 @@ function renderCalendarConectado(){
   .cal-multi-card p{font-size:12.5px;color:var(--t2);line-height:1.55;margin-bottom:10px}\
   ';
   document.head.appendChild(style);
+})();
+
+/* ============================================================
+   CSS NOVOS COMPONENTES — CALENDAR REFRAME 2026-05-08
+   ============================================================ */
+(function injetarCssCalendarReframe(){
+  if (document.getElementById('css-cal-reframe')) return;
+  var s = document.createElement('style');
+  s.id = 'css-cal-reframe';
+  s.textContent = '\
+  .cal-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;font-size:13px;font-weight:600;margin-bottom:14px;border:1px solid;line-height:1.4}\
+  .cal-banner-warn{background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.30);color:#92400E}\
+  .cal-banner-info{background:rgba(59,130,246,.06);border-color:rgba(59,130,246,.30);color:#1E3A8A}\
+  .cal-banner-act{margin-left:auto;background:transparent;border:1px solid currentColor;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;color:inherit}\
+  .cal-banner-act:hover{background:rgba(0,0,0,.05)}\
+  .cal-metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px}\
+  @media (max-width:560px){.cal-metrics-grid{grid-template-columns:1fr}}\
+  .cal-metric{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:center}\
+  .cal-metric-pos{border-color:rgba(0,196,122,.30);background:rgba(0,196,122,.04)}\
+  .cal-metric-mute{opacity:.7}\
+  .cal-metric-n{font-size:26px;font-weight:900;letter-spacing:-.5px;color:var(--t1);line-height:1.1}\
+  .cal-metric-pos .cal-metric-n{color:#00A86F}\
+  .cal-metric-l{font-size:11.5px;color:var(--t3);margin-top:4px;line-height:1.3}\
+  .cal-event{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:11px;margin-bottom:6px}\
+  .cal-event-time{flex-shrink:0;text-align:center;min-width:70px;border-right:1px solid var(--border);padding-right:12px}\
+  .cal-event-time-d{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}\
+  .cal-event-time-h{font-size:14px;font-weight:800;color:var(--t1);margin-top:2px}\
+  .cal-event-info{flex:1;min-width:0}\
+  .cal-event-name{font-size:13.5px;font-weight:700;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\
+  .cal-event-meta{margin-top:4px;display:flex;align-items:center;gap:6px}\
+  .cal-event-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.02em}\
+  .cal-event-badge.ok{background:rgba(0,196,122,.10);color:#00A86F}\
+  .cal-event-badge.ig{background:rgba(156,163,175,.12);color:#6B7280}\
+  .cal-event-badge.w{background:rgba(245,158,11,.10);color:#92400E}\
+  .cal-event-act{flex-shrink:0}\
+  .cal-event-btn{background:transparent;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:600;color:var(--t2);cursor:pointer}\
+  .cal-event-btn:hover{border-color:var(--t3);color:var(--t1)}\
+  .cal-quick-actions{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}\
+  .cal-quick-btn{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:11px;font-size:13px;font-weight:600;color:var(--t1);cursor:pointer;text-align:left;transition:all .15s}\
+  .cal-quick-btn:hover{border-color:rgba(0,229,160,.30);background:rgba(0,229,160,.03)}\
+  .cal-quick-btn svg{flex-shrink:0;color:var(--t3)}\
+  .cal-quick-btn:hover svg{color:#00A86F}\
+  .cal-adv-wrap{margin-top:24px;border-top:1px solid var(--border);padding-top:18px}\
+  .cal-adv-toggle{display:flex;align-items:center;gap:10px;width:100%;padding:14px 16px;background:transparent;border:1px solid var(--border);border-radius:12px;font-size:13px;font-weight:700;color:var(--t2);cursor:pointer;transition:all .15s}\
+  .cal-adv-toggle:hover{border-color:var(--t3);color:var(--t1)}\
+  .cal-adv-toggle .cal-adv-chev{margin-left:auto;transition:transform .2s}\
+  .cal-adv-toggle.open .cal-adv-chev{transform:rotate(180deg)}\
+  .cal-adv-body{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 0;overflow:hidden}\
+  .cal-adv-body .cm-tog-row{padding:14px 18px;border-bottom:1px solid var(--border)}\
+  .cal-adv-body .cm-tog-row:last-child{border-bottom:0}\
+  .cal-pills{display:flex;gap:6px;flex-wrap:wrap}\
+  .cal-pill-state{font-size:12.5px;color:var(--t2);background:var(--bg);padding:4px 10px;border-radius:100px;font-weight:600}\
+  .cal-cals-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}\
+  .cal-cal-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:11px;cursor:pointer;transition:all .15s}\
+  .cal-cal-item:hover{border-color:rgba(0,229,160,.25)}\
+  .cal-cal-item.on{border-color:rgba(0,196,122,.40);background:rgba(0,196,122,.03)}\
+  .cal-cal-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}\
+  .cal-cal-info{flex:1;min-width:0}\
+  .cal-cal-name{font-size:13.5px;font-weight:700;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}\
+  .cal-cal-meta{font-size:11.5px;color:var(--t3);margin-top:2px;display:block}\
+  .cal-cal-item input[type=checkbox]{accent-color:#00C47A;flex-shrink:0;width:18px;height:18px;cursor:pointer}\
+  .cal-resumo{padding:16px;background:rgba(0,229,160,.04);border:1px solid rgba(0,229,160,.20);border-radius:12px;text-align:center;font-size:13px;font-weight:600;color:#00A86F;margin:18px 0}\
+  .cal-loading{text-align:center;padding:40px 20px;color:var(--t3)}\
+  .cal-loading p{margin-top:12px;font-size:13px}\
+  .spinner{display:inline-block;width:36px;height:36px;border:3px solid rgba(0,229,160,.20);border-top-color:#00C47A;border-radius:50%;animation:spin .8s linear infinite}\
+  @keyframes spin{to{transform:rotate(360deg)}}\
+  ';
+  document.head.appendChild(s);
 })();
 
 /* ============================================================
@@ -3418,14 +3873,17 @@ window.BACKEND = (function(){
         }
         // Limpa query string sem recarregar
         history.replaceState({}, '', location.pathname + (location.hash || '#perfil'));
-        // Garante que o medico ve a tela 4 (Conectado) com confirmacao visual
+        // Logo apos OAuth: leva pra tela "Selecionar agendas" (NOVO fluxo).
+        // Medico ve as agendas reais da conta dele, marca quais usar, valida.
         if (gcalOk) {
           setTimeout(function(){
             try {
-              if (typeof window.showView === 'function') window.showView('perfil');
-              if (typeof window.abrirCalendar === 'function') {
-                setTimeout(function(){ window.abrirCalendar('conectado'); }, 200);
-              }
+              if (!STATE.calendar) STATE.calendar = {};
+              STATE.calendar.step = 'selecionar-agendas';
+              STATE.calendar.calendarsList = null; // forca buscar lista nova
+              STATE.calendar.selecaoTemp = null;
+              if (typeof window.goto === 'function') window.goto('calendar');
+              else if (typeof window.renderCalendar === 'function') window.renderCalendar();
             } catch(e){}
           }, 100);
         }
