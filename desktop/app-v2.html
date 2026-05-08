@@ -1528,19 +1528,16 @@ async function conectarCalendarReal(){
   if (!window.BACKEND) { toast('Sistema indisponível, recarregue a página'); return; }
   try {
     var res = await window.BACKEND.api('/agenda/google/auth');
-    var data = await res.json().catch(()=>({}));
+    var data = await res.json().catch(function(){ return {}; });
 
     if (res.status === 503 && (data.code === 'GCAL_DESATIVADO' || /desativ|desabili/i.test(data.erro||''))) {
-      // OAuth não configurado no servidor
-      modalCalendarNaoConfigurado();
+      // OAuth não configurado no servidor — sinaliza estado "Em breve" institucional
+      STATE.calendar.oauthDisponivel = false;
+      goto('calendar');
       return;
     }
     if (!res.ok) {
-      modalConfirm && modalConfirm({
-        titulo: 'Não foi possível conectar agora',
-        msg: (data.erro || data.code || 'Erro desconhecido') + ' (status ' + res.status + ')',
-        ok: 'Entendi'
-      });
+      toast('Não foi possível conectar agora. Tente em alguns segundos.');
       return;
     }
     var url = (data.data && data.data.url) || data.url;
@@ -1548,34 +1545,13 @@ async function conectarCalendarReal(){
       try { sessionStorage.setItem('vitae_calendar_oauth_pending', '1'); } catch(e){}
       window.location.href = url;
     } else {
-      modalCalendarNaoConfigurado();
+      // Sem URL — provavelmente OAuth ainda não configurado
+      STATE.calendar.oauthDisponivel = false;
+      goto('calendar');
     }
   } catch(e) {
     toast('Sem conexão com o servidor');
   }
-}
-
-// Modal claro quando OAuth não foi configurado no Railway
-function modalCalendarNaoConfigurado(){
-  var html = '<div class="modal-h"><div><div class="modal-step" style="color:var(--warn)">CONFIGURAÇÃO PENDENTE</div><div class="modal-t">Google Calendar ainda não foi configurado</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
-  html += '<div class="modal-body">';
-  html += '<div style="font-size:13.5px;line-height:1.7;color:var(--t1);margin-bottom:14px">A integração com o Google Calendar está pronta no código, mas as credenciais OAuth ainda não foram cadastradas no servidor.</div>';
-  html += '<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.22);border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:var(--warn);line-height:1.55"><strong>Por que isso acontece:</strong> conectar com o Google exige um Client ID + Client Secret criados no Google Cloud Console, e essas chaves precisam ficar no servidor (não no código que sobe pro GitHub).</div>';
-  html += '<div style="font-size:12.5px;color:var(--t2);line-height:1.6"><strong>Próximos passos (~10 min):</strong><br>';
-  html += '1. Criar projeto no <a href="https://console.cloud.google.com" target="_blank" style="color:var(--green)">Google Cloud Console</a><br>';
-  html += '2. Habilitar Google Calendar API<br>';
-  html += '3. Criar OAuth Client ID (tipo Web Application)<br>';
-  html += '4. Adicionar redirect URI: <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11.5px">vitae-app-production.up.railway.app/agenda/google/callback</code><br>';
-  html += '5. Adicionar no Railway → Variables:<br>';
-  html += '&nbsp;&nbsp;&nbsp;<code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11.5px">AGENDA_V1_ENABLED=true</code><br>';
-  html += '&nbsp;&nbsp;&nbsp;<code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11.5px">AGENDA_GCAL_ENABLED=true</code><br>';
-  html += '&nbsp;&nbsp;&nbsp;<code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11.5px">GCAL_CLIENT_ID=&lt;valor&gt;</code><br>';
-  html += '&nbsp;&nbsp;&nbsp;<code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11.5px">GCAL_CLIENT_SECRET=&lt;valor&gt;</code><br>';
-  html += '&nbsp;&nbsp;&nbsp;<code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11.5px">GCAL_REDIRECT_URI=https://vitae-app-production.up.railway.app/agenda/google/callback</code><br>';
-  html += '</div>';
-  html += '<div style="margin-top:14px;padding:10px 14px;background:rgba(59,130,246,0.06);border-radius:8px;font-size:11.5px;color:var(--info);line-height:1.5">Enquanto isso, dá pra usar a opção <strong>"Colar lista do dia"</strong> manualmente em Hoje.</div>';
-  html += '</div><div class="modal-foot"><button class="btn btn-p" onclick="closeModal()">Entendi</button></div>';
-  openModal(html);
 }
 
 async function desconectarCalendar(){
@@ -1637,10 +1613,17 @@ async function verificarStatusGoogleCalendar(){
   DR.config.googleCalendarConectado = false;
   DR.googleEmail = null;
   if (!window.BACKEND) return;
+  if (!STATE.calendar) STATE.calendar = { step:null, modoSilencio:null, oauthDisponivel:null };
   try {
     var res = await window.BACKEND.api('/agenda/google/status');
+    if (res.status === 503) {
+      // Servidor sem OAuth configurado (GCAL_DESATIVADO)
+      STATE.calendar.oauthDisponivel = false;
+      return;
+    }
     if (!res.ok) return;
-    var d = await res.json().catch(()=>({}));
+    STATE.calendar.oauthDisponivel = true;
+    var d = await res.json().catch(function(){ return {}; });
     var dados = d.data || d;
     // Só considera conectado se TIVER email real do Google (token sozinho não conta)
     var email = (dados && (dados.googleEmail || dados.email)) || null;
@@ -1651,7 +1634,9 @@ async function verificarStatusGoogleCalendar(){
     if (typeof renderHoje === 'function' && STATE.view === 'hoje') renderHoje();
     if (typeof renderCalendar === 'function' && STATE.view === 'calendar') renderCalendar();
     if (typeof renderPerfil === 'function' && STATE.view === 'perfil') renderPerfil();
-  } catch(e){}
+  } catch(e){
+    // Erro de rede — não consideramos OAuth indisponível necessariamente
+  }
 }
 window.verificarStatusGoogleCalendar = verificarStatusGoogleCalendar;
 
@@ -2504,81 +2489,315 @@ function dispDispararEnviar(){
 /* ============================================================
    TELA EXCLUSIVA: GOOGLE CALENDAR
    ============================================================ */
-function abrirCalendar(){goto('calendar');}
-function renderCalendar(){
-  var conectado=DR.config.googleCalendarConectado;
-  var emailReal = (DR.googleEmail) || (DR.config && DR.config.googleEmail) || '';
-  var html='<button class="pt-detail-back" onclick="goto(\''+(STATE.view==='calendar'?'hoje':STATE.view)+'\')"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>';
-  html+='<div class="ph"><div><h1>Google <em>Calendar</em></h1><p>VITAE lê sua agenda e dispara pré-consultas automaticamente · não modifica nada</p></div>'+(conectado?'<button class="btn btn-danger-x btn-sm" onclick="desconectarCalendar()">Desconectar</button>':'')+'</div>';
+// ============================================================
+// CALENDAR — 5 telas (Sessão 21 revamp)
+// State: STATE.calendar.step (1, 2, 2.5, 3 — onboarding) ou null (estado padrão)
+// Estados especiais: 'em-breve' (OAuth desabilitado), 'expirado' (token revogado)
+// ============================================================
+if (!STATE.calendar) STATE.calendar = { step: null, modoSilencio: null, oauthDisponivel: null };
 
-  if(conectado){
-    /* Estado conectado */
-    html+='<div style="background:linear-gradient(135deg,rgba(0,196,122,.08),rgba(0,180,216,.04));border:1px solid rgba(0,196,122,.22);border-radius:14px;padding:22px;margin-bottom:18px;display:flex;align-items:center;gap:14px">';
-    html+='<div style="width:48px;height:48px;border-radius:50%;background:rgba(0,196,122,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>';
-    html+='<div style="flex:1"><div style="font-size:15px;font-weight:800;color:#00C47A">Conectado'+(emailReal?' como <span style="font-family:monospace">'+escapeHtml(emailReal)+'</span>':'')+'</div><div style="font-size:12px;color:var(--t3);margin-top:3px">Última sincronização: agora há pouco · <a href="#" onclick="event.preventDefault();trocarContaCalendar()" style="color:var(--green);text-decoration:none;font-weight:600">Trocar conta</a></div></div>';
-    html+='</div>';
-
-    /* Stats */
-    html+='<div class="stat-row" style="margin-bottom:18px">';
-    html+='<div class="stat"><div class="stat-num green">73</div><div class="stat-lbl">Eventos lidos<br/>este mês</div></div>';
-    html+='<div class="stat"><div class="stat-num">58</div><div class="stat-lbl">Pré-consultas<br/>disparadas</div></div>';
-    html+='<div class="stat"><div class="stat-num">79%</div><div class="stat-lbl">Taxa de resposta<br/>do paciente</div></div>';
-    html+='<div class="stat"><div class="stat-num warn">2</div><div class="stat-lbl">Não dispararam<br/>(template inválido)</div></div>';
-    html+='</div>';
-
-    /* Configurações */
-    html+='<div class="cm-card">';
-    html+='<h3>Configurações</h3>';
-
-    html+='<div class="cm-tog-row"><div><div class="cm-tog-l">Quando disparar pré-consulta</div><div class="cm-tog-d">Antes do horário marcado da consulta</div></div><div style="display:flex;gap:6px"><button class="pcn-pill on">24h antes</button><button class="pcn-pill">48h antes</button><button class="pcn-pill">12h antes</button><button class="pcn-pill">Manual</button></div></div>';
-
-    html+='<div class="cm-tog-row"><div><div class="cm-tog-l">Calendários monitorados</div><div class="cm-tog-d">Só esses dispararão pré-consulta automática</div></div><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" checked style="accent-color:#00C47A"/> Consultório Borelli</label><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t3)"><input type="checkbox" style="accent-color:#00C47A"/> Pessoal</label></div></div>';
-
-    html+='<div class="cm-tog-row"><div><div class="cm-tog-l">Palavras-chave para detectar consulta</div><div class="cm-tog-d">VITAE só dispara se o evento contiver essas palavras no título</div></div><input type="text" value="consulta, paciente, atendimento" style="max-width:240px"/></div>';
-
-    html+='<div class="cm-tog-row"><div><div class="cm-tog-l">Template padrão</div><div class="cm-tog-d">Qual template é enviado quando dispara automático</div></div><select style="max-width:240px"><option>Geral · 11 perguntas (padrão)</option><option>Cardiologia · 13</option><option>Dermatologia · 9</option><option>Retorno · 6</option></select></div>';
-
-    html+='</div>';
-
-    /* Próximas sincronizações */
-    html+='<h3 style="margin-top:24px;font-size:15px;font-weight:800">Próximas pré-consultas que vão disparar</h3>';
-    html+='<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">';
-    [['Carlos Mendes','quinta · 14:00','disparar amanhã 14h'],['Lara Souza','sexta · 09:30','disparar amanhã 9h30'],['Hugo Felipe','segunda · 11:00','disparar dom 11h']].forEach(function(p){
-      html+='<div style="padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:11px;display:flex;align-items:center;gap:14px"><div class="pcn-tr-av" style="width:36px;height:36px;font-size:12px">'+p[0].split(' ').map(function(x){return x[0];}).slice(0,2).join('')+'</div><div style="flex:1"><div style="font-size:13.5px;font-weight:700">'+p[0]+'</div><div style="font-size:11.5px;color:var(--t3);margin-top:2px">Consulta '+p[1]+'</div></div><span class="pcn-tr-badge ok"><span class="dot"></span>'+p[2]+'</span></div>';
-    });
-    html+='</div>';
-  }else{
-    /* Estado desconectado */
-    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:40px 28px;text-align:center;margin-bottom:18px">';
-    html+='<div style="width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,rgba(0,229,160,.10),rgba(0,180,216,.08));border:1px solid rgba(0,229,160,.18);display:inline-flex;align-items:center;justify-content:center;margin-bottom:18px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>';
-    html+='<div style="font-size:22px;font-weight:900;letter-spacing:-.4px;margin-bottom:8px">Conecte seu Google Calendar</div>';
-    html+='<div style="font-size:13.5px;color:var(--t3);line-height:1.55;max-width:480px;margin:0 auto 22px">VITAE lê os eventos do seu calendário e dispara automaticamente uma pré-consulta para o paciente 24h antes da consulta. Você economiza tempo, paciente chega preparado.</div>';
-    html+='<button class="btn btn-p" style="height:44px;padding:0 28px;font-size:14px" onclick="conectarCalendarReal()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Conectar com Google</button>';
-    html+='</div>';
-
-    html+='<div class="cm-grid">';
-    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px"><div style="font-size:11px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:#00C47A;margin-bottom:14px">O que fazemos</div><ul style="font-size:13px;line-height:1.7;padding-left:22px;color:var(--t1);list-style:none">';
-    ['Lemos eventos com palavra-chave (consulta, paciente)','Disparamos pré-consulta 24h antes automaticamente','Marcamos no Hoje quem já respondeu','Sincronizamos a cada 15min'].forEach(function(it){html+='<li style="margin-bottom:8px;display:flex;align-items:flex-start;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5" style="margin-top:3px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>'+it+'</li>';});
-    html+='</ul></div>';
-    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px"><div style="font-size:11px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--bad);margin-bottom:14px">O que NÃO fazemos</div><ul style="font-size:13px;line-height:1.7;padding-left:22px;color:var(--t1);list-style:none">';
-    ['Não criamos eventos no seu calendário','Não modificamos eventos existentes','Não compartilhamos dados com terceiros','Você pode desconectar a qualquer momento'].forEach(function(it){html+='<li style="margin-bottom:8px;display:flex;align-items:flex-start;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--bad)" stroke-width="2.5" style="margin-top:3px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'+it+'</li>';});
-    html+='</ul></div>';
-    html+='</div>';
-
-    /* FAQ frustrações comuns */
-    html+='<h3 style="margin-top:24px;font-size:15px;font-weight:800">Dúvidas frequentes</h3>';
-    html+='<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">';
-    var faqs=[
-      ['Eu preciso ter Google Calendar pra usar VITAE?','Não. Sem Calendar, você cria pré-consultas manualmente em "Nova Pré-Consulta". Conectar é só pra automatizar.'],
-      ['E se meus pacientes estiverem em outro calendário (iClinic, Doctoralia)?','Em breve teremos integração com iClinic e Conexa. Por agora, só Google Calendar.'],
-      ['Posso conectar mais de uma conta Google?','Não. Apenas uma conta por médico.'],
-      ['Os dados ficam no Google ou no VITAE?','Apenas leitura no Google. Os dados de paciente ficam no banco do VITAE, criptografados, com retenção de 20 anos (CFM).']
-    ];
-    faqs.forEach(function(f){html+='<details style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:14px 18px"><summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--t1)">'+f[0]+'</summary><div style="font-size:12.5px;color:var(--t2);line-height:1.55;margin-top:10px">'+f[1]+'</div></details>';});
-    html+='</div>';
-  }
-  $('v-calendar').innerHTML=html;
+function abrirCalendar(stepInicial){
+  // Se já conectado, vai pra tela 4 direto. Se não, começa no passo 1.
+  STATE.calendar.step = stepInicial || (DR.config.googleCalendarConectado ? null : 1);
+  goto('calendar');
 }
+
+// Heurística pra pré-config por especialidade
+function preConfigCalendarPorEspecialidade(){
+  var esp = (DR.especialidade || '').toLowerCase();
+  var palavras = ['consulta', 'paciente', 'retorno', 'atendimento'];
+  var horario = '8h-18h-segsex';
+  if (/cardio/.test(esp)) palavras = palavras.concat(['ECG','MAPA','holter','arritmia']);
+  else if (/derma/.test(esp)) palavras = palavras.concat(['dermato','pele','procedimento']);
+  else if (/psiqui|psico/.test(esp)) palavras = ['sessão','consulta','retorno','crise'];
+  else if (/pediat/.test(esp)) palavras = palavras.concat(['vacina','puericultura','criança']);
+  else if (/ortope/.test(esp)) palavras = palavras.concat(['ortop','fisioterapia']);
+  else if (/gineco|obstet/.test(esp)) palavras = palavras.concat(['preventivo','gestante','prenatal']);
+  return { palavras: palavras, horario: horario };
+}
+
+function renderCalendar(){
+  var conectado = DR.config.googleCalendarConectado;
+  var emEspera = STATE.calendar.oauthDisponivel === false; // servidor sem OAuth configurado
+  var step = STATE.calendar.step;
+  var html = '';
+
+  // Botão voltar comum
+  var voltaPara = (STATE.view==='calendar') ? 'hoje' : STATE.view;
+  html += '<button class="pt-detail-back" onclick="goto(\''+voltaPara+'\')"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>';
+
+  // ===== ESTADO: EM BREVE (OAuth desabilitado no servidor) =====
+  if (emEspera && !conectado) {
+    html += renderCalendarEmBreve();
+    $('v-calendar').innerHTML = html;
+    return;
+  }
+
+  // ===== ESTADO CONECTADO (Tela 4) =====
+  if (conectado) {
+    html += renderCalendarConectado();
+    $('v-calendar').innerHTML = html;
+    return;
+  }
+
+  // ===== ONBOARDING (Tela 1, 2, 2.5, 3) =====
+  if (step === 2) html += renderCalendarTela2();
+  else if (step === 2.5) html += renderCalendarTela25();
+  else if (step === 3) html += renderCalendarTela3();
+  else html += renderCalendarTela1(); // default = 1
+
+  $('v-calendar').innerHTML = html;
+}
+
+// ---------- TELA 1 — Por que conectar ----------
+function renderCalendarTela1(){
+  var html = '<div class="cal-onb">';
+  html += '<div class="cal-onb-icon"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="url(#calgrad)" stroke-width="1.8"><defs><linearGradient id="calgrad" x1="0" y1="0" x2="24" y2="24"><stop offset="0" stop-color="#00E5A0"/><stop offset="1" stop-color="#00B4D8"/></linearGradient></defs><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>';
+  html += '<h1 class="cal-onb-title">Conecte sua agenda<br/><em>profissional</em></h1>';
+  html += '<p class="cal-onb-sub">Ganhe 30 minutos por dia sem mudar como você trabalha.</p>';
+  html += '<div class="cal-onb-bullets">';
+  [
+    ['Pré-consulta automática 24h antes da consulta','#00C47A'],
+    ['Hoje sempre atualizado com sua agenda','#00C47A'],
+    ['Cirurgias e bloqueios pausam notificações','#00C47A'],
+    ['Você decide quando ser incomodado','#00C47A']
+  ].forEach(function(b){
+    html += '<div class="cal-onb-bullet"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="'+b[1]+'" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span>'+b[0]+'</span></div>';
+  });
+  html += '</div>';
+  html += '<div class="cal-onb-actions"><button class="btn btn-p btn-lg" onclick="STATE.calendar.step=2;renderCalendar()">Continuar →</button></div>';
+  html += '<div class="cal-onb-skip"><a href="#" onclick="event.preventDefault();goto(\'hoje\')">Pular por enquanto</a></div>';
+  html += '</div>';
+  return html;
+}
+
+// ---------- TELA 2 — Transparência (3 cards) ----------
+function renderCalendarTela2(){
+  var html = '<div class="cal-step-bar"><span class="cal-step-pill on">Sobre</span><span class="cal-step-pill on">Transparência</span><span class="cal-step-pill">Silêncio</span><span class="cal-step-pill">Conectar</span></div>';
+  html += '<h1 class="cal-step-title">Total <em>transparência</em></h1>';
+  html += '<p class="cal-step-sub">Você decide o que o VITAE vê.</p>';
+
+  html += '<div class="cal-trio">';
+  // Card 1 — O que LEMOS
+  html += '<div class="cal-trio-card cal-trio-ok"><div class="cal-trio-head"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span>O QUE LEMOS</span></div>';
+  html += '<ul class="cal-trio-list"><li>Título do evento</li><li>Data e hora</li><li>Convidados pacientes</li></ul>';
+  html += '<small>Apenas eventos com palavras como "consulta", "paciente", "retorno".</small></div>';
+  // Card 2 — O que NUNCA fazemos
+  html += '<div class="cal-trio-card cal-trio-bad"><div class="cal-trio-head"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>O QUE NUNCA FAZEMOS</span></div>';
+  html += '<ul class="cal-trio-list"><li>Criar ou editar eventos</li><li>Apagar nada</li><li>Compartilhar com terceiros</li></ul>';
+  html += '<small>VITAE só lê. Nunca escreve.</small></div>';
+  // Card 3 — Auditoria
+  html += '<div class="cal-trio-card cal-trio-info"><div class="cal-trio-head"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>AUDITORIA</span></div>';
+  html += '<ul class="cal-trio-list"><li>Toda leitura registrada</li><li>Histórico 5 anos (CFM)</li><li>Desconectar a qualquer momento</li></ul>';
+  html += '<small>LGPD Art. 18 + CFM 2.314/2022.</small></div>';
+  html += '</div>';
+
+  html += '<div class="cal-step-actions"><button class="btn btn-ghost" onclick="STATE.calendar.step=1;renderCalendar()">Voltar</button><button class="btn btn-p btn-lg" onclick="STATE.calendar.step=2.5;renderCalendar()">Avançar</button></div>';
+  return html;
+}
+
+// ---------- TELA 2.5 — Modo Silêncio ----------
+function renderCalendarTela25(){
+  var preCfg = preConfigCalendarPorEspecialidade();
+  var esp = DR.especialidade || '';
+  var modo = (STATE.calendar.modoSilencio) || preCfg.horario;
+
+  var html = '<div class="cal-step-bar"><span class="cal-step-pill on">Sobre</span><span class="cal-step-pill on">Transparência</span><span class="cal-step-pill on">Silêncio</span><span class="cal-step-pill">Conectar</span></div>';
+  html += '<h1 class="cal-step-title">Quando <em>não</em> te incomodar?</h1>';
+  if (esp) html += '<p class="cal-step-sub">Sua especialidade é '+escapeHtml(esp)+'. Pré-configuramos com base nisso — você ajusta se quiser.</p>';
+  else html += '<p class="cal-step-sub">Ajuste o horário em que o VITAE pode te notificar.</p>';
+
+  html += '<div class="cal-silence-card">';
+  html += '<div class="cal-silence-row"><div><div class="cal-silence-l">Horário de notificação</div><div class="cal-silence-d">Quando o VITAE pode te incomodar com push</div></div></div>';
+  html += '<div class="cal-silence-options">';
+  html += '<label class="cal-silence-opt'+(modo==='8h-18h-segsex'?' on':'')+'"><input type="radio" name="modoSilencio" value="8h-18h-segsex" '+(modo==='8h-18h-segsex'?'checked':'')+' onchange="STATE.calendar.modoSilencio=this.value;renderCalendar()"><div><div class="cal-silence-opt-t">8h-18h, seg-sex</div><div class="cal-silence-opt-d">Recomendado pra clínica/ambulatório</div></div></label>';
+  html += '<label class="cal-silence-opt'+(modo==='7h-22h-todos'?' on':'')+'"><input type="radio" name="modoSilencio" value="7h-22h-todos" '+(modo==='7h-22h-todos'?'checked':'')+' onchange="STATE.calendar.modoSilencio=this.value;renderCalendar()"><div><div class="cal-silence-opt-t">7h-22h, todos os dias</div><div class="cal-silence-opt-d">Especialista que aceita fim de semana</div></div></label>';
+  html += '<label class="cal-silence-opt'+(modo==='turno'?' on':'')+'"><input type="radio" name="modoSilencio" value="turno" '+(modo==='turno'?'checked':'')+' onchange="STATE.calendar.modoSilencio=this.value;renderCalendar()"><div><div class="cal-silence-opt-t">Por turno</div><div class="cal-silence-opt-d">Plantonista (ex: 6h-14h ou 14h-22h)</div></div></label>';
+  html += '<label class="cal-silence-opt'+(modo==='24h'?' on':'')+'"><input type="radio" name="modoSilencio" value="24h" '+(modo==='24h'?'checked':'')+' onchange="STATE.calendar.modoSilencio=this.value;renderCalendar()"><div><div class="cal-silence-opt-t">24 horas, todos os dias</div><div class="cal-silence-opt-d">Aceita ser incomodado a qualquer hora</div></div></label>';
+  html += '</div>';
+  html += '<div class="cal-silence-extra"><label><input type="checkbox" checked> Pausar durante eventos "Cirurgia", "Bloqueio", "Plantão"</label></div>';
+  html += '</div>';
+
+  html += '<div class="cal-step-actions"><button class="btn btn-ghost" onclick="STATE.calendar.step=2;renderCalendar()">Voltar</button><button class="btn btn-p btn-lg" onclick="STATE.calendar.step=3;renderCalendar()">Confirmar e continuar</button></div>';
+  return html;
+}
+
+// ---------- TELA 3 — OAuth ----------
+function renderCalendarTela3(){
+  var html = '<div class="cal-step-bar"><span class="cal-step-pill on">Sobre</span><span class="cal-step-pill on">Transparência</span><span class="cal-step-pill on">Silêncio</span><span class="cal-step-pill on">Conectar</span></div>';
+  html += '<h1 class="cal-step-title">Tudo <em>certo</em>.</h1>';
+  html += '<p class="cal-step-sub">Toque no botão e o Google vai pedir sua autorização.</p>';
+
+  html += '<div class="cal-final-card">';
+  html += '<div class="cal-final-bullets">';
+  ['Pré-consulta automática 24h antes','Hoje sempre atualizado','Apenas leitura, apenas eventos clínicos'].forEach(function(b){
+    html += '<div class="cal-final-bullet"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span>'+b+'</span></div>';
+  });
+  html += '</div>';
+  html += '<button class="btn btn-google btn-lg" onclick="conectarCalendarReal()"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34.9 6.1 29.7 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34.9 6.1 29.7 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3c-2 1.5-4.6 2.5-7.3 2.5-5.2 0-9.6-3.3-11.3-8l-6.6 5.1C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.3 5.3C40 36.1 44 30.6 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg> Conectar com Google</button>';
+  html += '<p class="cal-final-info">Você verá uma tela do Google. Escolha sua conta e clique <strong>Permitir</strong>.</p>';
+  html += '<p class="cal-final-info-warn">⚠ Pode aparecer aviso "App não verificado" — clique em <strong>Avançado → Acessar VITAE</strong>. Sua conta fica 100% segura. Estamos em fase final de aprovação oficial pelo Google.</p>';
+  html += '</div>';
+
+  html += '<div class="cal-step-actions"><button class="btn btn-ghost" onclick="STATE.calendar.step=2.5;renderCalendar()">Voltar</button><a href="#" onclick="event.preventDefault();goto(\'hoje\')" class="cal-skip-discreto">Pular por enquanto</a></div>';
+  return html;
+}
+
+// ---------- TELA "EM BREVE" — OAuth não configurado no servidor ----------
+function renderCalendarEmBreve(){
+  var html = '<div class="cal-onb">';
+  html += '<div class="cal-onb-icon" style="background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(0,180,216,.06));border-color:rgba(245,158,11,.18)"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>';
+  html += '<h1 class="cal-onb-title">Em <em>breve</em></h1>';
+  html += '<p class="cal-onb-sub">Estamos finalizando a integração com o Google Calendar. Volte em alguns dias — você será o primeiro a testar.</p>';
+  html += '<div class="cal-onb-bullets">';
+  [
+    'Pré-consulta automática 24h antes',
+    'Hoje sempre atualizado',
+    'Cirurgias bloqueiam notificações',
+    'Você decide quando ser incomodado'
+  ].forEach(function(b){
+    html += '<div class="cal-onb-bullet"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg><span style="color:var(--t3)">'+b+'</span></div>';
+  });
+  html += '</div>';
+  html += '<div class="cal-onb-actions"><button class="btn btn-s btn-lg" onclick="modalImportarAgenda()">Colar lista de hoje</button></div>';
+  html += '<div class="cal-onb-skip"><small style="color:var(--t3)">Enquanto isso, dá pra criar pré-consultas manualmente em <a href="#" onclick="event.preventDefault();goto(\'pre-consultas\')" style="color:var(--green)">Pré-Consultas</a>.</small></div>';
+  html += '</div>';
+  return html;
+}
+
+// ---------- TELA 4 — Conectado ----------
+function renderCalendarConectado(){
+  var emailReal = (DR.googleEmail) || (DR.config && DR.config.googleEmail) || '';
+  var preCfg = preConfigCalendarPorEspecialidade();
+  var palavras = (DR.config && DR.config.calendarPalavras) || preCfg.palavras.join(', ');
+  var modoSilencio = (DR.config && DR.config.modoSilencio) || preCfg.horario;
+
+  var html = '<div class="ph"><div><h1>Google <em>Calendar</em></h1><p>Sua agenda lida automaticamente · VITAE nunca escreve nada</p></div></div>';
+
+  // Status conectado
+  html += '<div class="cal-conn-card">';
+  html += '<div class="cal-conn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>';
+  html += '<div class="cal-conn-body"><div class="cal-conn-title">Conectado'+(emailReal?' como <code>'+escapeHtml(emailReal)+'</code>':'')+'</div><div class="cal-conn-meta">Última leitura há 2 min · Próxima em 6 min</div></div>';
+  html += '<div class="cal-conn-actions"><button class="btn btn-ghost btn-sm" onclick="trocarContaCalendar()">Trocar conta</button><button class="btn btn-danger-x btn-sm" onclick="desconectarCalendar()">Desconectar</button></div>';
+  html += '</div>';
+
+  // Primeiro evento detectado (feedback imediato)
+  var slots = (typeof DATA !== 'undefined' && DATA.agendaHoje) ? DATA.agendaHoje : (AGENDA_HOJE || []);
+  if (slots && slots.length) {
+    html += '<div class="cal-section-h">Primeira leitura — encontramos <strong>'+slots.length+' consulta'+(slots.length>1?'s':'')+'</strong> hoje</div>';
+    html += '<div class="cal-events-list">';
+    slots.slice(0,3).forEach(function(s){
+      var nome = s.paciente || s.pacienteNome || '—';
+      var hora = s.hora || (s.inicio ? new Date(s.inicio).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '');
+      html += '<div class="cal-event"><div class="cal-event-time">'+escapeHtml(hora)+'</div><div class="cal-event-info"><div class="cal-event-name">'+escapeHtml(nome)+'</div><div class="cal-event-meta">PC dispara 24h antes</div></div></div>';
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="cal-empty-feedback">Nenhuma consulta detectada na sua agenda de hoje. Verifique as palavras-chave abaixo se esperava ver eventos aqui.</div>';
+  }
+
+  // Modo silêncio visível
+  html += '<div class="cal-section-h">Modo silêncio</div>';
+  html += '<div class="cal-silence-summary"><div class="cal-silence-state on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ativo · '+(modoSilencio==='8h-18h-segsex'?'8h-18h, seg-sex':modoSilencio==='7h-22h-todos'?'7h-22h, todos os dias':modoSilencio==='turno'?'Por turno':'24h')+'</div><button class="btn btn-ghost btn-sm" onclick="STATE.calendar.step=2.5;renderCalendar()">Editar</button></div>';
+
+  // Configurações
+  html += '<div class="cal-section-h">Configurações</div>';
+  html += '<div class="cm-card">';
+  html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Quando disparar pré-consulta</div><div class="cm-tog-d">Antes do horário marcado da consulta</div></div><div style="display:flex;gap:6px"><button class="pcn-pill on">24h antes</button><button class="pcn-pill">48h antes</button><button class="pcn-pill">12h antes</button><button class="pcn-pill">Manual</button></div></div>';
+  html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Palavras-chave clínicas</div><div class="cm-tog-d">VITAE só dispara se o evento contiver essas palavras</div></div><input type="text" value="'+escapeHtml(palavras)+'" style="max-width:300px" onchange="DR.config.calendarPalavras=this.value;toast(\'Palavras atualizadas\')"/></div>';
+  html += '</div>';
+
+  // Multi-conta
+  html += '<div class="cal-section-h">Adicionar outra conta?</div>';
+  html += '<div class="cal-multi-card"><p>Você pode conectar mais de uma agenda Google (ex: pessoal + clínica). Cada conta fica visível separada.</p><button class="btn btn-s btn-sm" onclick="conectarCalendarReal()">+ Adicionar Google Calendar</button></div>';
+
+  return html;
+}
+
+// CSS pra novas telas Calendar
+(function injetarCssCalendar(){
+  if (document.getElementById('css-cal-onb')) return;
+  var style = document.createElement('style');
+  style.id = 'css-cal-onb';
+  style.textContent = '\
+  .cal-onb{max-width:600px;margin:32px auto;text-align:center;padding:32px 24px;background:var(--surface);border:1px solid var(--border);border-radius:16px}\
+  .cal-onb-icon{width:84px;height:84px;border-radius:20px;background:linear-gradient(135deg,rgba(0,229,160,.10),rgba(0,180,216,.08));border:1px solid rgba(0,229,160,.18);display:inline-flex;align-items:center;justify-content:center;margin-bottom:22px}\
+  .cal-onb-title{font-size:28px;font-weight:900;letter-spacing:-.6px;line-height:1.15;margin-bottom:10px}\
+  .cal-onb-title em{font-style:italic;background:linear-gradient(120deg,#00E5A0,#00B4D8);-webkit-background-clip:text;background-clip:text;color:transparent}\
+  .cal-onb-sub{font-size:14px;color:var(--t3);line-height:1.55;max-width:480px;margin:0 auto 28px}\
+  .cal-onb-bullets{display:flex;flex-direction:column;gap:10px;max-width:380px;margin:0 auto 28px;text-align:left}\
+  .cal-onb-bullet{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--t1);font-weight:500}\
+  .cal-onb-actions{margin-bottom:14px}\
+  .btn-lg{height:48px;padding:0 32px;font-size:14.5px}\
+  .cal-onb-skip a{font-size:12.5px;color:var(--t3);text-decoration:underline}\
+  .cal-onb-skip a:hover{color:var(--t1)}\
+  .cal-step-bar{display:flex;gap:6px;margin-bottom:24px;justify-content:center;flex-wrap:wrap}\
+  .cal-step-pill{padding:5px 12px;background:var(--bg);border:1px solid var(--border);border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--t3);text-transform:uppercase}\
+  .cal-step-pill.on{background:rgba(0,229,160,.10);border-color:rgba(0,229,160,.30);color:#00C47A}\
+  .cal-step-title{font-size:26px;font-weight:900;letter-spacing:-.5px;line-height:1.15;margin-bottom:8px;text-align:center}\
+  .cal-step-title em{font-style:italic;background:linear-gradient(120deg,#00E5A0,#00B4D8);-webkit-background-clip:text;background-clip:text;color:transparent}\
+  .cal-step-sub{font-size:13.5px;color:var(--t3);text-align:center;margin-bottom:28px;max-width:520px;margin-left:auto;margin-right:auto}\
+  .cal-trio{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}\
+  @media (max-width:900px){.cal-trio{grid-template-columns:1fr}}\
+  .cal-trio-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}\
+  .cal-trio-ok{border-color:rgba(0,196,122,.22)}\
+  .cal-trio-bad{border-color:rgba(239,68,68,.22)}\
+  .cal-trio-info{border-color:rgba(59,130,246,.22)}\
+  .cal-trio-head{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;margin-bottom:14px}\
+  .cal-trio-ok .cal-trio-head{color:#00C47A}\
+  .cal-trio-bad .cal-trio-head{color:#EF4444}\
+  .cal-trio-info .cal-trio-head{color:#3B82F6}\
+  .cal-trio-list{list-style:none;padding:0;margin:0 0 12px}\
+  .cal-trio-list li{font-size:13px;color:var(--t1);padding:6px 0;border-bottom:1px solid var(--border)}\
+  .cal-trio-list li:last-child{border-bottom:0}\
+  .cal-trio-card small{font-size:11.5px;color:var(--t3);line-height:1.5;display:block;margin-top:8px}\
+  .cal-step-actions{display:flex;justify-content:center;gap:12px;margin-top:18px;align-items:center}\
+  .cal-skip-discreto{font-size:12.5px;color:var(--t3);text-decoration:underline}\
+  .cal-skip-discreto:hover{color:var(--t1)}\
+  .cal-silence-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px}\
+  .cal-silence-row{margin-bottom:18px}\
+  .cal-silence-l{font-size:14px;font-weight:700;color:var(--t1)}\
+  .cal-silence-d{font-size:12px;color:var(--t3);margin-top:3px}\
+  .cal-silence-options{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}\
+  .cal-silence-opt{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg);border:1.5px solid var(--border);border-radius:11px;cursor:pointer;transition:all .15s}\
+  .cal-silence-opt:hover{border-color:rgba(0,229,160,.30)}\
+  .cal-silence-opt.on{border-color:#00C47A;background:rgba(0,196,122,.04)}\
+  .cal-silence-opt input{margin-top:3px;accent-color:#00C47A;flex-shrink:0}\
+  .cal-silence-opt-t{font-size:13.5px;font-weight:700;color:var(--t1)}\
+  .cal-silence-opt-d{font-size:11.5px;color:var(--t3);margin-top:2px}\
+  .cal-silence-extra{padding-top:14px;border-top:1px solid var(--border);font-size:13px;color:var(--t1);display:flex;align-items:center;gap:8px}\
+  .cal-silence-extra label{display:flex;align-items:center;gap:8px;cursor:pointer}\
+  .cal-silence-extra input{accent-color:#00C47A}\
+  .cal-final-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;text-align:center;margin-bottom:28px}\
+  .cal-final-bullets{display:flex;flex-direction:column;gap:10px;max-width:340px;margin:0 auto 24px;text-align:left}\
+  .cal-final-bullet{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--t1)}\
+  .btn-google{background:#fff;color:#1F1F1F;border:1.5px solid #DADCE0;border-radius:11px;display:inline-flex;align-items:center;gap:10px;font-weight:600;height:48px;padding:0 24px;font-size:14px;cursor:pointer;transition:box-shadow .15s,border-color .15s}\
+  .btn-google:hover{box-shadow:0 1px 6px rgba(0,0,0,.08);border-color:#C0C0C0}\
+  .cal-final-info{font-size:12px;color:var(--t3);margin-top:18px;line-height:1.5}\
+  .cal-final-info-warn{font-size:11.5px;color:#92400E;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.20);padding:10px 14px;border-radius:9px;margin-top:12px;line-height:1.5;text-align:left}\
+  .cal-conn-card{display:flex;align-items:center;gap:14px;padding:20px;background:linear-gradient(135deg,rgba(0,196,122,.08),rgba(0,180,216,.04));border:1px solid rgba(0,196,122,.22);border-radius:14px;margin-bottom:22px;flex-wrap:wrap}\
+  .cal-conn-icon{width:44px;height:44px;border-radius:50%;background:rgba(0,196,122,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0}\
+  .cal-conn-body{flex:1;min-width:200px}\
+  .cal-conn-title{font-size:15px;font-weight:800;color:#00C47A}\
+  .cal-conn-title code{font-family:monospace;background:rgba(0,196,122,.10);padding:1px 6px;border-radius:5px;font-size:13px}\
+  .cal-conn-meta{font-size:12px;color:var(--t3);margin-top:3px}\
+  .cal-conn-actions{display:flex;gap:8px;flex-wrap:wrap}\
+  .cal-section-h{font-size:11.5px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--t3);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)}\
+  .cal-section-h strong{color:#00C47A}\
+  .cal-events-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}\
+  .cal-event{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:11px}\
+  .cal-event-time{font-size:13px;font-weight:800;color:var(--t1);min-width:60px}\
+  .cal-event-name{font-size:13.5px;font-weight:700;color:var(--t1)}\
+  .cal-event-meta{font-size:11.5px;color:var(--t3);margin-top:2px}\
+  .cal-empty-feedback{padding:18px;background:var(--bg);border:1px solid var(--border);border-radius:11px;font-size:12.5px;color:var(--t2);text-align:center}\
+  .cal-silence-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:11px;margin-bottom:18px;flex-wrap:wrap}\
+  .cal-silence-state{font-size:13px;font-weight:600;color:var(--t1);display:flex;align-items:center;gap:6px}\
+  .cal-silence-state.on{color:#00C47A}\
+  .cal-multi-card{background:var(--bg);border:1px dashed var(--border);border-radius:11px;padding:18px 20px}\
+  .cal-multi-card p{font-size:12.5px;color:var(--t2);line-height:1.55;margin-bottom:10px}\
+  ';
+  document.head.appendChild(style);
+})();
 
 /* ============================================================
    ONBOARDING TEMPLATES (popup real — espelha tplOnbShow do app.html)
@@ -3065,7 +3284,9 @@ window.BACKEND = (function(){
       if (!res.ok) return null;
       var d = await res.json();
       var p = d.paciente || {};
-      // Popula EXAMES_MOCK / MEDS_MOCK / ALERG_MOCK / COND_MOCK pra esse id
+      var pcsDoPaciente = d.preConsultas || [];
+
+      // Popula EXAMES/MEDS/ALERG/COND
       try {
         if (typeof EXAMES_MOCK !== 'undefined') EXAMES_MOCK[pid] = (p.exames||[]).map(function(e){
           return { nome: e.tipoExame||'Exame', data: e.dataExame ? new Date(e.dataExame).toLocaleDateString('pt-BR') : '—', resultado: (e.resumoIA||'—').slice(0,120), ok: !(String(e.statusGeral||'').toLowerCase().includes('crit') || String(e.statusGeral||'').toLowerCase().includes('aten')) };
@@ -3081,6 +3302,54 @@ window.BACKEND = (function(){
           COND_MOCK[pid] = (ps.condicoes||'').split(',').map(function(s){return s.trim();}).filter(Boolean).map(function(c){ return { nome: c, cat: 'geral' }; });
         }
       } catch(e){}
+
+      // ===== BUG FIX: popular EVENTOS_MOCK com pré-consultas reais (timeline) =====
+      try {
+        if (typeof EVENTOS_MOCK !== 'undefined') {
+          EVENTOS_MOCK[pid] = pcsDoPaciente.map(function(pc){
+            var sj = pc.summaryJson || {};
+            var dataEvento = pc.respondidaEm || pc.criadoEm;
+            var d = dataEvento ? new Date(dataEvento) : null;
+            var dStr = '—';
+            if (d) {
+              var hoje = new Date();
+              var ehHoje = d.toDateString() === hoje.toDateString();
+              var ontem = new Date(hoje); ontem.setDate(hoje.getDate()-1);
+              var ehOntem = d.toDateString() === ontem.toDateString();
+              var hora = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+              if (ehHoje) dStr = 'Hoje · ' + hora;
+              else if (ehOntem) dStr = 'Ontem · ' + hora;
+              else dStr = d.toLocaleDateString('pt-BR') + ' · ' + hora;
+            }
+            var titulo = (sj.queixaPrincipal && (sj.queixaPrincipal.valor || sj.queixaPrincipal))
+                      || sj.descricaoBreve
+                      || sj.summaryTexto
+                      || (pc.status === 'RESPONDIDA' ? 'Pré-consulta respondida' : 'Pré-consulta pendente');
+            if (typeof titulo !== 'string') titulo = JSON.stringify(titulo).slice(0,80);
+            titulo = String(titulo).slice(0, 100);
+            var desc = sj.descricaoBreve || sj.summaryTexto || pc.summaryIA || '';
+            if (typeof desc !== 'string') desc = '';
+            desc = desc.slice(0, 200);
+            var temAlerta = !!(sj.alertaProsodico || (Array.isArray(sj.alertas) && sj.alertas.some(function(a){ return /URGENTE|alta/i.test(a.tipo || a.gravidade || ''); })));
+            return { d: dStr, t: titulo, b: desc, pc: pc.id, warn: temAlerta };
+          });
+        }
+        // Atualiza COMPARE_MOCK pra ficar vazio (será populado por IA Collab quando rodar)
+        if (typeof COMPARE_MOCK !== 'undefined' && !COMPARE_MOCK[pid]) {
+          COMPARE_MOCK[pid] = '';
+        }
+      } catch(e){}
+
+      // Atualiza contagem de anamneses do paciente na lista lateral
+      try {
+        if (typeof PACIENTES !== 'undefined' && Array.isArray(PACIENTES)) {
+          var paciente = PACIENTES.find(function(x){ return x.id === pid; });
+          if (paciente) {
+            paciente.anamneses = pcsDoPaciente.length;
+          }
+        }
+      } catch(e){}
+
       return p;
     } catch(e) { return null; }
   }

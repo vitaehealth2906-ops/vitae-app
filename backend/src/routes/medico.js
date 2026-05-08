@@ -694,11 +694,14 @@ router.get('/pacientes/:pacienteId', async (req, res, next) => {
       select: {
         id: true,
         status: true,
+        pacienteNome: true,
         respondidaEm: true,
         criadoEm: true,
         summaryIA: true,
+        summaryJson: true,
         audioUrl: true,
         audioSummaryUrl: true,
+        transcricao: true,
       },
     });
 
