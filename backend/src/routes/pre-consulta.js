@@ -31,30 +31,19 @@ const { auditar } = require('../utils/auditoria');
 // Idempotente: pode ser chamado multiplas vezes sem duplicar nada.
 // ----------------------------------------------------------------------------
 async function vincularPaciente({ preConsulta, pacienteIdLogado, req }) {
-  let pacienteId = pacienteIdLogado || null;
+  // ============================================================
+  // VÍNCULO POR TOKEN (decisão CEO 2026-05-08):
+  // O token único da pré-consulta É o vínculo. Quando paciente abre o
+  // link, faz login (obrigatorio no fluxo) e responde, pegamos o
+  // pacienteId direto do JWT autenticado dele. Não tentamos mais
+  // "casar" telefone/email — esse matching causava bug Julia Alves
+  // (telefones formatados diferentes não batiam).
+  // ============================================================
+  const pacienteId = pacienteIdLogado || null;
 
-  // Tentativa de auto-link se nao tem pacienteId ainda
-  if (!pacienteId) {
-    const telCanonico = normalizarTelefone(preConsulta.pacienteTel);
-    const variantes = telCanonico ? variantesTelefone(preConsulta.pacienteTel) : [];
-
-    if (variantes.length > 0 || preConsulta.pacienteEmail) {
-      const orFilters = [];
-      if (variantes.length > 0) orFilters.push({ celular: { in: variantes } });
-      if (preConsulta.pacienteEmail) {
-        orFilters.push({ email: { equals: preConsulta.pacienteEmail, mode: 'insensitive' } });
-      }
-      // findFirst ordenado por criadoEm asc — sempre pega o mais antigo (deterministico)
-      const matchUsuario = await prisma.usuario.findFirst({
-        where: { OR: orFilters },
-        orderBy: { criadoEm: 'asc' },
-        select: { id: true },
-      });
-      if (matchUsuario) pacienteId = matchUsuario.id;
-    }
-  }
-
-  // Se nao tem paciente vinculado, nao ha o que fazer
+  // Se paciente NÃO está logado quando responde, vínculo não acontece.
+  // Caso raro hoje (fluxo obriga login) mas se acontecer, PC fica órfã.
+  // Não chuta paciente errado por similaridade.
   if (!pacienteId) return null;
 
   // Cria/atualiza Consentimento LGPD (upsert via unique [usuarioId, tipo, versao])

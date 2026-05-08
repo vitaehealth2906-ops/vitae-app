@@ -971,21 +971,32 @@ function renderHoje(){
           return x.paciente && x.paciente.toLowerCase().trim() === nomeNorm;
         }) || null;
       }
-      // STATUS TEMPORAL: depende de tempo desde envio + resposta
-      var st='miss', stTxt='Sem PC criada', q='Médico ainda não enviou pré-consulta';
+      // STATUS TEMPORAL — Opção B: foco em tempo percebido (não estado abstrato)
+      var st='miss', stTxt='📤 Não enviada', q='Médico ainda não enviou pré-consulta';
       if (pc) {
         q = pc.queixaSnippet || '';
-        if (pc.alerta) { st='alert'; stTxt='Trecho marcado'; }
-        else if (pc.cobertura === 'pronta') { st='ready'; stTxt='Anamnese pronta'; }
-        else if (pc.cobertura === 'parcial') { st='partial'; stTxt='Parcial'; }
+        if (pc.alerta) { st='alert'; stTxt='⚠ Trecho marcado'; }
+        else if (pc.cobertura === 'pronta') {
+          st='ready';
+          var respDt = pc.respondidaEm ? new Date(pc.respondidaEm).getTime() : (pc.criadaEm ? new Date(pc.criadaEm).getTime() : 0);
+          var hAgo = respDt ? (Date.now() - respDt) / (1000 * 60 * 60) : 0;
+          var quando = hAgo < 1 ? 'agora' : (hAgo < 24 ? Math.floor(hAgo) + 'h atrás' : Math.floor(hAgo/24) + 'd atrás');
+          stTxt = '✓ Pronta · ' + quando;
+        }
+        else if (pc.cobertura === 'parcial') { st='partial'; stTxt='⊘ Resposta parcial'; }
         else {
-          // PC criada mas sem resposta — calcula tempo desde envio
           var enviadaEm = pc.criadaEm ? new Date(pc.criadaEm).getTime() : 0;
           var horasDesdeEnvio = enviadaEm ? (Date.now() - enviadaEm) / (1000 * 60 * 60) : 0;
           if (horasDesdeEnvio > 24) {
-            st = 'miss'; stTxt = 'Não respondeu'; q = 'Paciente recebeu há +24h e não gravou';
+            var diasAtraso = Math.floor(horasDesdeEnvio / 24);
+            st = 'miss';
+            stTxt = '⏰ ' + diasAtraso + ' dia' + (diasAtraso > 1 ? 's' : '') + ' sem resposta';
+            q = 'Paciente recebeu há +24h e não gravou';
           } else {
-            st = 'partial'; stTxt = 'Enviada'; q = 'Aguardando paciente responder';
+            var hRest = Math.max(0, 24 - Math.floor(horasDesdeEnvio));
+            st = 'partial';
+            stTxt = '⏱ Aguardando · ' + hRest + 'h';
+            q = 'Paciente recebeu o link';
           }
         }
       }
@@ -1078,17 +1089,29 @@ function renderPC(){
     html+='<div class="pcn-empty"><div class="pcn-empty-ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="pcn-empty-t">Nenhuma pré-consulta encontrada</div><div class="pcn-empty-d">Tenta limpar o filtro ou criar uma nova pré-consulta.</div><button class="btn btn-p" onclick="modalCriarPC()" style="margin-top:10px">Criar pré-consulta</button></div>';
   }else{
     filtered.forEach(function(p){
-      // Status temporal: Respondida (verde) > Trecho marcado (laranja) > Parcial (azul)
-      // > Enviada/Aguardando (laranja claro <24h) > Não respondeu (vermelho >24h)
-      var bcls='warn',btxt='Enviada';
-      if (p.alerta) { bcls='warn'; btxt='Trecho marcado'; }
-      else if (p.cobertura === 'pronta') { bcls='ok'; btxt='Respondida'; }
-      else if (p.cobertura === 'parcial') { bcls='info'; btxt='Parcial'; }
+      // Status temporal — Opção B (tempo percebido)
+      var bcls='warn', btxt='📤 Não enviada';
+      if (p.alerta) { bcls='warn'; btxt='⚠ Trecho marcado'; }
+      else if (p.cobertura === 'pronta') {
+        bcls='ok';
+        var respDt = p.respondidaEm ? new Date(p.respondidaEm).getTime() : (p.criadaEm ? new Date(p.criadaEm).getTime() : 0);
+        var hAgo = respDt ? (Date.now() - respDt) / (1000 * 60 * 60) : 0;
+        var quando = hAgo < 1 ? 'agora' : (hAgo < 24 ? Math.floor(hAgo) + 'h atrás' : Math.floor(hAgo/24) + 'd atrás');
+        btxt = '✓ Pronta · ' + quando;
+      }
+      else if (p.cobertura === 'parcial') { bcls='info'; btxt='⊘ Resposta parcial'; }
       else {
         var enviadaEm = p.criadaEm ? new Date(p.criadaEm).getTime() : 0;
         var horasDesdeEnvio = enviadaEm ? (Date.now() - enviadaEm) / (1000 * 60 * 60) : 0;
-        if (horasDesdeEnvio > 24) { bcls='bad'; btxt='Não respondeu'; }
-        else { bcls='warn'; btxt='Enviada'; }
+        if (horasDesdeEnvio > 24) {
+          var diasAtraso = Math.floor(horasDesdeEnvio / 24);
+          bcls='bad';
+          btxt = '⏰ ' + diasAtraso + ' dia' + (diasAtraso > 1 ? 's' : '') + ' sem resposta';
+        } else {
+          var hRest = Math.max(0, 24 - Math.floor(horasDesdeEnvio));
+          bcls='warn';
+          btxt = '⏱ Aguardando · ' + hRest + 'h';
+        }
       }
       // Click no card: respondida -> One Minute Summary | nao respondida -> tela Disparar (sem popup)
       var click;
@@ -1100,7 +1123,7 @@ function renderPC(){
         click = 'goto(\'disparar\')';
       }
       html+='<div class="pcn-trow" onclick="'+click+'">'+
-        '<div class="pcn-tr-pat"><div class="pcn-tr-av">'+p.ini+'</div><div style="min-width:0"><div class="pcn-tr-name">'+p.paciente+'</div><div class="pcn-tr-sub">'+(p.queixaSnippet||'—')+'</div></div></div>'+
+        '<div class="pcn-tr-pat"><div class="pcn-tr-av">'+p.ini+'</div><div style="min-width:0"><div class="pcn-tr-name">'+p.paciente+'</div></div></div>'+
         '<div class="pcn-tr-tpl">'+(p.templateNome||'Geral')+'</div>'+
         '<div><span class="pcn-tr-badge '+bcls+'"><span class="dot"></span>'+btxt+'</span></div>'+
         '<div class="pcn-tr-date">'+(p.recordedAt||'—')+'<div class="when">'+(new Date(p.criadaEm)).toLocaleDateString('pt-BR')+'</div></div>'+
@@ -1176,12 +1199,17 @@ try {
 function renderPacientes(){
   var q=(STATE.search.pac||'').toLowerCase();
   var f=STATE.filters.pac;
-  var filtered=PACIENTES.filter(function(p){
+  // Filtro base: SO pacientes que responderam pelo menos 1 pre-consulta.
+  // Pacientes apenas convidados/cadastrados sem nunca ter respondido nao
+  // poluem a lista. Se medico quiser pendentes, vai pra aba Pre-Consultas.
+  var soRespondidos = PACIENTES.filter(function(p){
+    return (p.pcsRespondidas && p.pcsRespondidas > 0) || (p.anamneses && p.anamneses > 0 && p.ultimaAtividade && p.ultimaAtividade !== '—');
+  });
+  var filtered=soRespondidos.filter(function(p){
     if(q&&p.nome.toLowerCase().indexOf(q)<0)return false;
     if(f==='recentes')return p.ultimaAtividade!=='—';
     if(f==='acomp')return p.anamneses>=2;
     if(f==='alerta')return p.status==='warn';
-    if(f==='no-anam')return p.anamneses===0;
     return true;
   });
   if(!filtered.find(function(p){return p.id===STATE.selectedPaciente;}) && filtered.length){
@@ -1189,14 +1217,15 @@ function renderPacientes(){
   }
 
   var html='';
-  html+='<div class="pct-header"><div><h1 class="pct-title">Seus <em>pacientes</em></h1><p class="pct-sub">'+PACIENTES.length+' cadastrados · '+PACIENTES.reduce(function(s,p){return s+p.anamneses;},0)+' anamneses gravadas</p></div><button class="btn btn-s" onclick="modalEmBreve(\'Exportar CSV\',\'Em desenvolvimento. Logo você poderá baixar a lista completa dos seus pacientes em CSV pra abrir em Excel ou importar em outros sistemas.\')"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button></div>';
+  var totalAnam = soRespondidos.reduce(function(s,p){return s+(p.anamneses||0);},0);
+  html+='<div class="pct-header"><div><h1 class="pct-title">Seus <em>pacientes</em></h1><p class="pct-sub">'+soRespondidos.length+' que já responderam · '+totalAnam+' pré-consulta'+(totalAnam!==1?'s':'')+' no total</p></div><button class="btn btn-s" onclick="modalEmBreve(\'Exportar CSV\',\'Em desenvolvimento. Logo você poderá baixar a lista completa dos seus pacientes em CSV pra abrir em Excel ou importar em outros sistemas.\')"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button></div>';
+  html+='<div style="font-size:11.5px;color:var(--t3);margin-bottom:12px;padding:8px 14px;background:rgba(0,0,0,.02);border-radius:8px;line-height:1.5">Lista de pacientes que responderam pelo menos uma pré-consulta. Pendentes ficam em <a href="#" onclick="goto(\'pre-consultas\');return false" style="color:#00A86F;font-weight:600;text-decoration:none">Pré-Consultas</a>.</div>';
   html+='<div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="searchPacInput" type="text" placeholder="Buscar nome, CPF, telefone..." oninput="_onSearch(event,\'pac\',renderPacientes,\'searchPacInput\')" value="'+q+'" style="width:100%;padding:11px 14px 11px 40px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none"/></div>';
   html+='<div class="pcn-pills">'+
-    '<button class="pcn-pill '+(f==='all'?'on':'')+'" onclick="setPacFilter(\'all\')">Todos <span class="pcn-ct">'+PACIENTES.length+'</span></button>'+
-    '<button class="pcn-pill '+(f==='recentes'?'on':'')+'" onclick="setPacFilter(\'recentes\')">Recentes (30d) <span class="pcn-ct">'+PACIENTES.filter(function(p){return p.ultimaAtividade!=='—';}).length+'</span></button>'+
-    '<button class="pcn-pill '+(f==='acomp'?'on':'')+'" onclick="setPacFilter(\'acomp\')">Em acompanhamento <span class="pcn-ct">'+PACIENTES.filter(function(p){return p.anamneses>=2;}).length+'</span></button>'+
-    '<button class="pcn-pill '+(f==='alerta'?'on':'')+'" onclick="setPacFilter(\'alerta\')">Com alerta <span class="pcn-ct">'+PACIENTES.filter(function(p){return p.status==='warn';}).length+'</span></button>'+
-    '<button class="pcn-pill '+(f==='no-anam'?'on':'')+'" onclick="setPacFilter(\'no-anam\')">Sem anamnese <span class="pcn-ct">'+PACIENTES.filter(function(p){return p.anamneses===0;}).length+'</span></button>'+
+    '<button class="pcn-pill '+(f==='all'?'on':'')+'" onclick="setPacFilter(\'all\')">Todos <span class="pcn-ct">'+soRespondidos.length+'</span></button>'+
+    '<button class="pcn-pill '+(f==='recentes'?'on':'')+'" onclick="setPacFilter(\'recentes\')">Recentes (30d) <span class="pcn-ct">'+soRespondidos.filter(function(p){return p.ultimaAtividade!=='—';}).length+'</span></button>'+
+    '<button class="pcn-pill '+(f==='acomp'?'on':'')+'" onclick="setPacFilter(\'acomp\')">Em acompanhamento <span class="pcn-ct">'+soRespondidos.filter(function(p){return p.anamneses>=2;}).length+'</span></button>'+
+    '<button class="pcn-pill '+(f==='alerta'?'on':'')+'" onclick="setPacFilter(\'alerta\')">Com alerta <span class="pcn-ct">'+soRespondidos.filter(function(p){return p.status==='warn';}).length+'</span></button>'+
   '</div>';
 
   html+='<div class="pat-grid">';
@@ -1237,7 +1266,7 @@ function renderPacienteDetailInline(){
   html+='<div style="display:flex;align-items:center;gap:14px;padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:22px"><div class="pat-item-av" style="width:54px;height:54px;font-size:17px">'+p.ini+'</div><div style="flex:1;min-width:0"><div style="font-size:21px;font-weight:900;letter-spacing:-.4px">'+p.nome+'</div><div style="font-size:12px;color:var(--t3);margin-top:3px">'+p.idade+' anos · '+(p.sexo==='F'?'feminino':'masculino')+' · sangue '+p.sangue+(p.anamneses>0?' · '+p.anamneses+' pré-consulta'+(p.anamneses>1?'s':''):'')+'</div></div></div>';
 
   if(!eventos.length){
-    html+='<div class="pat-empty-detail"><div style="width:48px;height:48px;border-radius:14px;background:var(--bg);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;color:var(--t3)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:6px">Sem anamneses ainda</div><div style="font-size:12.5px;color:var(--t3);max-width:380px;margin:0 auto 18px;line-height:1.55">Quando este paciente gravar a primeira pré-consulta, aparece aqui na linha do tempo.</div><button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')">Disparar pré-consulta</button></div>';
+    html+='<div class="pat-empty-detail"><div style="width:48px;height:48px;border-radius:14px;background:var(--bg);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;color:var(--t3)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:6px">Sem anamneses ainda</div><div style="font-size:12.5px;color:var(--t3);max-width:380px;margin:0 auto 18px;line-height:1.55">Quando este paciente gravar a primeira pré-consulta, aparece aqui na linha do tempo.</div><button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')">Enviar pré-consulta</button></div>';
   }else{
     html+='<div class="section-lbl" style="margin-top:0">Linha do tempo de anamneses</div><div class="tl-strip">';
     eventos.forEach(function(e){
@@ -1280,10 +1309,10 @@ function renderPacienteDetail(){
   if(!p){goto('pacientes');return;}
   var eventos=EVENTOS_MOCK[p.id]||[];
   var html='<button class="pt-detail-back" onclick="goto(\'pacientes\')"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Voltar para lista</button>';
-  html+='<div class="pt-head"><div class="pt-av-big">'+p.ini+'</div><div style="flex:1"><div class="pt-name-big">'+p.nome+'</div><div class="pt-meta-big">'+p.idade+' anos · '+(p.sexo==='F'?'feminino':'masculino')+' · sangue '+p.sangue+' · '+p.telefone+(p.anamneses>0?' · '+p.anamneses+' pré-consulta'+(p.anamneses>1?'s':''):'')+'</div></div><button class="btn btn-p" onclick="modalCriarPC(\''+p.id+'\')" style="height:38px"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Disparar pré-consulta</button></div>';
+  html+='<div class="pt-head"><div class="pt-av-big">'+p.ini+'</div><div style="flex:1"><div class="pt-name-big">'+p.nome+'</div><div class="pt-meta-big">'+p.idade+' anos · '+(p.sexo==='F'?'feminino':'masculino')+' · sangue '+p.sangue+' · '+p.telefone+(p.anamneses>0?' · '+p.anamneses+' pré-consulta'+(p.anamneses>1?'s':''):'')+'</div></div><button class="btn btn-p" onclick="modalCriarPC(\''+p.id+'\')" style="height:38px"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Enviar pré-consulta</button></div>';
 
   if(!eventos.length){
-    html+='<div class="pcn-empty"><div class="pcn-empty-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="pcn-empty-t">Sem anamneses ainda</div><div class="pcn-empty-d">Quando este paciente gravar a primeira pré-consulta, aparece aqui na linha do tempo.</div><button class="btn btn-p" onclick="modalCriarPC(\''+p.id+'\')" style="margin-top:10px">Disparar pré-consulta</button></div>';
+    html+='<div class="pcn-empty"><div class="pcn-empty-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="pcn-empty-t">Sem anamneses ainda</div><div class="pcn-empty-d">Quando este paciente gravar a primeira pré-consulta, aparece aqui na linha do tempo.</div><button class="btn btn-p" onclick="modalCriarPC(\''+p.id+'\')" style="margin-top:10px">Enviar pré-consulta</button></div>';
   }else{
     html+='<div class="section-lbl" style="margin-top:0">Linha do tempo de anamneses</div><div class="tl-strip">';
     eventos.forEach(function(e){
@@ -1513,27 +1542,41 @@ function renderCriarPC(){
   html+='<div>';
 
   /* card dados do paciente */
+  var formDisabled = !!(s && s.linkGerado);
+  var disabledAttr = formDisabled ? 'disabled' : '';
+  var disabledStyle = formDisabled ? ';background:var(--bg);color:var(--t3);cursor:not-allowed' : '';
   html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:14px">';
   html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div style="font-size:15px;font-weight:800;color:var(--t1)">Dados do paciente</div></div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
-  html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">Nome completo *</label><input id="cpcNome" placeholder="Ex: Maria da Silva" value="'+s.nome+'" oninput="CRIAR_PC_STATE.nome=this.value" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none"/></div>';
-  html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">WhatsApp</label><input id="cpcPhone" placeholder="(11) 99999-9999" value="'+s.phone+'" oninput="CRIAR_PC_STATE.phone=this.value" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none"/></div>';
+  html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">Nome completo *</label><input id="cpcNome" '+disabledAttr+' placeholder="Ex: Maria da Silva" value="'+escapeHtml(s.nome)+'" oninput="CRIAR_PC_STATE.nome=this.value" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none'+disabledStyle+'"/></div>';
+  html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">WhatsApp <span style="color:var(--t4);font-weight:500">(opcional)</span></label><input id="cpcPhone" '+disabledAttr+' placeholder="(11) 99999-9999" value="'+escapeHtml(s.phone)+'" inputmode="numeric" maxlength="15" oninput="CRIAR_PC_STATE.phone=mascararTelefone(this);" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none'+disabledStyle+'"/></div>';
   html+='</div>';
-  html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">Email <span style="color:var(--t4);font-weight:500">(opcional)</span></label><input id="cpcEmail" placeholder="paciente@email.com" type="email" value="'+s.email+'" oninput="CRIAR_PC_STATE.email=this.value" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none"/></div>';
+  html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">Email <span style="color:var(--t4);font-weight:500">(opcional)</span></label><input id="cpcEmail" '+disabledAttr+' placeholder="paciente@email.com" type="email" value="'+escapeHtml(s.email)+'" oninput="CRIAR_PC_STATE.email=this.value" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none'+disabledStyle+'"/></div>';
   html+='</div>';
 
   /* card consulta */
   html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:14px">';
   html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div style="font-size:15px;font-weight:800;color:var(--t1)">Consulta</div></div>';
   html+='<div style="margin-bottom:14px"><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">Template</label>';
-  html+='<select id="cpcTpl" onchange="CRIAR_PC_STATE.templateId=this.value" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none">';
+  html+='<select id="cpcTpl" '+disabledAttr+' onchange="CRIAR_PC_STATE.templateId=this.value" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none'+disabledStyle+'">';
   TEMPLATES.forEach(function(t){html+='<option value="'+t.id+'" '+(s.templateId===t.id?'selected':'')+'>'+t.nome+(t.padrao?' · padrão':'')+' · '+t.perguntas+' perguntas</option>';});
   html+='</select></div>';
-  html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">Observações para o paciente <span style="color:var(--t4);font-weight:500">(opcional)</span></label><textarea id="cpcObs" placeholder="Ex: Traga exames recentes, venha em jejum..." oninput="CRIAR_PC_STATE.obs=this.value" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;min-height:90px;resize:vertical;line-height:1.5">'+s.obs+'</textarea></div>';
+  html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">Observações para o paciente <span style="color:var(--t4);font-weight:500">(opcional)</span></label><textarea id="cpcObs" '+disabledAttr+' placeholder="Ex: Traga exames recentes, venha em jejum..." oninput="CRIAR_PC_STATE.obs=this.value" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;min-height:90px;resize:vertical;line-height:1.5'+disabledStyle+'">'+escapeHtml(s.obs)+'</textarea></div>';
   html+='</div>';
 
-  /* botão gerar e enviar */
-  html+='<button class="btn btn-p" onclick="cpcGerarEEnviar()" style="width:100%;height:54px;font-size:15px;font-weight:800;border-radius:14px;box-shadow:0 6px 20px rgba(0,229,160,.28)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Gerar link e enviar</button>';
+  /* SEM link gerado: botão Gerar link */
+  if (!formDisabled) {
+    var nomeOk = (s.nome||'').trim().length >= 2;
+    html+='<button class="btn btn-p" '+(nomeOk?'':'disabled')+' onclick="cpcGerarEEnviar()" style="width:100%;height:54px;font-size:15px;font-weight:800;border-radius:14px;'+(nomeOk?'box-shadow:0 6px 20px rgba(0,229,160,.28)':'opacity:.5;cursor:not-allowed')+'"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Gerar link</button>';
+  } else {
+    /* COM link gerado: seção do link copiável + ações */
+    html+='<div style="background:rgba(0,196,122,.06);border:1px solid rgba(0,196,122,.30);border-radius:14px;padding:20px;margin-bottom:14px">';
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;font-weight:700;color:#00A86F"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'+(s.whatsappAberto?'Link gerado · WhatsApp aberto em outra aba':'Link gerado · cole onde quiser enviar')+'</div>';
+    html+='<div style="display:flex;gap:8px;align-items:stretch"><input id="cpcLinkOutput" readonly value="'+escapeHtml(s.linkGerado)+'" style="flex:1;padding:11px 14px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-family:monospace;font-size:12.5px;color:var(--t1);outline:none"/>';
+    html+='<button class="btn btn-p" onclick="cpcCopiarLink()" style="height:auto;padding:0 18px;font-size:13px;white-space:nowrap"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar</button></div>';
+    html+='</div>';
+    html+='<div style="display:flex;gap:10px"><button class="btn btn-ghost" onclick="goto(\'pre-consultas\')" style="flex:1;height:48px">Fechar</button><button class="btn btn-p" onclick="abrirCriarPC()" style="flex:1;height:48px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nova pré-consulta</button></div>';
+  }
 
   html+='</div>';
 
@@ -1555,28 +1598,123 @@ function renderCriarPC(){
   $('v-criar-pc').innerHTML=html;
 }
 
-function cpcGerarEEnviar(){
-  var s=CRIAR_PC_STATE;
-  if(!s.nome.trim()){toastT('Preencha o nome do paciente','warn');var i=document.getElementById('cpcNome');if(i)i.focus();return;}
-  /* animação IA gerar */
-  var html='<div style="max-width:560px;margin:80px auto;text-align:center;padding:40px;background:var(--surface);border:1px solid var(--border);border-radius:20px"><div class="ia-orb" style="margin:0 auto 20px"></div><div style="font-size:18px;font-weight:900;letter-spacing:-.3px;margin-bottom:6px" id="cpcStg">Gerando link único da pré-consulta</div><div style="font-size:13px;color:var(--t3);margin-bottom:18px"><span class="ia-dots"><span></span><span></span><span></span></span></div><div class="ia-bar" style="max-width:280px;margin:0 auto"><div class="ia-bar-fill" style="animation-duration:2.6s"></div></div></div>';
-  $('v-criar-pc').innerHTML=html;
-  setTimeout(function(){var e=document.getElementById('cpcStg');if(e)e.textContent='Personalizando template '+(TEMPLATES.find(function(t){return t.id===s.templateId;})||{}).nome+' para '+s.nome.split(' ')[0];},900);
-  setTimeout(function(){var e=document.getElementById('cpcStg');if(e)e.textContent='Disparando WhatsApp para '+s.phone;},1800);
-  setTimeout(function(){
-    /* sucesso */
-    var html2='<div style="max-width:480px;margin:80px auto;text-align:center;padding:50px 40px;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:0 4px 30px rgba(0,0,0,.05)">';
-    html2+='<div style="width:72px;height:72px;border-radius:50%;background:rgba(0,196,122,.14);display:inline-flex;align-items:center;justify-content:center;margin-bottom:18px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>';
-    html2+='<div style="font-size:22px;font-weight:900;letter-spacing:-.4px;margin-bottom:8px">Pré-consulta enviada</div>';
-    html2+='<div style="font-size:13.5px;color:var(--t3);line-height:1.55;max-width:380px;margin:0 auto 22px"><strong style="color:var(--t1)">'+s.nome+'</strong> vai receber a mensagem em segundos. Você é avisado quando ele responder.</div>';
-    html2+='<div style="display:flex;gap:8px;justify-content:center"><button class="btn btn-s" onclick="goto(\'pre-consultas\')">Ver lista</button><button class="btn btn-p" onclick="abrirCriarPC()">Criar outra</button></div>';
-    html2+='</div>';
-    $('v-criar-pc').innerHTML=html2;
-    /* adiciona PC mock */
-    var pc={pacienteId:s.pacienteId||'p-novo',paciente:s.nome,ini:s.nome.split(' ').map(function(p){return p[0];}).slice(0,2).join('').toUpperCase(),status:'PENDENTE',cobertura:'sem',criadaEm:new Date().toISOString(),recordedAt:'agora há pouco',queixaSnippet:'Aguardando paciente responder',templateNome:(TEMPLATES.find(function(t){return t.id===s.templateId;})||{nome:'Geral'}).nome};
-    PCS['pc-'+Date.now()]=pc;
-  },2700);
+// Helper: extrai só dígitos de um texto
+function _soDigitos(s){ return String(s||'').replace(/\D/g,''); }
+
+// Máscara de telefone (XX) XXXXX-XXXX — aplicada conforme médico digita
+function mascararTelefone(input){
+  var d = _soDigitos(input.value).slice(0, 11);
+  var out = '';
+  if (d.length > 0) out = '(' + d.slice(0,2);
+  if (d.length >= 3) out += ') ' + d.slice(2,7);
+  if (d.length >= 8) out += '-' + d.slice(7,11);
+  input.value = out;
+  return d; // retorna só os dígitos pra salvar no STATE
 }
+window.mascararTelefone = mascararTelefone;
+
+async function cpcGerarEEnviar(){
+  var s = CRIAR_PC_STATE;
+  if (!s.nome || !s.nome.trim() || s.nome.trim().length < 2) {
+    toast('Preencha o nome do paciente');
+    var i = document.getElementById('cpcNome'); if (i) i.focus();
+    return;
+  }
+
+  // Telefone (se preenchido) precisa estar completo (11 dígitos)
+  var telefoneDigitos = _soDigitos(s.phone);
+  if (telefoneDigitos && telefoneDigitos.length !== 11) {
+    toast('Telefone incompleto — precisa de DDD + 9 dígitos');
+    var t = document.getElementById('cpcPhone'); if (t) t.focus();
+    return;
+  }
+
+  // 1) ABRE WHATSAPP IMEDIATAMENTE no clique (user-initiated, sem bloqueio popup)
+  // Janela vazia agora; URL final preenchida quando link voltar do backend
+  var waWindow = null;
+  if (telefoneDigitos) {
+    try { waWindow = window.open('about:blank', '_blank'); } catch(_e){}
+  }
+
+  // 2) Tela de loading na propria view (mantem layout da tela criar-pc)
+  var htmlLoading = '<div style="max-width:560px;margin:80px auto;text-align:center;padding:40px;background:var(--surface);border:1px solid var(--border);border-radius:20px"><div class="ia-orb" style="margin:0 auto 20px"></div><div style="font-size:18px;font-weight:900;letter-spacing:-.3px;margin-bottom:6px" id="cpcStg">Gerando link único da pré-consulta</div><div style="font-size:13px;color:var(--t3);margin-bottom:18px"><span class="ia-dots"><span></span><span></span><span></span></span></div><div class="ia-bar" style="max-width:280px;margin:0 auto"><div class="ia-bar-fill" style="animation-duration:2s"></div></div></div>';
+  $('v-criar-pc').innerHTML = htmlLoading;
+
+  setTimeout(function(){var e=document.getElementById('cpcStg');if(e)e.textContent='Personalizando template para '+s.nome.split(' ')[0];}, 700);
+
+  // 3) Cria pré-consulta no backend
+  var pcCriada = null;
+  try {
+    if (window.BACKEND && typeof window.BACKEND.criarPC === 'function') {
+      pcCriada = await window.BACKEND.criarPC({
+        pacienteNome: s.nome.trim(),
+        pacienteTel: telefoneDigitos ? '+55' + telefoneDigitos : null,
+        pacienteEmail: (s.email || '').trim() || null,
+        templateId: s.templateId,
+        observacoes: (s.obs || '').trim() || null
+      });
+    }
+  } catch(_e){ pcCriada = null; }
+
+  // Pega token + monta link real
+  var pc = (pcCriada && (pcCriada.preConsulta || pcCriada)) || null;
+  var token = pc && (pc.linkToken || pc.token) || ('mock-' + Date.now());
+  var link = 'https://vitae-app.vercel.app/pre-consulta.html?token=' + encodeURIComponent(token);
+
+  // 4) Se telefone preenchido, redireciona janela WhatsApp pra URL final com mensagem pronta
+  if (telefoneDigitos && waWindow) {
+    var nomeMedico = (DR && DR.nome) ? DR.nome.split(' ')[0] : 'seu médico';
+    var primNome = s.nome.split(' ')[0];
+    var msg = 'Olá ' + primNome + ', sou o(a) ' + nomeMedico + '. Antes da nossa consulta, preciso que você responda essa pré-consulta. Leva 7 minutos: ' + link;
+    var waUrl = 'https://wa.me/55' + telefoneDigitos + '?text=' + encodeURIComponent(msg);
+    try { waWindow.location.href = waUrl; } catch(_e){
+      try { waWindow.close(); } catch(_e2){}
+    }
+  }
+
+  // 5) Atualiza STATE com link gerado e re-renderiza tela (formulário desabilitado + link embaixo)
+  CRIAR_PC_STATE.linkGerado = link;
+  CRIAR_PC_STATE.whatsappAberto = !!(telefoneDigitos && waWindow);
+  CRIAR_PC_STATE.tokenGerado = token;
+  setTimeout(function(){ renderCriarPC(); }, 500);
+
+  // 6) Atualiza lista PCS local com a nova pré-consulta (pra aparecer na tela Pré-Consultas)
+  if (pc) {
+    var nomePac = pc.pacienteNome || s.nome;
+    PCS[pc.id || token] = {
+      id: pc.id || token,
+      pacienteId: (pc.paciente && pc.paciente.id) || pc.pacienteId || null,
+      pacienteNome: nomePac,
+      paciente: nomePac,
+      ini: nomePac.split(' ').filter(Boolean).slice(0,2).map(function(x){return x[0];}).join('').toUpperCase(),
+      status: 'aguardando',
+      linkToken: token,
+      criada: pc.criadoEm || new Date().toISOString(),
+      criadaEm: pc.criadoEm || new Date().toISOString(),
+      recordedAt: 'agora há pouco',
+      templateNome: (TEMPLATES.find(function(t){return t.id===s.templateId;})||{nome:'Geral'}).nome,
+      cobertura: 'sem',
+      queixaSnippet: 'Aguardando paciente responder'
+    };
+  }
+}
+
+async function cpcCopiarLink(){
+  var link = (CRIAR_PC_STATE && CRIAR_PC_STATE.linkGerado) || '';
+  if (!link) { toast('Nenhum link gerado ainda'); return; }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(link);
+    } else {
+      var t = document.createElement('textarea'); t.value = link; t.style.position='fixed'; t.style.opacity='0';
+      document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
+    }
+    toast('Link copiado');
+  } catch(_e){ toast('Não consegui copiar'); }
+}
+
+window.cpcGerarEEnviar = cpcGerarEEnviar;
+window.cpcCopiarLink = cpcCopiarLink;
 
 function modalCriarPC(pacienteId){abrirCriarPC(pacienteId);return;
   /* legacy popup mantido inacessível abaixo */
@@ -1679,7 +1817,7 @@ function modalConectarCalendar(){
   html+='<div class="modal-body">';
   if(conectado){
     html+='<div style="padding:14px 16px;background:rgba(0,196,122,.10);border:1px solid rgba(0,196,122,.22);border-radius:12px;margin-bottom:18px;display:flex;align-items:center;gap:10px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><div><div style="font-size:13px;font-weight:700;color:#00C47A">Conectado'+(emailReal?' como <span style="font-family:monospace">'+emailReal+'</span>':'')+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Sua agenda é lida 24h antes de cada consulta</div></div></div>';
-    html+='<div class="field-block"><label>Disparar pré-consulta automaticamente</label><div style="display:flex;gap:8px"><button class="pcn-pill on">24h antes</button><button class="pcn-pill">48h antes</button><button class="pcn-pill">Manual</button></div></div>';
+    html+='<div class="field-block"><label>Enviar pré-consulta automaticamente</label><div style="display:flex;gap:8px"><button class="pcn-pill on">24h antes</button><button class="pcn-pill">48h antes</button><button class="pcn-pill">Manual</button></div></div>';
     html+='<div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-s btn-sm" onclick="trocarContaCalendar()">Trocar conta</button><button class="btn btn-danger-x btn-sm" onclick="desconectarCalendar()">Desconectar</button></div>';
   }else{
     html+='<div style="text-align:center;padding:20px 10px 30px"><div style="width:56px;height:56px;border-radius:14px;background:var(--bg);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--t2)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div style="font-size:18px;font-weight:900;margin-bottom:8px">Conecte seu Google Calendar</div><div style="font-size:13px;color:var(--t3);line-height:1.55;max-width:380px;margin:0 auto 18px">VITAE lê os eventos do seu calendário e dispara pré-consulta 24h antes da consulta. Não modifica nada.</div></div>';
@@ -2192,7 +2330,7 @@ function sheetPaciente(pid){
   var p=PACIENTES.find(function(x){return x.id===pid;}); if(!p)return;
   openSheet(
     '<div style="font-size:14px;font-weight:800;margin-bottom:14px;text-align:center">'+p.nome+'</div>'+
-    '<div class="sheet-row" onclick="closeSheet();modalCriarPC(\''+pid+'\')"><div class="sheet-ico"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div><div class="sheet-t">Disparar pré-consulta</div><div class="sheet-d">Nova anamnese para esse paciente</div></div></div>'+
+    '<div class="sheet-row" onclick="closeSheet();modalCriarPC(\''+pid+'\')"><div class="sheet-ico"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div><div class="sheet-t">Enviar pré-consulta</div><div class="sheet-d">Nova anamnese para esse paciente</div></div></div>'+
     '<div class="sheet-row" onclick="closeSheet();modalVerExames(\''+pid+'\')"><div class="sheet-ico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><div class="sheet-t">Ver exames</div></div></div>'+
     '<div class="sheet-row" onclick="closeSheet();modalVerAlergias(\''+pid+'\')"><div class="sheet-ico"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div><div><div class="sheet-t">Ver alergias</div></div></div>'+
     '<div class="sheet-row" onclick="closeSheet();modalVerMeds(\''+pid+'\')"><div class="sheet-ico"><svg viewBox="0 0 24 24"><rect x="2" y="9" width="20" height="6" rx="3"/></svg></div><div><div class="sheet-t">Ver medicamentos</div></div></div>'+
@@ -2948,7 +3086,7 @@ function renderCalendarConectado(){
       var hora = inicio ? inicio.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
       var statusBadge = s.ignorado
         ? '<span class="cal-event-badge ig">⊘ ignorado</span>'
-        : '<span class="cal-event-badge ok">✓ vai disparar PC</span>';
+        : '<span class="cal-event-badge ok">✓ vai enviar pré-consulta</span>';
       var actBtn = s.ignorado
         ? '<button class="cal-event-btn" onclick="reativarSlot(\''+s.id+'\')">Reativar</button>'
         : '<button class="cal-event-btn" onclick="ignorarSlot(\''+s.id+'\')">Ignorar</button>';
@@ -2970,7 +3108,7 @@ function renderCalendarConectado(){
   if (!st.pausado) {
     html += '<button class="cal-quick-btn" onclick="modalPausarDisparos()">'
       +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
-      +'<span>Pausar disparos por X dias</span></button>';
+      +'<span>Pausar envios por X dias</span></button>';
   }
   html += '<button class="cal-quick-btn" onclick="STATE.calendar.step=\'historico\';renderCalendar()">'
     +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'
@@ -2993,9 +3131,9 @@ function renderCalendarConectado(){
     var nIds = (st.calendarIds || []).length;
     html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Quais agendas detectar</div><div class="cm-tog-d">'+(nIds === 0 ? 'Usando agenda principal' : nIds+' agenda'+(nIds>1?'s':'')+' selecionada'+(nIds>1?'s':''))+'</div></div><button class="btn btn-ghost btn-sm" onclick="STATE.calendar.step=\'selecionar-agendas\';renderCalendar()">Ajustar</button></div>';
 
-    // Sub-bloco: quando disparar PC
+    // Sub-bloco: quando enviar pré-consulta
     var quando = (DR.config && DR.config.quandoDispararPc) || '24h';
-    html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Quando disparar pré-consulta</div><div class="cm-tog-d">Antes da consulta marcada</div></div><div class="cal-pills">'
+    html += '<div class="cm-tog-row"><div><div class="cm-tog-l">Quando enviar pré-consulta</div><div class="cm-tog-d">Antes da consulta marcada</div></div><div class="cal-pills">'
       +pillBtn('24h','24h antes',quando)
       +pillBtn('48h','48h antes',quando)
       +pillBtn('12h','12h antes',quando)
@@ -3109,7 +3247,7 @@ function renderCalendarHistorico(){
       var inicio = s.inicio ? new Date(s.inicio) : null;
       var data = inicio ? inicio.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}) : '';
       var hora = inicio ? inicio.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
-      var badge = s.ignorado ? '<span class="cal-event-badge ig">⊘ ignorado</span>' : '<span class="cal-event-badge ok">✓ vai disparar PC</span>';
+      var badge = s.ignorado ? '<span class="cal-event-badge ig">⊘ ignorado</span>' : '<span class="cal-event-badge ok">✓ vai enviar pré-consulta</span>';
       var actBtn = s.ignorado
         ? '<button class="cal-event-btn" onclick="reativarSlot(\''+s.id+'\')">Reativar</button>'
         : '<button class="cal-event-btn" onclick="ignorarSlot(\''+s.id+'\')">Ignorar</button>';
@@ -3235,7 +3373,7 @@ async function resyncCalendarAgora(){
 }
 
 function modalPausarDisparos(){
-  var html = '<div style="text-align:center"><h2 style="font-size:20px;font-weight:900;margin-bottom:8px">Pausar disparos</h2><p style="font-size:13px;color:var(--t3);margin-bottom:20px">VITAE continua detectando consultas, mas não dispara pré-consultas até você reativar.</p>';
+  var html = '<div style="text-align:center"><h2 style="font-size:20px;font-weight:900;margin-bottom:8px">Pausar envios</h2><p style="font-size:13px;color:var(--t3);margin-bottom:20px">VITAE continua detectando consultas, mas não envia pré-consultas até você reativar.</p>';
   html += '<div style="display:flex;flex-direction:column;gap:8px;max-width:280px;margin:0 auto">';
   ['1','3','7','14','30'].forEach(function(d){
     html += '<button class="btn btn-p btn-lg" onclick="pausarDisparos('+d+');closeModal()">Pausar por '+d+' dia'+(d==='1'?'':'s')+'</button>';
