@@ -3400,19 +3400,34 @@ window.BACKEND = (function(){
 
   // ---------- BOOT autônomo ----------
   async function boot(){
-    // Detecta callback OAuth Google Calendar (volta com ?google=ok ou similar)
+    // Detecta callback OAuth Google Calendar (volta com ?gcal_ok=1&gcal_email=xxx)
     try {
       var params = new URLSearchParams(location.search);
       var pending = sessionStorage.getItem('vitae_calendar_oauth_pending');
-      if (params.get('google') === 'ok' || params.get('calendar') === 'connected' || pending) {
+      var gcalOk = params.get('gcal_ok') === '1' || params.get('google') === 'ok' || params.get('calendar') === 'connected';
+      if (gcalOk || pending) {
         sessionStorage.removeItem('vitae_calendar_oauth_pending');
         if (typeof window.verificarStatusGoogleCalendar === 'function') {
           await window.verificarStatusGoogleCalendar();
         }
-        if (typeof window.toast === 'function') window.toast('Google Calendar conectado');
+        var emailConectado = params.get('gcal_email') || '';
+        if (typeof window.toast === 'function') {
+          window.toast(emailConectado
+            ? 'Google Calendar conectado: ' + decodeURIComponent(emailConectado)
+            : 'Google Calendar conectado');
+        }
         // Limpa query string sem recarregar
-        if (params.get('google') || params.get('calendar')) {
-          history.replaceState({}, '', location.pathname + location.hash);
+        history.replaceState({}, '', location.pathname + (location.hash || '#perfil'));
+        // Garante que o medico ve a tela 4 (Conectado) com confirmacao visual
+        if (gcalOk) {
+          setTimeout(function(){
+            try {
+              if (typeof window.showView === 'function') window.showView('perfil');
+              if (typeof window.abrirCalendar === 'function') {
+                setTimeout(function(){ window.abrirCalendar('conectado'); }, 200);
+              }
+            } catch(e){}
+          }, 100);
         }
       }
     } catch(e){}

@@ -556,16 +556,12 @@ router.get('/google/callback', async (req, res, next) => {
     // Inicia sync inicial async (nao bloqueia)
     gcalSvc.sincronizar(medicoId, 90).catch(() => {});
 
+    // Redirect direto pro app com query string sinalizando sucesso.
+    // Frontend detecta no boot, mostra toast e atualiza estado sem
+    // o medico ver tela intermediaria estranha do dominio Railway.
     const frontendUrl = process.env.FRONTEND_URL || 'https://vitae-app.vercel.app';
-    res.send(`
-      <html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0A0A0A;color:#fff;">
-      <h1 style="color:#00E5A0;">Google Calendar conectado</h1>
-      <p>Conta: ${result.data.email}</p>
-      <p>VITAE NUNCA escreve no seu Google. Apenas leitura.</p>
-      <p style="margin-top:30px"><a href="${frontendUrl}/desktop/app-v2.html#perfil" style="color:#00B4D8;font-size:18px;text-decoration:none;padding:12px 24px;border:1px solid #00B4D8;border-radius:8px;display:inline-block;">Voltar ao VITAE</a></p>
-      <script>setTimeout(function(){location.href='${frontendUrl}/desktop/app-v2.html#perfil';}, 2500);</script>
-      </body></html>
-    `);
+    const emailEncoded = encodeURIComponent(result.data.email || '');
+    return res.redirect(302, `${frontendUrl}/desktop/app-v2.html?gcal_ok=1&gcal_email=${emailEncoded}#perfil`);
   } catch (e) { next(e); }
 });
 
