@@ -865,6 +865,11 @@ setInterval(tick,1000);tick();
 /* ROUTING */
 var TITLES={hoje:['Hoje','Cockpit do dia'],'pre-consultas':['Pré-Consultas','Suas pré-consultas'],pacientes:['Pacientes','Seus pacientes'],'pacientes-detail':['Pacientes','Histórico de anamneses'],templates:['Templates','Formulários'],'templates-criar':['Templates','Novo template'],perfil:['Meu Perfil','Configurações'],summary:['Pré-consulta','Resumo de 1 minuto'],disparar:['Disparar mensagem','Lembrete WhatsApp'],calendar:['Google Calendar','Integração'],'criar-pc':['Pré-Consultas','Nova pré-consulta']};
 function goto(view){
+  // Registra de onde veio o medico antes de entrar em Calendar
+  // (pra botao Voltar saber pra onde voltar — ex: Perfil → Calendar → Voltar = Perfil)
+  if (view === 'calendar' && STATE.view !== 'calendar') {
+    STATE._fromCalendar = STATE.view || 'perfil';
+  }
   STATE.view=view;
   ['hoje','pre-consultas','pacientes','pacientes-detail','templates','templates-criar','perfil','summary','disparar','calendar','criar-pc'].forEach(function(v){var el=$('v-'+v);if(el)el.style.display=(v===view?'block':'none');});
   document.querySelectorAll('.nl').forEach(function(n){n.classList.remove('on');});
@@ -2557,9 +2562,17 @@ function renderCalendar(){
   var step = STATE.calendar.step;
   var html = '';
 
-  // Botão voltar comum
-  var voltaPara = (STATE.view==='calendar') ? 'hoje' : STATE.view;
-  html += '<button class="pt-detail-back" onclick="goto(\''+voltaPara+'\')"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>';
+  // Botão voltar comum:
+  // - se está em sub-step (historico/selecionar-agendas) volta pra home Calendar
+  // - se está na home Calendar volta pra view de origem (perfil normalmente)
+  var voltarHandler;
+  if (step === 'historico' || step === 'selecionar-agendas') {
+    voltarHandler = "STATE.calendar.step=null;renderCalendar()";
+  } else {
+    var origem = STATE._fromCalendar || 'perfil';
+    voltarHandler = "goto('"+origem+"')";
+  }
+  html += '<button class="pt-detail-back" onclick="'+voltarHandler+'"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>';
 
   // ===== ESTADO: EM BREVE (OAuth desabilitado no servidor) =====
   if (emEspera && !conectado) {
@@ -2601,26 +2614,26 @@ function renderCalendar(){
 }
 
 // ---------- BUSCA dados frescos do backend pra home ----------
-// Estratégia: ao chegar na home Calendar, força sync com Google ANTES
-// de exibir status. Assim, eventos que o medico criou no Google aparecem
-// automaticamente sem precisar clicar em ↻ manual.
+// Estratégia balanceada: dados do banco SEMPRE vem rapido (UI nao trava).
+// Sync com Google so dispara se nunca sync ou se faz +60s da ultima.
+// Evita lentidao desnecessaria — medico abre/fecha Calendar varias vezes.
 async function fetchCalendarHomeData(forceSync){
   if (!window.BACKEND) return;
+  // Sempre busca status+historico do banco (rapido)
+  buscarStatusEHistorico();
+  // Decide se vale forçar sync com Google (caro)
   try {
-    // Se forceSync ou nao temos dados ainda, dispara sync-now em paralelo
-    // (nao espera — atualiza UI quando voltar)
-    if (forceSync !== false) {
+    var st = (STATE.calendar && STATE.calendar.statusReal) || {};
+    var ultSync = st.sincronizadoEm ? new Date(st.sincronizadoEm).getTime() : 0;
+    var idade = Date.now() - ultSync;
+    var precisaSync = forceSync === true || !ultSync || idade > 60000;
+    if (precisaSync) {
       window.BACKEND.api('/agenda/google/sync-now', { method: 'POST' })
         .then(function(r){ return r.json().catch(function(){ return {}; }); })
-        .then(function(){
-          // Apos sync, busca dados frescos
-          buscarStatusEHistorico();
-        })
-        .catch(function(){ /* offline ou token expirou — banner cuida */ });
+        .then(function(){ buscarStatusEHistorico(); })
+        .catch(function(){ /* offline — banner cuida */ });
     }
-    // Em paralelo busca o que ja tem (UI mostra rapido)
-    buscarStatusEHistorico();
-  } catch(e) { /* silencioso — banner offline cuida */ }
+  } catch(e) { /* silencioso */ }
 }
 
 async function buscarStatusEHistorico(){
@@ -3162,6 +3175,28 @@ function setQuandoDispararPc(val){
   renderCalendar();
 }
 
+// Exposicao global das funcoes Calendar (algumas chamadas via onclick
+// inline podem nao alcancar funcoes em escopos aninhados — garante).
+try {
+  window.abrirCalendar = abrirCalendar;
+  window.renderCalendar = renderCalendar;
+  window.fetchCalendarHomeData = fetchCalendarHomeData;
+  window.buscarStatusEHistorico = buscarStatusEHistorico;
+  window.carregarCalendarsLista = carregarCalendarsLista;
+  window.toggleCalendarSelecao = toggleCalendarSelecao;
+  window.salvarCalendarSelecao = salvarCalendarSelecao;
+  window.resyncCalendarAgora = resyncCalendarAgora;
+  window.modalPausarDisparos = modalPausarDisparos;
+  window.pausarDisparos = pausarDisparos;
+  window.cancelarPausa = cancelarPausa;
+  window.ignorarSlot = ignorarSlot;
+  window.reativarSlot = reativarSlot;
+  window.setQuandoDispararPc = setQuandoDispararPc;
+  window.conectarCalendarReal = conectarCalendarReal;
+  window.desconectarCalendar = desconectarCalendar;
+  window.trocarContaCalendar = trocarContaCalendar;
+} catch(_e){}
+
 // CSS pra novas telas Calendar
 (function injetarCssCalendar(){
   if (document.getElementById('css-cal-onb')) return;
@@ -3293,9 +3328,11 @@ function setQuandoDispararPc(val){
   .cal-adv-toggle:hover{border-color:var(--t3);color:var(--t1)}\
   .cal-adv-toggle .cal-adv-chev{margin-left:auto;transition:transform .2s}\
   .cal-adv-toggle.open .cal-adv-chev{transform:rotate(180deg)}\
-  .cal-adv-body{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 0;overflow:hidden}\
-  .cal-adv-body .cm-tog-row{padding:14px 18px;border-bottom:1px solid var(--border)}\
+  .cal-adv-body{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}\
+  .cal-adv-body .cm-tog-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;margin:0}\
   .cal-adv-body .cm-tog-row:last-child{border-bottom:0}\
+  .cal-adv-body .cm-tog-l{font-size:13.5px;font-weight:700;color:var(--t1)}\
+  .cal-adv-body .cm-tog-d{font-size:11.5px;color:var(--t3);margin-top:2px;line-height:1.4}\
   .cal-pills{display:flex;gap:6px;flex-wrap:wrap}\
   .cal-pills .pcn-pill{transition:none}\
   .cal-pills .pcn-pill:hover{border-color:var(--border);color:var(--t3);background:var(--surface)}\
