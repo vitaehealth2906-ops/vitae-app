@@ -576,6 +576,122 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 21 — 08/05/2026 — Reframe Calendar + 7 mudancas UX/PSF + 3 fixes finais
+
+**Contexto:** Sessao maraton apos publicacao OAuth Google em modo Production. Lucas testou e encontrou cascata de bugs visuais e funcionais. Decisao: reformulacao Calendar completa + reescrita dos fluxos de criacao de pre-consulta + remocao de matching telefone/email no backend.
+
+**Calendar reframe completo (manha-tarde):**
+- Bug CSRF cookie cross-site → JWT signed (causava "State CSRF invalido" em todo OAuth)
+- Tela preta intermediaria do Railway → redirect direto pro Vercel + toast de sucesso
+- FRONTEND_URL hardcoded github.io em 4 lugares → trocado pra Vercel
+- GitHub Pages DESATIVADO (`vitaehealth2906-ops.github.io` para de servir)
+- Tela "Selecionar agendas" (NOVA): lista agendas Google com cor real + categoria + recomendado + multi-toggle
+- Home Calendar reformulada em 5 blocos progressive disclosure (status real, metricas, lista com status, acoes rapidas, configs avancadas em ▼)
+- Tela "Historico de PCs" (NOVA)
+- Filtro all-day events: aniversarios/feriados/lembretes nao viram mais bloqueios
+- Titulo do evento + nome da agenda mostrados na lista (resolve "Evento Google" generico)
+- Auto-sync condicional (so se ultima sync >60s) — reduz lentidao
+- Cache localStorage + render incremental no boot (UI viva em <50ms)
+
+**Bugs corrigidos no Calendar (varios pequenos):**
+- Texto inconsistente "7 dias" vs header "90 DIAS" → corrigido
+- Pills 24h/48h/12h/Manual piscando hover → transition:none + hover estavel
+- Botoes "Pausar" e "Ver historico" piscando hover → mesma fix
+- Box "Configuracoes avancadas" com fundo cinza estourando → CSS override sobrescrevendo `.cm-tog-row` global
+- Botao "Voltar" jogava pra Hoje → memoriza origem em STATE._fromCalendar
+- Funcoes Calendar nao acessiveis via onclick inline → expostas em window globalmente
+- Lentidao boot → cache + fetch em paralelo sem await
+- Auto-sync caro disparado a cada abertura → so se >60s da ultima
+
+**Estudo profundo PSF (tarde-noite):**
+
+Lucas pediu nao implementar nada. Estudo PSF dos 2 publicos (Helena medico + Maria paciente) usando Vault Obsidian (PROBLEMA-CENTRAL, SOLUCAO-VITAE, HIPOTESES-NAO-VALIDADAS).
+
+Insights chave:
+- Vault original linha 136 do "Para o Medico": "Link simples via WhatsApp, audio em vez de texto, **sem cadastro pro paciente responder**" — mas codigo atual obriga cadastro vita id (decisao posterior por LGPD/RG digital)
+- iClinic API: docs.iclinic.com.br so tem importacao CSV, sem GET agendamentos. Doctoralia tem REST API mas exige parceria comercial
+- **Insight desbloqueador:** iClinic JA sincroniza nativamente com Google Calendar. Logo, Google e o **denominador comum** do mercado, nao concorrente
+- **Decisao revisada:** NAO pivotar pra iClinic/Doctoralia. Reframe Google como hub + onboarding inteligente
+
+**Insight do Lucas (genial):** "o LINK da pre consulta deve ser esse vinculo, essa tag" — o token unico do link e a verdade, nao precisa verificar telefone/email. Resolveu definitivamente o bug Julia Alves.
+
+**7 mudancas UX/PSF aprovadas e implementadas:**
+
+1. Tela Nova pre-consulta: telefone/email opcionais + mascara automatica `(XX) XXXXX-XXXX`
+2. Click "Gerar link": abre WhatsApp Web em aba nova com mensagem pronta + na mesma tela do VITAE aparece link copiavel embaixo (formulario fica desabilitado/cinza). REMOVIDA tela "Pre-consulta enviada · Ver lista · Criar outra"
+3. Backend `vincularPaciente`: removido matching por telefone/email. Token e o vinculo unico. Paciente loga via JWT, backend usa pacienteIdLogado direto
+4. Lista Pacientes: filtra `pcsRespondidas > 0`. Pacientes apenas convidados/cadastrados sem responder nao aparecem. Pendentes ficam em Pre-Consultas. Filtro "Sem anamnese" removido das pills
+5. Lista Pre-Consultas: removida descricao da queixa abaixo do nome (`pcn-tr-sub`)
+6. Tags Agenda da Semana — Opcao B (Tempo Percebido):
+   - "📤 Não enviada" (sem PC)
+   - "⏱ Aguardando · 18h" (PC <24h sem resposta)
+   - "⏰ 3 dias sem resposta" (PC >24h)
+   - "✓ Pronta · 2h atrás" (respondida)
+   - "⚠ Trecho marcado" (alerta prosodico)
+   - "⊘ Resposta parcial"
+   Aplicado tanto em renderHoje quanto em renderPC
+7. Migracao retroativa orfas: 29 PCs orfas verificadas, criterio restrito (nome+tel+email exatos), nenhuma vinculada. Filtro Mudanca 4 esconde naturalmente
+
+**Vocabulario institucional aplicado em todo o app:**
+- "PC" → "pré-consulta"
+- "Disparar PC" → "Enviar pré-consulta"
+- "vai disparar PC" → "vai enviar pré-consulta"
+- "Pausar disparos" → "Pausar envios"
+
+**3 bugs polimento final (apos teste do Lucas):**
+- openSummary aceita PC respondida sem `descricao` curta. Antes bloqueava silencioso com toast "Esta pré-consulta ainda não foi respondida". Agora: se foiRespondida (respondidaEm OU cobertura pronta/parcial OU tem dado clinico), abre. Defaults seguros pra campos undefined evitam quebra
+- Botao "Copiar link" some em PC respondida (cobertura='pronta'/'parcial'). Manter so lixeira. Pendentes mantem os 2
+- Painel direito Pacientes: trocado "Sem anamneses ainda" por skeleton de loading (3 cards cinza com pulse). Como filtro Mudanca 4 garante que so pacientes com PC aparecem, esse empty state era codigo morto que so aparecia durante loading
+
+**Schema mudancas (Calendar UX):**
+- `medicos.googleCalendarIds` String[] @default([])
+- `medicos.googleSyncedAt` DateTime?
+- `medicos.pausadoAte` DateTime?
+- `agenda_slots.ignorado` Boolean @default(false)
+- `agenda_slots.tituloEvento` String? @db.Text
+- `agenda_slots.calendarNome` String?
+
+Migration aplicada via psql direto (NAO `--accept-data-loss`). 6 → 6 slots, 7 → 7 medicos. ZERO PERDA.
+
+**Cleanup banco:** 7 slots GOOGLE_IMPORT antigos deletados pra forcar resync limpo com filtro all-day novo.
+
+**Commits desta sessao:**
+- 72b0b6c: fix CSRF cookie → JWT signed
+- 826746f: fix UX OAuth (sem tela preta intermediaria)
+- f012c65: troca defaults FRONTEND_URL github.io → vercel
+- 9a84270: feat reframe Calendar (5 blocos progressive disclosure + tela selecionar agendas + historico)
+- 4b3aa47: fix titulo evento + auto-sync ao abrir + filtro aniversarios acento
+- 5189dbf: fix filtra all-day events
+- 1e4363e: fix texto coerente 90 dias + hover pills sem piscar
+- 3a5b8ae: feat agenda da semana + nome real + dia da semana
+- 9c1f70c: fix 5 bugs visuais Calendar
+- 7b484b6: fix hover botoes Pausar/Historico
+- 7d46e22: perf cache localStorage + render incremental
+- 2c0ed7a: fix 5 bugs (cobertura+maria+botoes+fetch+status temporal)
+- f452904: fix remove sheet popup + card click direto
+- fdbc23a: feat 7 mudancas UX/PSF
+- ef99be5: fix 3 bugs UX (openSummary + copiar respondida + skeleton)
+
+**Doc mestre criado:** `Obsidian Vault/05 — ROADMAP E DECISOES/MIGRACAO-APP-2026-05.md` — 14 secoes cobrindo arquitetura, decisoes, schema, env vars, pegadinhas, rollback, proximos passos. Le ANTES de qualquer outra fonte.
+
+**Memoria atualizada:** `memory/project_migracao_completa.md` + `MEMORY.md` index.
+
+**Skills usadas:**
+- WebSearch + WebFetch (10+ pesquisas: iClinic API, Doctoralia, FHIR Brasil, healthcare UX, onboarding patterns)
+- Vault Obsidian leitura profunda (PSF, BENCHMARKS, "Para o Medico", "Para o Paciente")
+- TodoWrite intensivo
+- Edit/Write/Read em ~15 arquivos
+- Railway CLI pra aplicar migrations + cleanup banco
+
+**Pendente proxima sessao:**
+- Lucas testar end-to-end: criar PC com WhatsApp pronto, paciente responder, ver na lista, click abrir Summary
+- Recrutar medico betatester (gate humano Fase 13)
+- Twilio WhatsApp Business: aprovar templates Meta (semana 1-2)
+- Sentry alertas configurados pre-cutover
+- Cutover A/B 10% → 50% → 100% (so com NPS validado)
+
+---
+
 ### Sessao 19 — 05/05/2026 — EXECUCAO AUTONOMA TOTAL (Fases 1-14 do plano mestre)
 
 **Contexto:** Lucas autorizou execucao autonoma sem pausas, sem pedir confirmacao fase em fase. Mandato: "rode tudo ate acabar, sem se esquecer de absolutamente nada, com lugar pra ver tudo detalhado".
