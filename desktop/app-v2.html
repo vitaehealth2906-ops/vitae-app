@@ -2808,6 +2808,7 @@ async function cpcGerarEEnviar(){
 
   // 3) Cria pré-consulta no backend
   var pcCriada = null;
+  var erroBackend = null;
   try {
     if (window.BACKEND && typeof window.BACKEND.criarPC === 'function') {
       pcCriada = await window.BACKEND.criarPC({
@@ -2817,13 +2818,34 @@ async function cpcGerarEEnviar(){
         templateId: s.templateId,
         observacoes: (s.obs || '').trim() || null
       });
+    } else {
+      erroBackend = 'BACKEND.criarPC nao disponivel';
     }
-  } catch(_e){ pcCriada = null; }
+  } catch(e){ pcCriada = null; erroBackend = e && e.message; }
 
-  // Pega token + monta link real
+  // Pega token REAL do backend. SE NAO TIVER, e bug — NAO inventar mock
+  // (mock-XXX gera link que paciente abre e ve "Link nao encontrado", porque
+  // esse token nunca foi salvo no banco). Mostra erro claro pro medico.
   var pc = (pcCriada && (pcCriada.preConsulta || pcCriada)) || null;
-  var token = pc && (pc.linkToken || pc.token) || ('mock-' + Date.now());
-  var link = 'https://vitae-app.vercel.app/pre-consulta.html?token=' + encodeURIComponent(token);
+  var tokenReal = pc && (pc.linkToken || pc.token);
+
+  if (!tokenReal) {
+    // Fecha janela WhatsApp aberta (estava em about:blank)
+    if (waWindow) { try { waWindow.close(); } catch(_e){} }
+    var motivo = erroBackend || 'Servidor nao retornou o token. Pode ser sessao expirada — faca login de novo.';
+    var htmlErro = '<div style="max-width:560px;margin:80px auto;text-align:center;padding:40px;background:#FEF3F2;border:1px solid #FECDCA;border-radius:20px">'+
+      '<div style="width:56px;height:56px;border-radius:50%;background:#FEE4E2;display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B42318" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>'+
+      '<div style="font-size:18px;font-weight:900;color:#0D0F14;margin-bottom:10px">Nao foi possivel criar a pre-consulta</div>'+
+      '<div style="font-size:13.5px;color:#4B5563;line-height:1.5;margin-bottom:22px">'+escapeHtml(motivo)+'</div>'+
+      '<button class="btn btn-p" onclick="renderCriarPC()" style="width:100%;height:48px">Tentar de novo</button>'+
+      '<button class="btn btn-ghost" onclick="goto(\'pre-consultas\')" style="width:100%;height:44px;margin-top:8px">Voltar pra Pre-Consultas</button>'+
+      '</div>';
+    $('v-criar-pc').innerHTML = htmlErro;
+    return;
+  }
+
+  var link = 'https://vitae-app.vercel.app/pre-consulta.html?token=' + encodeURIComponent(tokenReal);
+  var token = tokenReal;
 
   // 4) Se telefone preenchido, redireciona janela WhatsApp pra URL final com mensagem pronta
   if (telefoneDigitos && waWindow) {
