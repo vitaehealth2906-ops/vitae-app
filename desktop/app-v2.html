@@ -2664,9 +2664,13 @@ async function openSummary(pcId){
    TELA EXCLUSIVA: NOVA PRÉ-CONSULTA (copia do pre-consulta.html real)
    substitui o popup modalCriarPC
    ============================================================ */
-var CRIAR_PC_STATE={pacienteId:null,nome:'',phone:'',email:'',templateId:'t1',obs:''};
+var CRIAR_PC_STATE={pacienteId:null,nome:'',phone:'',email:'',templateId:'',obs:''};
 function abrirCriarPC(pacienteId){
-  CRIAR_PC_STATE={pacienteId:pacienteId||null,nome:'',phone:'',email:'',templateId:'t1',obs:''};
+  // Pega o primeiro template REAL do backend (UUID), nao o mock 't1'.
+  // Se TEMPLATES estiver vazio (loadTEMPLATES nao rodou), deixa em branco
+  // e backend tratara como sem template (perguntas padrao).
+  var primeiroTplReal = (TEMPLATES && TEMPLATES.length > 0) ? TEMPLATES[0].id : '';
+  CRIAR_PC_STATE={pacienteId:pacienteId||null,nome:'',phone:'',email:'',templateId:primeiroTplReal,obs:''};
   if(pacienteId){var p=PACIENTES.find(function(x){return x.id===pacienteId;});if(p){CRIAR_PC_STATE.nome=p.nome;CRIAR_PC_STATE.phone=p.telefone;}}
   goto('criar-pc');
 }
@@ -2807,17 +2811,26 @@ async function cpcGerarEEnviar(){
   setTimeout(function(){var e=document.getElementById('cpcStg');if(e)e.textContent='Personalizando template para '+s.nome.split(' ')[0];}, 700);
 
   // 3) Cria pré-consulta no backend
+  // IMPORTANTE: backend rejeita campos opcionais como null (Zod).
+  // Estrategia: monta payload incluindo SO os campos preenchidos.
+  // E so envia templateId se for UUID real (nao 't1' do mock antigo).
   var pcCriada = null;
   var erroBackend = null;
+  var payload = { pacienteNome: s.nome.trim() };
+  if (telefoneDigitos) payload.pacienteTel = '+55' + telefoneDigitos;
+  var emailLimpo = (s.email || '').trim();
+  if (emailLimpo) payload.pacienteEmail = emailLimpo;
+  // Valida templateId: deve ser UUID (8-4-4-4-12 chars hex). 't1', 't2'... do mock nao passam.
+  var tplId = (s.templateId || '').trim();
+  if (tplId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tplId)) {
+    payload.templateId = tplId;
+  }
+  var obsLimpo = (s.obs || '').trim();
+  if (obsLimpo) payload.observacoes = obsLimpo;
+
   try {
     if (window.BACKEND && typeof window.BACKEND.criarPC === 'function') {
-      pcCriada = await window.BACKEND.criarPC({
-        pacienteNome: s.nome.trim(),
-        pacienteTel: telefoneDigitos ? '+55' + telefoneDigitos : null,
-        pacienteEmail: (s.email || '').trim() || null,
-        templateId: s.templateId,
-        observacoes: (s.obs || '').trim() || null
-      });
+      pcCriada = await window.BACKEND.criarPC(payload);
     } else {
       erroBackend = 'BACKEND.criarPC nao disponivel';
     }
@@ -5442,7 +5455,14 @@ window.BACKEND = (function(){
 
   async function criarPC(payload){
     var res = await api('/pre-consulta', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    if (!res.ok) return null;
+    // Em vez de retornar null no erro, devolve o detalhe pro chamador
+    // poder mostrar mensagem clara (ex: "Telefone invalido", "Sessao expirada").
+    if (!res.ok) {
+      var corpoErro = await res.json().catch(function(){ return {}; });
+      var detalhe = corpoErro && corpoErro.detalhes ? corpoErro.detalhes.join(' · ') : null;
+      var msg = (corpoErro && corpoErro.erro) || ('HTTP ' + res.status);
+      throw new Error(detalhe ? msg + ' (' + detalhe + ')' : msg);
+    }
     return await res.json().catch(function(){ return null; });
   }
 
