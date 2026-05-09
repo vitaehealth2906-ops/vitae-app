@@ -652,6 +652,15 @@
 @keyframes confeteFall{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(80vh) rotate(720deg)}}
 
 /* ============================================================
+   LAYOUT GLOBAL (Sessao 22): centraliza todas as views como no app antigo
+   Largura maxima 1320px com margem automatica nos lados.
+   Sem isso, conteudo estica ate as bordas em monitores largos.
+   ============================================================ */
+.view{max-width:1320px;margin-left:auto;margin-right:auto}
+/* Excecao Calendar: grid mensal precisa de mais espaco */
+#v-calendar{max-width:1440px}
+
+/* ============================================================
    BRIEFING DO PACIENTE — CSS copiado 1:1 do app antigo (Sessao 22)
    Sobrescreve qualquer classe parcial que existia no app-v2.
    ============================================================ */
@@ -1166,36 +1175,38 @@ function renderHoje(){
           return x.paciente && x.paciente.toLowerCase().trim() === nomeNorm;
         }) || null;
       }
-      // STATUS SIMPLES — direto do banco (Enviado/Respondido/Finalizado/Expirado)
-      // + ATRASADO derivado: PENDENTE/ABERTO com >24h desde envio
+      // STATUS HIBRIDO (banco + cobertura derivada)
+      // Backend so seta status=RESPONDIDA quando paciente clica "Finalizar".
+      // PCs antigas tem cobertura='pronta' mas status fica PENDENTE.
       var st='miss', stTxt='Não enviada', q='Médico ainda não enviou pré-consulta';
+      var jaRespondidaH = false;
       if (pc) {
         q = pc.queixaSnippet || '';
         var enviadaEm = pc.criadaEm ? new Date(pc.criadaEm).getTime() : 0;
         var horasDesdeEnvio = enviadaEm ? (Date.now() - enviadaEm) / (1000 * 60 * 60) : 0;
-        var ehPendente = (pc.status === 'PENDENTE' || pc.status === 'ABERTO' || !pc.status);
-        var ehAtrasado = ehPendente && horasDesdeEnvio > 24;
+        jaRespondidaH = (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA' ||
+                        pc.cobertura === 'pronta' || pc.cobertura === 'parcial');
+        var ehAtrasadoH = !jaRespondidaH && horasDesdeEnvio > 24;
 
-        if (pc.status === 'RESPONDIDA') { st='ready'; stTxt='Respondido'; }
-        else if (pc.status === 'FINALIZADA') { st='ready'; stTxt='Finalizado'; }
+        if (pc.status === 'FINALIZADA') { st='ready'; stTxt='Finalizado'; }
+        else if (jaRespondidaH) { st='ready'; stTxt='Respondido'; }
         else if (pc.status === 'EXPIRADA') { st='miss'; stTxt='Expirado'; }
-        else if (ehAtrasado) {
-          var diasAtraso = Math.floor(horasDesdeEnvio / 24);
+        else if (ehAtrasadoH) {
+          var diasAtrasoH = Math.floor(horasDesdeEnvio / 24);
           st='miss';
-          stTxt='Atrasado · ' + diasAtraso + 'd';
+          stTxt='Atrasado · ' + diasAtrasoH + 'd';
           q = 'Paciente recebeu há +24h e não respondeu';
         }
         else { st='partial'; stTxt='Enviado'; q = q || 'Paciente recebeu o link'; }
       }
       // Click:
       //  - Respondido/Finalizado -> abre resumo do paciente
-      //  - Atrasado/Enviado -> abre tela Disparar (mandar lembrete)
-      //  - Sem PC -> abre modal disparar
-      var ehResp = pc && (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA');
+      //  - Atrasado/Enviado -> abre tela Disparar com paciente pre-populado
+      //  - Sem PC -> abre tela Disparar com paciente pre-populado
       var click;
-      if (ehResp) click = 'openSummary(\''+a.pcId+'\')';
-      else if (pc) click = 'goto(\'disparar\')';
-      else if (p) click = 'modalDispararLembrete(\''+p.id+'\')';
+      if (jaRespondidaH) click = 'openSummary(\''+a.pcId+'\')';
+      else if (pc) click = 'abrirDisparar({pacienteId:\''+(pc.pacienteId||(p&&p.id)||'')+'\',pcId:\''+a.pcId+'\',origem:\'hoje\'})';
+      else if (p) click = 'abrirDisparar({pacienteId:\''+p.id+'\',origem:\'hoje\'})';
       else click = '';
       var qStyle = pc ? '' : 'style="color:var(--t3)"';
       // Mostra dia (Hoje/Amanhã/Sex 09) se filtro != hoje
@@ -1285,16 +1296,20 @@ function renderPC(){
     html+='<div class="pcn-empty"><div class="pcn-empty-ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="pcn-empty-t">Nenhuma pré-consulta encontrada</div><div class="pcn-empty-d">Tenta limpar o filtro ou criar uma nova pré-consulta.</div><button class="btn btn-p" onclick="modalCriarPC()" style="margin-top:10px">Criar pré-consulta</button></div>';
   }else{
     filtered.forEach(function(p){
-      // Status simples — direto do banco (PENDENTE/ABERTO/RESPONDIDA/FINALIZADA/EXPIRADA)
-      // + ATRASADO derivado: PENDENTE/ABERTO com >24h desde envio
+      // Status hibrido (banco + cobertura derivada).
+      // Backend so seta status=RESPONDIDA quando paciente clica "Finalizar".
+      // PCs antigas/legadas tem cobertura='pronta' mas status fica PENDENTE eternamente.
+      // Logo: tratamos cobertura='pronta' como respondida tambem.
       var bcls, btxt;
       var enviadaEm = p.criadaEm ? new Date(p.criadaEm).getTime() : 0;
       var horasDesdeEnvio = enviadaEm ? (Date.now() - enviadaEm) / (1000 * 60 * 60) : 0;
-      var ehPendente = (p.status === 'PENDENTE' || p.status === 'ABERTO' || !p.status);
+      var jaRespondida = (p.status === 'RESPONDIDA' || p.status === 'FINALIZADA' ||
+                         p.cobertura === 'pronta' || p.cobertura === 'parcial');
+      var ehPendente = !jaRespondida;
       var ehAtrasado = ehPendente && horasDesdeEnvio > 24;
 
-      if (p.status === 'RESPONDIDA') { bcls='ok'; btxt='Respondido'; }
-      else if (p.status === 'FINALIZADA') { bcls='ok'; btxt='Finalizado'; }
+      if (p.status === 'FINALIZADA') { bcls='ok'; btxt='Finalizado'; }
+      else if (jaRespondida) { bcls='ok'; btxt='Respondido'; }
       else if (p.status === 'EXPIRADA') { bcls='bad'; btxt='Expirado'; }
       else if (ehAtrasado) {
         var diasAtraso = Math.floor(horasDesdeEnvio / 24);
@@ -1305,16 +1320,13 @@ function renderPC(){
 
       // Click no card:
       //  - Respondido/Finalizado -> abre resumo do paciente (One Minute Summary)
-      //  - Atrasado -> abre tela Disparar (mandar lembrete pro paciente)
-      //  - Enviado/Expirado -> abre tela Disparar
+      //  - Atrasado/Enviado/Expirado -> abre tela Disparar com paciente pre-populado
       var click;
-      if (p.status === 'RESPONDIDA' || p.status === 'FINALIZADA') {
+      if (jaRespondida) {
         click = 'openSummary(\''+p.id+'\')';
       } else {
-        click = 'goto(\'disparar\')';
+        click = 'abrirDisparar({pacienteId:\''+(p.pacienteId||p.id)+'\',pcId:\''+p.id+'\',origem:\'pc\'})';
       }
-      // Botao Copiar so faz sentido enquanto PC nao foi respondida.
-      var jaRespondida = (p.status === 'RESPONDIDA' || p.status === 'FINALIZADA');
       var botoesAcao = '';
       if (!jaRespondida) {
         botoesAcao += '<button class="pcn-tr-btn" title="Copiar link" onclick="event.stopPropagation();copiarLinkPC(\''+p.id+'\')"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>';
@@ -1406,8 +1418,6 @@ function renderPacientes(){
   var filtered=soRespondidos.filter(function(p){
     if(q&&p.nome.toLowerCase().indexOf(q)<0)return false;
     if(f==='recentes')return p.ultimaAtividade!=='—';
-    if(f==='acomp')return p.anamneses>=2;
-    if(f==='alerta')return p.status==='warn';
     return true;
   });
   if(!filtered.find(function(p){return p.id===STATE.selectedPaciente;}) && filtered.length){
@@ -1422,8 +1432,6 @@ function renderPacientes(){
   html+='<div class="pcn-pills">'+
     '<button class="pcn-pill '+(f==='all'?'on':'')+'" onclick="setPacFilter(\'all\')">Todos <span class="pcn-ct">'+soRespondidos.length+'</span></button>'+
     '<button class="pcn-pill '+(f==='recentes'?'on':'')+'" onclick="setPacFilter(\'recentes\')">Recentes (30d) <span class="pcn-ct">'+soRespondidos.filter(function(p){return p.ultimaAtividade!=='—';}).length+'</span></button>'+
-    '<button class="pcn-pill '+(f==='acomp'?'on':'')+'" onclick="setPacFilter(\'acomp\')">Em acompanhamento <span class="pcn-ct">'+soRespondidos.filter(function(p){return p.anamneses>=2;}).length+'</span></button>'+
-    '<button class="pcn-pill '+(f==='alerta'?'on':'')+'" onclick="setPacFilter(\'alerta\')">Com alerta <span class="pcn-ct">'+soRespondidos.filter(function(p){return p.status==='warn';}).length+'</span></button>'+
   '</div>';
 
   html+='<div class="pat-grid">';
@@ -1481,14 +1489,22 @@ function renderPacienteDetailInline(){
       html+='<div class="tl-evt'+(e.warn?' warn':'')+'"><div class="tl-evt-d">'+e.d+'</div><div class="tl-evt-t" '+click+'>'+e.t+'</div><div class="tl-evt-b">'+e.b+'</div></div>';
     });
     html+='</div>';
-    if(eventos.length>=2){
-      if(STATE.comparativoLoading){
-        html+='<div class="ia-load"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage" id="iaStage">Lendo '+eventos.length+' anamneses anteriores<span class="ia-dots"><span></span><span></span><span></span></span><small>Analisando padrões da fala, vocabulário e queixa</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
-      }else if(STATE.comparativoLigado){
-        html+='<div class="compare-card"><div class="compare-t">⊕ IA Collab</div><div class="compare-b">'+(COMPARE_MOCK[p.id]||'—')+'</div></div>';
-      }else{
-        html+='<div class="compare-cta"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente esta anamnese com as anteriores deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">⊕ Comparar com anamneses anteriores</button></div>';
-      }
+    // Conta PCs REAIS respondidas do paciente (nao da timeline mock)
+    var pcsRespondidasReais = Object.values(PCS||{}).filter(function(pc){
+      if (pc.pacienteId !== p.id) return false;
+      return (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA' ||
+              pc.cobertura === 'pronta' || pc.cobertura === 'parcial');
+    }).length;
+
+    if(STATE.comparativoLoading){
+      html+='<div class="ia-load"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage" id="iaStage">Lendo anamneses anteriores<span class="ia-dots"><span></span><span></span><span></span></span><small>Analisando padrões da fala, vocabulário e queixa</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
+    } else if(STATE.comparativoLigado){
+      html+='<div class="compare-card"><div class="compare-t">⊕ IA Collab</div><div class="compare-b">'+(COMPARE_MOCK[p.id]||'—')+'</div></div>';
+    } else if(pcsRespondidasReais >= 2){
+      html+='<div class="compare-cta"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente esta anamnese com as anteriores deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">⊕ Comparar com anamneses anteriores</button></div>';
+    } else {
+      // Menos de 2 PCs respondidas: mostra orientacao amigavel em vez de botao quebrado
+      html+='<div class="compare-cta" style="opacity:.85"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Esse paciente tem só '+pcsRespondidasReais+' pré-consulta'+(pcsRespondidasReais===1?'':'s')+' respondida'+(pcsRespondidasReais===1?'':'s')+'. A IA Collab compara a evolução entre 2 ou mais consultas. Quando tiver outra, o botão aparece aqui.</div></div>';
     }
   }
   $('patDetailInline').innerHTML=html;
@@ -2676,7 +2692,7 @@ function renderCriarPC(){
   html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:14px">';
   html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div style="font-size:15px;font-weight:800;color:var(--t1)">Dados do paciente</div></div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
-  html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">Nome completo *</label><input id="cpcNome" '+disabledAttr+' placeholder="Ex: Maria da Silva" value="'+escapeHtml(s.nome)+'" oninput="CRIAR_PC_STATE.nome=this.value" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none'+disabledStyle+'"/></div>';
+  html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">Nome completo *</label><input id="cpcNome" '+disabledAttr+' placeholder="Ex: Maria da Silva" value="'+escapeHtml(s.nome)+'" oninput="CRIAR_PC_STATE.nome=this.value;cpcAtualizarBotao();" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none'+disabledStyle+'"/></div>';
   html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">WhatsApp <span style="color:var(--t4);font-weight:500">(opcional)</span></label><input id="cpcPhone" '+disabledAttr+' placeholder="(11) 99999-9999" value="'+escapeHtml(s.phone)+'" inputmode="numeric" maxlength="15" oninput="CRIAR_PC_STATE.phone=mascararTelefone(this);" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none'+disabledStyle+'"/></div>';
   html+='</div>';
   html+='<div><label style="display:block;font-size:11.5px;color:var(--t3);font-weight:600;margin-bottom:6px">Email <span style="color:var(--t4);font-weight:500">(opcional)</span></label><input id="cpcEmail" '+disabledAttr+' placeholder="paciente@email.com" type="email" value="'+escapeHtml(s.email)+'" oninput="CRIAR_PC_STATE.email=this.value" style="width:100%;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none'+disabledStyle+'"/></div>';
@@ -2695,7 +2711,7 @@ function renderCriarPC(){
   /* SEM link gerado: botão Gerar link */
   if (!formDisabled) {
     var nomeOk = (s.nome||'').trim().length >= 2;
-    html+='<button class="btn btn-p" '+(nomeOk?'':'disabled')+' onclick="cpcGerarEEnviar()" style="width:100%;height:54px;font-size:15px;font-weight:800;border-radius:14px;'+(nomeOk?'box-shadow:0 6px 20px rgba(0,229,160,.28)':'opacity:.5;cursor:not-allowed')+'"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Gerar link</button>';
+    html+='<button id="cpcGerarBtn" class="btn btn-p" '+(nomeOk?'':'disabled')+' onclick="cpcGerarEEnviar()" style="width:100%;height:54px;font-size:15px;font-weight:800;border-radius:14px;'+(nomeOk?'box-shadow:0 6px 20px rgba(0,229,160,.28)':'opacity:.5;cursor:not-allowed')+'"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Gerar link</button>';
   } else {
     /* COM link gerado: seção do link copiável + ações */
     html+='<div style="background:rgba(0,196,122,.06);border:1px solid rgba(0,196,122,.30);border-radius:14px;padding:20px;margin-bottom:14px">';
@@ -2725,6 +2741,26 @@ function renderCriarPC(){
   html+='</div>';
   $('v-criar-pc').innerHTML=html;
 }
+
+// Atualiza o botao "Gerar link" dinamicamente conforme medico digita o nome
+// (sem re-render, sem perder foco do input).
+function cpcAtualizarBotao(){
+  var btn = document.getElementById('cpcGerarBtn');
+  if (!btn) return;
+  var nomeOk = (CRIAR_PC_STATE.nome||'').trim().length >= 2;
+  if (nomeOk) {
+    btn.removeAttribute('disabled');
+    btn.style.opacity = '';
+    btn.style.cursor = '';
+    btn.style.boxShadow = '0 6px 20px rgba(0,229,160,.28)';
+  } else {
+    btn.setAttribute('disabled','disabled');
+    btn.style.opacity = '.5';
+    btn.style.cursor = 'not-allowed';
+    btn.style.boxShadow = '';
+  }
+}
+window.cpcAtualizarBotao = cpcAtualizarBotao;
 
 // Helper: extrai só dígitos de um texto
 function _soDigitos(s){ return String(s||'').replace(/\D/g,''); }
@@ -3757,9 +3793,20 @@ var DISPARAR_TONS={
 };
 function abrirDisparar(opts){
   opts=opts||{};
-  var pendentes=PACIENTES.filter(function(p){return p.id==='p6'||p.id==='p7';});
-  var sel = opts.pacienteId ? [opts.pacienteId] : pendentes.map(function(p){return p.id;});
-  DISPARAR_STATE={origem:opts.origem||'hoje',step:1,selecionados:sel,tom:'formal',mensagem:DISPARAR_TONS.formal,quando:'agora'};
+  var sel;
+  if (opts.pacienteId) {
+    sel = [opts.pacienteId];
+  } else {
+    // Pendentes reais (PCs nao respondidas)
+    var idsPendentes = {};
+    Object.values(PCS||{}).forEach(function(pc){
+      var jaResp = (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA' ||
+                    pc.cobertura === 'pronta' || pc.cobertura === 'parcial');
+      if (!jaResp && pc.pacienteId) idsPendentes[pc.pacienteId] = true;
+    });
+    sel = Object.keys(idsPendentes);
+  }
+  DISPARAR_STATE={origem:opts.origem||'hoje',step:1,selecionados:sel,pcId:opts.pcId||null,tom:'formal',mensagem:DISPARAR_TONS.formal,quando:'agora'};
   goto('disparar');
 }
 function dispVoltarOrigem(){var o=DISPARAR_STATE.origem;goto(o==='paciente'?'pacientes':(o==='pc'?'pre-consultas':'hoje'));}
@@ -3807,7 +3854,37 @@ function dispProximoStep(){if(DISPARAR_STATE.step===1&&DISPARAR_STATE.selecionad
 
 function renderDispararStep(step){
   var s=DISPARAR_STATE;
-  var pendentes=PACIENTES.filter(function(p){return p.id==='p6'||p.id==='p7';});
+  // Lista de pacientes a mostrar:
+  //  - Se DISPARAR_STATE.selecionados tem ids reais (vindo de um clique especifico), usa esses
+  //  - Senao, mostra os pendentes (pacientes com PC nao respondida)
+  var pendentes;
+  if (s.selecionados && s.selecionados.length > 0) {
+    pendentes = PACIENTES.filter(function(p){ return s.selecionados.indexOf(p.id) >= 0; });
+    if (pendentes.length === 0) {
+      // Fallback: se o id nao casou em PACIENTES, monta um stub a partir do PCS
+      var pcStub = null;
+      if (s.pcId && PCS[s.pcId]) {
+        var pcData = PCS[s.pcId];
+        pcStub = {
+          id: s.selecionados[0],
+          nome: pcData.paciente || 'Paciente',
+          ini: (pcData.paciente||'P').split(' ').slice(0,2).map(function(x){return x[0]||'';}).join('').toUpperCase(),
+          idade: pcData.idade || '—',
+          telefone: pcData.tel || pcData.telefone || '—'
+        };
+        pendentes = [pcStub];
+      }
+    }
+  } else {
+    // Pendentes reais: PCs com cobertura !== 'pronta' nem 'parcial'
+    var idsPendentes = {};
+    Object.values(PCS||{}).forEach(function(pc){
+      var jaResp = (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA' ||
+                    pc.cobertura === 'pronta' || pc.cobertura === 'parcial');
+      if (!jaResp && pc.pacienteId) idsPendentes[pc.pacienteId] = true;
+    });
+    pendentes = PACIENTES.filter(function(p){ return idsPendentes[p.id]; });
+  }
   var html='';
 
   if(step===1){
@@ -3821,9 +3898,8 @@ function renderDispararStep(step){
         var chk=s.selecionados.indexOf(p.id)>=0;
         html+='<div style="padding:14px 16px;background:'+(chk?'rgba(0,229,160,.06)':'var(--surface)')+';border:1px solid '+(chk?'rgba(0,229,160,.30)':'var(--border)')+';border-radius:12px;margin-bottom:8px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.15s" onclick="togDispararPac(\''+p.id+'\')">';
         html+='<input type="checkbox" '+(chk?'checked':'')+' style="width:18px;height:18px;margin:0;accent-color:#00C47A;flex-shrink:0"/>';
-        html+='<div class="pcn-tr-av" style="width:40px;height:40px;font-size:13px">'+p.ini+'</div>';
-        html+='<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--t1)">'+p.nome+'</div><div style="font-size:11.5px;color:var(--t3);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap"><span>'+p.idade+' anos</span><span>·</span><span>'+p.telefone+'</span></div></div>';
-        html+='<span class="pcn-tr-badge '+(p.id==='p6'?'bad':'warn')+'" style="flex-shrink:0"><span class="dot"></span>'+(p.id==='p6'?'Não abriu · 1d':'Abriu sem gravar · 4h')+'</span>';
+        html+='<div class="pcn-tr-av" style="width:40px;height:40px;font-size:13px">'+(p.ini||'P')+'</div>';
+        html+='<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--t1)">'+(p.nome||'Paciente')+'</div><div style="font-size:11.5px;color:var(--t3);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap">'+(p.idade?'<span>'+p.idade+' anos</span><span>·</span>':'')+'<span>'+(p.telefone||'sem telefone')+'</span></div></div>';
         html+='</div>';
       });
     }
@@ -5765,7 +5841,7 @@ window.iniciarComparativo = async function(){
   if (pcsDoPaciente.length < 2) {
     setTimeout(function(){
       STATE.comparativoLoading = false; STATE.comparativoLigado = true;
-      if (typeof COMPARE_MOCK !== 'undefined' && pid) COMPARE_MOCK[pid] = 'Mínimo 2 pré-consultas do mesmo paciente para comparar.';
+      if (typeof COMPARE_MOCK !== 'undefined' && pid) COMPARE_MOCK[pid] = 'Esse paciente só tem ' + pcsDoPaciente.length + ' pré-consulta. Crie outra pra comparar a evolução.';
       if (typeof renderPacienteDetailInline === 'function') renderPacienteDetailInline();
     }, 2700);
     return;
@@ -5776,16 +5852,26 @@ window.iniciarComparativo = async function(){
     setTimeout(function(){
       STATE.comparativoLoading = false; STATE.comparativoLigado = true;
       if (typeof COMPARE_MOCK !== 'undefined' && pid) {
-        COMPARE_MOCK[pid] = resultado && resultado.narrativa
-          ? resultado.narrativa + (resultado.alertas && resultado.alertas.length ? '\n\n⚠️ ' + resultado.alertas.join(' · ') : '')
-          : (resultado && resultado.erro) || 'Não foi possível gerar a análise comparativa.';
+        if (resultado && resultado.narrativa) {
+          COMPARE_MOCK[pid] = resultado.narrativa + (resultado.alertas && resultado.alertas.length ? '\n\n⚠️ ' + resultado.alertas.join(' · ') : '');
+        } else if (resultado && resultado.erro) {
+          // Traduz erros tecnicos do backend pra mensagens humanas
+          var msg = resultado.erro;
+          if (/sem paciente vinculado/i.test(msg)) msg = 'Pré-consulta sem paciente vinculado — não dá pra comparar. Esse caso precisa de ajuste no banco.';
+          else if (/Mínimo 2|minimo 2/i.test(msg)) msg = 'Esse paciente só tem 1 pré-consulta. Crie outra pra comparar a evolução.';
+          else if (/desativada/i.test(msg)) msg = 'IA Collab está desativada. Ative em Meu Perfil → Voz & IA.';
+          else if (/Dados inválidos|invalido|invalid/i.test(msg)) msg = 'A IA não conseguiu ler os dados dessa pré-consulta. Pode ser PC antiga sem anamnese estruturada. Crie uma nova pra comparar.';
+          COMPARE_MOCK[pid] = msg;
+        } else {
+          COMPARE_MOCK[pid] = 'Não foi possível gerar a análise comparativa agora. Tente em alguns segundos.';
+        }
       }
       if (typeof renderPacienteDetailInline === 'function') renderPacienteDetailInline();
     }, 2700);
   } catch(e) {
     setTimeout(function(){
       STATE.comparativoLoading = false; STATE.comparativoLigado = true;
-      if (typeof COMPARE_MOCK !== 'undefined' && pid) COMPARE_MOCK[pid] = 'Sem conexão com o servidor.';
+      if (typeof COMPARE_MOCK !== 'undefined' && pid) COMPARE_MOCK[pid] = 'Sem conexão com o servidor. Verifique sua internet e tente de novo.';
       if (typeof renderPacienteDetailInline === 'function') renderPacienteDetailInline();
     }, 2700);
   }
