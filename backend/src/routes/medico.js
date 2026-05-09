@@ -6,6 +6,7 @@ const { validate } = require('../middleware/validate');
 const storage = require('../services/storage');
 const { geocodificar } = require('../services/geocoding');
 const { auditar } = require('../utils/auditoria');
+const { calcularMetricas, janelaPeriodo } = require('../services/calcularMetricas');
 
 const router = express.Router();
 
@@ -585,6 +586,222 @@ router.get('/dashboard', async (req, res, next) => {
       preConsultasRespondidas,
       totalPreConsultas: preConsultasPendentes + preConsultasRespondidas,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /metricas?periodo=hoje|semana|mes|30dias — Métricas honestas
+//
+// Sessão 22 (2026-05-09). As 3 métricas (tempo economizado, atendimentos
+// equivalentes, receita possível) calculadas com base em:
+//   1. Pré-consultas REALMENTE respondidas no período (fato)
+//   2. Completude individual de cada pré-consulta (calculada do summaryJson)
+//   3. Inputs declarativos do médico no setup (medico.metricasConfig)
+//
+// Sem multiplicadores hardcoded. Sem extrapolação de dia × 5 ou × 21.
+// Soma real do que aconteceu.
+// ---------------------------------------------------------------------------
+
+router.get('/metricas', async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({
+      where: { usuarioId: req.usuario.id },
+    });
+    if (!medico) {
+      return res.status(403).json({ erro: 'Perfil medico nao encontrado' });
+    }
+
+    const periodo = String(req.query.periodo || '30dias').toLowerCase();
+    const periodosValidos = ['hoje', 'semana', 'mes', '30dias'];
+    if (!periodosValidos.includes(periodo)) {
+      return res.status(400).json({
+        erro: 'Periodo invalido',
+        validos: periodosValidos,
+      });
+    }
+
+    const { dataInicio, dataFim } = janelaPeriodo(periodo);
+
+    // Busca pré-consultas RESPONDIDAS do médico no período
+    const preConsultas = await prisma.preConsulta.findMany({
+      where: {
+        medicoId: medico.id,
+        deletadoEm: null,
+        status: 'RESPONDIDA',
+        respondidaEm: {
+          gte: dataInicio,
+          lte: dataFim,
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        respondidaEm: true,
+        respostas: true,
+        summaryJson: true,
+      },
+      take: 1000, // safety cap
+    });
+
+    const metricas = calcularMetricas(medico, preConsultas, periodo);
+
+    return res.status(200).json(metricas);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// PUT /metricas/setup — Salva os 5 inputs do setup do médico
+//
+// Body: { tempoAnamneseSemVitae, percentualEconomiaAnamnese,
+//         tempoMedioConsulta, valorConsulta, taxaNoShow }
+// Marca setupConcluido=true se todos os 5 estão válidos.
+// ---------------------------------------------------------------------------
+
+router.put('/metricas/setup', async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({
+      where: { usuarioId: req.usuario.id },
+    });
+    if (!medico) {
+      return res.status(403).json({ erro: 'Perfil medico nao encontrado' });
+    }
+
+    const {
+      tempoAnamneseSemVitae,
+      percentualEconomiaAnamnese,
+      tempoMedioConsulta,
+      valorConsulta,
+      taxaNoShow,
+    } = req.body || {};
+
+    // Validações individuais
+    const erros = [];
+    const tAnam = Number(tempoAnamneseSemVitae);
+    const pEcon = Number(percentualEconomiaAnamnese);
+    const tCons = Number(tempoMedioConsulta);
+    const vCons = Number(valorConsulta);
+    const tNoSh = Number(taxaNoShow);
+
+    if (!Number.isFinite(tAnam) || tAnam < 1 || tAnam > 60) {
+      erros.push('Tempo da anamnese sem VITAE: entre 1 e 60 minutos');
+    }
+    if (!Number.isFinite(pEcon) || pEcon < 10 || pEcon > 95) {
+      erros.push('Percentual de economia: entre 10% e 95%');
+    }
+    if (!Number.isFinite(tCons) || tCons < 5 || tCons > 240) {
+      erros.push('Tempo médio da consulta: entre 5 e 240 minutos');
+    }
+    if (!Number.isFinite(vCons) || vCons < 0 || vCons > 10000) {
+      erros.push('Valor da consulta: entre R$ 0 e R$ 10.000');
+    }
+    if (!Number.isFinite(tNoSh) || tNoSh < 0 || tNoSh > 50) {
+      erros.push('Taxa de faltas: entre 0% e 50%');
+    }
+
+    // Validação cruzada — anamnese não pode ser maior que consulta inteira
+    if (Number.isFinite(tAnam) && Number.isFinite(tCons) && tAnam > tCons) {
+      erros.push('A anamnese não pode durar mais que a consulta inteira.');
+    }
+
+    if (erros.length > 0) {
+      return res.status(400).json({ erro: erros.join(' | '), erros });
+    }
+
+    // Persiste no JSON metricasConfig (preservando outros campos se existirem)
+    const cfgAtual = medico.metricasConfig || {};
+    const novaCfg = {
+      ...cfgAtual,
+      tempoAnamneseSemVitae: tAnam,
+      percentualEconomiaAnamnese: pEcon,
+      tempoMedioConsulta: tCons,
+      valorConsulta: vCons,
+      taxaNoShow: tNoSh,
+      setupConcluido: true,
+      atualizadoEm: new Date().toISOString(),
+    };
+
+    await prisma.medico.update({
+      where: { id: medico.id },
+      data: {
+        metricasConfig: novaCfg,
+        // Sincroniza colunas dedicadas (compat com código legado)
+        tempoMedioConsulta: tCons,
+        valorConsulta: vCons,
+      },
+    });
+
+    return res.status(200).json({ ok: true, metricasConfig: novaCfg });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /metricas/calibracao — Banner mensal de calibração
+//
+// Body: { resposta: 'ok' | 'superestimado' | 'subestimado', ajustes?: {} }
+// Registra confirmação/ajuste do médico. Se vier 'ajustes', sobrescreve
+// campos do setup. Marca calibradoEm.
+// ---------------------------------------------------------------------------
+
+router.post('/metricas/calibracao', async (req, res, next) => {
+  try {
+    const medico = await prisma.medico.findUnique({
+      where: { usuarioId: req.usuario.id },
+    });
+    if (!medico) {
+      return res.status(403).json({ erro: 'Perfil medico nao encontrado' });
+    }
+
+    const { resposta, ajustes } = req.body || {};
+    const respostasValidas = ['ok', 'superestimado', 'subestimado'];
+    if (!respostasValidas.includes(resposta)) {
+      return res.status(400).json({ erro: 'Resposta invalida' });
+    }
+
+    const cfgAtual = medico.metricasConfig || {};
+    const historico = Array.isArray(cfgAtual.calibracoes)
+      ? cfgAtual.calibracoes
+      : [];
+
+    historico.push({
+      data: new Date().toISOString(),
+      resposta,
+      ajustes: ajustes || null,
+    });
+
+    const novaCfg = {
+      ...cfgAtual,
+      calibradoEm: new Date().toISOString(),
+      calibracoes: historico.slice(-12), // mantém últimos 12 meses
+    };
+
+    // Aplica ajustes se vieram (revalidando faixas)
+    if (ajustes && typeof ajustes === 'object') {
+      if (ajustes.percentualEconomiaAnamnese != null) {
+        const v = Number(ajustes.percentualEconomiaAnamnese);
+        if (Number.isFinite(v) && v >= 10 && v <= 95) {
+          novaCfg.percentualEconomiaAnamnese = v;
+        }
+      }
+      if (ajustes.tempoAnamneseSemVitae != null) {
+        const v = Number(ajustes.tempoAnamneseSemVitae);
+        if (Number.isFinite(v) && v >= 1 && v <= 60) {
+          novaCfg.tempoAnamneseSemVitae = v;
+        }
+      }
+    }
+
+    await prisma.medico.update({
+      where: { id: medico.id },
+      data: { metricasConfig: novaCfg },
+    });
+
+    return res.status(200).json({ ok: true, metricasConfig: novaCfg });
   } catch (err) {
     next(err);
   }

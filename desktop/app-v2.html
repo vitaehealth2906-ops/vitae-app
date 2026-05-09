@@ -1092,22 +1092,115 @@ function goto(view){
   if(view==='criar-pc')renderCriarPC();
 }
 
-/* CALC IMPACTO */
-function calcImpacto(periodo){
-  var pcsRespondidas=Object.values(PCS).filter(function(p){return p.status==='RESPONDIDA';}).length;
-  var multiplicador=periodo==='hoje'?1:(periodo==='semana'?5:21);
-  var totalRespondidas=pcsRespondidas*multiplicador;
-  var totalNaoResp=2*multiplicador;
-  var tempoEconomizadoMin=totalRespondidas*DR.config.tempoAnamneseAtual*0.7;
-  var pacientesExtras=Math.floor(tempoEconomizadoMin/DR.config.tempoMedioConsulta);
-  var receitaPotencial=pacientesExtras*DR.config.valorConsulta;
-  return {respondidas:totalRespondidas,naoRespondidas:totalNaoResp,tempoMin:Math.round(tempoEconomizadoMin),pacExtras:pacientesExtras,receita:receitaPotencial};
+/* ============================================
+   MÉTRICAS HONESTAS (Sessao 22 — 2026-05-09)
+   ============================================
+   Calculadas no backend (GET /medico/metricas?periodo=...) com base em:
+     1. Pré-consultas REALMENTE respondidas no período (fato)
+     2. Completude individual (cálculo do summaryJson)
+     3. 5 inputs declarativos do médico (medico.metricasConfig)
+   Sem multiplicador 5x/21x. Sem 70% hardcoded. Soma real do período.
+*/
+
+// Cache local de métricas por período (preenchido pelo backend)
+if (!STATE.metricas) STATE.metricas = {};
+
+// Estado de loading por período pra evitar fetch duplicado
+var _metricasLoading = {};
+
+async function carregarMetricas(periodo){
+  if (_metricasLoading[periodo]) return STATE.metricas[periodo] || null;
+  if (!window.BACKEND) return null;
+  _metricasLoading[periodo] = true;
+  try {
+    var res = await window.BACKEND.api('/medico/metricas?periodo='+encodeURIComponent(periodo));
+    if (!res.ok) return null;
+    var data = await res.json();
+    STATE.metricas[periodo] = data;
+    // Após carregar 30dias: dispara setup wizard automatico OU calibracao
+    if (periodo === '30dias') {
+      if (data.setupConcluido === false) {
+        // Trigger automatico do setup wizard (com supressao 24h se medico dispensar)
+        try { dispararSetupAutomatico(); } catch(e) {}
+      } else if (data.setupConcluido && typeof verificarCalibracaoPendente === 'function') {
+        try { verificarCalibracaoPendente(); } catch(e) {}
+      }
+    }
+    return data;
+  } catch(e) {
+    return null;
+  } finally {
+    _metricasLoading[periodo] = false;
+  }
 }
+
+// Dispara modalSetupMetricas automaticamente se setup incompleto.
+// Suprimido por 24h se medico clicar "Configurar depois".
+function dispararSetupAutomatico(){
+  // Nao dispara se ja tem modal aberto
+  if ($('modalBg') && $('modalBg').classList.contains('show')) return;
+  // Nao dispara se medico dispensou nas ultimas 24h
+  var dispensadoAte = parseInt(localStorage.getItem('vitae_setup_dispensado_ate') || '0', 10);
+  if (Date.now() < dispensadoAte) return;
+  // Nao dispara fora da view 'hoje' (evita interromper outras telas)
+  if (STATE.view !== 'hoje') return;
+  // Espera 1.5s pra o medico ver o dashboard primeiro
+  setTimeout(function(){
+    if (STATE.view !== 'hoje') return;
+    if ($('modalBg') && $('modalBg').classList.contains('show')) return;
+    if (typeof modalSetupMetricas === 'function') modalSetupMetricas();
+  }, 1500);
+}
+window.dispararSetupAutomatico = dispararSetupAutomatico;
+window.carregarMetricas = carregarMetricas;
+
+// Retorna métricas do cache. Se ausente, dispara fetch async e re-renderiza
+// quando voltar. Mantém renderHoje síncrono (não muda assinatura).
+function calcImpacto(periodo){
+  var m = STATE.metricas[periodo];
+  if (!m) {
+    // Dispara fetch e marca placeholder
+    carregarMetricas(periodo).then(function(data){
+      if (data && STATE.view === 'hoje' && STATE.impactoTab === periodo) {
+        renderHoje();
+      }
+    });
+    return {
+      _loading: true,
+      tempoMin: 0, pacExtras: 0, receita: 0,
+      precisao: 0, consultasMedidas: 0,
+      setupConcluido: true, alerta: null,
+    };
+  }
+  return {
+    tempoMin: m.tempoEconomizadoMin || 0,
+    pacExtras: m.atendimentosEquivalentes || 0,
+    receita: m.receitaPossivel || 0,
+    precisao: m.precisao || 0,
+    consultasMedidas: m.consultasMedidas || 0,
+    setupConcluido: m.setupConcluido !== false,
+    alerta: m.alerta || null,
+    detalhe: m.detalhe || null,
+    _loading: false,
+  };
+}
+
+// Limpa cache (chamado após salvar setup ou ao virar dia)
+function invalidarCacheMetricas(){
+  STATE.metricas = {};
+  if (STATE.view === 'hoje') renderHoje();
+}
+window.invalidarCacheMetricas = invalidarCacheMetricas;
 
 /* ============================================================
    RENDER: HOJE
    ============================================================ */
 function renderHoje(){
+  // Pré-carga silenciosa de métricas de 30 dias (1x por sessão) — pra calibração mensal
+  if (!window._metricas30dPreloaded) {
+    window._metricas30dPreloaded = true;
+    if (typeof carregarMetricas === 'function') carregarMetricas('30dias');
+  }
   var hojeRespondidas=AGENDA_HOJE.filter(function(a){var p=PCS[a.pcId];return p&&p.cobertura==='pronta';}).length;
   var hojeParcial=AGENDA_HOJE.filter(function(a){var p=PCS[a.pcId];return p&&p.cobertura==='parcial';}).length;
   var hojeAlerta=AGENDA_HOJE.filter(function(a){var p=PCS[a.pcId];return p&&p.alerta;}).length;
@@ -1115,21 +1208,38 @@ function renderHoje(){
   var hasCalendar=DR.config.googleCalendarConectado;
 
   var html='';
-  /* IMPACTO acima de tudo */
+  /* IMPACTO acima de tudo (Sessao 22 — metricas honestas) */
   var imp=calcImpacto(STATE.impactoTab);
-  html+='<div class="imp-panel">'+
-    '<div class="imp-tabs">'+
-      '<button class="imp-tab '+(STATE.impactoTab==='hoje'?'on':'')+'" onclick="setImp(\'hoje\')">Hoje</button>'+
-      '<button class="imp-tab '+(STATE.impactoTab==='semana'?'on':'')+'" onclick="setImp(\'semana\')">Esta semana</button>'+
-      '<button class="imp-tab '+(STATE.impactoTab==='mes'?'on':'')+'" onclick="setImp(\'mes\')">Este mês</button>'+
-    '</div>'+
-    '<div class="imp-row">'+
-      '<div><div class="imp-num">'+fmtMin(imp.tempoMin)+'</div><div class="imp-lbl">Tempo economizado</div></div>'+
-      '<div><div class="imp-num">'+imp.pacExtras+' pacientes</div><div class="imp-lbl">Atendimentos a mais possíveis</div></div>'+
-      '<div><div class="imp-num">'+fmtBRL(imp.receita)+'</div><div class="imp-lbl">Receita potencial</div></div>'+
-    '</div>'+
-    '<div class="imp-help" onclick="modalComoCalculamos()">Como calculamos isso?</div>'+
-  '</div>';
+
+  // Setup incompleto — mostra banner em vez de números fantasma
+  if (imp.setupConcluido === false) {
+    html+='<div class="imp-panel" style="text-align:center;padding:32px 26px">'+
+      '<div style="font-size:11px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--t3);margin-bottom:8px">Métricas pausadas</div>'+
+      '<div style="font-size:18px;font-weight:800;color:var(--t1);margin-bottom:6px">Configure suas informações pra ver as métricas</div>'+
+      '<div style="font-size:13px;color:var(--t2);line-height:1.55;max-width:440px;margin:0 auto 16px">'+(imp.alerta||'Faltam dados sobre seu tempo de consulta e valor cobrado pra calcular tempo economizado, atendimentos a mais e receita.')+'</div>'+
+      '<button class="btn btn-p" onclick="modalSetupMetricas()">Configurar agora</button>'+
+    '</div>';
+  } else {
+    var loadingTxt = imp._loading ? '...' : '';
+    var precisaoLabel = imp.precisao >= 90 ? 'Alta' : (imp.precisao >= 70 ? 'Média' : 'Calibrando');
+    html+='<div class="imp-panel">'+
+      '<div class="imp-tabs">'+
+        '<button class="imp-tab '+(STATE.impactoTab==='hoje'?'on':'')+'" onclick="setImp(\'hoje\')">Hoje</button>'+
+        '<button class="imp-tab '+(STATE.impactoTab==='semana'?'on':'')+'" onclick="setImp(\'semana\')">Esta semana</button>'+
+        '<button class="imp-tab '+(STATE.impactoTab==='mes'?'on':'')+'" onclick="setImp(\'mes\')">Este mês</button>'+
+        '<button class="imp-tab '+(STATE.impactoTab==='30dias'?'on':'')+'" onclick="setImp(\'30dias\')">Últimos 30</button>'+
+      '</div>'+
+      '<div class="imp-row">'+
+        '<div><div class="imp-num">'+(imp._loading?'—':fmtMin(imp.tempoMin))+'</div><div class="imp-lbl">Tempo economizado</div></div>'+
+        '<div><div class="imp-num">'+(imp._loading?'—':imp.pacExtras)+'</div><div class="imp-lbl">Tempo livre equivalente'+(imp.pacExtras===1?' a 1 consulta':' a '+imp.pacExtras+' consultas')+'</div></div>'+
+        '<div><div class="imp-num">'+(imp._loading?'—':fmtBRL(imp.receita))+'</div><div class="imp-lbl">Receita possível</div></div>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">'+
+        '<div style="font-size:11px;color:var(--t3)">Confiança: <strong style="color:var(--t2)">'+precisaoLabel+' ('+imp.precisao+'%)</strong> · '+imp.consultasMedidas+' '+(imp.consultasMedidas===1?'pré-consulta medida':'pré-consultas medidas')+'</div>'+
+        '<div class="imp-help" onclick="modalComoCalculamos()" style="margin:0">Como calculamos isso?</div>'+
+      '</div>'+
+    '</div>';
+  }
 
   /* 4 stat cards abaixo do impacto */
   html+='<div class="stat-row">'+
@@ -1657,13 +1767,40 @@ function renderPerfil(){
     html+='<div class="pfn-sg" style="margin-top:14px"><div class="pfn-sg-hd"><div class="pfn-sg-title">Conta</div></div><div class="pfn-sg-row"><div class="pfn-sg-row-l"><div class="pfn-sg-row-title">E-mail</div><div class="pfn-sg-row-val">'+DR.email+'</div></div></div><div class="pfn-sg-row"><div class="pfn-sg-row-l"><div class="pfn-sg-row-title">IA Collab</div><div class="pfn-sg-row-val" style="color:var(--t3)">Compara automaticamente anamneses anteriores do paciente</div></div><div class="toggle-sw '+(DR.config.inteligenciaComparativaAtiva?'on':'')+'" onclick="event.stopPropagation();DR.config.inteligenciaComparativaAtiva=!DR.config.inteligenciaComparativaAtiva;renderPerfil()"></div></div><div class="pfn-logout-row"><button class="btn btn-s btn-sm" onclick="abrirOnboarding()" style="margin-right:8px">Refazer onboarding</button><button class="btn-danger-s" onclick="doLogout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sair</button></div></div>';
   }
   if(t==='financeiro'){
-    var imp=calcImpacto('mes');
-    html+='<div class="pfn-sg"><div class="pfn-sg-hd"><div class="pfn-sg-title">Tempo & receita</div><div class="pfn-sg-meta">Esses 4 dados destravam as métricas de impacto</div></div><div style="padding:6px 18px 18px">'+
-      '<div class="pfn-finrow"><div><div class="pfn-fin-t">Tempo médio da consulta</div><div class="pfn-fin-s">Quanto demora hoje em média</div></div><div><input type="number" min="5" max="240" value="'+DR.config.tempoMedioConsulta+'" onchange="salvarConfigPerfil(\'tempoMedioConsulta\',parseInt(this.value)||30)"> <span style="font-size:12px;color:var(--t3);margin-left:8px">min</span></div></div>'+
-      '<div class="pfn-finrow"><div><div class="pfn-fin-t">Tempo só de anamnese</div><div class="pfn-fin-s">Quantos minutos hoje você gasta perguntando histórico</div></div><div><input type="number" min="0" max="60" value="'+DR.config.tempoAnamneseAtual+'" onchange="salvarConfigPerfil(\'tempoAnamneseAtual\',parseInt(this.value)||7)"> <span style="font-size:12px;color:var(--t3);margin-left:8px">min</span></div></div>'+
-      '<div class="pfn-finrow"><div><div class="pfn-fin-t">Valor da consulta</div><div class="pfn-fin-s">Quanto você cobra por consulta particular</div></div><div><input type="number" min="0" max="10000" value="'+DR.config.valorConsulta+'" onchange="salvarConfigPerfil(\'valorConsulta\',parseFloat(this.value)||0)"> <span style="font-size:12px;color:var(--t3);margin-left:8px">R$</span></div></div>'+
-    '</div></div>';
-    html+='<div class="imp-panel" style="margin-top:14px"><div style="font-size:11px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--t3);margin-bottom:14px">Projeção do mês com seus dados</div><div class="imp-row"><div><div class="imp-num">'+fmtMin(imp.tempoMin)+'</div><div class="imp-lbl">Tempo economizado</div></div><div><div class="imp-num">'+imp.pacExtras+' pac</div><div class="imp-lbl">Atendimentos extras</div></div><div><div class="imp-num">'+fmtBRL(imp.receita)+'</div><div class="imp-lbl">Receita potencial</div></div></div><div class="imp-help" onclick="modalComoCalculamos()">Como calculamos isso?</div></div>';
+    var imp30 = STATE.metricas['30dias'] || STATE.metricas['mes'] || null;
+    var det = imp30 && imp30.detalhe ? imp30.detalhe : {};
+    var setupOk = imp30 && imp30.setupConcluido !== false && det.tempoAnamneseSemVitae;
+
+    html+='<div class="pfn-sg"><div class="pfn-sg-hd"><div class="pfn-sg-title">Tempo & receita</div><div class="pfn-sg-meta">Os 5 dados que destravam suas métricas honestas</div></div>';
+
+    if (setupOk) {
+      // Setup feito — mostra os 5 valores em modo leitura + botão de edição
+      html+='<div style="padding:6px 18px 18px">';
+      html+='<div class="pfn-finrow"><div><div class="pfn-fin-t">Anamnese sem VITAE</div><div class="pfn-fin-s">Tempo que você gasta perguntando histórico</div></div><div style="font-size:14px;font-weight:700;color:var(--t1)">'+det.tempoAnamneseSemVitae+' min</div></div>';
+      html+='<div class="pfn-finrow"><div><div class="pfn-fin-t">Economia com pré-consulta</div><div class="pfn-fin-s">% do tempo que você economiza com anamnese pronta</div></div><div style="font-size:14px;font-weight:700;color:var(--t1)">'+det.percentualEconomiaAnamnese+'%</div></div>';
+      html+='<div class="pfn-finrow"><div><div class="pfn-fin-t">Consulta inteira</div><div class="pfn-fin-s">Tempo total da consulta presencial</div></div><div style="font-size:14px;font-weight:700;color:var(--t1)">'+det.tempoMedioConsulta+' min</div></div>';
+      html+='<div class="pfn-finrow"><div><div class="pfn-fin-t">Valor médio</div><div class="pfn-fin-s">Ticket médio cobrado por consulta</div></div><div style="font-size:14px;font-weight:700;color:var(--t1)">'+fmtBRL(det.valorConsulta)+'</div></div>';
+      html+='<div class="pfn-finrow"><div><div class="pfn-fin-t">Taxa de faltas</div><div class="pfn-fin-s">% de pacientes que não comparecem</div></div><div style="font-size:14px;font-weight:700;color:var(--t1)">'+det.taxaNoShow+'%</div></div>';
+      html+='<div style="display:flex;gap:8px;margin-top:18px"><button class="btn btn-p" onclick="modalSetupMetricas()">Editar 5 dados</button><button class="btn btn-ghost" onclick="modalCalibracaoAjuste()">Calibrar agora</button></div>';
+      html+='</div></div>';
+
+      // Painel de prévia REAL (últimos 30 dias)
+      html+='<div class="imp-panel" style="margin-top:14px">';
+      html+='<div style="font-size:11px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--t3);margin-bottom:14px">Últimos 30 dias — números reais</div>';
+      html+='<div class="imp-row">';
+      html+='<div><div class="imp-num">'+fmtMin(imp30.tempoEconomizadoMin||0)+'</div><div class="imp-lbl">Tempo economizado</div></div>';
+      html+='<div><div class="imp-num">'+(imp30.atendimentosEquivalentes||0)+'</div><div class="imp-lbl">Tempo livre equivalente'+((imp30.atendimentosEquivalentes||0)===1?' a 1 consulta':' a '+(imp30.atendimentosEquivalentes||0)+' consultas')+'</div></div>';
+      html+='<div><div class="imp-num">'+fmtBRL(imp30.receitaPossivel||0)+'</div><div class="imp-lbl">Receita possível</div></div>';
+      html+='</div>';
+      html+='<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--t3)">Confiança: <strong style="color:var(--t2)">'+imp30.precisao+'%</strong> · '+imp30.consultasMedidas+' '+(imp30.consultasMedidas===1?'pré-consulta medida':'pré-consultas medidas')+'</div>';
+      html+='<div class="imp-help" onclick="modalComoCalculamos()">Como calculamos isso?</div></div>';
+    } else {
+      // Setup não feito — CTA central
+      html+='<div style="padding:30px 22px;text-align:center">';
+      html+='<div style="font-size:14px;color:var(--t2);line-height:1.6;margin-bottom:18px;max-width:440px;margin:0 auto 18px">Suas métricas vão sair de 5 dados sobre o seu jeito de atender. Sem chute universal, sem multiplicador hardcoded.</div>';
+      html+='<button class="btn btn-p" onclick="modalSetupMetricas()">Configurar agora</button>';
+      html+='</div></div>';
+    }
   }
   if(t==='integ'){
     html+='<div class="pfn-sg"><div class="pfn-sg-hd"><div class="pfn-sg-title">Integrações</div><div class="pfn-sg-meta">VITAE não duplica — conversa com o que você já usa</div></div>'+
@@ -3150,9 +3287,348 @@ function modalImportarAgenda(){
 }
 
 function modalComoCalculamos(){
-  var html='<div class="modal-h"><div><div class="modal-step">TRANSPARÊNCIA</div><div class="modal-t">Como calculamos seus números</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><div class="modal-body"><div style="font-size:13px;color:var(--t1);line-height:1.6;margin-bottom:18px">As métricas saem de 3 dados que você preencheu em <strong>Perfil → Tempo & receita</strong>.</div><div style="background:var(--bg);border-radius:12px;padding:14px 18px;margin-bottom:10px"><div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Tempo economizado</div><div style="font-family:monospace;font-size:12px;color:var(--t1);line-height:1.6">tempo_anamnese × 0.7 × pré-consultas respondidas<br/>= '+DR.config.tempoAnamneseAtual+' × 0.7 × N</div><div style="font-size:11px;color:var(--t3);margin-top:6px">Assumimos que 70% do tempo de anamnese é poupado.</div></div><div style="background:var(--bg);border-radius:12px;padding:14px 18px;margin-bottom:10px"><div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Pacientes extras possíveis</div><div style="font-family:monospace;font-size:12px;color:var(--t1);line-height:1.6">tempo_economizado ÷ '+DR.config.tempoMedioConsulta+' min</div></div><div style="background:var(--bg);border-radius:12px;padding:14px 18px"><div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Receita potencial</div><div style="font-family:monospace;font-size:12px;color:var(--t1);line-height:1.6">pacientes_extras × '+fmtBRL(DR.config.valorConsulta)+'</div></div><div style="margin-top:18px;padding:12px 16px;background:rgba(59,130,246,.08);border-radius:10px;font-size:11.5px;color:var(--info);line-height:1.55"><strong>Importante:</strong> "Receita potencial" é o limite teórico — pressupõe que você atenda mais pacientes no tempo economizado.</div></div><div class="modal-foot"><button class="btn btn-p" onclick="closeModal()">Entendi</button></div>';
+  // Pega valores reais do médico do cache de métricas (qualquer período serve)
+  var imp = STATE.metricas[STATE.impactoTab] || STATE.metricas['30dias'] || STATE.metricas['mes'] || STATE.metricas['semana'] || STATE.metricas['hoje'];
+  var d = imp && imp.detalhe ? imp.detalhe : {};
+  var tAnam = d.tempoAnamneseSemVitae || '—';
+  var pEcon = d.percentualEconomiaAnamnese || '—';
+  var tCons = d.tempoMedioConsulta || '—';
+  var vCons = d.valorConsulta != null ? fmtBRL(d.valorConsulta) : 'R$ —';
+  var tNoSh = d.taxaNoShow != null ? d.taxaNoShow : '—';
+  var compMedia = d.completudeMediaPeriodo != null ? d.completudeMediaPeriodo+'%' : '—';
+  var consultasMedidas = imp ? imp.consultasMedidas : 0;
+
+  var html='<div class="modal-h"><div><div class="modal-step">TRANSPARÊNCIA</div><div class="modal-t">Como calculamos seus números</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
+  html+='<div class="modal-body">';
+  html+='<div style="font-size:13px;color:var(--t1);line-height:1.6;margin-bottom:14px">Cada número sai da soma real das pré-consultas respondidas no período. Sem multiplicar por dias úteis. Sem chute universal.</div>';
+
+  // Os 5 inputs declarativos
+  html+='<div style="background:var(--bg);border-radius:12px;padding:14px 18px;margin-bottom:14px">';
+  html+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:10px">Os 5 dados que você informou</div>';
+  html+='<div style="font-size:12.5px;color:var(--t2);line-height:1.8">';
+  html+='<div>Anamnese sem VITAE: <strong style="color:var(--t1)">'+tAnam+' min</strong></div>';
+  html+='<div>Você economiza com anamnese pronta: <strong style="color:var(--t1)">'+pEcon+'%</strong></div>';
+  html+='<div>Consulta inteira: <strong style="color:var(--t1)">'+tCons+' min</strong></div>';
+  html+='<div>Valor médio: <strong style="color:var(--t1)">'+vCons+'</strong></div>';
+  html+='<div>Taxa de faltas: <strong style="color:var(--t1)">'+tNoSh+'%</strong></div>';
+  html+='</div>';
+  html+='<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="closeModal();modalSetupMetricas()">Editar essas informações</button>';
+  html+='</div>';
+
+  // Tempo economizado
+  html+='<div style="background:var(--bg);border-radius:12px;padding:14px 18px;margin-bottom:10px">';
+  html+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Tempo economizado</div>';
+  html+='<div style="font-size:12.5px;color:var(--t1);line-height:1.6">Pra cada pré-consulta respondida no período:<br/><strong>'+tAnam+' min × completude da pré-consulta × '+pEcon+'%</strong></div>';
+  html+='<div style="font-size:11px;color:var(--t3);margin-top:6px">Completude média do período: '+compMedia+' · '+consultasMedidas+' '+(consultasMedidas===1?'pré-consulta':'pré-consultas')+' medida'+(consultasMedidas===1?'':'s')+'.</div>';
+  html+='</div>';
+
+  // Tempo livre equivalente
+  html+='<div style="background:var(--bg);border-radius:12px;padding:14px 18px;margin-bottom:10px">';
+  html+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Tempo livre equivalente</div>';
+  html+='<div style="font-size:12.5px;color:var(--t1);line-height:1.6"><strong>tempo economizado ÷ '+tCons+' min</strong></div>';
+  html+='<div style="font-size:11px;color:var(--t3);margin-top:6px">Quantas consultas cabem no tempo que abriu. Você decide se preenche ou se sai mais cedo.</div>';
+  html+='</div>';
+
+  // Receita possível
+  html+='<div style="background:var(--bg);border-radius:12px;padding:14px 18px;margin-bottom:14px">';
+  html+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Receita possível</div>';
+  html+='<div style="font-size:12.5px;color:var(--t1);line-height:1.6"><strong>tempo livre × '+vCons+' × '+(100-(tNoSh==='—'?0:tNoSh))+'%</strong></div>';
+  html+='<div style="font-size:11px;color:var(--t3);margin-top:6px">Já desconta os '+tNoSh+'% de faltas que você costuma ter.</div>';
+  html+='</div>';
+
+  html+='<div style="padding:12px 16px;background:rgba(59,130,246,.08);border-radius:10px;font-size:11.5px;color:var(--info);line-height:1.55"><strong>Por que isso é honesto:</strong> Os 5 dados vêm de você, não de chute nosso. A completude de cada pré-consulta é fato (cálculo direto das respostas do paciente). Arredondamos pra baixo.</div>';
+  html+='</div>';
+  html+='<div class="modal-foot"><button class="btn btn-p" onclick="closeModal()">Entendi</button></div>';
+  openModal(html, true);
+}
+window.modalComoCalculamos = modalComoCalculamos;
+
+/* ============================================
+   SETUP MÉTRICAS — 5 perguntas em wizard
+   ============================================ */
+function modalSetupMetricas(){
+  // Estado inicial — pega valores existentes do detalhe ou usa defaults razoáveis
+  var imp = STATE.metricas[STATE.impactoTab] || STATE.metricas['30dias'] || STATE.metricas['mes'] || STATE.metricas['semana'] || STATE.metricas['hoje'];
+  var d = imp && imp.detalhe ? imp.detalhe : {};
+  STATE._setupStep = 1;
+  STATE._setupDraft = {
+    tempoAnamneseSemVitae: d.tempoAnamneseSemVitae || 12,
+    percentualEconomiaAnamnese: d.percentualEconomiaAnamnese || 70,
+    tempoMedioConsulta: d.tempoMedioConsulta || DR.config.tempoMedioConsulta || 30,
+    valorConsulta: d.valorConsulta != null ? d.valorConsulta : (DR.config.valorConsulta || 250),
+    taxaNoShow: d.taxaNoShow != null ? d.taxaNoShow : 20,
+  };
+  renderSetupMetricas();
+}
+window.modalSetupMetricas = modalSetupMetricas;
+
+function renderSetupMetricas(){
+  var s = STATE._setupStep;
+  var d = STATE._setupDraft;
+  var totalSteps = 6; // 5 perguntas + revisão
+  var html = '<div class="modal-h"><div><div class="modal-step">CONFIGURAR MÉTRICAS · PASSO '+s+' DE '+totalSteps+'</div><div class="modal-t">Suas informações</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
+  html += '<div class="modal-body">';
+  html += '<div class="modal-stepbar">';
+  for (var i=1; i<=totalSteps; i++) {
+    html += '<div class="dot '+(i<=s?'on':'')+'"></div>';
+  }
+  html += '</div>';
+
+  if (s === 1) {
+    html += '<div style="font-size:13.5px;color:var(--t1);line-height:1.6;margin-bottom:14px"><strong>Quanto tempo dura sua anamnese hoje, sem pré-consulta?</strong></div>';
+    html += '<div style="font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:18px">É o tempo que você gasta perguntando ao paciente o histórico, queixa principal, antecedentes, etc. Antes de partir pro exame físico.</div>';
+    html += '<div class="field-block"><label>Tempo da anamnese sem VITAE</label>';
+    html += '<div style="display:flex;align-items:center;gap:10px"><input type="number" id="setup_tAnam" value="'+d.tempoAnamneseSemVitae+'" min="1" max="60" style="max-width:120px"/> <span style="font-size:13px;color:var(--t3)">minutos</span></div>';
+    html += '<div style="font-size:11px;color:var(--t3);margin-top:8px">A maioria dos médicos leva entre 8 e 15 minutos.</div></div>';
+  }
+
+  if (s === 2) {
+    html += '<div style="font-size:13.5px;color:var(--t1);line-height:1.6;margin-bottom:14px"><strong>Se a anamnese já viesse pronta na sua frente, quanto desse tempo você economizaria?</strong></div>';
+    html += '<div style="font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:18px">A pré-consulta entrega o histórico do paciente respondido em casa. Você ainda confirma e aprofunda — mas não precisa colher do zero.</div>';
+    html += '<div class="field-block"><label>Percentual de economia na anamnese</label>';
+    html += '<div style="display:flex;align-items:center;gap:10px"><input type="number" id="setup_pEcon" value="'+d.percentualEconomiaAnamnese+'" min="10" max="95" style="max-width:120px"/> <span style="font-size:13px;color:var(--t3)">%</span></div>';
+    html += '<div style="font-size:11px;color:var(--t3);margin-top:8px">Médicos que usam pré-consulta costumam economizar entre 60% e 80%.</div></div>';
+  }
+
+  if (s === 3) {
+    html += '<div style="font-size:13.5px;color:var(--t1);line-height:1.6;margin-bottom:14px"><strong>Quanto dura uma consulta sua, do começo ao fim?</strong></div>';
+    html += '<div style="font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:18px">Tempo total da consulta presencial — anamnese + exame físico + diagnóstico + prescrição.</div>';
+    html += '<div class="field-block"><label>Tempo médio da consulta</label>';
+    html += '<div style="display:flex;align-items:center;gap:10px"><input type="number" id="setup_tCons" value="'+d.tempoMedioConsulta+'" min="5" max="240" style="max-width:120px"/> <span style="font-size:13px;color:var(--t3)">minutos</span></div>';
+    html += '<div style="font-size:11px;color:var(--t3);margin-top:8px">Pediatria: 20 min · Clínica geral: 30 min · Cardiologia: 40 min.</div></div>';
+  }
+
+  if (s === 4) {
+    html += '<div style="font-size:13.5px;color:var(--t1);line-height:1.6;margin-bottom:14px"><strong>Valor médio que você cobra por consulta?</strong></div>';
+    html += '<div style="font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:18px">Valor médio considerando seu mix (particular + convênios). Use ticket médio aproximado.</div>';
+    html += '<div class="field-block"><label>Valor médio da consulta</label>';
+    html += '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:13px;color:var(--t3)">R$</span> <input type="number" id="setup_vCons" value="'+d.valorConsulta+'" min="0" max="10000" step="10" style="max-width:140px"/></div>';
+    html += '<div style="font-size:11px;color:var(--t3);margin-top:8px">Esse valor não sai do seu navegador para nada além de calcular suas métricas.</div></div>';
+  }
+
+  if (s === 5) {
+    html += '<div style="font-size:13.5px;color:var(--t1);line-height:1.6;margin-bottom:14px"><strong>De cada 10 pacientes agendados, quantos costumam faltar?</strong></div>';
+    html += '<div style="font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:18px">A receita possível desconta as faltas — para o número ser realista.</div>';
+    html += '<div class="field-block"><label>Pacientes que faltam (a cada 10)</label>';
+    html += '<div style="display:flex;align-items:center;gap:10px"><input type="number" id="setup_tNoSh" value="'+(d.taxaNoShow/10).toFixed(1)+'" min="0" max="5" step="0.5" style="max-width:120px"/> <span style="font-size:13px;color:var(--t3)">de 10</span></div>';
+    html += '<div style="font-size:11px;color:var(--t3);margin-top:8px">Média de consultórios brasileiros: 2 de 10 (20% de faltas).</div></div>';
+  }
+
+  if (s === 6) {
+    // Revisão
+    html += '<div style="font-size:13.5px;color:var(--t1);line-height:1.6;margin-bottom:18px"><strong>Confira os dados antes de salvar:</strong></div>';
+    html += '<div style="background:var(--bg);border-radius:12px;padding:16px 18px;margin-bottom:14px">';
+    html += '<div style="font-size:12.5px;color:var(--t2);line-height:2">';
+    html += '<div>Anamnese sem VITAE: <strong style="color:var(--t1)">'+d.tempoAnamneseSemVitae+' min</strong></div>';
+    html += '<div>Economia com anamnese pronta: <strong style="color:var(--t1)">'+d.percentualEconomiaAnamnese+'%</strong></div>';
+    html += '<div>Consulta inteira: <strong style="color:var(--t1)">'+d.tempoMedioConsulta+' min</strong></div>';
+    html += '<div>Valor médio: <strong style="color:var(--t1)">'+fmtBRL(d.valorConsulta)+'</strong></div>';
+    html += '<div>Faltas: <strong style="color:var(--t1)">'+d.taxaNoShow+'%</strong></div>';
+    html += '</div></div>';
+    html += '<div style="padding:12px 16px;background:rgba(59,130,246,.08);border-radius:10px;font-size:12px;color:var(--info);line-height:1.55">Você pode editar a qualquer momento em <strong>Perfil → Tempo & receita</strong>. A precisão das métricas vai aumentando conforme mais pré-consultas são respondidas.</div>';
+  }
+
+  html += '</div>';
+
+  // Footer com navegação
+  html += '<div class="modal-foot">';
+  if (s === 1) html += '<button class="btn btn-ghost" onclick="setupMetricasDispensar()">Configurar depois</button>';
+  if (s > 1) html += '<button class="btn btn-ghost" onclick="setupMetricasVoltar()">Voltar</button>';
+  if (s < totalSteps) html += '<button class="btn btn-p" onclick="setupMetricasAvancar()">Continuar</button>';
+  if (s === totalSteps) html += '<button class="btn btn-p" onclick="setupMetricasSalvar()">Salvar configuração</button>';
+  html += '</div>';
+
+  openModal(html, true);
+}
+window.renderSetupMetricas = renderSetupMetricas;
+
+function setupMetricasAvancar(){
+  var s = STATE._setupStep;
+  var d = STATE._setupDraft;
+  // Lê valor do input atual e valida
+  if (s === 1) {
+    var v = parseInt(document.getElementById('setup_tAnam').value);
+    if (!v || v < 1 || v > 60) { toast('Coloque um valor entre 1 e 60 minutos'); return; }
+    d.tempoAnamneseSemVitae = v;
+  }
+  if (s === 2) {
+    var v = parseInt(document.getElementById('setup_pEcon').value);
+    if (!v || v < 10 || v > 95) { toast('Coloque um valor entre 10% e 95%'); return; }
+    d.percentualEconomiaAnamnese = v;
+  }
+  if (s === 3) {
+    var v = parseInt(document.getElementById('setup_tCons').value);
+    if (!v || v < 5 || v > 240) { toast('Coloque um valor entre 5 e 240 minutos'); return; }
+    if (v < d.tempoAnamneseSemVitae) {
+      toast('A consulta inteira não pode durar menos que a anamnese.');
+      return;
+    }
+    d.tempoMedioConsulta = v;
+  }
+  if (s === 4) {
+    var v = parseFloat(document.getElementById('setup_vCons').value);
+    if (isNaN(v) || v < 0 || v > 10000) { toast('Coloque um valor entre R$ 0 e R$ 10.000'); return; }
+    d.valorConsulta = v;
+  }
+  if (s === 5) {
+    var v = parseFloat(document.getElementById('setup_tNoSh').value);
+    if (isNaN(v) || v < 0 || v > 5) { toast('Coloque um valor entre 0 e 5'); return; }
+    d.taxaNoShow = Math.round(v * 10);
+  }
+  STATE._setupStep++;
+  renderSetupMetricas();
+}
+window.setupMetricasAvancar = setupMetricasAvancar;
+
+function setupMetricasVoltar(){
+  STATE._setupStep--;
+  renderSetupMetricas();
+}
+window.setupMetricasVoltar = setupMetricasVoltar;
+
+async function setupMetricasSalvar(){
+  if (!window.BACKEND) { toast('Sistema indisponível'); return; }
+  var d = STATE._setupDraft;
+  try {
+    var res = await window.BACKEND.api('/medico/metricas/setup', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(d),
+    });
+    if (!res.ok) {
+      var err = await res.json().catch(function(){return{};});
+      toast(err.erro || 'Não foi possível salvar');
+      return;
+    }
+    closeModal();
+    toastT('Configuração salva — métricas atualizadas','ok');
+    // Sincroniza DR.config local pra renders dependentes
+    if (DR.config) {
+      DR.config.tempoMedioConsulta = d.tempoMedioConsulta;
+      DR.config.valorConsulta = d.valorConsulta;
+      DR.config.tempoAnamneseAtual = d.tempoAnamneseSemVitae;
+    }
+    invalidarCacheMetricas();
+    if (STATE.view === 'hoje') renderHoje();
+    else if (STATE.view === 'perfil' && typeof renderPerfil === 'function') renderPerfil();
+  } catch(e) {
+    toast('Sem conexão');
+  }
+}
+window.setupMetricasSalvar = setupMetricasSalvar;
+
+function setupMetricasDispensar(){
+  // Suprime trigger automatico por 24h
+  localStorage.setItem('vitae_setup_dispensado_ate', String(Date.now() + 24*60*60*1000));
+  closeModal();
+  toastT('Você pode configurar a qualquer momento em Perfil → Tempo & receita','info');
+}
+window.setupMetricasDispensar = setupMetricasDispensar;
+
+/* ============================================
+   CALIBRAÇÃO MENSAL — banner check-in
+   ============================================
+   Após 30 dias do setup (ou 30 dias da última calibração), mostra banner
+   discreto perguntando se os números fazem sentido. Se médico discordar,
+   sugere ajuste do percentualEconomiaAnamnese (input mais fácil de calibrar).
+*/
+
+function verificarCalibracaoPendente(){
+  // Pega métricas do período mais longo (30dias) pra ter dados representativos
+  var imp = STATE.metricas['30dias'] || STATE.metricas['mes'];
+  if (!imp || imp.setupConcluido === false) return;
+  if (imp.consultasMedidas < 10) return; // precisa de volume mínimo
+
+  var d = imp.detalhe || {};
+  var calibradoEm = d.calibradoEm;
+  var setupConfigDate = null;
+
+  // Considera "precisa calibrar" se:
+  //   - nunca calibrou E setup tem >30 dias de uso (>=10 consultas medidas é proxy)
+  //   - OU última calibração foi >30 dias
+  var precisaCalibrar = false;
+  if (!calibradoEm) {
+    precisaCalibrar = imp.consultasMedidas >= 10;
+  } else {
+    var diasDesdeCalib = (Date.now() - new Date(calibradoEm).getTime()) / (1000*60*60*24);
+    precisaCalibrar = diasDesdeCalib >= 30;
+  }
+  if (!precisaCalibrar) return;
+
+  // Verifica se médico dispensou nas últimas 24h
+  var dispensadoAte = parseInt(localStorage.getItem('vitae_calibracao_dispensada_ate') || '0', 10);
+  if (Date.now() < dispensadoAte) return;
+
+  showBanner('calibracao', 'info',
+    'Suas métricas estão calibradas com '+imp.consultasMedidas+' pré-consultas. Faz sentido o que você está vendo?',
+    [
+      { t: 'Confirmar', fn: 'calibracaoResponder(\'ok\')' },
+      { t: 'Ajustar', fn: 'modalCalibracaoAjuste()' },
+      { t: 'Depois', fn: 'calibracaoLembrarDepois()' },
+    ]
+  );
+}
+window.verificarCalibracaoPendente = verificarCalibracaoPendente;
+
+async function calibracaoResponder(resposta, ajustes){
+  if (!window.BACKEND) { toast('Sistema indisponível'); return; }
+  try {
+    var body = { resposta: resposta };
+    if (ajustes) body.ajustes = ajustes;
+    var res = await window.BACKEND.api('/medico/metricas/calibracao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) { toast('Não foi possível salvar'); return; }
+    closeBanner('calibracao');
+    closeModal();
+    toastT('Obrigado pelo retorno','ok');
+    invalidarCacheMetricas();
+    if (STATE.view === 'hoje') renderHoje();
+  } catch(e) {
+    toast('Sem conexão');
+  }
+}
+window.calibracaoResponder = calibracaoResponder;
+
+function calibracaoLembrarDepois(){
+  // Suprime banner por 24 horas
+  localStorage.setItem('vitae_calibracao_dispensada_ate', String(Date.now() + 24*60*60*1000));
+  closeBanner('calibracao');
+}
+window.calibracaoLembrarDepois = calibracaoLembrarDepois;
+
+function modalCalibracaoAjuste(){
+  closeBanner('calibracao');
+  var imp = STATE.metricas['30dias'] || STATE.metricas['mes'] || {};
+  var d = imp.detalhe || {};
+  var pEconAtual = d.percentualEconomiaAnamnese || 70;
+
+  var html = '<div class="modal-h"><div><div class="modal-step">CALIBRAÇÃO</div><div class="modal-t">Ajustar economia de tempo</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
+  html += '<div class="modal-body">';
+  html += '<div style="font-size:13px;color:var(--t1);line-height:1.6;margin-bottom:14px">Você indicou que economiza <strong>'+pEconAtual+'%</strong> do tempo de anamnese quando vem pré-consulta.</div>';
+  html += '<div style="font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:18px">Após '+imp.consultasMedidas+' pré-consultas reais, você sente que esse número está superestimado, igual ou subestimado?</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:10px">';
+  html += '<button class="btn btn-ghost" style="text-align:left;padding:14px 18px" onclick="calibracaoAplicarAjuste(\'subestimado\','+(pEconAtual+10)+')"><strong>Subestimado</strong> — eu economizo mais ('+Math.min(95, pEconAtual+10)+'%)</button>';
+  html += '<button class="btn btn-ghost" style="text-align:left;padding:14px 18px" onclick="calibracaoAplicarAjuste(\'ok\',null)"><strong>Está certo</strong> — manter '+pEconAtual+'%</button>';
+  html += '<button class="btn btn-ghost" style="text-align:left;padding:14px 18px" onclick="calibracaoAplicarAjuste(\'superestimado\','+Math.max(10, pEconAtual-10)+')"><strong>Superestimado</strong> — eu economizo menos ('+Math.max(10, pEconAtual-10)+'%)</button>';
+  html += '</div>';
+  html += '<div style="margin-top:16px;font-size:11.5px;color:var(--t3);line-height:1.5">Ou você pode editar todos os 5 dados em <strong>Perfil → Tempo & receita</strong>.</div>';
+  html += '</div>';
+  html += '<div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Fechar</button></div>';
   openModal(html);
 }
+window.modalCalibracaoAjuste = modalCalibracaoAjuste;
+
+function calibracaoAplicarAjuste(resposta, novoPercentual){
+  var ajustes = null;
+  if (novoPercentual != null) {
+    ajustes = { percentualEconomiaAnamnese: novoPercentual };
+  }
+  calibracaoResponder(resposta, ajustes);
+}
+window.calibracaoAplicarAjuste = calibracaoAplicarAjuste;
 
 function modalCriarTemplate(){STATE._tplStep=1;STATE._tplDraft={nome:'',perguntas:[],audio:true};renderModalTemplate();}
 function modalEditarTemplate(id){var t=TEMPLATES.find(function(x){return x.id===id;});STATE._tplStep=2;STATE._tplDraft={id:t.id,nome:t.nome,perguntas:Array(t.perguntas).fill().map(function(_,i){return {texto:'Pergunta '+(i+1)};}),audio:t.audio,edit:true};renderModalTemplate();}
