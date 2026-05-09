@@ -3,18 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>vitaid · Plataforma Médica</title>
+<title>vitaid · Preview Mudanças (09/05)</title>
 <script>
-// ===== AUTH GATE (Fase 3) =====
+// ===== PREVIEW MODE — auth gate desativado, usa mocks =====
 (function(){
   try {
-    var token = localStorage.getItem('vitae_token');
-    var raw = localStorage.getItem('vitae_usuario');
-    var u = raw ? JSON.parse(raw) : null;
-    if (!token || !u || u.tipo !== 'MEDICO') {
-      window.location.replace('01-login.html');
+    if (!localStorage.getItem('vitae_token')) {
+      localStorage.setItem('vitae_token', 'preview-mock-token');
     }
-  } catch(e) { window.location.replace('01-login.html'); }
+    if (!localStorage.getItem('vitae_usuario')) {
+      localStorage.setItem('vitae_usuario', JSON.stringify({
+        id: 'preview-medico',
+        nome: 'José Almeida',
+        tipo: 'MEDICO'
+      }));
+    }
+    window.__VITAE_PREVIEW_MODE__ = true;
+  } catch(e) {}
 })();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -98,7 +103,7 @@
 .auto-btn{margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--t2);padding:6px 12px;border-radius:7px;font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer;flex-shrink:0}
 .auto-btn:hover{background:var(--surface);color:var(--t1);border-color:rgba(0,229,160,.3)}
 
-/* PRA DISPARAR — bloco "consultas das próximas 36h" (substituiu Automações na aba Hoje) */
+/* PRA DISPARAR — bloco "consultas das próximas 36h" (substituiu Automações) */
 .pd-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px}
 .pd-h{padding:18px 22px 12px;border-bottom:1px solid var(--border)}
 .pd-t{font-size:14px;font-weight:800;letter-spacing:-.2px;color:var(--t1)}
@@ -118,7 +123,7 @@
 .pd-btn-x{background:transparent;border:1px solid var(--border);color:var(--t3);width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;font-weight:600}
 .pd-btn-x:hover{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.30);color:var(--bad)}
 
-/* Botoes da tabela Pre-Consultas: sempre visiveis + coluna de acoes mais larga */
+/* MUDANÇA — botões da tabela Pré-Consultas: sempre visíveis + coluna de ações mais larga */
 .pcn-trow{grid-template-columns:1.6fr 1.2fr 150px 150px 200px !important}
 .pcn-tr-act{opacity:1 !important;align-items:center}
 .pcn-tr-disparar{background:var(--grad);border:0;color:var(--dark);padding:7px 14px;font-size:11.5px;font-weight:700;border-radius:8px;cursor:pointer;font-family:var(--font);letter-spacing:.01em;white-space:nowrap;line-height:1;height:30px;display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 4px rgba(0,229,160,.18);transition:.12s}
@@ -885,6 +890,17 @@
 </head>
 <body>
 
+<!-- PREVIEW BANNER — identificação sutil de que é preview -->
+<div id="previewBanner" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#0D0F14,#1F2937);color:#fff;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:11.5px;font-weight:600;padding:8px 18px;display:flex;align-items:center;gap:14px;letter-spacing:.02em;border-bottom:1px solid rgba(0,229,160,.30);box-shadow:0 2px 12px rgba(0,0,0,.18)">
+  <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,160,.14);border:1px solid rgba(0,229,160,.32);color:#00E5A0;padding:3px 9px;border-radius:100px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase">PREVIEW</span>
+  <span style="color:rgba(255,255,255,.85)">5 mudanças propostas pra discussão · navegação completa habilitada · este arquivo NÃO é o app de produção</span>
+  <span style="margin-left:auto;display:flex;align-items:center;gap:14px;color:rgba(255,255,255,.55);font-size:10.5px;font-weight:500">
+    <span>09/05/2026</span>
+    <button onclick="document.getElementById('previewBanner').style.display='none';document.body.style.paddingTop='0'" style="background:transparent;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.75);font-family:inherit;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer">Esconder banner</button>
+  </span>
+</div>
+<style>body{padding-top:38px}</style>
+
 <!-- ONBOARDING (primeira vez) -->
 <div class="onb-bg" id="onbBg"><div class="onb" id="onbCard"></div></div>
 
@@ -973,31 +989,122 @@
 /* ============================================================
    STATE + DATA
    ============================================================ */
-// DR — estrutura base, populada por BACKEND.loadDR() no boot a partir de localStorage + GET /medico
+// === PREVIEW MOCKS — populados em memória pra rodar standalone ===
 var DR = {
-  nome:'—', primeiroNome:'', crm:'', uf:'',
-  especialidade:'', email:'', telefone:'',
-  clinica:'', endereco:'',
+  nome:'José Almeida', primeiroNome:'José', crm:'12345', uf:'SP',
+  especialidade:'Clínica Geral', email:'jose.almeida@vitae.app', telefone:'(11) 98765-4321',
+  clinica:'Consultório Almeida', endereco:'Rua das Flores, 100 — São Paulo, SP',
+  valorConsulta: 280,
   config:{
-    tempoMedioConsulta:30, tempoAnamneseAtual:7, valorConsulta:0,
-    googleCalendarConectado:false, inteligenciaComparativaAtiva:false,
-    mensagemLembrete:'Olá {nome}, sou da equipe do Dr. {medico}. Sua consulta é {data} às {hora}. Antes do atendimento, gravei essa pré-consulta de 4 minutos pra entender melhor o que você está sentindo: {link}'
+    tempoMedioConsulta:30, tempoAnamneseAtual:7, valorConsulta:280,
+    googleCalendarConectado:true, inteligenciaComparativaAtiva:true,
+    mensagemLembrete:'Olá {nome}, sou da equipe do Dr. José Almeida. Sua consulta é {data} às {hora}. Antes do atendimento, gravei essa pré-consulta de 4 minutos pra entender melhor o que você está sentindo: {link}'
   }
 };
 
-// PACIENTES — populado por BACKEND.loadPACIENTES() via GET /medico/pacientes
-var PACIENTES = [];
-
 function mkAnam(o){ var f=function(v,fn){return {v:v,fonte:fn||'audio'};}; return Object.assign({queixaPrincipal:f('—','pulado'),tempoEvolucao:f('—','pulado'),intensidade:f('—','pulado'),fatoresAgravantes:f('—','pulado'),fatoresAtenuantes:f('—','pulado'),sintomasAssociados:f('—','pulado'),tratamentoPrevio:f('—','pulado'),antecedentesPessoais:f('—','pulado'),antecedentesFamiliares:f('—','pulado'),habitos:f('—','pulado'),sono:f('—','pulado')},o||{}); }
 
-// PCS — populado por BACKEND.loadPCS() via GET /pre-consulta
-var PCS = {};
+// helpers de data pros mocks
+function _mockDate(diasOffset, hora, min){
+  var d = new Date(); d.setHours(hora||9, min||0, 0, 0);
+  d.setDate(d.getDate() + (diasOffset||0));
+  return d.toISOString();
+}
+function _mockDateAgo(horasAtras){
+  return new Date(Date.now() - (horasAtras*3600*1000)).toISOString();
+}
 
-// AGENDA_HOJE — populada por BACKEND.loadAGENDA() via GET /agenda/slots?inicio&fim
-var AGENDA_HOJE = [];
+var PACIENTES = [
+  { id:'p1', nome:'Maria Silva',     ini:'MS', idade:42, sexo:'F', telefone:'(11) 98855-1122', email:'maria@email.com', anamneses:1, pcsRespondidas:1, pcsPendentes:0, alergiasGraves:['Dipirona'], medicamentosAtivos:['Losartana 50mg'] },
+  { id:'p2', nome:'João Pedro',      ini:'JP', idade:35, sexo:'M', telefone:'(11) 99988-2233', email:'joao@email.com',  anamneses:1, pcsRespondidas:0, pcsPendentes:1, alergiasGraves:[], medicamentosAtivos:[] },
+  { id:'p3', nome:'Ana Beatriz',     ini:'AB', idade:28, sexo:'F', telefone:'(11) 97766-3344', email:'ana@email.com',   anamneses:2, pcsRespondidas:2, pcsPendentes:0, alergiasGraves:['Penicilina'], medicamentosAtivos:[] },
+  { id:'p4', nome:'Carlos Santos',   ini:'CS', idade:51, sexo:'M', telefone:'(11) 96655-4455', email:'carlos@email.com',anamneses:0, pcsRespondidas:0, pcsPendentes:0, alergiasGraves:[], medicamentosAtivos:[] },
+  { id:'p5', nome:'Patrícia Lima',   ini:'PL', idade:39, sexo:'F', telefone:'(11) 95544-5566', email:'patricia@email.com',anamneses:0, pcsRespondidas:0, pcsPendentes:0, alergiasGraves:[], medicamentosAtivos:[] },
+  { id:'p6', nome:'Lucas Mendes',    ini:'LM', idade:24, sexo:'M', telefone:'(11) 94433-6677', email:'lucas@email.com', anamneses:0, pcsRespondidas:0, pcsPendentes:0, alergiasGraves:[], medicamentosAtivos:[] },
+  { id:'p7', nome:'Rita Soares',     ini:'RS', idade:62, sexo:'F', telefone:'(11) 93322-7788', email:'rita@email.com',  anamneses:1, pcsRespondidas:1, pcsPendentes:0, alergiasGraves:[], medicamentosAtivos:['Atenolol 25mg','Sinvastatina 20mg'] },
+  { id:'p8', nome:'Fernando Costa',  ini:'FC', idade:48, sexo:'M', telefone:'(11) 92211-8899', email:'fernando@email.com',anamneses:1, pcsRespondidas:1, pcsPendentes:0, alergiasGraves:[], medicamentosAtivos:[] }
+];
 
-// TEMPLATES — populado por BACKEND.loadTEMPLATES() via GET /templates
-var TEMPLATES = [];
+var PCS = {
+  'pc1': {
+    id:'pc1', pacienteId:'p1', pacienteNome:'Maria Silva', paciente:'Maria Silva', ini:'MS',
+    template:'Anamnese Geral', templateNome:'Anamnese Geral', status:'respondida',
+    linkToken:'tok-pc1', criadaEm:_mockDateAgo(20), criada:_mockDateAgo(20),
+    dataConsulta:_mockDate(0, 9, 0), /* hoje 09:00 */
+    recordedAt:'há 2h', respondidaEm:_mockDateAgo(2),
+    queixa:'Cefaleia há 3 dias com piora pela manhã',
+    queixaSnippet:'Cefaleia há 3 dias com piora pela manhã',
+    cobertura:'pronta', alertaProsodico:false,
+    descricao:'Dor de cabeça há 3 dias, pulsátil, frontal, piora ao acordar.',
+    summaryTexto:'Paciente relata cefaleia há 3 dias, de característica pulsátil, intensidade 7/10, predominantemente frontal. Pior pela manhã. Nega febre. Já tomou Dipirona sem melhora — atenção: paciente alérgica a Dipirona conforme cadastro.'
+  },
+  'pc2': {
+    id:'pc2', pacienteId:'p2', pacienteNome:'João Pedro', paciente:'João Pedro', ini:'JP',
+    template:'Anamnese Geral', templateNome:'Anamnese Geral', status:'aguardando',
+    linkToken:'tok-pc2', criadaEm:_mockDateAgo(18), criada:_mockDateAgo(18),
+    dataConsulta:_mockDate(0, 14, 0), /* hoje 14:00 */
+    recordedAt:'aguardando paciente', respondidaEm:null,
+    queixa:null, queixaSnippet:'Paciente recebeu o link',
+    cobertura:'sem', alertaProsodico:false
+  },
+  'pc3': {
+    id:'pc3', pacienteId:'p3', pacienteNome:'Ana Beatriz', paciente:'Ana Beatriz', ini:'AB',
+    template:'Dermatologia', templateNome:'Dermatologia', status:'respondida',
+    linkToken:'tok-pc3', criadaEm:_mockDateAgo(22), criada:_mockDateAgo(22),
+    dataConsulta:_mockDate(0, 16, 0), /* hoje 16:00 */
+    recordedAt:'há 4h', respondidaEm:_mockDateAgo(4),
+    queixa:'Manchas vermelhas no antebraço há 1 semana',
+    queixaSnippet:'Manchas vermelhas no antebraço há 1 semana',
+    cobertura:'pronta', alertaProsodico:false,
+    descricao:'Manchas eritematosas, pruriginosas, sem descamação.',
+    summaryTexto:'Paciente apresenta lesões eritematosas no antebraço direito, de início há 7 dias. Pruriginosas. Refere uso recente de novo sabão em pó. Sem outros sintomas sistêmicos.'
+  },
+  'pc4': {
+    id:'pc4', pacienteId:'p7', pacienteNome:'Rita Soares', paciente:'Rita Soares', ini:'RS',
+    template:'Anamnese Geral', templateNome:'Anamnese Geral', status:'respondida',
+    linkToken:'tok-pc4', criadaEm:_mockDateAgo(36), criada:_mockDateAgo(36),
+    dataConsulta:_mockDate(1, 10, 0), /* amanhã 10:00 */
+    recordedAt:'há 12h', respondidaEm:_mockDateAgo(12),
+    queixa:'Dor torácica intermitente',
+    queixaSnippet:'Dor torácica intermitente',
+    cobertura:'parcial',
+    alertaProsodico:{ desc:'Sinais de hesitação ao descrever a dor.', trecho:'00:42–00:58', features:['pausa longa 3.2s','tom elevado','voz embargada'] },
+    descricao:'Dor torácica em aperto, intermitente, há 4 dias.',
+    summaryTexto:'Paciente refere dor torácica em aperto, intermitente, há 4 dias. Não irradia. Piora ao subir escadas. Histórico familiar de doença coronariana (pai aos 58 anos).'
+  },
+  'pc5': {
+    id:'pc5', pacienteId:'p8', pacienteNome:'Fernando Costa', paciente:'Fernando Costa', ini:'FC',
+    template:'Retorno', templateNome:'Retorno', status:'respondida',
+    linkToken:'tok-pc5', criadaEm:_mockDateAgo(96), criada:_mockDateAgo(96),
+    dataConsulta:_mockDate(-3, 15, 0), /* 3 dias atrás (consulta já aconteceu) */
+    recordedAt:'há 3d', respondidaEm:_mockDateAgo(72),
+    queixa:'Retorno — pressão estabilizou',
+    queixaSnippet:'Retorno — pressão estabilizou',
+    cobertura:'pronta', alertaProsodico:false,
+    descricao:'Pressão controlada, segue medicação sem efeitos.',
+    summaryTexto:'Paciente em retorno. Pressão arterial controlada com Losartana 50mg. Refere boa adesão. Sem efeitos colaterais.'
+  }
+};
+
+// AGENDA_HOJE — slots vindos do Google Calendar.
+// Cada slot pode estar vinculado a uma PC já criada (pcId) ou ainda esperando o médico disparar.
+var AGENDA_HOJE = [
+  { id:'s1', inicio:_mockDate(0, 9, 0),  hora:'09:00', paciente:'Maria Silva',     pacienteId:'p1', pcId:'pc1', tituloEvento:'Consulta — Maria Silva',     calendarNome:'Agenda Consultório' },
+  { id:'s2', inicio:_mockDate(0, 14, 0), hora:'14:00', paciente:'João Pedro',      pacienteId:'p2', pcId:'pc2', tituloEvento:'Consulta — João Pedro',      calendarNome:'Agenda Consultório' },
+  { id:'s3', inicio:_mockDate(0, 16, 0), hora:'16:00', paciente:'Ana Beatriz',     pacienteId:'p3', pcId:'pc3', tituloEvento:'Consulta — Ana Beatriz',     calendarNome:'Agenda Consultório' },
+  { id:'s4', inicio:_mockDate(1, 9, 0),  hora:'09:00', paciente:'Carlos Santos',   pacienteId:'p4', pcId:null,  tituloEvento:'Consulta — Carlos Santos',   calendarNome:'Agenda Consultório' },
+  { id:'s5', inicio:_mockDate(1, 14, 30),hora:'14:30', paciente:'Patrícia Lima',   pacienteId:'p5', pcId:null,  tituloEvento:'Consulta — Patrícia Lima',   calendarNome:'Agenda Consultório' },
+  { id:'s6', inicio:_mockDate(1, 10, 0), hora:'10:00', paciente:'Rita Soares',     pacienteId:'p7', pcId:'pc4', tituloEvento:'Consulta — Rita Soares',     calendarNome:'Agenda Consultório' },
+  { id:'s7', inicio:_mockDate(2, 11, 0), hora:'11:00', paciente:'Lucas Mendes',    pacienteId:'p6', pcId:null,  tituloEvento:'Consulta — Lucas Mendes',    calendarNome:'Agenda Consultório' },
+  { id:'s8', inicio:_mockDate(4, 15, 0), hora:'15:00', paciente:'Maria Silva',     pacienteId:'p1', pcId:null,  tituloEvento:'Retorno — Maria Silva',      calendarNome:'Agenda Consultório' }
+];
+
+var TEMPLATES = [
+  { id:'t1', nome:'Anamnese Geral',  perguntas:11, audio:true, padrao:true,  vezesUsado:84 },
+  { id:'t2', nome:'Cardiologia',     perguntas:13, audio:true, padrao:false, vezesUsado:32 },
+  { id:'t3', nome:'Dermatologia',    perguntas:9,  audio:true, padrao:false, vezesUsado:18 },
+  { id:'t4', nome:'Retorno',         perguntas:6,  audio:true, padrao:false, vezesUsado:47 }
+];
 
 /* Perguntas reais por especialidade — escritas em PT-BR amigável pra paciente leigo */
 var PERGUNTAS_TEMPLATE = {
@@ -1050,8 +1157,8 @@ var PERGUNTAS_TEMPLATE = {
   ]
 };
 
-// ALERTAS_PROSODICOS — populado por BACKEND.loadPCS() (derivado de summaryJson.alertaProsodico)
-var ALERTAS_PROSODICOS = [];
+// ALERTAS_PROSODICOS — derivado das PCs com alertaProsodico=true
+var ALERTAS_PROSODICOS = ['pc4'];
 var STATE = {
   view:'hoje', alertaIdx:0, selectedPaciente:null,
   search:{pc:'',pac:'',tpl:''},
@@ -1380,13 +1487,12 @@ function renderHoje(){
       '</div>'+
     '</div>';
   }
-  /* Sessao 22 — substituiu o bloco Automacoes pelo "Pra disparar pre-consulta" */
+  /* MUDANÇA — bloco "Pra disparar pré-consulta" (substituiu o Automações removido) */
   (function(){
     var agora = Date.now();
     var fim36h = agora + (36*3600*1000);
     var paraDisparar = AGENDA_HOJE.filter(function(s){
       if (s.pcId) return false;
-      if (s.ignorado) return false;
       if (!s.inicio) return false;
       var t = new Date(s.inicio).getTime();
       return t >= agora && t <= fim36h;
@@ -1422,7 +1528,7 @@ function renderHoje(){
 function setImp(t){STATE.impactoTab=t;renderHoje();}
 function setAlerta(i){if(i<0||i>=ALERTAS_PROSODICOS.length)return;STATE.alertaIdx=i;renderHoje();}
 
-/* Sessao 22 — Disparar / Excluir slot vindo do Calendar */
+/* MUDANÇA — Disparar / Excluir slot vindo do Calendar */
 function dispararSlot(slotId){
   var s = AGENDA_HOJE.find(function(x){return x.id===slotId;});
   if (!s) { toast('Slot não encontrado'); return; }
@@ -1445,41 +1551,19 @@ function dispararSlot(slotId){
     slotId: slotId
   });
 }
-async function excluirSlot(slotId){
+function excluirSlot(slotId){
   var idx = AGENDA_HOJE.findIndex(function(x){return x.id===slotId;});
   if (idx < 0) return;
   if (!confirm('Excluir este paciente da lista? Sua agenda no Google Calendar não vai ser tocada.')) return;
   var backup = AGENDA_HOJE[idx];
-  // Otimista: remove local primeiro
   AGENDA_HOJE.splice(idx, 1);
+  if (typeof toastT === 'function') {
+    toastT('Removido da lista','ok',function(){ AGENDA_HOJE.splice(idx, 0, backup); if (STATE.view==='hoje') renderHoje(); if (STATE.view==='pre-consultas') renderPC(); });
+  } else {
+    toast('Removido da lista');
+  }
   if (STATE.view==='hoje') renderHoje();
   if (STATE.view==='pre-consultas') renderPC();
-  // Persiste no backend (marca como ignorado — rota /agenda/slots/:id/ignorar)
-  try {
-    if (window.BACKEND && window.BACKEND.api) {
-      var res = await window.BACKEND.api('/agenda/slots/'+encodeURIComponent(slotId)+'/ignorar', { method:'POST' });
-      if (!res.ok && res.status !== 404) throw new Error('HTTP '+res.status);
-    }
-    if (typeof toastT === 'function') {
-      toastT('Removido da lista','ok',function(){
-        // Desfazer: re-insere local + chama DELETE
-        AGENDA_HOJE.splice(idx, 0, backup);
-        if (window.BACKEND && window.BACKEND.api) {
-          window.BACKEND.api('/agenda/slots/'+encodeURIComponent(slotId)+'/ignorar', { method:'DELETE' }).catch(function(){});
-        }
-        if (STATE.view==='hoje') renderHoje();
-        if (STATE.view==='pre-consultas') renderPC();
-      });
-    } else {
-      toast('Removido da lista');
-    }
-  } catch(e){
-    // Falha no backend: rollback local
-    AGENDA_HOJE.splice(idx, 0, backup);
-    if (STATE.view==='hoje') renderHoje();
-    if (STATE.view==='pre-consultas') renderPC();
-    toast('Não consegui remover. Tenta de novo.');
-  }
 }
 window.dispararSlot = dispararSlot;
 window.excluirSlot = excluirSlot;
@@ -1491,20 +1575,22 @@ function renderPC(){
   var f=STATE.filters.pc, q=(STATE.search.pc||'').toLowerCase();
   var allPCs=Object.keys(PCS).map(function(id){return Object.assign({id:id},PCS[id]);});
 
-  /* Sessao 22 — slots Calendar sem PC entram na lista como "Pra disparar" */
-  var slotsParaDisparar = (Array.isArray(AGENDA_HOJE) ? AGENDA_HOJE : []).filter(function(s){
-    return !s.pcId && !s.ignorado;
+  /* MUDANÇA — slots Calendar sem PC entram na lista como "Pra disparar" */
+  var slotsParaDisparar = AGENDA_HOJE.filter(function(s){
+    return !s.pcId; // sem PC criada ainda
   });
 
-  /* Combina PCs + slots em items unificados, ordenados por data da consulta */
+  /* MUDANÇA — combina PCs + slots em items unificados, ordenados por data da consulta */
   function _dataItem(item){
     if (item.kind === 'slot') return new Date(item.inicio).getTime();
+    /* PC: usa dataConsulta se houver, senão criadaEm */
     return item.dataConsulta ? new Date(item.dataConsulta).getTime() : new Date(item.criadaEm).getTime();
   }
   var items = [];
   allPCs.forEach(function(p){ items.push(Object.assign({kind:'pc'}, p)); });
   slotsParaDisparar.forEach(function(s){ items.push(Object.assign({kind:'slot'}, s)); });
 
+  /* contagens pra pills */
   var counts = {
     all: items.length,
     PRA_DISPARAR: slotsParaDisparar.length,
@@ -1514,6 +1600,7 @@ function renderPC(){
     EXPIRADA: allPCs.filter(function(p){return p.status==='EXPIRADA'||p.status==='expirada';}).length
   };
 
+  /* aplica filtros */
   var filtered = items.filter(function(it){
     var nome = it.kind==='slot' ? (it.paciente||'') : (it.paciente||it.pacienteNome||'');
     if (q && nome.toLowerCase().indexOf(q) < 0) return false;
@@ -1524,9 +1611,11 @@ function renderPC(){
     if (f === 'EXPIRADA') return it.kind==='pc' && (it.status==='EXPIRADA'||it.status==='expirada');
     return true;
   }).sort(function(a,b){
+    /* MUDANÇA — ordem por data da consulta, ASC (mais próxima primeiro) */
     return _dataItem(a) - _dataItem(b);
   });
 
+  /* helper: formata data da consulta */
   function _fmtDataConsulta(iso){
     if (!iso) return '—';
     var d = new Date(iso);
@@ -1557,7 +1646,7 @@ function renderPC(){
   }else{
     filtered.forEach(function(it){
       if (it.kind === 'slot') {
-        /* Sessao 22 — linha de slot Calendar (ainda sem PC) */
+        /* MUDANÇA — linha de slot Calendar (ainda sem PC) */
         var iniLetras = (it.paciente||'??').split(' ').filter(Boolean).slice(0,2).map(function(x){return x[0];}).join('').toUpperCase();
         var origemTxt = '<span style="display:inline-flex;align-items:center;gap:5px;color:#0E7490;font-weight:600;font-size:11.5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Google Calendar</span>';
         var dataTxt = _fmtDataConsulta(it.inicio);
@@ -1574,6 +1663,7 @@ function renderPC(){
         return;
       }
 
+      /* linha de PC já criada */
       var p = it;
       var bcls, btxt;
       var jaRespondida = (p.status === 'RESPONDIDA' || p.status === 'respondida' || p.status === 'FINALIZADA' ||
@@ -3016,7 +3106,7 @@ function renderCriarPC(){
   /* card consulta */
   html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:14px">';
   html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div style="font-size:15px;font-weight:800;color:var(--t1)">Consulta</div></div>';
-  /* Sessao 22 — data e hora obrigatorias (autopreenche se veio do Calendar) */
+  /* MUDANÇA — data e hora obrigatórias na criação manual (autopreenche se veio do Calendar) */
   var origem = s.origemSlotId ? '<div style="margin-bottom:12px;padding:10px 14px;background:rgba(0,180,216,.06);border:1px solid rgba(0,180,216,.20);border-radius:10px;font-size:12px;color:#0E7490;font-weight:600;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Veio da sua agenda Google · data e hora preenchidas automaticamente</div>' : '';
   html+=origem;
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
@@ -3110,7 +3200,7 @@ async function cpcGerarEEnviar(){
     var i = document.getElementById('cpcNome'); if (i) i.focus();
     return;
   }
-  /* Sessao 22 — data e hora da consulta obrigatorias */
+  /* MUDANÇA — data e hora da consulta obrigatórias */
   if (!s.dataConsulta || !s.horaConsulta) {
     toast('Preencha data e hora da consulta');
     var inpD = document.getElementById('cpcData'); if (inpD && !s.dataConsulta) { inpD.focus(); return; }
@@ -3123,6 +3213,48 @@ async function cpcGerarEEnviar(){
   if (telefoneDigitos && telefoneDigitos.length !== 11) {
     toast('Telefone incompleto — precisa de DDD + 9 dígitos');
     var t = document.getElementById('cpcPhone'); if (t) t.focus();
+    return;
+  }
+
+  /* === PREVIEW MODE — simula criação localmente sem backend === */
+  if (window.__VITAE_PREVIEW_MODE__) {
+    var token = 'preview-tok-' + Date.now();
+    var dataIso = s.dataConsulta + 'T' + s.horaConsulta + ':00';
+    var pcId = 'pc-prev-' + Date.now();
+    var iniLetras = s.nome.split(' ').filter(Boolean).slice(0,2).map(function(x){return x[0];}).join('').toUpperCase();
+    PCS[pcId] = {
+      id: pcId,
+      pacienteId: s.pacienteId || null,
+      pacienteNome: s.nome,
+      paciente: s.nome,
+      ini: iniLetras,
+      template: (TEMPLATES.find(function(t){return t.id===s.templateId;})||{nome:'Geral'}).nome,
+      templateNome: (TEMPLATES.find(function(t){return t.id===s.templateId;})||{nome:'Geral'}).nome,
+      status: 'aguardando',
+      linkToken: token,
+      criada: new Date().toISOString(), criadaEm: new Date().toISOString(),
+      dataConsulta: new Date(dataIso).toISOString(),
+      recordedAt: 'aguardando paciente',
+      respondidaEm: null,
+      queixa: null, queixaSnippet: 'Paciente recebeu o link',
+      cobertura: 'sem', alertaProsodico: false
+    };
+    /* Se veio de slot Calendar, vincula */
+    if (s.origemSlotId) {
+      var slot = AGENDA_HOJE.find(function(x){return x.id === s.origemSlotId;});
+      if (slot) slot.pcId = pcId;
+    }
+    /* Abre WhatsApp Web se telefone */
+    var link = 'https://vitae-app.vercel.app/pre-consulta.html?token=' + encodeURIComponent(token);
+    if (telefoneDigitos) {
+      var primNome = s.nome.split(' ')[0];
+      var msg = 'Olá ' + primNome + ', sou da equipe do Dr. José Almeida. Sua consulta é em ' + (new Date(dataIso)).toLocaleDateString('pt-BR') + ' às ' + s.horaConsulta + '. Antes do atendimento, gravei essa pré-consulta de 4 minutos: ' + link;
+      try { window.open('https://wa.me/55' + telefoneDigitos + '?text=' + encodeURIComponent(msg), '_blank'); } catch(_e){}
+    }
+    CRIAR_PC_STATE.linkGerado = link;
+    CRIAR_PC_STATE.tokenGerado = token;
+    CRIAR_PC_STATE.whatsappAberto = !!telefoneDigitos;
+    setTimeout(function(){ renderCriarPC(); toast('Pré-consulta criada (modo preview)'); }, 600);
     return;
   }
 
@@ -3149,8 +3281,6 @@ async function cpcGerarEEnviar(){
   if (telefoneDigitos) payload.pacienteTel = '+55' + telefoneDigitos;
   var emailLimpo = (s.email || '').trim();
   if (emailLimpo) payload.pacienteEmail = emailLimpo;
-  /* Sessao 22 — manda dataConsulta como ISO 8601 (YYYY-MM-DDTHH:mm:00) */
-  payload.dataConsulta = s.dataConsulta + 'T' + s.horaConsulta + ':00';
   // Valida templateId: deve ser UUID (8-4-4-4-12 chars hex). 't1', 't2'... do mock nao passam.
   var tplId = (s.templateId || '').trim();
   if (tplId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tplId)) {
@@ -3195,10 +3325,7 @@ async function cpcGerarEEnviar(){
   if (telefoneDigitos && waWindow) {
     var nomeMedico = (DR && DR.nome) ? DR.nome.split(' ')[0] : 'seu médico';
     var primNome = s.nome.split(' ')[0];
-    /* Sessao 22 — mensagem agora inclui data e hora da consulta */
-    var dtConsulta = new Date(s.dataConsulta + 'T' + s.horaConsulta + ':00');
-    var dataFmt = dtConsulta.toLocaleDateString('pt-BR', { day:'2-digit', month:'long' });
-    var msg = 'Olá ' + primNome + ', sou da equipe do Dr. ' + nomeMedico + '. Sua consulta é ' + dataFmt + ' às ' + s.horaConsulta + '. Antes do atendimento, gravei essa pré-consulta de 4 minutos pra entender melhor o que você está sentindo: ' + link;
+    var msg = 'Olá ' + primNome + ', sou o(a) ' + nomeMedico + '. Antes da nossa consulta, preciso que você responda essa pré-consulta. Leva 7 minutos: ' + link;
     var waUrl = 'https://wa.me/55' + telefoneDigitos + '?text=' + encodeURIComponent(msg);
     try { waWindow.location.href = waUrl; } catch(_e){
       try { waWindow.close(); } catch(_e2){}
@@ -3224,17 +3351,11 @@ async function cpcGerarEEnviar(){
       linkToken: token,
       criada: pc.criadoEm || new Date().toISOString(),
       criadaEm: pc.criadoEm || new Date().toISOString(),
-      dataConsulta: pc.dataConsulta || (s.dataConsulta + 'T' + s.horaConsulta + ':00'),
       recordedAt: 'agora há pouco',
       templateNome: (TEMPLATES.find(function(t){return t.id===s.templateId;})||{nome:'Geral'}).nome,
       cobertura: 'sem',
       queixaSnippet: 'Aguardando paciente responder'
     };
-  }
-  /* Sessao 22 — se veio de slot Calendar, vincula */
-  if (pc && s.origemSlotId) {
-    var slotVinc = AGENDA_HOJE.find(function(x){return x.id === s.origemSlotId;});
-    if (slotVinc) slotVinc.pcId = pc.id || token;
   }
 }
 
@@ -5918,7 +6039,6 @@ window.BACKEND = (function(){
           linkToken: p.linkToken || p.token || null,
           criada: p.criadoEm,
           criadaEm: p.criadoEm,
-          dataConsulta: p.dataConsulta || null,
           recordedAt: recordedAt,
           respondidaEm: p.respondidaEm,
           summaryJson: sj,
@@ -6370,11 +6490,31 @@ window.BACKEND = (function(){
   };
 })();
 
+// === PREVIEW MODE — neutraliza BACKEND pra não sobrescrever os mocks com fetch real ===
+if (window.__VITAE_PREVIEW_MODE__) {
+  var _noop = function(){ return Promise.resolve(false); };
+  ['loadDR','loadPACIENTES','loadPCS','loadTEMPLATES','loadAGENDA','loadPacienteDetalhe',
+   'salvarPerfilCampo','criarTemplate','atualizarTemplate','excluirTemplate','regenerarPC',
+   'criarPC','abrirSummaryPC','gerarIaCollab','gerarAnaliseProsodica','abrirAuditoriaProsodica',
+   'dispararLembretes','historicoDisparos','exportarLGPD','exportarIClinic','excluirContaSoft','boot'
+  ].forEach(function(k){
+    window.BACKEND[k] = _noop;
+  });
+  // api fica como stub que sempre falha graciosamente
+  window.BACKEND.api = function(){ return Promise.resolve({ ok:false, status:0, json:function(){return Promise.resolve({});}, text:function(){return Promise.resolve('');} }); };
+}
+
 // Boot autônomo: chama uma vez logo após o preview montar
 (function(){
   function disparar(){
     setTimeout(function(){
-      try { window.BACKEND.boot(); } catch(e){ console.warn('[BACKEND] boot falhou', e); }
+      try { if (!window.__VITAE_PREVIEW_MODE__) window.BACKEND.boot(); } catch(e){ console.warn('[BACKEND] boot falhou', e); }
+      // Em modo preview, dispara render manual após DOM pronto
+      try {
+        if (window.__VITAE_PREVIEW_MODE__ && typeof showView === 'function') {
+          showView('hoje');
+        }
+      } catch(e){ console.warn('[PREVIEW] render inicial falhou', e); }
     }, 50);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', disparar);
