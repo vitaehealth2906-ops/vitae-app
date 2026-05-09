@@ -192,6 +192,10 @@ const criarPreConsultaSchema = z.object({
   pacienteTel: z.string().optional(),
   pacienteEmail: z.string().email().optional(),
   templateId: z.string().uuid().optional(),
+  // Sessao 22 (09/05/2026): data e hora da consulta agora sao obrigatorias na criacao manual.
+  // Aceita ISO 8601 ('2026-05-10T14:00:00') ou Date.
+  dataConsulta: z.union([z.string().datetime({ offset: true }), z.string().datetime(), z.string()])
+    .refine(s => !isNaN(new Date(s).getTime()), { message: 'dataConsulta invalida' }),
 });
 
 const responderPreConsultaSchema = z.object({
@@ -212,8 +216,9 @@ router.post('/', verificarAuth, validate(criarPreConsultaSchema), async (req, re
       return res.status(403).json({ erro: 'Apenas medicos podem criar pre-consultas' });
     }
 
-    const { pacienteNome, pacienteTel, pacienteEmail, templateId } = req.body;
+    const { pacienteNome, pacienteTel, pacienteEmail, templateId, dataConsulta } = req.body;
     const linkToken = crypto.randomBytes(24).toString('hex');
+    const dataConsultaParsed = dataConsulta ? new Date(dataConsulta) : null;
 
     // If template specified, copy its questions into the pre-consulta
     let templatePerguntas = null;
@@ -238,6 +243,7 @@ router.post('/', verificarAuth, validate(criarPreConsultaSchema), async (req, re
         templateId: templateId || null,
         templatePerguntas,
         expiraEm: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias
+        dataConsulta: dataConsultaParsed,
       },
     });
 
@@ -1265,8 +1271,13 @@ router.get('/', verificarAuth, async (req, res, next) => {
     }
 
     const preConsultas = await prisma.preConsulta.findMany({
-      where: { medicoId: medico.id },
-      orderBy: { criadoEm: 'desc' },
+      where: { medicoId: medico.id, deletadoEm: null },
+      // Sessao 22 (09/05/2026): ordena por dataConsulta asc (mais proxima primeiro).
+      // PCs sem dataConsulta caem no fim. Empate: mais recente criada primeiro.
+      orderBy: [
+        { dataConsulta: { sort: 'asc', nulls: 'last' } },
+        { criadoEm: 'desc' },
+      ],
       include: {
         paciente: {
           select: { id: true, nome: true, fotoUrl: true },
