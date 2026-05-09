@@ -971,36 +971,37 @@ function renderHoje(){
           return x.paciente && x.paciente.toLowerCase().trim() === nomeNorm;
         }) || null;
       }
-      // STATUS TEMPORAL — Opção B: foco em tempo percebido (não estado abstrato)
-      var st='miss', stTxt='📤 Não enviada', q='Médico ainda não enviou pré-consulta';
+      // STATUS SIMPLES — direto do banco (Enviado/Respondido/Finalizado/Expirado)
+      // + ATRASADO derivado: PENDENTE/ABERTO com >24h desde envio
+      var st='miss', stTxt='Não enviada', q='Médico ainda não enviou pré-consulta';
       if (pc) {
         q = pc.queixaSnippet || '';
-        if (pc.alerta) { st='alert'; stTxt='⚠ Trecho marcado'; }
-        else if (pc.cobertura === 'pronta') {
-          st='ready';
-          var respDt = pc.respondidaEm ? new Date(pc.respondidaEm).getTime() : (pc.criadaEm ? new Date(pc.criadaEm).getTime() : 0);
-          var hAgo = respDt ? (Date.now() - respDt) / (1000 * 60 * 60) : 0;
-          var quando = hAgo < 1 ? 'agora' : (hAgo < 24 ? Math.floor(hAgo) + 'h atrás' : Math.floor(hAgo/24) + 'd atrás');
-          stTxt = '✓ Pronta · ' + quando;
+        var enviadaEm = pc.criadaEm ? new Date(pc.criadaEm).getTime() : 0;
+        var horasDesdeEnvio = enviadaEm ? (Date.now() - enviadaEm) / (1000 * 60 * 60) : 0;
+        var ehPendente = (pc.status === 'PENDENTE' || pc.status === 'ABERTO' || !pc.status);
+        var ehAtrasado = ehPendente && horasDesdeEnvio > 24;
+
+        if (pc.status === 'RESPONDIDA') { st='ready'; stTxt='Respondido'; }
+        else if (pc.status === 'FINALIZADA') { st='ready'; stTxt='Finalizado'; }
+        else if (pc.status === 'EXPIRADA') { st='miss'; stTxt='Expirado'; }
+        else if (ehAtrasado) {
+          var diasAtraso = Math.floor(horasDesdeEnvio / 24);
+          st='miss';
+          stTxt='Atrasado · ' + diasAtraso + 'd';
+          q = 'Paciente recebeu há +24h e não respondeu';
         }
-        else if (pc.cobertura === 'parcial') { st='partial'; stTxt='⊘ Resposta parcial'; }
-        else {
-          var enviadaEm = pc.criadaEm ? new Date(pc.criadaEm).getTime() : 0;
-          var horasDesdeEnvio = enviadaEm ? (Date.now() - enviadaEm) / (1000 * 60 * 60) : 0;
-          if (horasDesdeEnvio > 24) {
-            var diasAtraso = Math.floor(horasDesdeEnvio / 24);
-            st = 'miss';
-            stTxt = '⏰ ' + diasAtraso + ' dia' + (diasAtraso > 1 ? 's' : '') + ' sem resposta';
-            q = 'Paciente recebeu há +24h e não gravou';
-          } else {
-            var hRest = Math.max(0, 24 - Math.floor(horasDesdeEnvio));
-            st = 'partial';
-            stTxt = '⏱ Aguardando · ' + hRest + 'h';
-            q = 'Paciente recebeu o link';
-          }
-        }
+        else { st='partial'; stTxt='Enviado'; q = q || 'Paciente recebeu o link'; }
       }
-      var click = pc ? 'openSummary(\''+a.pcId+'\')' : (p ? 'modalDispararLembrete(\''+p.id+'\')' : '');
+      // Click:
+      //  - Respondido/Finalizado -> abre resumo do paciente
+      //  - Atrasado/Enviado -> abre tela Disparar (mandar lembrete)
+      //  - Sem PC -> abre modal disparar
+      var ehResp = pc && (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA');
+      var click;
+      if (ehResp) click = 'openSummary(\''+a.pcId+'\')';
+      else if (pc) click = 'goto(\'disparar\')';
+      else if (p) click = 'modalDispararLembrete(\''+p.id+'\')';
+      else click = '';
       var qStyle = pc ? '' : 'style="color:var(--t3)"';
       // Mostra dia (Hoje/Amanhã/Sex 09) se filtro != hoje
       var dataStr = '';
@@ -1089,42 +1090,36 @@ function renderPC(){
     html+='<div class="pcn-empty"><div class="pcn-empty-ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="pcn-empty-t">Nenhuma pré-consulta encontrada</div><div class="pcn-empty-d">Tenta limpar o filtro ou criar uma nova pré-consulta.</div><button class="btn btn-p" onclick="modalCriarPC()" style="margin-top:10px">Criar pré-consulta</button></div>';
   }else{
     filtered.forEach(function(p){
-      // Status temporal — Opção B (tempo percebido)
-      var bcls='warn', btxt='📤 Não enviada';
-      if (p.alerta) { bcls='warn'; btxt='⚠ Trecho marcado'; }
-      else if (p.cobertura === 'pronta') {
-        bcls='ok';
-        var respDt = p.respondidaEm ? new Date(p.respondidaEm).getTime() : (p.criadaEm ? new Date(p.criadaEm).getTime() : 0);
-        var hAgo = respDt ? (Date.now() - respDt) / (1000 * 60 * 60) : 0;
-        var quando = hAgo < 1 ? 'agora' : (hAgo < 24 ? Math.floor(hAgo) + 'h atrás' : Math.floor(hAgo/24) + 'd atrás');
-        btxt = '✓ Pronta · ' + quando;
+      // Status simples — direto do banco (PENDENTE/ABERTO/RESPONDIDA/FINALIZADA/EXPIRADA)
+      // + ATRASADO derivado: PENDENTE/ABERTO com >24h desde envio
+      var bcls, btxt;
+      var enviadaEm = p.criadaEm ? new Date(p.criadaEm).getTime() : 0;
+      var horasDesdeEnvio = enviadaEm ? (Date.now() - enviadaEm) / (1000 * 60 * 60) : 0;
+      var ehPendente = (p.status === 'PENDENTE' || p.status === 'ABERTO' || !p.status);
+      var ehAtrasado = ehPendente && horasDesdeEnvio > 24;
+
+      if (p.status === 'RESPONDIDA') { bcls='ok'; btxt='Respondido'; }
+      else if (p.status === 'FINALIZADA') { bcls='ok'; btxt='Finalizado'; }
+      else if (p.status === 'EXPIRADA') { bcls='bad'; btxt='Expirado'; }
+      else if (ehAtrasado) {
+        var diasAtraso = Math.floor(horasDesdeEnvio / 24);
+        bcls='bad';
+        btxt = 'Atrasado · ' + diasAtraso + 'd';
       }
-      else if (p.cobertura === 'parcial') { bcls='info'; btxt='⊘ Resposta parcial'; }
-      else {
-        var enviadaEm = p.criadaEm ? new Date(p.criadaEm).getTime() : 0;
-        var horasDesdeEnvio = enviadaEm ? (Date.now() - enviadaEm) / (1000 * 60 * 60) : 0;
-        if (horasDesdeEnvio > 24) {
-          var diasAtraso = Math.floor(horasDesdeEnvio / 24);
-          bcls='bad';
-          btxt = '⏰ ' + diasAtraso + ' dia' + (diasAtraso > 1 ? 's' : '') + ' sem resposta';
-        } else {
-          var hRest = Math.max(0, 24 - Math.floor(horasDesdeEnvio));
-          bcls='warn';
-          btxt = '⏱ Aguardando · ' + hRest + 'h';
-        }
-      }
-      // Click no card: respondida -> One Minute Summary | nao respondida -> tela Disparar (sem popup)
+      else { bcls='warn'; btxt='Enviado'; }
+
+      // Click no card:
+      //  - Respondido/Finalizado -> abre resumo do paciente (One Minute Summary)
+      //  - Atrasado -> abre tela Disparar (mandar lembrete pro paciente)
+      //  - Enviado/Expirado -> abre tela Disparar
       var click;
-      if (p.cobertura && p.cobertura !== 'sem') {
+      if (p.status === 'RESPONDIDA' || p.status === 'FINALIZADA') {
         click = 'openSummary(\''+p.id+'\')';
-      } else if (p.pacienteId) {
-        click = 'goto(\'disparar\')';
       } else {
         click = 'goto(\'disparar\')';
       }
       // Botao Copiar so faz sentido enquanto PC nao foi respondida.
-      // Respondida = paciente nao precisa receber link de novo.
-      var jaRespondida = (p.cobertura === 'pronta' || p.cobertura === 'parcial');
+      var jaRespondida = (p.status === 'RESPONDIDA' || p.status === 'FINALIZADA');
       var botoesAcao = '';
       if (!jaRespondida) {
         botoesAcao += '<button class="pcn-tr-btn" title="Copiar link" onclick="event.stopPropagation();copiarLinkPC(\''+p.id+'\')"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>';
