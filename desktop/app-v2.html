@@ -927,8 +927,8 @@
   <nav class="sb-nav">
     <div class="sb-g">Núcleo</div>
     <a class="nl on" data-view="hoje" onclick="goto('hoje')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Hoje</span></a>
-    <a class="nl" data-view="pre-consultas" onclick="goto('pre-consultas')"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg><span>Pré-Consultas</span><span class="pip pip-g" id="pipPC">5</span></a>
-    <a class="nl" data-view="pacientes" onclick="goto('pacientes')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pacientes</span><span class="pip pip-g" id="pipPac">8</span></a>
+    <a class="nl" data-view="pre-consultas" onclick="goto('pre-consultas')"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg><span>Pré-Consultas</span><span class="pip pip-g" id="pipPC">0</span></a>
+    <a class="nl" data-view="pacientes" onclick="goto('pacientes')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pacientes</span><span class="pip pip-g" id="pipPac">0</span></a>
     <div class="sb-g">Workspace</div>
     <a class="nl" data-view="templates" onclick="goto('templates')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><span>Templates</span></a>
     <a class="nl" data-view="perfil" onclick="goto('perfil')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Meu Perfil</span></a>
@@ -1120,6 +1120,33 @@ function goto(view){
   if(view==='disparar')renderDisparar();
   if(view==='calendar')renderCalendar();
   if(view==='criar-pc')renderCriarPC();
+  updateSidebarPips();
+}
+
+/* Atualiza os contadores ao lado de "Pré-Consultas" e "Pacientes" na sidebar
+   com os totais reais — pipPC inclui PCs + slots da agenda sem PC ("Todos"
+   da aba Pré-Consultas). pipPac conta pacientes com pelo menos uma PC
+   respondida (mesmo filtro da aba Pacientes). */
+function updateSidebarPips(){
+  try{
+    var pcEl = document.getElementById('pipPC');
+    var pacEl = document.getElementById('pipPac');
+    if (pcEl) {
+      var totalPCs = (typeof PCS === 'object' && PCS) ? Object.keys(PCS).length : 0;
+      var slots = (typeof AGENDA_HOJE !== 'undefined' && Array.isArray(AGENDA_HOJE))
+        ? AGENDA_HOJE.filter(function(s){ return !s.pcId && !s.ignorado; }).length
+        : 0;
+      pcEl.textContent = (totalPCs + slots);
+    }
+    if (pacEl) {
+      var pacs = (typeof PACIENTES !== 'undefined' && Array.isArray(PACIENTES)) ? PACIENTES : [];
+      var n = pacs.filter(function(p){
+        return (p.pcsRespondidas && p.pcsRespondidas > 0)
+          || (p.anamneses && p.anamneses > 0 && p.ultimaAtividade && p.ultimaAtividade !== '—');
+      }).length;
+      pacEl.textContent = n;
+    }
+  }catch(_e){}
 }
 
 /* ============================================
@@ -6225,6 +6252,7 @@ window.BACKEND = (function(){
       if (typeof TEMPLATES !== 'undefined') _hidratar('vitae_cache_templates', TEMPLATES);
       // Render imediato com cache se houver
       if (typeof window.atualizarSidebarUser === 'function') window.atualizarSidebarUser();
+      if (typeof updateSidebarPips === 'function') updateSidebarPips();
       var viewCached = (STATE && STATE.view) || 'hoje';
       if (viewCached === 'hoje' && typeof renderHoje === 'function') renderHoje();
       else if (viewCached === 'pre-consultas' && typeof renderPCsList === 'function') renderPCsList();
@@ -6260,6 +6288,7 @@ window.BACKEND = (function(){
       promiseMap[k].then(function(){
         try {
           if (typeof window.atualizarSidebarUser === 'function') window.atualizarSidebarUser();
+          if (typeof updateSidebarPips === 'function') updateSidebarPips();
           var view = (STATE && STATE.view) || 'hoje';
           if (view === 'hoje' && typeof renderHoje === 'function') renderHoje();
           else if (view === 'pre-consultas' && typeof renderPCsList === 'function') renderPCsList();
