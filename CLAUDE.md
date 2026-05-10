@@ -576,6 +576,97 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 23 — 10/05/2026 — Remocao disparo em massa + bateria E2E + 2 fixes UX criticos
+
+**Contexto:** Lucas questionou se precisava do sistema de disparo SMS/WhatsApp em massa (Fase 10b) ja que o fluxo virou clique-do-medico abrindo wa.me direto. Estudo profundo confirmou: 3 fluxos paralelos no app, 2 funcionais e 1 legado em modo simulacao desde Fase 10b que nunca virou real. Apos remocao, Lucas pediu varredura de testes pra ver se tinha bug — bateria E2E descobriu 2 bugs reais, corrigi no mesmo dia.
+
+**Frente A — Remocao do legado de disparo em massa:**
+- Tag git `pre-remocao-disparo-massa-2026-05-10` (rollback total)
+- Frontend `desktop/app-v2.html`: apagou tela `v-disparar` 5 passos, modal `modalDispararLembrete`, `DISPARAR_STATE`/`TONS`, `abrirDisparar`, `renderDisparar`, `dispProximoStep`, `renderDispararStep`, `togDispararPac`, `dispSetTom`, `dispDispararEnviar`, `dispVoltarOrigem`, patches em renderHoje/renderPacienteDetailInline, `BACKEND.dispararLembretes`, `historicoDisparos`, `window.confirmarDisparar`, `_origDispararSubmit`, `_modalDispararLembreteOrig`, toggle "Enviar pre-consulta automaticamente: 24h/48h/Manual" no modalConectarCalendar
+- Backend: rotas `POST /notificacoes/lembrete-massa` e `GET /notificacoes/historico` removidas, `services/whatsapp.js` deletado (192 linhas), `enviarSMSConfirmacaoPreConsulta` removida de sms.js, chamada SMS em pre-consulta.js:598 e processador.js:365 removidas, export LGPD em medico.js parou de incluir historicoDisparos
+- Teste `tests/unit-whatsapp.js` deletado
+- Nova funcao `reenviarPeloWhats(pcId)` substitui caso de uso: pega telefone do paciente, monta mensagem de lembrete (template novo `DR.config.mensagemReenvio`), abre wa.me em aba nova
+- Botao "Reenviar pelo WhatsApp" novo na linha de cada PC pendente (icone WhatsApp)
+- `modalCopiarLink` reformulado com 2 botoes funcionais: "Copiar link" e "Reenviar pelo WhatsApp"
+- Stat "Sem anamnese" da aba Hoje agora leva pra aba Pre-Consultas com filtro PRA_DISPARAR
+- Total: ~870 linhas removidas. Banco intocado — tabela `notificacao_disparos` orfa, drop pendente em 30 dias
+
+**Commit:** `7a6c2df` — `remove(disparo-massa): tira o legado da Fase 10b, deixa só clique-do-médico`
+
+**Frente B — Bateria de testes E2E:**
+- Instalou Playwright local com Edge (`channel: 'msedge'`)
+- Criou `tests/fluxo-completo-zero.js` (~400 linhas): cadastro medico fake → quiz 5 passos → app → inspecao Calendar → inspecao Templates → criar pre-consulta (captura token real do backend) → abre link como paciente mobile → cadastra paciente → quiz vita id → quiz V4 modo texto → revisao → tela "Pronto" → volta medico → ve 1-min summary com anamnese estruturada
+- Cobertura final: 12 de 14 etapas OK
+- Limitacoes conhecidas: OAuth Google nao automatizavel (precisa credencial real), padroes prosodicos sem audio suficiente nao aparecem
+
+**Frente C — 2 bugs descobertos pela bateria + corrigidos:**
+
+Bug 1 CRITICO: popup `tpl-onbOverlay` ficava aberto quando medico mudava de view sem fechar. Cliques nas outras telas eram interceptados em background, sem feedback visual. Reproduzido por Playwright: tentou clicar `#cpcGerarBtn` na tela Criar PC e deu timeout porque overlay invisivel bloqueava. Fix: `goto(view)` agora chama `tplOnbClose()` automaticamente quando view destino nao for templates.
+
+Bug 2 UX: empty state da aba Templates mostrava "Nenhum template com esse filtro" mesmo quando TEMPLATES estava vazio e sem filtro. Texto enganoso pra medico novo. Fix: `renderTemplates()` distingue 2 cenarios — se vazio total sem filtro: hero "Crie seu primeiro template" com explicacao curta + botao verde grande "+ Criar primeiro template" + link "Como funciona?". Se filtro retornou vazio mas existe template: mensagem original mantida.
+
+**Commit:** `38e3862` — `fix(desktop): popup onboarding Templates nao bloqueia mais outras telas + empty state pra primeiro template`
+
+**Frente D — Validacao automatizada pos-deploy:**
+- `tests/quick-shot-empty-state.js` + `tests/validate-fix.js` confirmaram que ambos fixes funcionam em producao
+- Output: `CTA "Crie seu primeiro template": ✓ APARECE`, `Overlay aberto depois de goto(hoje): não (FIX OK)`
+- Screenshots em `tests/shots/fix-validation/`
+
+**Commit:** `31eeacb` — `test(e2e): adiciona scripts de validacao cirurgica dos fixes deployados`
+
+**Decisoes estrategicas notaveis:**
+
+- Remover disparo em massa em vez de manter dormente: legado estava aparecendo na UI como se fosse feature viva (tela 5 passos, modal, toggle). Modo simulacao = mentir pro medico. Lucas autorizou apos analise CEO modo Protetor: porta dupla (tag git + banco intocado), affordable loss zero, custo de oportunidade alto se mantido.
+
+- NAO mexer no quiz vita id obrigatorio: bug do teste mostrou paciente travando no quiz (CPF + data nascimento obrigatorios). Lucas decidiu manter — paciente PRECISA criar RG da Saude completo. Regra de produto, nao bug.
+
+- NAO sugerir mandar pros 10 betatesters de uma vez: modo Protetor, recomendacao de cohort 1-2 primeiro. Sem Sentry e dashboard, mandar pros 10 seria voar cego. Lucas concordou e pediu so o link universal pra decidir cohort por conta propria.
+
+- Tag git como backup principal (sem pg_dump): nao mexemos no banco, pg_dump seria overhead sem ganho.
+
+**Variaveis Railway pendentes (gate humano — Lucas remove manual):**
+- `WHATSAPP_MODO`, `TWILIO_WHATSAPP_FROM`, `WHATSAPP_TEMPLATE_LEMBRETE_SID`, `WHATSAPP_TEMPLATE_CONFIRMACAO_SID` podem sair
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` continuam (SMS de cadastro)
+
+**Skills usadas:**
+- TodoWrite intensivo (rastreio de 9 fases)
+- Playwright via Node script direto (igual Sessao 18-19)
+- AskUserQuestion (decisao sobre backup e escopo)
+- Edit/Write em ~10 arquivos
+
+**Pendente proxima sessao (PC de casa):**
+- Validar manual os 2 fixes deployados (5min, aba anonima)
+- Decidir cohort de betatesters (Lucas tem ~10 medicos interessados)
+- Configurar Sentry (~30min)
+- Limpar variaveis WHATSAPP_* do Railway (1min)
+- Em 30 dias: avaliar drop da tabela `notificacao_disparos` orfa
+
+**Arquivos criados/modificados nesta sessao:**
+
+Modificados:
+- `desktop/app-v2.html` (~600 linhas removidas + fixes)
+- `backend/src/routes/notificacoes.js`
+- `backend/src/routes/pre-consulta.js`
+- `backend/src/routes/medico.js`
+- `backend/src/services/sms.js`
+- `backend/src/workers/processador.js`
+
+Deletados:
+- `backend/src/services/whatsapp.js`
+- `tests/unit-whatsapp.js`
+
+Criados:
+- `tests/fluxo-completo-zero.js` (bateria E2E)
+- `tests/fluxo-medico-paciente.js` (versao mais leve, ja existia mas commitada hoje)
+- `tests/quick-shot-empty-state.js`
+- `tests/validate-fix.js`
+- `package.json` + `package-lock.json` (Playwright)
+- Diario Obsidian: `13 — DIARIO/2026/05/2026-05-10.md`
+- Handoff: `HANDOFF-PC-CASA-10-MAI-2026.md`
+- Memoria: `project_remocao_disparo_massa.md` (`~/.claude/projects/d--/memory/`)
+
+---
+
 ### Sessao 22 — 09/05/2026 — Metricas honestas v1 (3 metricas do dashboard com 90%+ precisao)
 
 **Contexto:** Lucas questionou as 3 metricas do dashboard medico ("Tempo economizado", "Atendimentos a mais possíveis", "Receita potencial"). Suspeitava que eram estimativas com chutes hardcoded disfarçadas de calculos precisos. Pediu pesquisa profunda no codigo + Obsidian. Investigacao confirmou: multiplicador 0.7 fixo (universal pra todo medico), projecoes com 5x semana / 21x mes (extrapolacao ingenua), defaults zerados (R$ 0 valor consulta). Lucas pediu refazer pra atingir 90%+ precisao com metricas honestas baseadas em dados reais + inputs declarativos do medico (NAO clicar em nada durante consulta).
