@@ -7,7 +7,8 @@ const { verificarAuth, authOpcional } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { gerarSummaryPreConsulta, gerarAudioElevenLabs, verificarCompletudeTopicos, classificarRespostaIndividual } = require('../services/ai');
 const { enviarEmailPreConsultaRespondida } = require('../services/email');
-const { enviarSMSConfirmacaoPreConsulta } = require('../services/sms');
+// SMS de confirmação ao paciente removido em 2026-05-10 (paciente vê
+// confirmação dentro da própria pre-consulta.html ao finalizar).
 const storage = require('../services/storage');
 const { transcreverAudio } = require('../services/transcription');
 const { normalizarTelefone, variantesTelefone } = require('../utils/telefone');
@@ -593,11 +594,9 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
       enviarEmailPreConsultaRespondida(emailMedico, nomeMedico, nomePaciente, summaryIA, `${baseUrl}/20-medico-dashboard.html`)
         .catch(e => console.error('[EMAIL] Erro:', e.message));
     }
-    const celularPaciente = respostas?.celular || preConsulta.pacienteTel;
-    if (celularPaciente) {
-      enviarSMSConfirmacaoPreConsulta(celularPaciente, nomePaciente, nomeMedico)
-        .catch(e => console.error('[SMS] Erro:', e.message));
-    }
+    // SMS de confirmação ao paciente removido em 2026-05-10. Confirmação
+    // visual fica dentro de pre-consulta.html (tela "Pronto, suas respostas
+    // foram enviadas"). Sem canal externo Twilio nesse fluxo.
 
     return res.status(200).json({ preConsulta: atualizada });
   } catch (err) {

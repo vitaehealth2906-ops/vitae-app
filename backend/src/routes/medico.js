@@ -189,11 +189,9 @@ router.get('/me/exportar-dados-lgpd', async (req, res, next) => {
       where: { medicoId: usuario.medico?.id },
     });
 
-    const disparos = await prisma.notificacaoDisparo.findMany({
-      where: { medicoId: usuario.medico?.id },
-      orderBy: { criadoEm: 'desc' },
-      take: 1000,
-    });
+    // Histórico de disparos via Twilio Business removido em 2026-05-10
+    // (modelo passou pra clique-do-médico abrindo wa.me direto). Pacote
+    // LGPD continua exportando todos os dados pessoais que VITAE armazena.
 
     const pacote = {
       exportadoEm: new Date().toISOString(),
@@ -206,7 +204,6 @@ router.get('/me/exportar-dados-lgpd', async (req, res, next) => {
       consentimentos: usuario.consentimentos,
       preConsultas: preConsultas,
       templates: templates,
-      historicoDisparos: disparos,
     };
 
     if (formato === 'csv') {

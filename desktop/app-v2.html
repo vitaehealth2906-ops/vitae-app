@@ -961,7 +961,6 @@
     <div class="view" id="v-templates-criar" style="display:none"></div>
     <div class="view" id="v-perfil" style="display:none"></div>
     <div class="view" id="v-summary" style="display:none"></div>
-    <div class="view" id="v-disparar" style="display:none"></div>
     <div class="view" id="v-calendar" style="display:none"></div>
     <div class="view" id="v-criar-pc" style="display:none"></div>
 <!-- (v-templates-onb removida — onboarding agora é popup tpl-onbOverlay) -->
@@ -985,7 +984,8 @@ var DR = {
   config:{
     tempoMedioConsulta:30, tempoAnamneseAtual:7, valorConsulta:0,
     googleCalendarConectado:false, inteligenciaComparativaAtiva:false,
-    mensagemLembrete:'Olá {nome}, sou da equipe do Dr. {medico}. Sua consulta é {data} às {hora}. Antes do atendimento, gravei essa pré-consulta de 4 minutos pra entender melhor o que você está sentindo: {link}'
+    mensagemLembrete:'Olá {nome}, sou da equipe do Dr. {medico}. Sua consulta é {data} às {hora}. Antes do atendimento, gravei essa pré-consulta de 4 minutos pra entender melhor o que você está sentindo: {link}',
+    mensagemReenvio:'Oi {nome}, passando pra lembrar — sua consulta com Dr. {medico} é {data} às {hora}. Se ainda não conseguiu gravar a pré-consulta, o link tá aqui: {link}'
   }
 };
 
@@ -1097,7 +1097,7 @@ function tick(){var d=new Date();$('tbClock').textContent=d.toLocaleTimeString('
 setInterval(tick,1000);tick();
 
 /* ROUTING */
-var TITLES={hoje:['Hoje','Cockpit do dia'],'pre-consultas':['Pré-Consultas','Suas pré-consultas'],pacientes:['Pacientes','Seus pacientes'],'pacientes-detail':['Pacientes','Histórico de anamneses'],templates:['Templates','Formulários'],'templates-criar':['Templates','Novo template'],perfil:['Meu Perfil','Configurações'],summary:['Pré-consulta','Resumo de 1 minuto'],disparar:['Disparar mensagem','Lembrete WhatsApp'],calendar:['Google Calendar','Integração'],'criar-pc':['Pré-Consultas','Nova pré-consulta']};
+var TITLES={hoje:['Hoje','Cockpit do dia'],'pre-consultas':['Pré-Consultas','Suas pré-consultas'],pacientes:['Pacientes','Seus pacientes'],'pacientes-detail':['Pacientes','Histórico de anamneses'],templates:['Templates','Formulários'],'templates-criar':['Templates','Novo template'],perfil:['Meu Perfil','Configurações'],summary:['Pré-consulta','Resumo de 1 minuto'],calendar:['Google Calendar','Integração'],'criar-pc':['Pré-Consultas','Nova pré-consulta']};
 function goto(view){
   // Registra de onde veio o medico antes de entrar em Calendar
   // (pra botao Voltar saber pra onde voltar — ex: Perfil → Calendar → Voltar = Perfil)
@@ -1105,7 +1105,7 @@ function goto(view){
     STATE._fromCalendar = STATE.view || 'perfil';
   }
   STATE.view=view;
-  ['hoje','pre-consultas','pacientes','pacientes-detail','templates','templates-criar','perfil','summary','disparar','calendar','criar-pc'].forEach(function(v){var el=$('v-'+v);if(el)el.style.display=(v===view?'block':'none');});
+  ['hoje','pre-consultas','pacientes','pacientes-detail','templates','templates-criar','perfil','summary','calendar','criar-pc'].forEach(function(v){var el=$('v-'+v);if(el)el.style.display=(v===view?'block':'none');});
   document.querySelectorAll('.nl').forEach(function(n){n.classList.remove('on');});
   var sidebarKey = (view==='pacientes-detail') ? 'pacientes' : (view==='summary' ? STATE._fromView : view);
   var nav=document.querySelector('[data-view="'+sidebarKey+'"]');if(nav)nav.classList.add('on');
@@ -1117,7 +1117,6 @@ function goto(view){
   if(view==='pacientes-detail')renderPacienteDetail();
   if(view==='templates')renderTemplates();
   if(view==='perfil')renderPerfil();
-  if(view==='disparar')renderDisparar();
   if(view==='calendar')renderCalendar();
   if(view==='criar-pc')renderCriarPC();
   updateSidebarPips();
@@ -1303,7 +1302,7 @@ function renderHoje(){
     '<div class="stat" onclick="goto(\'pre-consultas\')"><div class="stat-num green">'+hojeRespondidas+'</div><div class="stat-lbl">Anamnese pronta</div></div>'+
     '<div class="stat" onclick="goto(\'pre-consultas\')"><div class="stat-num">'+hojeParcial+'</div><div class="stat-lbl">Parcial</div></div>'+
     '<div class="stat"><div class="stat-num warn">'+hojeAlerta+'</div><div class="stat-lbl">Trecho marcado pra escuta</div></div>'+
-    '<div class="stat" onclick="modalDispararLembrete()"><div class="stat-num bad">'+hojeSem+'</div><div class="stat-lbl">Sem anamnese</div></div>'+
+    '<div class="stat" onclick="setPCFilter(\'PRA_DISPARAR\');goto(\'pre-consultas\')"><div class="stat-num bad">'+hojeSem+'</div><div class="stat-lbl">Sem anamnese</div></div>'+
   '</div>';
 
   html+='<div class="hoje-grid"><div>';
@@ -1368,12 +1367,12 @@ function renderHoje(){
       }
       // Click:
       //  - Respondido/Finalizado -> abre resumo do paciente
-      //  - Atrasado/Enviado -> abre tela Disparar com paciente pre-populado
-      //  - Sem PC -> abre tela Disparar com paciente pre-populado
+      //  - Atrasado/Enviado -> abre WhatsApp com mensagem de lembrete pronta
+      //  - Sem PC -> abre tela criar pré-consulta com paciente pré-preenchido
       var click;
       if (jaRespondidaH) click = 'openSummary(\''+a.pcId+'\')';
-      else if (pc) click = 'abrirDisparar({pacienteId:\''+(pc.pacienteId||(p&&p.id)||'')+'\',pcId:\''+a.pcId+'\',origem:\'hoje\'})';
-      else if (p) click = 'abrirDisparar({pacienteId:\''+p.id+'\',origem:\'hoje\'})';
+      else if (pc) click = 'reenviarPeloWhats(\''+a.pcId+'\')';
+      else if (p) click = 'abrirCriarPC(\''+p.id+'\')';
       else click = '';
       var qStyle = pc ? '' : 'style="color:var(--t3)"';
       // Mostra dia (Hoje/Amanhã/Sex 09) se filtro != hoje
@@ -1628,10 +1627,11 @@ function renderPC(){
       if (jaRespondida) {
         click = 'openSummary(\''+p.id+'\')';
       } else {
-        click = 'abrirDisparar({pacienteId:\''+(p.pacienteId||p.id)+'\',pcId:\''+p.id+'\',origem:\'pc\'})';
+        click = 'reenviarPeloWhats(\''+p.id+'\')';
       }
       var botoesAcao = '';
       if (!jaRespondida) {
+        botoesAcao += '<button class="pcn-tr-btn" title="Reenviar pelo WhatsApp" onclick="event.stopPropagation();reenviarPeloWhats(\''+p.id+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></button>';
         botoesAcao += '<button class="pcn-tr-btn" title="Copiar link" onclick="event.stopPropagation();copiarLinkPC(\''+p.id+'\')"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>';
       }
       botoesAcao += '<button class="pcn-tr-btn del" title="Excluir" onclick="event.stopPropagation();excluirPCConfirma(\''+p.id+'\')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>';
@@ -1676,6 +1676,54 @@ async function copiarLinkPC(pcId){
   } catch(e) { toast('Não consegui copiar — tenta de novo'); }
 }
 
+/* Reenviar pelo WhatsApp — substituiu o disparo em massa em 2026-05-10.
+   Médico clica, WhatsApp Web (ou app) abre numa aba nova com a mensagem
+   de lembrete pronta + link da PC. Se telefone do paciente não estiver
+   cadastrado, abre o WhatsApp sem destinatário pra médico colar manual. */
+function reenviarPeloWhats(pcId){
+  var pc = PCS[pcId];
+  if (!pc) { toast('Pré-consulta não encontrada'); return; }
+  var token = pc.linkToken || pc.token || pc.id;
+  var link = 'https://vitae-app.vercel.app/pre-consulta.html?token=' + encodeURIComponent(token);
+
+  // Procura telefone em várias fontes (PC e Paciente vinculado)
+  var tel = pc.tel || pc.telefone || pc.pacienteTel || '';
+  if (!tel && pc.pacienteId) {
+    var pac = (PACIENTES||[]).find(function(x){return x.id===pc.pacienteId;});
+    if (pac) tel = pac.telefone || pac.tel || '';
+  }
+  var telDigitos = String(tel||'').replace(/\D/g,'');
+  if (telDigitos.indexOf('55') === 0 && telDigitos.length >= 12) telDigitos = telDigitos.slice(2);
+
+  // Monta mensagem com placeholders
+  var nome = ((pc.paciente || pc.pacienteNome || '').split(' ')[0]) || 'paciente';
+  var medico = (DR.primeiroNome || (DR.nome||'').split(' ')[0]) || 'seu médico';
+  var dt = pc.dataConsulta ? new Date(pc.dataConsulta) : null;
+  var dataFmt = dt ? dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'long'}) : '—';
+  var horaFmt = dt ? dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—';
+
+  var template = (DR.config && DR.config.mensagemReenvio) ||
+                 'Oi {nome}, passando pra lembrar — sua consulta com Dr. {medico} é {data} às {hora}. Se ainda não conseguiu gravar a pré-consulta, o link tá aqui: {link}';
+  var msg = template
+    .replace(/\{nome\}/g, nome)
+    .replace(/\{medico\}/g, medico)
+    .replace(/\{data\}/g, dataFmt)
+    .replace(/\{hora\}/g, horaFmt)
+    .replace(/\{link\}/g, link);
+
+  var waUrl = (telDigitos && telDigitos.length === 11)
+    ? 'https://wa.me/55' + telDigitos + '?text=' + encodeURIComponent(msg)
+    : 'https://wa.me/?text=' + encodeURIComponent(msg);
+
+  try {
+    var w = window.open(waUrl, '_blank');
+    if (w) toast('WhatsApp aberto — confira antes de enviar');
+    else toast('Bloqueio de popup — habilite no navegador');
+  } catch(e) {
+    toast('Não consegui abrir o WhatsApp');
+  }
+}
+
 function excluirPCConfirma(pcId){
   var pc = PCS[pcId];
   if (!pc) { toast('Pré-consulta não encontrada'); return; }
@@ -1704,6 +1752,7 @@ async function excluirPCExecutar(pcId){
 
 try {
   window.copiarLinkPC = copiarLinkPC;
+  window.reenviarPeloWhats = reenviarPeloWhats;
   window.excluirPCConfirma = excluirPCConfirma;
   window.excluirPCExecutar = excluirPCExecutar;
 } catch(_e){}
@@ -3333,52 +3382,9 @@ function renderModalCriarPC(){
 }
 function addPh(p,id,key){var ta=document.getElementById(id);if(!ta)return;var s=ta.selectionStart;ta.value=ta.value.slice(0,s)+p+ta.value.slice(ta.selectionEnd);if(STATE[key])STATE[key].mensagem=ta.value;ta.focus();ta.selectionStart=ta.selectionEnd=s+p.length;}
 
-function modalDispararLembrete(pacienteId){
-  // Pacientes pendentes = quem nao respondeu nenhuma PC ainda OU PC pendente
-  var pendentesIds = PACIENTES.filter(function(p){
-    if (p.anamneses === 0) return true;
-    // Procura PC ainda pendente desse paciente
-    var temPendente = Object.values(PCS||{}).some(function(pc){
-      return pc.pacienteId === p.id && (pc.status === 'aguardando' || pc.status === 'PENDENTE' || pc.status === 'ABERTO');
-    });
-    return temPendente;
-  }).slice(0, 10).map(function(p){ return p.id; });
-  STATE._lembrete={
-    selecionados: pacienteId ? [pacienteId] : pendentesIds,
-    mensagem: DR.config.mensagemLembrete || 'Olá {nome}, sua pré-consulta está pronta. Acesse: {link}',
-    agendar: 'agora'
-  };
-  renderModalLembrete();
-}
-function renderModalLembrete(){
-  var s=STATE._lembrete;
-  // Pacientes pendentes reais (sem anamnese OU com PC aguardando)
-  var pendentes = PACIENTES.filter(function(p){
-    if (p.anamneses === 0) return true;
-    var temPendente = Object.values(PCS||{}).some(function(pc){
-      return pc.pacienteId === p.id && (pc.status === 'aguardando' || pc.status === 'PENDENTE' || pc.status === 'ABERTO');
-    });
-    return temPendente;
-  }).slice(0, 10);
-  if (pendentes.length === 0) {
-    var html = '<div class="modal-h"><div><div class="modal-step">LEMBRETE WHATSAPP</div><div class="modal-t">Disparar lembrete</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
-    html += '<div class="modal-body"><div style="text-align:center;padding:30px 20px;color:var(--t3)"><div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:8px">Ninguém pra lembrar</div><div style="font-size:12.5px">Todos os seus pacientes já responderam suas pré-consultas. Bom trabalho.</div></div></div>';
-    html += '<div class="modal-foot"><button class="btn btn-p" onclick="closeModal()">Fechar</button></div>';
-    openModal(html, true);
-    return;
-  }
-  var html='<div class="modal-h"><div><div class="modal-step">LEMBRETE WHATSAPP</div><div class="modal-t">Disparar lembrete</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
-  html+='<div class="modal-body">';
-  html+='<div class="field-block"><label>Pacientes que vão receber <small>Desmarque pra não enviar</small></label>';
-  pendentes.forEach(function(p){var chk=s.selecionados.indexOf(p.id)>=0;html+='<div style="padding:10px 14px;background:var(--bg);border-radius:10px;margin-bottom:6px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="togLembrete(\''+p.id+'\')"><input type="checkbox" '+(chk?'checked':'')+' style="width:auto;margin:0"/><div class="pcn-tr-av" style="width:32px;height:32px;font-size:11px">'+p.ini+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700">'+p.nome+'</div><div style="font-size:11px;color:var(--t3)">'+(p.id==='p6'?'Não abriu o link':'Abriu mas não gravou')+'</div></div></div>';});
-  html+='</div>';
-  html+='<div class="field-block"><label>Mensagem <small>Edite à vontade</small></label><textarea id="msgLembrete" oninput="STATE._lembrete.mensagem=this.value">'+s.mensagem+'</textarea><div class="placeholder-pills"><span class="placeholder-pill" onclick="addPh(\'{nome}\',\'msgLembrete\',\'_lembrete\')">{nome}</span><span class="placeholder-pill" onclick="addPh(\'{data}\',\'msgLembrete\',\'_lembrete\')">{data}</span><span class="placeholder-pill" onclick="addPh(\'{hora}\',\'msgLembrete\',\'_lembrete\')">{hora}</span><span class="placeholder-pill" onclick="addPh(\'{link}\',\'msgLembrete\',\'_lembrete\')">{link}</span><span class="placeholder-pill" onclick="addPh(\'{medico}\',\'msgLembrete\',\'_lembrete\')">{medico}</span></div><div style="margin-top:10px;display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="STATE._lembrete.mensagem=DR.config.mensagemLembrete;renderModalLembrete()">Restaurar padrão</button><button class="btn btn-ghost btn-sm" onclick="DR.config.mensagemLembrete=STATE._lembrete.mensagem;toast(\'Padrão atualizado\')">Salvar como padrão</button></div></div>';
-  html+='<div class="field-block"><label>Quando enviar</label><div style="display:flex;gap:8px"><button class="pcn-pill '+(s.agendar==='agora'?'on':'')+'" onclick="STATE._lembrete.agendar=\'agora\';renderModalLembrete()">Agora</button><button class="pcn-pill '+(s.agendar==='manha'?'on':'')+'" onclick="STATE._lembrete.agendar=\'manha\';renderModalLembrete()">Amanhã 8h</button><button class="pcn-pill '+(s.agendar==='tarde'?'on':'')+'" onclick="STATE._lembrete.agendar=\'tarde\';renderModalLembrete()">Hoje 17h</button></div></div>';
-  html+='</div>';
-  html+='<div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-p" onclick="closeModal();toast(STATE._lembrete.selecionados.length+\' lembrete\'+(STATE._lembrete.selecionados.length>1?\'s\':\'\')+\' disparado\'+(STATE._lembrete.selecionados.length>1?\'s\':\'\'))">Disparar '+s.selecionados.length+'</button></div>';
-  openModal(html,true);
-}
-function togLembrete(id){var i=STATE._lembrete.selecionados.indexOf(id);if(i>=0)STATE._lembrete.selecionados.splice(i,1);else STATE._lembrete.selecionados.push(id);renderModalLembrete();}
+/* Removido em 2026-05-10: modal de disparo em massa (Fase 10b legado).
+   Substituído por reenviarPeloWhats(pcId) — médico clica, WhatsApp dele
+   abre com a mensagem de lembrete pronta. Sem Twilio, sem Meta, sem fila. */
 
 function modalConectarCalendar(){
   var emailReal = (DR.googleEmail) || (DR.config && DR.config.googleEmail) || '';
@@ -3387,7 +3393,6 @@ function modalConectarCalendar(){
   html+='<div class="modal-body">';
   if(conectado){
     html+='<div style="padding:14px 16px;background:rgba(0,196,122,.10);border:1px solid rgba(0,196,122,.22);border-radius:12px;margin-bottom:18px;display:flex;align-items:center;gap:10px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><div><div style="font-size:13px;font-weight:700;color:#00C47A">Conectado'+(emailReal?' como <span style="font-family:monospace">'+emailReal+'</span>':'')+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Sua agenda é lida 24h antes de cada consulta</div></div></div>';
-    html+='<div class="field-block"><label>Enviar pré-consulta automaticamente</label><div style="display:flex;gap:8px"><button class="pcn-pill on">24h antes</button><button class="pcn-pill">48h antes</button><button class="pcn-pill">Manual</button></div></div>';
     html+='<div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-s btn-sm" onclick="trocarContaCalendar()">Trocar conta</button><button class="btn btn-danger-x btn-sm" onclick="desconectarCalendar()">Desconectar</button></div>';
   }else{
     html+='<div style="text-align:center;padding:20px 10px 30px"><div style="width:56px;height:56px;border-radius:14px;background:var(--bg);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--t2)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div style="font-size:18px;font-weight:900;margin-bottom:8px">Conecte seu Google Calendar</div><div style="font-size:13px;color:var(--t3);line-height:1.55;max-width:380px;margin:0 auto 18px">VITAE lê os eventos do seu calendário e dispara pré-consulta 24h antes da consulta. Não modifica nada.</div></div>';
@@ -4024,16 +4029,14 @@ function executarExcluirPC(id){
 
 function modalCopiarLink(id){
   var pc=PCS[id]||{paciente:'paciente'};
-  var link='https://vitae-app.vercel.app/pre-consulta.html?token=demo-'+(id||'xyz').slice(-6);
-  var html='<div class="modal-h"><div><div class="modal-step">LINK DA PRÉ-CONSULTA</div><div class="modal-t">'+pc.paciente+'</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
+  var token = pc.linkToken || pc.token || pc.id || ('demo-'+(id||'xyz').slice(-6));
+  var link='https://vitae-app.vercel.app/pre-consulta.html?token='+encodeURIComponent(token);
+  var html='<div class="modal-h"><div><div class="modal-step">LINK DA PRÉ-CONSULTA</div><div class="modal-t">'+(pc.paciente||'paciente')+'</div></div><button class="modal-x" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
   html+='<div class="modal-body">';
-  html+='<div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">';
-  html+='<div style="width:120px;height:120px;background:#fff;border:2px solid var(--border);border-radius:12px;flex-shrink:0;background-image:repeating-conic-gradient(#0D0F14 0% 25%,#fff 0% 50%);background-size:14px 14px;border-radius:8px"></div>';
-  html+='<div style="flex:1;font-size:11.5px;color:var(--t2);line-height:1.55">QR Code para o paciente. Funciona em qualquer celular com câmera. Use também o link abaixo:</div>';
-  html+='</div>';
-  html+='<div style="padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:monospace;font-size:12px;color:var(--t1);word-break:break-all;margin-bottom:10px">'+link+'</div>';
-  html+='<div style="display:flex;gap:8px"><button class="btn btn-s btn-sm" style="flex:1" onclick="closeModal();toastT(\'Link copiado\',\'ok\')">Copiar link</button><button class="btn btn-s btn-sm" style="flex:1" onclick="closeModal();toastT(\'WhatsApp aberto\',\'info\')">Abrir WhatsApp</button></div>';
-  html+='</div><div class="modal-foot"><button class="btn btn-p" onclick="closeModal()">Pronto</button></div>';
+  html+='<div style="font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:14px">Reenvie o link da pré-consulta. O paciente abre, grava o áudio e a anamnese chega pra você.</div>';
+  html+='<div style="padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:monospace;font-size:12px;color:var(--t1);word-break:break-all;margin-bottom:14px">'+link+'</div>';
+  html+='<div style="display:flex;gap:8px"><button class="btn btn-s btn-sm" style="flex:1" onclick="closeModal();copiarLinkPC(\''+id+'\')">Copiar link</button><button class="btn btn-p btn-sm" style="flex:1" onclick="closeModal();reenviarPeloWhats(\''+id+'\')">Reenviar pelo WhatsApp</button></div>';
+  html+='</div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Fechar</button></div>';
   openModal(html);
 }
 
@@ -4528,212 +4531,10 @@ document.addEventListener('DOMContentLoaded',function(){
    ============================================================ */
 
 /* ============================================================
-   TELA EXCLUSIVA: DISPARAR MENSAGEM (multi-step padrão nat-* do app real)
+   Removido em 2026-05-10: tela "Disparar lembrete" 5 passos (Fase 10b legado).
+   Substituída por reenviarPeloWhats(pcId) — médico clica, WhatsApp dele
+   abre com mensagem de lembrete pronta. Sem Twilio, sem Meta, sem fila.
    ============================================================ */
-var DISPARAR_STATE={origem:null,step:1,selecionados:[],tom:'formal',mensagem:'',quando:'agora'};
-var DISPARAR_TONS={
-  formal:'Olá [Nome], aqui é da clínica do Dr. [Médico]. Você tem consulta marcada para [Data] às [Hora]. Para agilizar seu atendimento, gentileza acessar o link abaixo e gravar sua pré-consulta em 2 minutos: [Link]\n\nQualquer dúvida, fique à vontade para responder.',
-  amistoso:'Oi [Nome], tudo bem? Aqui é da clínica do Dr. [Médico]. Pra gente aproveitar melhor sua consulta de [Data] às [Hora], grave sua pré-consulta em 2 minutos aqui: [Link]\n\nQualquer dúvida me chama. Até [Data]!',
-  urgente:'[Nome], aqui é da clínica do Dr. [Médico]. Sua consulta é [Data] às [Hora] e ainda não recebemos sua pré-consulta. Por favor, grave agora (leva 2 minutos): [Link]\n\nSem ela, podemos precisar reagendar.'
-};
-function abrirDisparar(opts){
-  opts=opts||{};
-  var sel;
-  if (opts.pacienteId) {
-    sel = [opts.pacienteId];
-  } else {
-    // Pendentes reais (PCs nao respondidas)
-    var idsPendentes = {};
-    Object.values(PCS||{}).forEach(function(pc){
-      var jaResp = (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA' ||
-                    pc.cobertura === 'pronta' || pc.cobertura === 'parcial');
-      if (!jaResp && pc.pacienteId) idsPendentes[pc.pacienteId] = true;
-    });
-    sel = Object.keys(idsPendentes);
-  }
-  DISPARAR_STATE={origem:opts.origem||'hoje',step:1,selecionados:sel,pcId:opts.pcId||null,tom:'formal',mensagem:DISPARAR_TONS.formal,quando:'agora'};
-  goto('disparar');
-}
-function dispVoltarOrigem(){var o=DISPARAR_STATE.origem;goto(o==='paciente'?'pacientes':(o==='pc'?'pre-consultas':'hoje'));}
-
-function renderDisparar(){
-  var s=DISPARAR_STATE;
-  var html='';
-
-  /* nat-* page header igual ao app real */
-  html+='<div style="max-width:1100px;margin:0 auto">';
-  html+='<button class="pt-detail-back" onclick="dispVoltarOrigem()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>';
-  html+='<div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:24px">';
-  html+='<div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,rgba(0,229,160,.14),rgba(0,180,216,.10));border:1px solid rgba(0,229,160,.22);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#00C47A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>';
-  html+='<div><h1 style="font-size:26px;font-weight:900;letter-spacing:-.6px">Disparar <em style="font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">lembrete</em></h1><p style="font-size:13px;color:var(--t3);margin-top:4px">Mensagem WhatsApp para pacientes que ainda não gravaram a pré-consulta</p></div>';
-  html+='</div>';
-
-  /* nat-steps indicator */
-  var steps=[['1','Quem recebe'],['2','Tom'],['3','Mensagem'],['4','Quando'],['5','Confirmar']];
-  html+='<div class="cm-steps">';
-  steps.forEach(function(st,i){
-    var num=i+1, isActive=num===s.step, isDone=num<s.step;
-    html+='<div class="cm-step '+(isActive?'active':(isDone?'done':''))+'"><div class="cm-step-num">'+(isDone?'':num)+'</div><span>'+st[1]+'</span></div>';
-    if(i<steps.length-1)html+='<div class="cm-sep"></div>';
-  });
-  html+='</div>';
-
-  /* card body por step */
-  html+='<div class="cm-card" style="min-height:380px">';
-  html+=renderDispararStep(s.step);
-  html+='</div>';
-
-  /* footer */
-  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:14px 22px;background:var(--surface);border:1px solid var(--border);border-radius:14px">';
-  html+='<div style="font-size:12px;color:var(--t3)">'+s.selecionados.length+' paciente'+(s.selecionados.length===1?'':'s')+' · tom '+s.tom+' · '+(s.quando==='agora'?'envio imediato':'agendado')+'</div>';
-  html+='<div style="display:flex;gap:8px">';
-  if(s.step>1)html+='<button class="btn btn-s" onclick="DISPARAR_STATE.step--;renderDisparar()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>';
-  if(s.step<5)html+='<button class="btn btn-p" onclick="dispProximoStep()" '+(s.step===1&&s.selecionados.length===0?'disabled style="opacity:.5"':'')+'>Avançar →</button>';
-  if(s.step===5)html+='<button class="btn btn-p" onclick="dispDispararEnviar()" style="height:40px;padding:0 22px">Disparar '+s.selecionados.length+' lembrete'+(s.selecionados.length===1?'':'s')+'</button>';
-  html+='</div></div>';
-
-  html+='</div>';
-  $('v-disparar').innerHTML=html;
-}
-function dispProximoStep(){if(DISPARAR_STATE.step===1&&DISPARAR_STATE.selecionados.length===0){toastT('Selecione pelo menos 1 paciente','warn');return;}DISPARAR_STATE.step++;renderDisparar();}
-
-function renderDispararStep(step){
-  var s=DISPARAR_STATE;
-  // Lista de pacientes a mostrar:
-  //  - Se DISPARAR_STATE.selecionados tem ids reais (vindo de um clique especifico), usa esses
-  //  - Senao, mostra os pendentes (pacientes com PC nao respondida)
-  var pendentes;
-  if (s.selecionados && s.selecionados.length > 0) {
-    pendentes = PACIENTES.filter(function(p){ return s.selecionados.indexOf(p.id) >= 0; });
-    if (pendentes.length === 0) {
-      // Fallback: se o id nao casou em PACIENTES, monta um stub a partir do PCS
-      var pcStub = null;
-      if (s.pcId && PCS[s.pcId]) {
-        var pcData = PCS[s.pcId];
-        pcStub = {
-          id: s.selecionados[0],
-          nome: pcData.paciente || 'Paciente',
-          ini: (pcData.paciente||'P').split(' ').slice(0,2).map(function(x){return x[0]||'';}).join('').toUpperCase(),
-          idade: pcData.idade || '—',
-          telefone: pcData.tel || pcData.telefone || '—'
-        };
-        pendentes = [pcStub];
-      }
-    }
-  } else {
-    // Pendentes reais: PCs com cobertura !== 'pronta' nem 'parcial'
-    var idsPendentes = {};
-    Object.values(PCS||{}).forEach(function(pc){
-      var jaResp = (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA' ||
-                    pc.cobertura === 'pronta' || pc.cobertura === 'parcial');
-      if (!jaResp && pc.pacienteId) idsPendentes[pc.pacienteId] = true;
-    });
-    pendentes = PACIENTES.filter(function(p){ return idsPendentes[p.id]; });
-  }
-  var html='';
-
-  if(step===1){
-    /* Quem recebe */
-    html+='<h3 style="font-size:16px;font-weight:800;margin-bottom:6px">Quem recebe</h3>';
-    html+='<p style="font-size:12.5px;color:var(--t3);margin-bottom:18px">Pacientes com consulta marcada que ainda não gravaram a pré-consulta. Marque ou desmarque conforme quiser.</p>';
-    if(!pendentes.length){
-      html+='<div style="padding:40px 20px;text-align:center;background:rgba(0,196,122,.06);border:1px dashed rgba(0,196,122,.24);border-radius:12px;color:#00C47A;font-size:13px;font-weight:600">Todos os pacientes já gravaram pré-consulta. Nada a disparar agora.</div>';
-    }else{
-      pendentes.forEach(function(p){
-        var chk=s.selecionados.indexOf(p.id)>=0;
-        html+='<div style="padding:14px 16px;background:'+(chk?'rgba(0,229,160,.06)':'var(--surface)')+';border:1px solid '+(chk?'rgba(0,229,160,.30)':'var(--border)')+';border-radius:12px;margin-bottom:8px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.15s" onclick="togDispararPac(\''+p.id+'\')">';
-        html+='<input type="checkbox" '+(chk?'checked':'')+' style="width:18px;height:18px;margin:0;accent-color:#00C47A;flex-shrink:0"/>';
-        html+='<div class="pcn-tr-av" style="width:40px;height:40px;font-size:13px">'+(p.ini||'P')+'</div>';
-        html+='<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--t1)">'+(p.nome||'Paciente')+'</div><div style="font-size:11.5px;color:var(--t3);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap">'+(p.idade?'<span>'+p.idade+' anos</span><span>·</span>':'')+'<span>'+(p.telefone||'sem telefone')+'</span></div></div>';
-        html+='</div>';
-      });
-    }
-  }
-  if(step===2){
-    /* Tom */
-    html+='<h3 style="font-size:16px;font-weight:800;margin-bottom:6px">Escolha o tom</h3>';
-    html+='<p style="font-size:12.5px;color:var(--t3);margin-bottom:18px">O texto da mensagem se adapta automaticamente ao tom escolhido. Você pode editar livremente no próximo passo.</p>';
-    [['formal','Formal','Recomendado · paciente novo ou consulta corporativa','svg-formal'],['amistoso','Amistoso','Paciente já conhecido, vínculo estabelecido','svg-amistoso'],['urgente','Urgente','Apenas se for crítico — consulta no dia ou risco de remarcar','svg-urgente']].forEach(function(t){
-      var on=s.tom===t[0];
-      html+='<div style="padding:16px 18px;background:'+(on?'rgba(0,229,160,.06)':'var(--surface)')+';border:1px solid '+(on?'rgba(0,229,160,.30)':'var(--border)')+';border-radius:12px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:14px" onclick="dispSetTom(\''+t[0]+'\')">';
-      html+='<div style="width:40px;height:40px;border-radius:50%;background:'+(on?'var(--grad)':'var(--bg)')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;color:'+(on?'var(--dark)':'var(--t3)')+';font-weight:800;font-size:13px">'+t[1].charAt(0)+'</div>';
-      html+='<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--t1)">'+t[1]+'</div><div style="font-size:11.5px;color:var(--t3);margin-top:3px">'+t[2]+'</div></div>';
-      if(on)html+='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>';
-      html+='</div>';
-    });
-  }
-  if(step===3){
-    /* Mensagem */
-    html+='<h3 style="font-size:16px;font-weight:800;margin-bottom:6px">Mensagem</h3>';
-    html+='<p style="font-size:12.5px;color:var(--t3);margin-bottom:14px">Texto sugerido pelo tom <strong style="color:var(--t1);font-weight:700">'+s.tom+'</strong>. Edite à vontade. As variáveis em <span style="display:inline-flex;align-items:center;padding:1px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--t2);font-weight:600">[Colchetes]</span> são substituídas automaticamente pelos dados de cada paciente.</p>';
-    html+='<div style="background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(59,130,246,.02));border:1px solid rgba(59,130,246,.18);border-radius:11px;padding:12px 14px;margin-bottom:14px;display:flex;gap:10px;font-size:12px;color:var(--info);line-height:1.55"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div>Variáveis disponíveis: <strong>[Nome]</strong> · <strong>[Médico]</strong> · <strong>[Data]</strong> · <strong>[Hora]</strong> · <strong>[Link]</strong>. Você pode usar quantas quiser, em qualquer ordem.</div></div>';
-    html+='<textarea id="dispMsgEdit" oninput="DISPARAR_STATE.mensagem=this.value" style="width:100%;min-height:200px;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none;line-height:1.6;resize:vertical">'+s.mensagem+'</textarea>';
-    html+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="DISPARAR_STATE.mensagem=DISPARAR_TONS[DISPARAR_STATE.tom];renderDisparar()"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Restaurar texto sugerido</button><button class="btn btn-ghost btn-sm" onclick="DR.config.mensagemLembrete=DISPARAR_STATE.mensagem;toastT(\'Salvo como sua mensagem padrão\',\'ok\')"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>Salvar como meu padrão</button></div>';
-  }
-  if(step===4){
-    /* Quando */
-    html+='<h3 style="font-size:16px;font-weight:800;margin-bottom:6px">Quando enviar</h3>';
-    html+='<p style="font-size:12.5px;color:var(--t3);margin-bottom:18px">Mensagem é entregue em segundos. Em horário noturno, considere agendar para manhã pra não incomodar o paciente.</p>';
-    [['agora','Enviar agora','Entrega em até 30 segundos','✓'],['manha','Amanhã às 8h','Bom horário · paciente acordando, leitura alta',''],['tarde','Hoje às 17h','Antes do fim do expediente do paciente',''],['custom','Escolher horário específico','Use quando souber a melhor janela do paciente','']].forEach(function(q){
-      var on=s.quando===q[0];
-      html+='<div style="padding:16px 18px;background:'+(on?'rgba(0,229,160,.06)':'var(--surface)')+';border:1px solid '+(on?'rgba(0,229,160,.30)':'var(--border)')+';border-radius:12px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:14px" onclick="DISPARAR_STATE.quando=\''+q[0]+'\';renderDisparar()">';
-      html+='<div style="width:32px;height:32px;border-radius:50%;background:'+(on?'var(--grad)':'var(--bg)')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;color:'+(on?'var(--dark)':'var(--t3)')+';font-weight:800;font-size:13px">'+q[3]+'</div>';
-      html+='<div style="flex:1"><div style="font-size:13.5px;font-weight:700;color:var(--t1)">'+q[1]+'</div><div style="font-size:11.5px;color:var(--t3);margin-top:3px">'+q[2]+'</div></div>';
-      html+='</div>';
-    });
-    if(s.quando==='custom')html+='<input type="datetime-local" style="margin-top:14px;width:100%;max-width:300px;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px"/>';
-  }
-  if(step===5){
-    /* Confirmar — preview WhatsApp + resumo */
-    html+='<h3 style="font-size:16px;font-weight:800;margin-bottom:6px">Confirme antes de disparar</h3>';
-    html+='<p style="font-size:12.5px;color:var(--t3);margin-bottom:18px">Veja como vai chegar pro primeiro paciente. Cada um recebe sua versão personalizada.</p>';
-    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start">';
-    /* Resumo */
-    html+='<div>';
-    html+='<div style="font-size:11px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--t3);margin-bottom:10px">Resumo do envio</div>';
-    html+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px 18px">';
-    html+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px"><span style="color:var(--t3)">Destinatários</span><strong style="color:var(--t1)">'+s.selecionados.length+' paciente'+(s.selecionados.length===1?'':'s')+'</strong></div>';
-    html+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px"><span style="color:var(--t3)">Tom</span><strong style="color:var(--t1);text-transform:capitalize">'+s.tom+'</strong></div>';
-    html+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px"><span style="color:var(--t3)">Canal</span><strong style="color:#00C47A">WhatsApp Business</strong></div>';
-    html+='<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:12.5px"><span style="color:var(--t3)">Quando</span><strong style="color:var(--t1)">'+(s.quando==='agora'?'Agora':(s.quando==='manha'?'Amanhã 8h':(s.quando==='tarde'?'Hoje 17h':'Horário custom')))+'</strong></div>';
-    html+='</div>';
-    html+='<div style="margin-top:14px;padding:12px 14px;background:rgba(0,196,122,.06);border:1px solid rgba(0,196,122,.20);border-radius:11px;display:flex;gap:10px;font-size:11.5px;color:#00C47A;line-height:1.55"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;margin-top:1px"><polyline points="20 6 9 17 4 12"/></svg><div>WhatsApp Business validado · entrega ≤30s · 95% leitura média · resposta volta pro seu WhatsApp</div></div>';
-    html+='</div>';
-    /* Preview WhatsApp */
-    html+='<div>';
-    html+='<div style="font-size:11px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--t3);margin-bottom:10px">Preview do WhatsApp</div>';
-    var alvos=s.selecionados.map(function(id){return PACIENTES.find(function(p){return p.id===id;});}).filter(Boolean);
-    var msgPreview=(s.mensagem||'').replace(/\[Nome\]/g,alvos[0]?alvos[0].nome.split(' ')[0]:'João').replace(/\[Médico\]|\[Medico\]/g,DR.primeiroNome).replace(/\[Hora\]/g,'14:30').replace(/\[Data\]/g,'amanhã').replace(/\[Link\]/g,'vitae.app/pc/x4j7');
-    html+='<div style="background:#0B1A14;border-radius:14px;padding:16px;font-family:-apple-system,BlinkMacSystemFont,sans-serif">';
-    html+='<div style="display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:14px"><div style="width:32px;height:32px;border-radius:50%;background:var(--grad);color:var(--dark);font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center">LB</div><div><div style="font-size:12px;font-weight:600;color:#fff">Dr. '+DR.primeiroNome+' Borelli</div><div style="font-size:10px;color:rgba(255,255,255,.5)">Online</div></div></div>';
-    html+='<div style="background:#054640;color:#fff;padding:10px 14px;border-radius:12px 12px 4px 12px;max-width:90%;margin-left:auto;font-size:12.5px;line-height:1.5;white-space:pre-wrap">'+msgPreview+'</div>';
-    html+='<div style="text-align:right;font-size:9.5px;color:rgba(255,255,255,.45);margin-top:6px;margin-right:4px">14:32 ✓✓</div>';
-    html+='</div>';
-    html+='</div>';
-    html+='</div>';
-  }
-  return html;
-}
-function togDispararPac(id){var i=DISPARAR_STATE.selecionados.indexOf(id);if(i>=0)DISPARAR_STATE.selecionados.splice(i,1);else DISPARAR_STATE.selecionados.push(id);renderDisparar();}
-function dispSetTom(tom){
-  var velhoSugerido = DISPARAR_TONS[DISPARAR_STATE.tom];
-  var ehMsgPadrao = (DISPARAR_STATE.mensagem === velhoSugerido);
-  DISPARAR_STATE.tom = tom;
-  if(ehMsgPadrao || !DISPARAR_STATE.mensagem)DISPARAR_STATE.mensagem=DISPARAR_TONS[tom];
-  renderDisparar();
-}
-function dispDispararEnviar(){
-  var n=DISPARAR_STATE.selecionados.length;
-  /* anima loading IA-style → toast → volta */
-  var html='<div class="ia-load" style="margin:60px auto;max-width:480px"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage" id="dispStg">Validando números no WhatsApp Business<span class="ia-dots"><span></span><span></span><span></span></span><small>'+n+' destinatário'+(n>1?'s':'')+'</small></div></div><div class="ia-bar"><div class="ia-bar-fill" style="animation-duration:2.4s"></div></div></div>';
-  $('v-disparar').innerHTML=html;
-  setTimeout(function(){var e=document.getElementById('dispStg');if(e)e.innerHTML='Personalizando mensagem por paciente<span class="ia-dots"><span></span><span></span><span></span></span><small>Substituindo {nome}, {hora}, {link}</small>';},800);
-  setTimeout(function(){var e=document.getElementById('dispStg');if(e)e.innerHTML='Enviando<span class="ia-dots"><span></span><span></span><span></span></span><small>Pode levar até 30s</small>';},1600);
-  setTimeout(function(){
-    toastT(n+' lembrete'+(n>1?'s':'')+' disparado'+(n>1?'s':'')+' · você é avisado quando responderem','ok');
-    goto(DISPARAR_STATE.origem==='paciente'?'pacientes':'hoje');
-  },2500);
-}
 
 /* ============================================================
    TELA EXCLUSIVA: GOOGLE CALENDAR
@@ -5606,12 +5407,6 @@ function abrirTplOnb(){tplOnbShow();}
 /* ============================================================
    PATCHES nos modais antigos — redirecionar pra TELAS
    ============================================================ */
-/* Disparar lembrete (substituir popup) */
-var _modalDispararLembreteOrig=modalDispararLembrete;
-modalDispararLembrete=function(pacienteId){
-  abrirDisparar({pacienteId:pacienteId,origem:pacienteId?'paciente':'hoje'});
-};
-
 /* Conectar Calendar (substituir popup) */
 var _modalConectarCalendarOrig=modalConectarCalendar;
 modalConectarCalendar=function(){abrirCalendar();};
@@ -5624,52 +5419,19 @@ modalComoFunciona=function(){abrirTplOnb();};
 var _iniciarTourOrig=iniciarTour;
 iniciarTour=function(){if(localStorage.getItem('vitae_tour_visto'))return;abrirTplOnb();};
 
-/* Pacientes: clique em paciente sem anamnese vai pra tela disparar */
-var _renderPacienteDetailInline2=renderPacienteDetailInline;
-renderPacienteDetailInline=function(){
-  _renderPacienteDetailInline2();
-  var p=PACIENTES.find(function(x){return x.id===STATE.selectedPaciente;});
-  if(!p||p.anamneses>0)return;
-  /* paciente sem anamnese → injetar CTA específica que vai pra tela disparar */
-  var detail=$('patDetailInline');if(!detail)return;
-  var emptyArea=detail.querySelector('.pat-empty-detail');
-  if(emptyArea){
-    /* já tem o empty, mas o botão dele agora vai pra tela */
-    var btns=emptyArea.querySelectorAll('button');
-    btns.forEach(function(b){if(/Disparar/.test(b.textContent))b.onclick=function(){abrirDisparar({pacienteId:p.id,origem:'paciente'});};});
-  }
-};
-
-/* Hoje: clique em consulta sem anamnese vai pra tela disparar (não popup) */
+/* Hoje: redireciona auto-card "Conectar/Configurar Calendar" pra tela Calendar.
+   (Os handlers de Disparar foram removidos em 2026-05-10 — agora os cliques nas
+   linhas da agenda vão pra reenviarPeloWhats/abrirCriarPC/openSummary direto
+   no renderHoje original, sem patch.) */
 var _renderHojeOrig=renderHoje;
 renderHoje=function(){
   _renderHojeOrig();
-  /* substitui handlers das linhas .ag-row sem PC */
-  document.querySelectorAll('#v-hoje .ag-row').forEach(function(row){
-    var stEl=row.querySelector('.ag-st.miss');
-    if(stEl){
-      var oldClick=row.getAttribute('onclick');
-      var match=oldClick&&oldClick.match(/modalDispararLembrete\('(p\d+)'\)/);
-      if(match){
-        var pid=match[1];
-        row.onclick=function(){abrirDisparar({pacienteId:pid,origem:'hoje'});};
-        row.setAttribute('onclick','');
-      }
-    }
-  });
-  /* card automação "X pacientes não gravaram" → tela disparar */
   document.querySelectorAll('#v-hoje .auto-card').forEach(function(card){
     var btn=card.querySelector('.auto-btn');
-    if(btn&&/Disparar/.test(btn.textContent))btn.onclick=function(){abrirDisparar({origem:'hoje'});};
     if(btn&&/Conectar|Configurar/.test(btn.textContent)){
       var t=card.querySelector('.auto-t');
       if(t&&/Calendar/.test(t.textContent))btn.onclick=function(){abrirCalendar();};
     }
-  });
-  /* stat "Sem anamnese" → tela disparar */
-  document.querySelectorAll('#v-hoje .stat').forEach(function(stat){
-    var lbl=stat.querySelector('.stat-lbl');
-    if(lbl&&/Sem anamnese/.test(lbl.textContent))stat.onclick=function(){abrirDisparar({origem:'hoje'});};
   });
 };
 
@@ -6331,21 +6093,6 @@ window.BACKEND = (function(){
     return await res.json();
   }
 
-  // ---------- FASE 10: Disparar lembrete em massa ----------
-  async function dispararLembretes(payload) {
-    var res = await api('/notificacoes/lembrete-massa', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(payload)
-    });
-    var d = await res.json().catch(()=>({}));
-    return { ok: res.ok, status: res.status, ...d };
-  }
-  async function historicoDisparos(periodo) {
-    var res = await api('/notificacoes/historico?periodo='+(periodo||30));
-    if (!res.ok) return null;
-    return await res.json();
-  }
-
   // ---------- FASE 11: Exports + Excluir ----------
   function downloadFromBlob(blob, nome) {
     var url = URL.createObjectURL(blob);
@@ -6394,8 +6141,6 @@ window.BACKEND = (function(){
     gerarIaCollab: gerarIaCollab,
     gerarAnaliseProsodica: gerarAnaliseProsodica,
     abrirAuditoriaProsodica: abrirAuditoriaProsodica,
-    dispararLembretes: dispararLembretes,
-    historicoDisparos: historicoDisparos,
     exportarLGPD: exportarLGPD,
     exportarIClinic: exportarIClinic,
     excluirContaSoft: excluirContaSoft,
@@ -6630,35 +6375,6 @@ window.iniciarComparativo = async function(){
       if (typeof renderPacienteDetailInline === 'function') renderPacienteDetailInline();
     }, 2700);
   }
-};
-
-// --- Disparar lembretes em massa (Fase 10) ---
-var _origDispararSubmit = window.dispararSubmit || window.confirmarDisparar;
-window.confirmarDisparar = async function(){
-  var s = (typeof DISPARAR_STATE !== 'undefined') ? DISPARAR_STATE : null;
-  if (!s) return _origDispararSubmit && _origDispararSubmit.apply(this, arguments);
-  if (!s.selecionados || !s.selecionados.length) { toast('Selecione pelo menos 1 paciente.'); return; }
-  // Monta destinatários a partir de PACIENTES reais
-  var destinatarios = s.selecionados.map(function(pid){
-    var p = (PACIENTES||[]).find(function(x){return x.id===pid;}) || {};
-    return {
-      pacienteId: pid,
-      telefone: p.telefone,
-      nome: p.nome,
-      data: new Date().toISOString(),
-      link: 'https://vitae-app.vercel.app/pre-consulta.html?paciente=' + encodeURIComponent(pid)
-    };
-  });
-  var payload = {
-    destinatarios: destinatarios,
-    mensagem: s.mensagem || null,
-    agendadoPara: (s.quando === 'depois' && s.dataAgendada) ? new Date(s.dataAgendada).toISOString() : null
-  };
-  toast('Disparando lembretes…');
-  var resp = await window.BACKEND.dispararLembretes(payload);
-  if (!resp.ok) { toast('Erro: ' + (resp.erro || 'falha no disparo')); return; }
-  toast(resp.enviados + ' lembrete(s) enviado(s)' + (resp.modo==='simulacao'?' (modo simulação)':''));
-  if (typeof goto === 'function') goto('hoje');
 };
 
 // --- LGPD / iClinic / Excluir conta (Fase 11) ---

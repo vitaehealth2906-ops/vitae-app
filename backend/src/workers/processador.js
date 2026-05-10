@@ -15,7 +15,6 @@ const storage = require('../services/storage');
 const { gerarSummaryPreConsulta, gerarAudioElevenLabs } = require('../services/ai');
 const { transcreverAudio, transcreverAudioComTimestamps } = require('../services/transcription');
 const { enviarEmailPreConsultaRespondida } = require('../services/email');
-const { enviarSMSConfirmacaoPreConsulta } = require('../services/sms');
 const { registrarFalha } = require('../services/observability');
 const { validarTranscricao, validarFoto, validarAudio, validarQueixa, calcularNivel, validarResultadoIA } = require('../services/briefing');
 
@@ -360,11 +359,9 @@ async function processarGerarSummaryETts(tarefa) {
     enviarEmailPreConsultaRespondida(emailMedico, nomeMedico, nomePaciente, summaryIA, `${baseUrl}/20-medico-dashboard.html`)
       .catch(e => console.error('[EMAIL] Erro:', e.message));
   }
-  const celularPaciente = (preConsulta.respostas && preConsulta.respostas.celular) || preConsulta.pacienteTel;
-  if (celularPaciente) {
-    enviarSMSConfirmacaoPreConsulta(celularPaciente, nomePaciente, nomeMedico)
-      .catch(e => console.error('[SMS] Erro:', e.message));
-  }
+  // SMS de confirmação ao paciente removido em 2026-05-10. Confirmação
+  // acontece dentro de pre-consulta.html quando o paciente finaliza
+  // ("Pronto, suas respostas foram enviadas"). Não há mais canal externo.
 }
 
 async function processarTarefa(tarefa) {
