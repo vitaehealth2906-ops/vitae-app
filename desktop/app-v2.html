@@ -1099,6 +1099,15 @@ setInterval(tick,1000);tick();
 /* ROUTING */
 var TITLES={hoje:['Hoje','Cockpit do dia'],'pre-consultas':['Pré-Consultas','Suas pré-consultas'],pacientes:['Pacientes','Seus pacientes'],'pacientes-detail':['Pacientes','Histórico de anamneses'],templates:['Templates','Formulários'],'templates-criar':['Templates','Novo template'],perfil:['Meu Perfil','Configurações'],summary:['Pré-consulta','Resumo de 1 minuto'],calendar:['Google Calendar','Integração'],'criar-pc':['Pré-Consultas','Nova pré-consulta']};
 function goto(view){
+  // Fecha overlay de onboarding de Templates se estiver aberto e o medico
+  // sair pra outra view. Sem isso, o overlay continua interceptando pointer
+  // events em qualquer tela e o medico fica preso sem entender por quê.
+  if (view !== 'templates') {
+    var tplOnb = document.getElementById('tpl-onbOverlay');
+    if (tplOnb && tplOnb.classList.contains('show')) {
+      try { tplOnbClose(); } catch(e) { tplOnb.classList.remove('show'); }
+    }
+  }
   // Registra de onde veio o medico antes de entrar em Calendar
   // (pra botao Voltar saber pra onde voltar — ex: Perfil → Calendar → Voltar = Perfil)
   if (view === 'calendar' && STATE.view !== 'calendar') {
@@ -1933,7 +1942,13 @@ function renderTemplates(){
     }).join('')+
   '</div>';
   if(!arr.length){
-    html+='<div class="tpln-empty"><div class="tpln-empty-ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="tpln-empty-t">Nenhum template com esse filtro</div><div class="tpln-empty-d">Limpa o filtro ou cria um template novo.</div></div>';
+    // Distingue 2 cenários: medico novo sem nenhum template VS filtro deu vazio.
+    // Médico novo recebe hero com CTA grande pra criar o primeiro.
+    if (TEMPLATES.length === 0 && !q && f === 'recentes') {
+      html+='<div class="tpln-empty" style="padding:64px 32px"><div class="tpln-empty-ic"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></svg></div><div class="tpln-empty-t">Crie seu primeiro template</div><div class="tpln-empty-d">Templates são as perguntas que o paciente responde antes da consulta. Você cria uma vez e reusa pra sempre. Leva uns 2 minutos.</div><button class="btn btn-p" onclick="modalCriarTemplate()" style="margin-top:18px;height:44px;padding:0 28px;font-size:14px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Criar primeiro template</button><button class="btn btn-ghost btn-sm" onclick="modalComoFunciona()" style="margin-top:8px">Como funciona?</button></div>';
+    } else {
+      html+='<div class="tpln-empty"><div class="tpln-empty-ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="tpln-empty-t">Nenhum template com esse filtro</div><div class="tpln-empty-d">Limpa o filtro ou cria um template novo.</div></div>';
+    }
   }else{
     html+='<div class="tpln-grid">';
     arr.forEach(function(t){
