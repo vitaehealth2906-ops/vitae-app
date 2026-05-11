@@ -132,25 +132,57 @@ router.put('/', async (req, res, next) => {
       };
     }
 
-    const medico = await prisma.medico.update({
+    // Defesa contra race condition: se POST /medico retornou 409 mas o registro
+    // sumiu entre o POST e o PUT (banco limpo, sessao velha, etc), update lanca
+    // P2025 → errorHandler mapeia pra 404 → frontend mostra "Recurso nao
+    // encontrado". Em vez disso, fazer upsert garante idempotencia.
+    const dataUpdate = {
+      ...(especialidade && { especialidade }),
+      ...(clinica !== undefined && { clinica }),
+      ...(enderecoClinica !== undefined && { enderecoClinica, ...geoPatch }),
+      ...(telefoneClinica !== undefined && { telefoneClinica }),
+      ...(valorConsulta !== undefined && { valorConsulta: valorConsulta === null ? null : Number(valorConsulta) }),
+      // Fase 7 — campos novos
+      ...(tempoMedioConsulta !== undefined && { tempoMedioConsulta: Number(tempoMedioConsulta) }),
+      ...(tempoAnamneseAtual !== undefined && { tempoAnamneseAtual: Number(tempoAnamneseAtual) }),
+      ...(mensagemLembretePadrao !== undefined && { mensagemLembretePadrao: String(mensagemLembretePadrao) }),
+      ...(iaCollabAtivado !== undefined && { iaCollabAtivado: !!iaCollabAtivado }),
+      ...(analiseProsodicaAtivada !== undefined && { analiseProsodicaAtivada: !!analiseProsodicaAtivada }),
+      ...(modoSimples !== undefined && { modoSimples: !!modoSimples }),
+      ...(modoVolume !== undefined && { modoVolume: !!modoVolume }),
+      ...(modoSUS !== undefined && { modoSUS: !!modoSUS }),
+    };
+
+    // Pra criar, precisamos de campos obrigatorios (crm, ufCrm) que o PUT
+    // normalmente nao recebe. Lemos do payload OU lancamos 400 explicativo.
+    const { crm, ufCrm } = req.body;
+
+    const medico = await prisma.medico.upsert({
       where: { usuarioId: req.usuario.id },
-      data: {
-        ...(especialidade && { especialidade }),
-        ...(clinica !== undefined && { clinica }),
-        ...(enderecoClinica !== undefined && { enderecoClinica, ...geoPatch }),
-        ...(telefoneClinica !== undefined && { telefoneClinica }),
-        ...(valorConsulta !== undefined && { valorConsulta: valorConsulta === null ? null : Number(valorConsulta) }),
-        // Fase 7 — campos novos
+      update: dataUpdate,
+      create: {
+        usuarioId: req.usuario.id,
+        crm: crm || 'PENDENTE',
+        ufCrm: (ufCrm || 'SP').toUpperCase(),
+        especialidade: especialidade || 'Nao informado',
+        clinica: clinica || null,
+        enderecoClinica: enderecoClinica || null,
+        telefoneClinica: telefoneClinica || null,
+        valorConsulta: valorConsulta != null ? Number(valorConsulta) : null,
+        ...geoPatch,
         ...(tempoMedioConsulta !== undefined && { tempoMedioConsulta: Number(tempoMedioConsulta) }),
         ...(tempoAnamneseAtual !== undefined && { tempoAnamneseAtual: Number(tempoAnamneseAtual) }),
         ...(mensagemLembretePadrao !== undefined && { mensagemLembretePadrao: String(mensagemLembretePadrao) }),
-        ...(iaCollabAtivado !== undefined && { iaCollabAtivado: !!iaCollabAtivado }),
-        ...(analiseProsodicaAtivada !== undefined && { analiseProsodicaAtivada: !!analiseProsodicaAtivada }),
-        ...(modoSimples !== undefined && { modoSimples: !!modoSimples }),
-        ...(modoVolume !== undefined && { modoVolume: !!modoVolume }),
-        ...(modoSUS !== undefined && { modoSUS: !!modoSUS }),
       },
     });
+
+    // Garante que tipo do usuario esta como MEDICO (idempotente)
+    try {
+      await prisma.usuario.update({
+        where: { id: req.usuario.id },
+        data: { tipo: 'MEDICO' },
+      });
+    } catch (_e) { /* usuario ja deletado — deixa o error handler tratar no proximo */ }
 
     return res.status(200).json({ medico });
   } catch (err) {

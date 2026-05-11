@@ -617,7 +617,8 @@ async function salvar(){
       return;
     }
     if (res.status === 409) {
-      // perfil já existia — atualiza via PUT
+      // perfil já existia — atualiza via PUT (que virou upsert no backend,
+      // imune a race condition entre o POST e o PUT)
       var put = await fetch(API_BASE + '/medico', {
         method: 'PUT',
         headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
@@ -625,7 +626,9 @@ async function salvar(){
       });
       if (!put.ok) {
         var pd = await put.json().catch(()=>({}));
-        vitaeAuthError.mostrar(errEl, vitaeAuthError.traduzir({ res: put, data: pd, contexto: 'salvar-medico' }));
+        // Contexto 'quiz' (não 'salvar-medico') faz 404 mostrar "Sessão
+        // inválida — faça login novamente" em vez de "Recurso não encontrado".
+        vitaeAuthError.mostrar(errEl, vitaeAuthError.traduzir({ res: put, data: pd, contexto: 'quiz' }));
         btn.disabled = false; btn.textContent = 'Salvar e continuar';
         return;
       }
