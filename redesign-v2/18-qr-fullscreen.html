@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — QR Fullscreen</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  /* Fundo branco puro pra maximizar contraste */
+  .phone.qr-fs {
+    background: #FFFFFF;
+    box-shadow:
+      0 0 0 1px rgba(10, 79, 74, 0.12),
+      0 0 0 3px #1A1E26,
+      0 40px 120px rgba(0, 0, 0, 0.9);
+  }
+
+  .qr-stage {
+    height: 100%;
+    width: 100%;
+    background: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 24px 36px;
+    position: relative;
+  }
+
+  /* Botão X close */
+  .qr-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(10, 79, 74, 0.04);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    z-index: 10;
+  }
+  .qr-close:hover { background: rgba(10, 79, 74, 0.08); }
+  .qr-close svg { width: 16px; height: 16px; color: var(--text-2); }
+
+  /* Top — logo */
+  .qr-top {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding-top: 8px;
+  }
+  .qr-logo {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .qr-logo .accent {
+    font-style: italic;
+    color: var(--primary);
+  }
+
+  /* Center — QR + identity */
+  .qr-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    flex: 1;
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* QR canvas wrapper com padding generoso */
+  .qr-frame {
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* QR code 260x260 desenhado com grid */
+  .qr-canvas {
+    width: 260px;
+    height: 260px;
+    position: relative;
+    background: #FFFFFF;
+  }
+
+  /* Grid base 25x25 (cada célula ~10.4px) */
+  .qr-grid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(25, 1fr);
+    grid-template-rows: repeat(25, 1fr);
+    gap: 0;
+  }
+  .qr-cell {
+    background: #0A1110;
+  }
+
+  /* Anchors — 3 quadrados grandes nas pontas */
+  .qr-anchor {
+    position: absolute;
+    width: 72px;
+    height: 72px;
+    background: #0A1110;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qr-anchor::before {
+    content: '';
+    position: absolute;
+    inset: 10px;
+    background: #FFFFFF;
+  }
+  .qr-anchor::after {
+    content: '';
+    width: 32px;
+    height: 32px;
+    background: #0A1110;
+    position: relative;
+    z-index: 1;
+  }
+  .qr-anchor.tl { top: 0; left: 0; }
+  .qr-anchor.tr { top: 0; right: 0; }
+  .qr-anchor.bl { bottom: 0; left: 0; }
+
+  /* Mini logo central jade */
+  .qr-center-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: #FFFFFF;
+    border: 3px solid #FFFFFF;
+    box-shadow: 0 0 0 1px rgba(10, 79, 74, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+  }
+  .qr-center-badge-inner {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 600;
+    color: #FFFFFF;
+    font-style: italic;
+    letter-spacing: -1px;
+    line-height: 1;
+    padding-bottom: 2px;
+  }
+
+  /* Identity below QR */
+  .qr-identity {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .qr-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.6px;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .qr-meta {
+    font-family: var(--font-mono);
+    font-size: var(--t-sm);
+    font-weight: 500;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.1px;
+  }
+  .qr-meta .dot {
+    margin: 0 6px;
+    color: var(--text-3);
+  }
+
+  /* Footer */
+  .qr-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+  }
+  .qr-hint {
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    letter-spacing: 0.1px;
+  }
+  .qr-dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .qr-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-3);
+    opacity: 0.4;
+    animation: qrDot 1.4s infinite ease-in-out;
+  }
+  .qr-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .qr-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes qrDot {
+    0%, 60%, 100% { opacity: 0.25; transform: scale(0.9); }
+    30% { opacity: 1; transform: scale(1.15); background: var(--primary); }
+  }
+</style>
+</head>
+<body>
+  <div class="phone qr-fs">
+    <div class="qr-stage">
+      <!-- Close -->
+      <button class="qr-close" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <!-- Top -->
+      <div class="qr-top">
+        <div class="qr-logo">vita <span class="accent">id</span></div>
+      </div>
+
+      <!-- Center -->
+      <div class="qr-center">
+        <div class="qr-frame">
+          <div class="qr-canvas">
+            <!-- Grid de células fake -->
+            <div class="qr-grid" id="qrGrid"></div>
+
+            <!-- 3 anchors -->
+            <div class="qr-anchor tl"></div>
+            <div class="qr-anchor tr"></div>
+            <div class="qr-anchor bl"></div>
+
+            <!-- Mini logo jade central -->
+            <div class="qr-center-badge">
+              <div class="qr-center-badge-inner">v</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="qr-identity">
+          <div class="qr-name">Lucas Borelli</div>
+          <div class="qr-meta">RG da Saúde<span class="dot">·</span>Expira em 23:54</div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="qr-footer">
+        <div class="qr-hint">Toca a tela pra acordar</div>
+        <div class="qr-dots" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Gera padrão de células fake do QR (25x25 = 625 células)
+  // Pula áreas dos 3 anchors e do badge central
+  (function(){
+    const grid = document.getElementById('qrGrid');
+    const SIZE = 25;
+    // pseudo-random determinístico
+    function rand(i, j) {
+      const seed = (i * 31 + j * 17 + (i ^ j) * 7) % 100;
+      return seed;
+    }
+    function isAnchor(i, j) {
+      // anchor TL: cols 0-6, rows 0-6
+      if (i < 7 && j < 7) return true;
+      // anchor TR: cols 18-24, rows 0-6
+      if (i < 7 && j > 17) return true;
+      // anchor BL: cols 0-6, rows 18-24
+      if (i > 17 && j < 7) return true;
+      return false;
+    }
+    function isCenterBadge(i, j) {
+      // centro ~rows 10-14, cols 10-14
+      return i >= 10 && i <= 14 && j >= 10 && j <= 14;
+    }
+    function isTimingPattern(i, j) {
+      // linha 6 e coluna 6 (timing patterns típicos)
+      if (i === 6 && j > 6 && j < 18) return (j % 2 === 0);
+      if (j === 6 && i > 6 && i < 18) return (i % 2 === 0);
+      return null;
+    }
+
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < SIZE; i++) {
+      for (let j = 0; j < SIZE; j++) {
+        const cell = document.createElement('div');
+        if (isAnchor(i, j) || isCenterBadge(i, j)) {
+          // deixa transparente — anchor/badge cobrem
+          frag.appendChild(cell);
+          continue;
+        }
+        const timing = isTimingPattern(i, j);
+        let filled;
+        if (timing !== null) {
+          filled = timing;
+        } else {
+          const r = rand(i, j);
+          filled = r < 48;
+        }
+        if (filled) cell.className = 'qr-cell';
+        frag.appendChild(cell);
+      }
+    }
+    grid.appendChild(frag);
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Adicionar exame</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  /* Tela anterior esmaecida ao fundo */
+  .backdrop-screen {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    overflow: hidden;
+    filter: blur(2px);
+    opacity: 0.6;
+  }
+  .backdrop-screen .fake-header {
+    padding: 60px 24px 16px;
+  }
+  .backdrop-screen .fake-title {
+    font-family: var(--font-display);
+    font-size: var(--t-3xl);
+    font-weight: 600;
+    letter-spacing: -0.8px;
+    color: var(--text);
+  }
+  .backdrop-screen .fake-card {
+    margin: 16px;
+    height: 90px;
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+  }
+
+  /* Overlay escuro */
+  .sheet-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 31, 30, 0.5);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 50;
+    animation: fadeIn 0.25s ease forwards;
+  }
+
+  /* Bottom sheet */
+  .sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 600px;
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    padding: 12px 20px 24px;
+    z-index: 60;
+    box-shadow: 0 -8px 32px rgba(10, 79, 74, 0.12);
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  /* Handle */
+  .sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: #D6D9D5;
+    border-radius: 999px;
+    margin: 0 auto 16px;
+  }
+
+  /* Header sheet */
+  .sheet-header {
+    position: relative;
+    margin-bottom: 24px;
+  }
+  .sheet-title {
+    font-family: var(--font-display);
+    font-size: var(--t-2xl);
+    font-weight: 600;
+    letter-spacing: -0.6px;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .sheet-sub {
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    line-height: 1.4;
+  }
+  .sheet-close {
+    position: absolute;
+    top: -4px;
+    right: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-2);
+    transition: background 0.15s;
+  }
+  .sheet-close:hover { background: var(--primary-soft); color: var(--primary); }
+  .sheet-close svg { width: 14px; height: 14px; }
+
+  /* Lista de opcoes */
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+
+  .option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    box-shadow: 0 1px 2px rgba(10, 79, 74, 0.03);
+  }
+  .option:hover {
+    background: var(--surface-2);
+    border-color: rgba(10, 79, 74, 0.14);
+  }
+  .option:active { transform: scale(0.99); }
+  .option.disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+  .option.disabled:hover {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+
+  .option-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .option-icon svg { width: 24px; height: 24px; }
+
+  .option-body { flex: 1; min-width: 0; }
+  .option-title {
+    font-size: var(--t-base);
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+    letter-spacing: -0.2px;
+  }
+  .option-sub {
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    line-height: 1.35;
+  }
+
+  .option-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-3);
+    flex-shrink: 0;
+  }
+  .option-right svg { width: 16px; height: 16px; }
+
+  .pill-soon {
+    background: var(--gold-soft);
+    color: #92400E;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    text-transform: uppercase;
+  }
+
+  /* Rodape */
+  .sheet-footer {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .footer-note {
+    font-size: var(--t-xs);
+    color: var(--text-3);
+    text-align: center;
+    line-height: 1.45;
+    max-width: 280px;
+  }
+  .btn-cancel {
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    font-family: var(--font-ui);
+    font-size: var(--t-sm);
+    font-weight: 600;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: var(--r-md);
+    transition: background 0.15s;
+  }
+  .btn-cancel:hover { background: var(--primary-soft); }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="status">
+      <span>9:41</span>
+      <span>vita id</span>
+    </div>
+
+    <!-- Tela anterior simulada ao fundo -->
+    <div class="backdrop-screen">
+      <div class="fake-header">
+        <div class="fake-title">Exames</div>
+      </div>
+      <div class="fake-card"></div>
+      <div class="fake-card"></div>
+      <div class="fake-card"></div>
+      <div class="fake-card"></div>
+    </div>
+
+    <!-- Overlay escuro -->
+    <div class="sheet-overlay"></div>
+
+    <!-- Bottom sheet -->
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+
+      <div class="sheet-header">
+        <button class="sheet-close" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <h2 class="sheet-title">Adicionar exame</h2>
+        <p class="sheet-sub">Como você quer adicionar?</p>
+      </div>
+
+      <div class="options">
+        <!-- Opcao 1: Tirar foto -->
+        <div class="option">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+          </div>
+          <div class="option-body">
+            <div class="option-title">Tirar foto</div>
+            <div class="option-sub">Use a câmera do celular pra fotografar o exame</div>
+          </div>
+          <div class="option-right">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Opcao 2: Escolher arquivo -->
+        <div class="option">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <polyline points="9 15 12 12 15 15"/>
+            </svg>
+          </div>
+          <div class="option-body">
+            <div class="option-title">Escolher do celular</div>
+            <div class="option-sub">PDF ou imagem da galeria</div>
+          </div>
+          <div class="option-right">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Opcao 3: Conectar laboratorio -->
+        <div class="option disabled">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+          </div>
+          <div class="option-body">
+            <div class="option-title">Conectar com laboratório</div>
+            <div class="option-sub">Fleury, Sabin, Hermes Pardini, DASA</div>
+          </div>
+          <div class="option-right">
+            <span class="pill-soon">Em breve</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet-footer">
+        <p class="footer-note">Seus dados ficam só com você. Ninguém vê sem sua autorização.</p>
+        <button class="btn-cancel">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

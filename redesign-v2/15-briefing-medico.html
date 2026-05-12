@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Briefing Médico</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  /* ============ Phone overrides ============ */
+  .phone { background: var(--surface); }
+  .content {
+    padding: 60px 0 120px;
+    background: var(--surface);
+  }
+
+  /* ============ Header paciente ============ */
+  .pt-header {
+    padding: 14px 20px 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .pt-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 17px;
+    flex-shrink: 0;
+    letter-spacing: -0.3px;
+  }
+  .pt-info { flex: 1; min-width: 0; }
+  .pt-name {
+    font-size: var(--t-base);
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.2px;
+    line-height: 1.25;
+  }
+  .pt-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--r-pill);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .pt-meta {
+    padding: 0 20px 14px;
+    font-size: var(--t-xs);
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+    border-bottom: 1px solid var(--border-2);
+  }
+  .pt-meta .dot { color: var(--text-3); margin: 0 6px; }
+
+  /* ============ Section label ============ */
+  .sec-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--text-3);
+    padding: 0 20px;
+    margin: 22px 0 10px;
+  }
+
+  /* ============ Card editorial (Notion-style) ============ */
+  .ed-card {
+    background: var(--surface);
+    margin: 0 16px 8px;
+    padding: 16px 18px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border-2);
+    box-shadow: var(--sh-sm);
+  }
+  .ed-card.accent-primary {
+    border-left: 3px solid var(--primary);
+    padding-left: 17px;
+  }
+  .ed-card.accent-danger {
+    border-left: 3px solid var(--danger);
+    padding-left: 17px;
+  }
+
+  /* Queixa principal */
+  .queixa-titulo {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .queixa-sub {
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    line-height: 1.55;
+  }
+
+  /* ============ Timeline (Stripe-style) ============ */
+  .tl-wrap {
+    margin: 0 16px;
+    padding: 4px 4px 4px 0;
+  }
+  .tl-item {
+    position: relative;
+    padding: 0 0 16px 26px;
+    border-left: 1px solid var(--border);
+    margin-left: 6px;
+  }
+  .tl-item:last-child {
+    border-left: 1px solid transparent;
+    padding-bottom: 4px;
+  }
+  .tl-dot {
+    position: absolute;
+    left: -5px;
+    top: 4px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow: 0 0 0 3px var(--surface);
+  }
+  .tl-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 3px;
+  }
+  .tl-titulo {
+    font-size: var(--t-sm);
+    font-weight: 600;
+    color: var(--text);
+  }
+  .tl-data {
+    font-size: var(--t-xs);
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .tl-desc {
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+
+  /* ============ Bullets editoriais ============ */
+  .bul-list {
+    margin: 0 16px;
+    padding: 4px 0;
+  }
+  .bul-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--border-2);
+    font-size: var(--t-sm);
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .bul-item:last-child { border-bottom: none; }
+  .bul-marker {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text-3);
+    flex-shrink: 0;
+    margin-top: 8px;
+  }
+  .bul-text { flex: 1; }
+  .bul-text em {
+    color: var(--text-2);
+    font-style: normal;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============ Meds list ============ */
+  .med-list { margin: 0 16px; }
+  .med-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 11px 4px;
+    border-bottom: 1px solid var(--border-2);
+    gap: 12px;
+  }
+  .med-item:last-child { border-bottom: none; }
+  .med-nome {
+    font-size: var(--t-sm);
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.1px;
+  }
+  .med-detalhe {
+    font-size: var(--t-xs);
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .med-adesao {
+    color: var(--ok);
+    font-weight: 600;
+  }
+
+  /* ============ Alergias ============ */
+  .alg-titulo {
+    font-size: var(--t-sm);
+    font-weight: 700;
+    color: #B91C1C;
+    margin-bottom: 6px;
+    letter-spacing: 0.2px;
+  }
+  .alg-item {
+    font-size: var(--t-sm);
+    color: var(--text);
+    padding: 6px 0;
+    line-height: 1.5;
+  }
+  .alg-item + .alg-item { border-top: 1px solid var(--border-2); }
+  .alg-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-right: 6px;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .alg-tag.grave { background: var(--danger-soft); color: #B91C1C; }
+  .alg-tag.mod { background: var(--warn-soft); color: #B45309; }
+
+  /* ============ Audio player ============ */
+  .audio-card {
+    margin: 0 16px;
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border-radius: var(--r-md);
+    border: 1px solid var(--border-2);
+  }
+  .audio-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .audio-play {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .audio-play svg { width: 14px; height: 14px; }
+  .audio-wave {
+    flex: 1;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .audio-wave .bar {
+    flex: 1;
+    background: var(--primary);
+    border-radius: 2px;
+    opacity: 0.5;
+  }
+  .audio-wave .bar.active { opacity: 1; }
+  .audio-speed {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--primary);
+    padding: 4px 8px;
+    background: var(--primary-soft);
+    border-radius: var(--r-sm);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .audio-meta {
+    margin-top: 10px;
+    font-size: var(--t-xs);
+    color: var(--text-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .audio-meta .listen-link {
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ============ Footer actions ============ */
+  .actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 14px 16px 26px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px) saturate(120%);
+    -webkit-backdrop-filter: blur(20px) saturate(120%);
+    border-top: 1px solid var(--border-2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 50;
+  }
+  .actions .btn { padding: 13px 18px; font-size: var(--t-sm); }
+
+  /* Mobile */
+  @media (max-width: 480px) {
+    .actions { padding-bottom: max(26px, env(safe-area-inset-bottom)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status">
+    <span>9:41</span>
+    <span>100%</span>
+  </div>
+
+  <div class="content">
+
+    <!-- Header paciente -->
+    <div class="pt-header">
+      <div class="pt-avatar">L</div>
+      <div class="pt-info">
+        <div class="pt-name">Lucas Borelli, 18 anos</div>
+      </div>
+      <span class="pt-pill">Paciente</span>
+    </div>
+    <div class="pt-meta">
+      Pré-consulta respondida há 2 minutos
+      <span class="dot">·</span>
+      Tempo de leitura: 47s
+    </div>
+
+    <!-- Seção 1 — Queixa principal -->
+    <div class="sec-label">Queixa</div>
+    <div class="ed-card accent-primary">
+      <div class="queixa-titulo">Dor no peito ao subir escada faz 5 dias</div>
+      <div class="queixa-sub">Sente apertando, principalmente de manhã, alivia parando 2-3 minutos. Não teve antes.</div>
+    </div>
+
+    <!-- Seção 2 — Timeline -->
+    <div class="sec-label">Timeline da queixa</div>
+    <div class="tl-wrap">
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-row">
+          <span class="tl-titulo">Início</span>
+          <span class="tl-data">6/Mai</span>
+        </div>
+        <div class="tl-desc">Acordou com aperto leve</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-row">
+          <span class="tl-titulo">Piora</span>
+          <span class="tl-data">8/Mai</span>
+        </div>
+        <div class="tl-desc">Subindo escada do trabalho, dor de 8/10</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-row">
+          <span class="tl-titulo">Hoje</span>
+          <span class="tl-data">11/Mai</span>
+        </div>
+        <div class="tl-desc">Aperto persiste, dor 4/10 em repouso</div>
+      </div>
+    </div>
+
+    <!-- Seção 3 — Relevante -->
+    <div class="sec-label">Relevante</div>
+    <div class="bul-list">
+      <div class="bul-item">
+        <span class="bul-marker"></span>
+        <span class="bul-text">Hipertenso há 2 meses <em>(Losartana 50mg, OK)</em></span>
+      </div>
+      <div class="bul-item">
+        <span class="bul-marker"></span>
+        <span class="bul-text">Hemoglobina <em>11,8 g/dL</em> na semana passada (levemente baixa)</span>
+      </div>
+      <div class="bul-item">
+        <span class="bul-marker"></span>
+        <span class="bul-text">História familiar: pai infartou aos <em>52 anos</em></span>
+      </div>
+      <div class="bul-item">
+        <span class="bul-marker"></span>
+        <span class="bul-text">Não fuma, álcool social, sedentário</span>
+      </div>
+    </div>
+
+    <!-- Seção 4 — Meds -->
+    <div class="sec-label">Meds</div>
+    <div class="med-list">
+      <div class="med-item">
+        <div class="med-nome">Losartana 50mg</div>
+        <div class="med-detalhe">1x manhã <span class="dot">·</span> <span class="med-adesao">adesão 87%</span></div>
+      </div>
+      <div class="med-item">
+        <div class="med-nome">Atorvastatina 20mg</div>
+        <div class="med-detalhe">1x tarde</div>
+      </div>
+      <div class="med-item">
+        <div class="med-nome">Vitamina D 2000 UI</div>
+        <div class="med-detalhe">1x noite</div>
+      </div>
+    </div>
+
+    <!-- Seção 5 — Alergias -->
+    <div class="sec-label">Alergias</div>
+    <div class="ed-card accent-danger">
+      <div class="alg-titulo">2 alergias registradas</div>
+      <div class="alg-item">
+        <span class="alg-tag grave">Grave</span>
+        Penicilina — anafilaxia em 2023
+      </div>
+      <div class="alg-item">
+        <span class="alg-tag mod">Moderada</span>
+        Dipirona — urticária
+      </div>
+    </div>
+
+    <!-- Seção 6 — Áudio -->
+    <div class="sec-label">Áudio do paciente <span style="color:var(--text-3);font-weight:600;">· 1:24</span></div>
+    <div class="audio-card">
+      <div class="audio-row">
+        <button class="audio-play" aria-label="Tocar áudio">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <div class="audio-wave">
+          <div class="bar active" style="height:30%"></div>
+          <div class="bar active" style="height:55%"></div>
+          <div class="bar active" style="height:80%"></div>
+          <div class="bar active" style="height:45%"></div>
+          <div class="bar active" style="height:65%"></div>
+          <div class="bar active" style="height:90%"></div>
+          <div class="bar active" style="height:50%"></div>
+          <div class="bar" style="height:70%"></div>
+          <div class="bar" style="height:35%"></div>
+          <div class="bar" style="height:60%"></div>
+          <div class="bar" style="height:85%"></div>
+          <div class="bar" style="height:40%"></div>
+          <div class="bar" style="height:55%"></div>
+          <div class="bar" style="height:75%"></div>
+          <div class="bar" style="height:45%"></div>
+          <div class="bar" style="height:65%"></div>
+          <div class="bar" style="height:30%"></div>
+          <div class="bar" style="height:50%"></div>
+          <div class="bar" style="height:70%"></div>
+          <div class="bar" style="height:40%"></div>
+        </div>
+        <div class="audio-speed">1.5x</div>
+      </div>
+      <div class="audio-meta">
+        <span>Resposta completa transcrita acima</span>
+        <span class="listen-link">Ouvir trecho</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Rodapé fixo -->
+  <div class="actions">
+    <button class="btn">Tudo OK · Vou ler na consulta</button>
+    <button class="btn secondary">Pedir mais info</button>
+    <button class="btn ghost">Imprimir / Salvar PDF</button>
+  </div>
+</div>
+
+</body>
+</html>

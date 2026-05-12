@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Processando exame</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  .processing-screen {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 80px 24px 32px;
+  }
+
+  /* Animação central */
+  .pulse-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 32px 0 40px;
+  }
+  .pulse-ring {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    animation: gentle-pulse 2s ease-in-out infinite;
+    background: var(--primary-soft);
+  }
+  .pulse-ring::before,
+  .pulse-ring::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 1px solid var(--primary);
+    opacity: 0;
+    animation: pulse-ripple 2s ease-out infinite;
+  }
+  .pulse-ring::after {
+    animation-delay: 1s;
+  }
+  .pulse-ring svg.doc-icon {
+    width: 64px;
+    height: 64px;
+    color: var(--primary);
+  }
+
+  @keyframes gentle-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  @keyframes pulse-ripple {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.25); opacity: 0; }
+  }
+
+  /* Estado atual */
+  .state-block {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .state-title {
+    font-family: var(--font-display);
+    font-size: var(--t-2xl);
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    line-height: 1.15;
+  }
+  .state-sub {
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Lista de etapas */
+  .steps {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    padding: 20px;
+    box-shadow: var(--sh-sm);
+    border: 1px solid var(--border-2);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .step-icon {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+  .step-label {
+    font-size: var(--t-base);
+    font-weight: 500;
+  }
+
+  /* Estados */
+  .step.done .step-icon svg {
+    color: var(--ok);
+  }
+  .step.done .step-label {
+    color: var(--text);
+  }
+  .step.active .step-icon svg {
+    color: var(--primary);
+    animation: rotate 1s linear infinite;
+  }
+  .step.active .step-label {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .step.pending {
+    opacity: 0.5;
+    transition: opacity 0.4s ease;
+  }
+  .step.pending .step-icon svg {
+    color: var(--text-3);
+  }
+  .step.pending .step-label {
+    color: var(--text-3);
+  }
+
+  @keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Rodapé */
+  .footer {
+    margin-top: auto;
+    text-align: center;
+    padding-top: 32px;
+  }
+  .footer-note {
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .btn.ghost.exit-btn {
+    width: 100%;
+    padding: 14px 20px;
+    font-weight: 500;
+    font-size: var(--t-sm);
+  }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="status">
+      <span>9:41</span>
+      <span>vita id</span>
+    </div>
+
+    <div class="processing-screen">
+      <!-- Animação central -->
+      <div class="pulse-wrap">
+        <div class="pulse-ring">
+          <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="8" y1="13" x2="16" y2="13"></line>
+            <line x1="8" y1="17" x2="14" y2="17"></line>
+            <line x1="8" y1="9" x2="10" y2="9"></line>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Estado atual -->
+      <div class="state-block">
+        <h1 class="state-title">Lendo seu exame</h1>
+        <p class="state-sub">Isso leva poucos segundos</p>
+      </div>
+
+      <!-- Lista de etapas -->
+      <div class="steps">
+        <div class="step done">
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="step-label">Imagem recebida</div>
+        </div>
+
+        <div class="step done">
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="step-label">Texto identificado</div>
+        </div>
+
+        <div class="step active">
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+            </svg>
+          </div>
+          <div class="step-label">Organizando parâmetros</div>
+        </div>
+
+        <div class="step pending">
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"></circle>
+            </svg>
+          </div>
+          <div class="step-label">Cruzando com seu histórico</div>
+        </div>
+      </div>
+
+      <!-- Rodapé -->
+      <div class="footer">
+        <p class="footer-note">Você pode sair e a gente avisa quando estiver pronto</p>
+        <button class="btn ghost exit-btn">Sair e avisar quando terminar</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

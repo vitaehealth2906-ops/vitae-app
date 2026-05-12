@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Consultas</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  /* Header com plus */
+  .app-header .icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--sh-sm);
+    transition: all 0.15s;
+  }
+  .app-header .icon-btn:hover { background: var(--surface-2); }
+  .app-header .icon-btn svg { width: 18px; height: 18px; color: var(--primary); }
+
+  /* Filtros pill */
+  .filters {
+    display: flex;
+    gap: 8px;
+    padding: 4px 24px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-pill {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: var(--t-sm);
+    font-weight: 500;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .filter-pill.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+
+  /* Section counter */
+  .section-count {
+    color: var(--text-3);
+    font-weight: 600;
+    margin-left: 6px;
+  }
+
+  /* Card destaque (consulta próxima com pré-consulta pendente) */
+  .card.featured {
+    padding: var(--s-5);
+    box-shadow: var(--sh-md);
+    margin-bottom: 14px;
+  }
+  .countdown {
+    font-size: var(--t-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--warn);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: var(--s-3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .countdown svg {
+    width: 14px;
+    height: 14px;
+  }
+  .doctor-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.4px;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .doctor-meta {
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    margin-bottom: var(--s-4);
+    line-height: 1.4;
+  }
+  .pill-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: var(--s-3);
+    flex-wrap: wrap;
+  }
+  .microcopy {
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    line-height: 1.45;
+    margin-bottom: var(--s-4);
+    padding: 10px 12px;
+    background: var(--warn-soft);
+    border-radius: var(--r-md);
+    color: #92400E;
+  }
+
+  /* Card secundário */
+  .card.upcoming {
+    padding: var(--s-5);
+  }
+  .countdown.muted {
+    color: var(--text-3);
+  }
+
+  /* List item override (lista histórico) */
+  .history-list {
+    background: var(--surface);
+    margin: 0 16px;
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    box-shadow: var(--sh-md);
+    border: 1px solid var(--border-2);
+  }
+  .history-list .list-item {
+    border-bottom: 1px solid var(--border-2);
+  }
+  .history-list .list-item:last-child {
+    border-bottom: none;
+  }
+  .history-list .list-item .icon-wrap {
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .history-list .list-item .date {
+    font-size: var(--t-xs);
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+  }
+  .history-list .list-item .chevron {
+    color: var(--text-3);
+    flex-shrink: 0;
+  }
+  .history-list .list-item .chevron svg {
+    width: 14px;
+    height: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status">
+    <span>9:41</span>
+    <span>● ● ●</span>
+  </div>
+
+  <div class="content">
+
+    <!-- Header -->
+    <div class="app-header">
+      <h1>Consultas</h1>
+      <button class="icon-btn" aria-label="Nova consulta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters">
+      <div class="filter-pill active">Próximas</div>
+      <div class="filter-pill">Histórico</div>
+      <div class="filter-pill">Pré-consultas pendentes</div>
+    </div>
+
+    <!-- Próximas -->
+    <div class="section-label">Próximas <span class="section-count">· 2</span></div>
+
+    <!-- Card destaque -->
+    <div class="card featured status-left-warn animate-up">
+      <div class="countdown">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        Em 3 dias · Sexta 14/05
+      </div>
+      <div class="doctor-name">Dra. Helena Vieira</div>
+      <div class="doctor-meta">Cardiologia · Clínica Cardio+ · Vila Mariana</div>
+      <div class="pill-row">
+        <span class="pill warn">Pré-consulta pendente</span>
+      </div>
+      <div class="microcopy">Responda agora e a Dra. já chega te conhecendo</div>
+      <button class="btn">Preparar consulta agora</button>
+    </div>
+
+    <!-- Card secundário -->
+    <div class="card upcoming animate-up" style="animation-delay:.05s">
+      <div class="countdown muted">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        Em 18 dias · Sábado 29/05
+      </div>
+      <div class="doctor-name">Dr. Roberto Silva</div>
+      <div class="doctor-meta">Clínica geral · UBS Saúde</div>
+      <div class="pill-row">
+        <span class="pill muted">Consulta padrão</span>
+      </div>
+      <button class="btn secondary">Ver detalhes</button>
+    </div>
+
+    <!-- Histórico -->
+    <div class="section-label" style="margin-top:28px">Últimas consultas <span class="section-count">· 5</span></div>
+
+    <div class="history-list animate-up" style="animation-delay:.1s">
+
+      <div class="list-item">
+        <div class="icon-wrap">H</div>
+        <div class="info">
+          <div class="title">Dra. Helena Vieira</div>
+          <div class="sub">Cardiologia</div>
+          <div class="date">22/Mar/2026</div>
+        </div>
+        <div class="right">
+          <span class="pill ok">Resumo disponível</span>
+        </div>
+        <div class="chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      <div class="list-item">
+        <div class="icon-wrap">A</div>
+        <div class="info">
+          <div class="title">Dr. Almeida</div>
+          <div class="sub">Clínico</div>
+          <div class="date">15/Fev/2026</div>
+        </div>
+        <div class="right">
+          <span class="pill ok">Resumo disponível</span>
+        </div>
+        <div class="chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      <div class="list-item">
+        <div class="icon-wrap">P</div>
+        <div class="info">
+          <div class="title">Dra. Patricia Cunha</div>
+          <div class="sub">Endócrino</div>
+          <div class="date">04/Jan/2026</div>
+        </div>
+        <div class="right">
+          <span class="pill muted">Sem resumo</span>
+        </div>
+        <div class="chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      <div class="list-item">
+        <div class="icon-wrap">H</div>
+        <div class="info">
+          <div class="title">Dra. Helena Vieira</div>
+          <div class="sub">Cardiologia</div>
+          <div class="date">12/Dez/2025</div>
+        </div>
+        <div class="right">
+          <span class="pill ok">Resumo disponível</span>
+        </div>
+        <div class="chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      <div class="list-item">
+        <div class="icon-wrap">A</div>
+        <div class="info">
+          <div class="title">Dr. Almeida</div>
+          <div class="sub">Clínico</div>
+          <div class="date">28/Nov/2025</div>
+        </div>
+        <div class="right">
+          <span class="pill ok">Resumo disponível</span>
+        </div>
+        <div class="chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="height:40px"></div>
+
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tabbar">
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12L12 3l9 9"></path>
+        <path d="M5 10v10h14V10"></path>
+      </svg>
+      <span class="tab-label">Início</span>
+    </div>
+    <div class="tab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+      <span class="tab-label">Consultas</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+      <span class="tab-label">Exames</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <circle cx="12" cy="12" r="4"></circle>
+      </svg>
+      <span class="tab-label">Perfil</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

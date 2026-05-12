@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>vita id — Design Strategy v4 (11 Mai 2026)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after { margin:0; padding:0; box-sizing:border-box }
+  :root {
+    --bg: #FAFAF7;
+    --surface: #FFFFFF;
+    --cream: #F5F1E8;
+    --dark: #0A1F1C;
+    --border: #E5E3DC;
+    --text: #0F1A1A;
+    --text-2: #4A5552;
+    --text-3: #7A847F;
+    --green: #00B377;
+    --green-dark: #006B4A;
+    --green-soft: #D6F1E5;
+    --teal: #1A8FA8;
+    --teal-soft: #D4ECF2;
+    --warning: #C77A1F;
+    --warning-soft: #F5E6D0;
+    --danger: #B83A3A;
+    --danger-soft: #F3D9D9;
+    --gold: #A88A3D;
+    --gold-soft: #F0E8D2;
+    --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-display: 'Newsreader', Georgia, serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+  html, body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 80px 40px 120px;
+  }
+  header {
+    margin-bottom: 80px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .meta-tag {
+    display: inline-block;
+    background: var(--gold-soft);
+    color: var(--gold);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: 56px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 16px;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--green-dark);
+  }
+  .subtitle {
+    font-size: 18px;
+    color: var(--text-2);
+    line-height: 1.5;
+    max-width: 600px;
+  }
+  .meta {
+    margin-top: 32px;
+    display: flex;
+    gap: 24px;
+    font-size: 13px;
+    color: var(--text-3);
+    flex-wrap: wrap;
+  }
+  .meta span { display: flex; align-items: center; gap: 6px; }
+  .meta strong { color: var(--text); font-weight: 600; }
+
+  section {
+    margin-bottom: 64px;
+  }
+  h2 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--green);
+    display: inline-block;
+  }
+  .section-num {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 32px 0 12px;
+    color: var(--text);
+  }
+  h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 20px 0 8px;
+  }
+  p {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  p.lead {
+    font-size: 19px;
+    line-height: 1.55;
+    margin: 16px 0 24px;
+    color: var(--text-2);
+  }
+  blockquote {
+    background: var(--cream);
+    border-left: 4px solid var(--green);
+    padding: 20px 24px;
+    margin: 24px 0;
+    border-radius: 0 8px 8px 0;
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 500;
+    font-style: italic;
+    color: var(--text);
+    letter-spacing: -0.01em;
+    line-height: 1.4;
+  }
+  ul, ol {
+    padding-left: 24px;
+    margin: 12px 0 16px;
+  }
+  li { margin-bottom: 6px; font-size: 15px; line-height: 1.6; }
+  code {
+    font-family: var(--font-mono);
+    background: var(--cream);
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--green-dark);
+    font-weight: 500;
+  }
+  pre {
+    background: var(--dark);
+    color: #d6f1e5;
+    padding: 20px 24px;
+    border-radius: 12px;
+    overflow-x: auto;
+    margin: 16px 0 24px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 14px;
+  }
+  th {
+    background: var(--cream);
+    color: var(--text);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 2px solid var(--green);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  td code { font-size: 12px; }
+  .swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .b-ok { background: var(--green-soft); color: var(--green-dark); }
+  .b-warn { background: var(--warning-soft); color: var(--warning); }
+  .b-bad { background: var(--danger-soft); color: var(--danger); }
+  .b-gold { background: var(--gold-soft); color: var(--gold); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin: 16px 0 24px;
+    box-shadow: 0 1px 3px rgba(15, 26, 26, 0.04);
+  }
+  .card.cream { background: var(--cream); border-color: transparent; }
+  .card.dark {
+    background: var(--dark);
+    color: var(--cream);
+    border: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .card.dark::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--green), var(--teal), transparent);
+  }
+  .card.dark h3, .card.dark h4 { color: #fff; }
+
+  .checklist {
+    list-style: none;
+    padding: 0;
+  }
+  .checklist li {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist li::before {
+    content: '☐';
+    color: var(--green);
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .ascii-box {
+    background: var(--cream);
+    padding: 20px 24px;
+    border-radius: 10px;
+    margin: 16px 0 24px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .decision-cta {
+    background: linear-gradient(135deg, var(--green) 0%, var(--teal) 100%);
+    color: white;
+    padding: 36px 40px;
+    border-radius: 18px;
+    margin: 48px 0;
+    box-shadow: 0 8px 32px rgba(0, 179, 119, 0.18);
+  }
+  .decision-cta h2 {
+    color: white;
+    border-bottom-color: rgba(255,255,255,0.5);
+    margin-bottom: 16px;
+  }
+  .decision-cta p { color: rgba(255,255,255,0.95); font-size: 17px; }
+  .decision-cta ul li { color: rgba(255,255,255,0.95); font-size: 15px; }
+
+  .anti {
+    background: var(--danger-soft);
+    border-left: 3px solid var(--danger);
+    padding: 10px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 6px 0;
+    font-size: 14px;
+  }
+  .anti::before {
+    content: '❌  ';
+    color: var(--danger);
+    font-weight: 700;
+  }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin: 40px 0;
+    box-shadow: 0 1px 3px rgba(15, 26, 26, 0.04);
+  }
+  .toc h3 { margin-top: 0; }
+  .toc ol {
+    columns: 2;
+    column-gap: 32px;
+    list-style-position: inside;
+    padding-left: 0;
+  }
+  .toc li {
+    font-size: 14px;
+    padding: 4px 0;
+    break-inside: avoid;
+  }
+  .toc a {
+    color: var(--text);
+    text-decoration: none;
+    border-bottom: 1px dashed transparent;
+    transition: border-color 0.15s;
+  }
+  .toc a:hover { border-bottom-color: var(--green); }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 64px 0;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="meta-tag">Design Strategy v4 · Síntese de pesquisa</div>
+  <h1>vita id <em>reimaginado</em></h1>
+  <p class="subtitle">"O Governo Federal de 2030 contratou a Stripe pra redesenhar a CNH Digital — autoridade brasileira + execução premium internacional."</p>
+  <div class="meta">
+    <span>📅 <strong>11 maio 2026</strong></span>
+    <span>🤖 <strong>12 agentes</strong> de pesquisa em paralelo</span>
+    <span>⏱ <strong>~50min</strong> de pesquisa profunda</span>
+    <span>📚 <strong>20+ apps</strong> analisados</span>
+  </div>
+</header>
+
+<div class="toc">
+  <h3>Sumário</h3>
+  <ol>
+    <li><a href="#s1">Posicionamento</a></li>
+    <li><a href="#s2">7 features hero</a></li>
+    <li><a href="#s3">Modelo de navegação</a></li>
+    <li><a href="#s4">Design tokens</a></li>
+    <li><a href="#s5">Cartão RG anatomia</a></li>
+    <li><a href="#s6">7 telas principais</a></li>
+    <li><a href="#s7">RG público (médico vê)</a></li>
+    <li><a href="#s8">Microinterações anti-IA</a></li>
+    <li><a href="#s9">Copy (tom de voz)</a></li>
+    <li><a href="#s10">Checklist de aprovação</a></li>
+    <li><a href="#s11">3 Blue oceans</a></li>
+    <li><a href="#s12">Execução</a></li>
+    <li><a href="#s13">16 anti-padrões</a></li>
+    <li><a href="#s14">Decisão Lucas</a></li>
+  </ol>
+</div>
+
+<section id="s1">
+  <div class="section-num">01</div>
+  <h2>Posicionamento visual</h2>
+  <blockquote>"vita id parece que o Governo Federal de 2030 contratou a Stripe pra redesenhar a CNH Digital — autoridade brasileira + execução premium internacional."</blockquote>
+  <p>Não é healthtech jovem (Nubank/Hims). Não é fintech vibrante (Memed/Revolut). Não é gov.br lento (ConecteSUS). Não é hospital empresarial sóbrio puro (Einstein/Sírio).</p>
+  <p>É a <strong>interseção dos quatro</strong>: a alma de documento oficial brasileiro + a execução visual da Apple Wallet + a densidade clínica do MyChart + o silêncio premium do One Medical.</p>
+</section>
+
+<section id="s2">
+  <div class="section-num">02</div>
+  <h2>7 features hero confirmadas</h2>
+  <ol>
+    <li><strong>RG da Saúde (cartão)</strong> — artefato central, ID do produto</li>
+    <li><strong>QR Code para médico/socorrista</strong> — momento de máximo valor</li>
+    <li><strong>Exames</strong> — organização + entendimento em PT-BR simples</li>
+    <li><strong>Alergias</strong> — destaque vermelho no RG público, life-saving</li>
+    <li><strong>Medicamentos</strong> — lista contínua + cruzamento com alergias</li>
+    <li><strong>Pré-consulta</strong> — paciente chega pronto, médico recebe briefing</li>
+    <li><strong>Linha do tempo</strong> — histórico cronológico unificado</li>
+  </ol>
+  <p>Outras features (premium, ajustes, dados pessoais) ficam <strong>secundárias e escondidas</strong>.</p>
+</section>
+
+<section id="s3">
+  <div class="section-num">03</div>
+  <h2>Modelo de navegação</h2>
+  <p class="lead">Escolhido: <strong>HUB + SHEET VERTICAL</strong> (combo Apple Wallet + Carteira Trabalho Digital). Sem tab bar.</p>
+  <p>Brasileiro lê cartão digital como "documento oficial". Tab bar transformaria o RG num app de delivery. O cartão é o produto, não o menu.</p>
+
+  <div class="ascii-box">┌──────────────────────────────────────┐
+│  HEADER FINO (56px)                  │
+│  Avatar pequeno + saudação           │
+│  Ícone QR (emergência sempre vis.)   │
+├──────────────────────────────────────┤
+│                                      │
+│  CARTÃO HERO — RG DA SAÚDE           │
+│  (320-360px altura, aspect 1.585:1)  │
+│  Foto + Nome + Sangue GIGANTE        │
+│  Alergias críticas em vermelho       │
+│  QR de validação no canto            │
+│  Tap → flip 3D pro verso             │
+│                                      │
+├──────────────────────────────────────┤
+│  CTA PRÉ-CONSULTA (condicional)      │
+│  Só aparece se consulta em 48h       │
+├──────────────────────────────────────┤
+│  3 CHIPS HORIZONTAIS                 │
+│  Alergias 3 · Meds 5 · Condições 2   │
+├──────────────────────────────────────┤
+│  EXAMES RECENTES (2-3 cards)         │
+├──────────────────────────────────────┤
+│  LINHA DO TEMPO (preview 2-3 itens)  │
+├──────────────────────────────────────┤
+│  Editar perfil · Compartilhar        │
+└──────────────────────────────────────┘
+   (sem tab bar)</div>
+
+  <p>Navegação secundária: tudo abre como <strong>bottom sheet</strong> vindo de baixo. Volta exatamente onde o usuário parou na home.</p>
+</section>
+
+<section id="s4">
+  <div class="section-num">04</div>
+  <h2>Design tokens definitivos</h2>
+
+  <h3>Tipografia</h3>
+  <ul>
+    <li><strong>UI/Body:</strong> IBM Plex Sans (variable, free, OFL)</li>
+    <li><strong>Display:</strong> Newsreader (serif editorial)</li>
+    <li><strong>Dados clínicos:</strong> IBM Plex Mono (CPF, IDs, valores)</li>
+  </ul>
+  <p>IBM Plex carrega "DNA institucional crítico" (saúde, banco, gov). Newsreader injeta autoridade editorial Einstein/Sírio.</p>
+
+  <h3>Paleta — evolução vita id</h3>
+  <table>
+    <tr><th>Token</th><th>Antes</th><th>Depois</th><th>Por quê</th></tr>
+    <tr><td>Verde primário</td><td><span class="swatch" style="background:#00E5A0"></span><code>#00E5A0</code></td><td><span class="swatch" style="background:#00B377"></span><code>#00B377</code></td><td>Sai de neon-AI pra jade-clínico</td></tr>
+    <tr><td>Teal acento</td><td><span class="swatch" style="background:#00B4D8"></span><code>#00B4D8</code></td><td><span class="swatch" style="background:#1A8FA8"></span><code>#1A8FA8</code></td><td>Sai de fintech pra teal hospitalar</td></tr>
+    <tr><td>Dark warm</td><td><span class="swatch" style="background:#0D0F14"></span><code>#0D0F14</code></td><td><span class="swatch" style="background:#0A1F1C"></span><code>#0A1F1C</code></td><td>Sai de preto-terminal pra verde-petróleo</td></tr>
+    <tr><td>Background</td><td><span class="swatch" style="background:#FFFFFF"></span><code>#FFFFFF</code></td><td><span class="swatch" style="background:#FAFAF7"></span><code>#FAFAF7</code></td><td>Off-white quente, não Google Doc</td></tr>
+    <tr><td>Warning</td><td>amarelo Post-it</td><td><span class="swatch" style="background:#C77A1F"></span><code>#C77A1F</code></td><td>Âmbar terracotta dessaturado</td></tr>
+    <tr><td>Danger</td><td>vermelho neon</td><td><span class="swatch" style="background:#B83A3A"></span><code>#B83A3A</code></td><td>Vermelho-tijolo institucional</td></tr>
+    <tr><td>Gold premium</td><td>—</td><td><span class="swatch" style="background:#A88A3D"></span><code>#A88A3D</code></td><td>Selo verificação</td></tr>
+  </table>
+
+  <h3>Regra 60-30-10</h3>
+  <ul>
+    <li><strong>60%</strong> off-white/cream/branco (a marca é o silêncio visual)</li>
+    <li><strong>30%</strong> neutros escuros e cinzas</li>
+    <li><strong>10%</strong> cor de marca + semânticas (acentos, CTAs, status)</li>
+  </ul>
+
+  <h3>Gradient: PROIBIDO em UI</h3>
+  <p>Único uso permitido: gradient sutilíssimo verde→teal em hero de landing marketing, 15% opacidade. Dentro do app: <strong>zero</strong>.</p>
+
+  <h3>Iconografia</h3>
+  <ul>
+    <li><strong>Base:</strong> Phosphor Icons (Regular weight, 1.5px stroke, 9k+ ícones, MIT)</li>
+    <li><strong>Médicos específicos:</strong> Healthicons.org (gota com tipo sanguíneo, vacinas)</li>
+    <li><strong>5 custom autorais:</strong> logo vita id, selo verificado, cartão RG, selo nível, ícone família</li>
+  </ul>
+
+  <h3>Border-radius (VARIA)</h3>
+  <p>Cards 14px · Botões 10px · Inputs 10px · Modal/sheet topo 24px · Avatar 50% · Pills 999px · Chip pequeno 6px. A variação é o que cria hierarquia.</p>
+</section>
+
+<section id="s5">
+  <div class="section-num">05</div>
+  <h2>Cartão RG da Saúde — anatomia</h2>
+  <p class="lead">Esse é <strong>o produto</strong>. Premium hospitalar + documento oficial brasileiro.</p>
+
+  <div class="card dark">
+    <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+      <span style="font-family:var(--font-display); font-size:18px; font-weight:600;">vita id</span>
+      <span class="badge b-gold">🛡 Verificado</span>
+    </div>
+    <div style="display:flex; gap:16px; align-items:center; margin-bottom:24px;">
+      <div style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, #00B377, #1A8FA8); display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:800;">L</div>
+      <div>
+        <div style="font-size:20px; font-weight:700; letter-spacing:-0.4px;">LUCAS BORELLI</div>
+        <div style="font-size:13px; opacity:0.7;">18 anos · Masc</div>
+        <div style="font-family:var(--font-mono); font-size:12px; opacity:0.6; margin-top:4px;">VI-2026-A7F3-B2K9</div>
+      </div>
+    </div>
+    <div style="text-align:center; margin:24px 0;">
+      <div style="font-size:11px; letter-spacing:0.14em; opacity:0.5; text-transform:uppercase; margin-bottom:4px;">Tipo sanguíneo</div>
+      <div style="font-size:56px; font-weight:800; letter-spacing:-0.04em; color:#FF6B6B; line-height:1;">A+</div>
+    </div>
+    <div style="background:rgba(184, 58, 58, 0.2); border-left:3px solid #FF6B6B; padding:10px 14px; border-radius:6px; font-size:13px; margin-bottom:12px;">
+      ⚠ ALERGIA: Penicilina, Dipirona
+    </div>
+    <div style="font-size:13px; opacity:0.7;">Hipertensão · Em tratamento</div>
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:24px;">
+      <div style="font-size:10px; opacity:0.5; letter-spacing:0.05em;">
+        <div>Emitido em 11 mai 2026</div>
+        <div>Válido até 11 nov 2026</div>
+      </div>
+      <div style="width:48px; height:48px; background:white; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#000;">QR</div>
+    </div>
+  </div>
+
+  <h3>Acabamento (anti-flat)</h3>
+  <ul>
+    <li><strong>Gradient base:</strong> jade-petróleo <code>#0A1F1C → #134039 → #0F2A28</code> diagonal</li>
+    <li><strong>Textura:</strong> noise/grain 2% opacity (evita flat AI-look)</li>
+    <li><strong>Sombra dupla:</strong> próxima + distante tinted verde-petróleo</li>
+    <li><strong>Marca d'água:</strong> monograma "VI" repetido diagonal 30°, 4% opacity</li>
+    <li><strong>Holograma sutil:</strong> gradient cônico iridescente nas bordas</li>
+    <li><strong>Aspect ratio:</strong> 1.585:1 (ISO/IEC 7810 ID-1, padrão internacional)</li>
+  </ul>
+
+  <h3>Animações</h3>
+  <ol>
+    <li><strong>Mount:</strong> scale 0.85→1.0 + translateY 20px→0, 500ms spring</li>
+    <li><strong>Parallax:</strong> desloca 0.5x do scroll geral</li>
+    <li><strong>Brilho ao tocar:</strong> shimmer 800ms</li>
+    <li><strong>Flip 3D:</strong> rotateY 180deg, 600ms — verso (histórico + emergência)</li>
+    <li><strong>Tilt giroscópio:</strong> long press, ±15° de inclinação</li>
+    <li><strong>Long-press:</strong> expande pra tela cheia (modo "mostrar pro médico")</li>
+  </ol>
+</section>
+
+<section id="s6">
+  <div class="section-num">06</div>
+  <h2>As 7 telas principais</h2>
+  <table>
+    <tr><th>#</th><th>Tela</th><th>Descrição</th></tr>
+    <tr><td>1</td><td>HOME</td><td>Cartão hero + 4 seções verticais (hub + sheet)</td></tr>
+    <tr><td>2</td><td>Cartão RG fullscreen</td><td>Long-press abre cartão 90% da tela, brilho 100%</td></tr>
+    <tr><td>3</td><td>Exames</td><td>Lista cronológica + detalhe com valor GIGANTE + range bar + gráfico minimalista</td></tr>
+    <tr><td>4</td><td>Alergias & Condições</td><td>Severidade tripla (leve/moderada/grave) com cores semânticas</td></tr>
+    <tr><td>5</td><td>Medicamentos</td><td>Calendário horizontal 7 dias + lista uso/histórico + cruzamento com alergias</td></tr>
+    <tr><td>6</td><td>Linha do Tempo Médica</td><td>Timeline Stripe-style, sticky headers por mês, filtros por categoria</td></tr>
+    <tr><td>7</td><td>QR Fullscreen</td><td>Modo emergência, fundo branco, QR 280×280, timer com regeneração</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <div class="section-num">07</div>
+  <h2>RG público (tela que médico vê)</h2>
+  <p>Aberto como <strong>web</strong> em <code>vita.id/v/[token]</code>. Médico não precisa instalar app.</p>
+  <p><strong>Hierarquia clínica brutal:</strong></p>
+  <ol>
+    <li>Header jade vita id + selo "✓ Identificação verificada"</li>
+    <li><strong>Foto + Nome 32px + Idade + A+ + "Doador: Sim"</strong></li>
+    <li><strong>CARD VERMELHO DE ALERTA</strong> — border-left 4px, "⚠ ATENÇÃO MÉDICA CRÍTICA"</li>
+    <li><strong>Confirmação profissional (modal LGPD)</strong> — médico digita CRM antes de ver histórico</li>
+    <li>Condições crônicas + CID-10</li>
+    <li>Meds em uso contínuo</li>
+    <li>Cirurgias recentes (últimos 12 meses)</li>
+    <li><strong>Contato emergência com botão "Ligar" verde</strong> (tap-to-call)</li>
+  </ol>
+  <p><strong>Audit trail invisível:</strong> IP, geo, timestamp, CRM digitado. Banco WORM. Push pro paciente: "Seu vita id foi acessado por Dr. X (CRM Y) às HH:MM em [cidade]."</p>
+</section>
+
+<section id="s8">
+  <div class="section-num">08</div>
+  <h2>Microinterações anti-cara-de-IA</h2>
+  <p>As 12 regras absolutas:</p>
+  <ol>
+    <li>Sombras 2-camadas <strong>tinted</strong> (verde-petróleo, nunca preto puro)</li>
+    <li>Easings <strong>cubic-bezier custom</strong> (nunca <code>ease</code>/<code>ease-in-out</code> padrão)</li>
+    <li>5 estados em todo componente (rest, hover, focus, pressed, disabled)</li>
+    <li>Focus ring 2-4px com cor primary + offset branco</li>
+    <li>Pressed: scale 0.97 + sombra reduzida em 80-120ms</li>
+    <li>Stagger animation em listas (30-50ms entre itens)</li>
+    <li>Skeleton que <strong>espelha conteúdo</strong> (não spinner genérico)</li>
+    <li>Toasts de baixo no mobile, spring entrada</li>
+    <li>Haptic seletivo (success/error/medium/light)</li>
+    <li>Numbers count-up em métricas grandes</li>
+    <li>Empty states com copy custom + CTA (nunca "ainda não há dados")</li>
+    <li>Border-radius VARIA por componente (14/10/24/999 não tudo 12px)</li>
+  </ol>
+
+  <h3>Stack técnico</h3>
+  <p><strong>CSS puro + Web Animations API.</strong> Não Framer Motion (peso desnecessário pra PWA). Lottie só pra empty states ilustrados.</p>
+
+  <pre><code>/* Easings vita id */
+--ease-standard: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+--ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);   /* botões, toggles */
+--ease-apple:    cubic-bezier(0.32, 0.72, 0, 1);      /* modais */
+--ease-exit:     cubic-bezier(0.4, 0, 1, 1);          /* saídas rápidas */</code></pre>
+</section>
+
+<section id="s9">
+  <div class="section-num">09</div>
+  <h2>Copy — tom de voz</h2>
+  <h3>Princípios</h3>
+  <ul>
+    <li><strong>Formal-acolhedor</strong> (Einstein/Sírio)</li>
+    <li><strong>Sem "IA" jamais</strong> (regra Lucas + CFM 2.454/2026)</li>
+    <li><strong>Sem jargão médico</strong> sem explicar</li>
+    <li><strong>Frases curtas, presente afirmativo</strong></li>
+    <li><strong>"Você" sempre</strong>, nunca "o senhor/a senhora"</li>
+    <li><strong>Nunca julga, sempre convida</strong></li>
+  </ul>
+
+  <table>
+    <tr><th>Pior</th><th>Melhor</th></tr>
+    <tr><td>"Você esqueceu sua medicação"</td><td>"O remédio das 14h ainda está esperando"</td></tr>
+    <tr><td>"Erro ao salvar"</td><td>"Não conseguimos salvar — tenta de novo?"</td></tr>
+    <tr><td>"Selecione a opção desejada"</td><td>"O que você quer fazer agora?"</td></tr>
+    <tr><td>"Documento liberado pelo sistema"</td><td>"Seu exame chegou"</td></tr>
+    <tr><td>"Out of range"</td><td>"Levemente acima do esperado"</td></tr>
+    <tr><td>"Nenhum dado encontrado"</td><td>"Sua linha do tempo começa hoje"</td></tr>
+  </table>
+</section>
+
+<section id="s10">
+  <div class="section-num">10</div>
+  <h2>Checklist de aprovação (antes de cada tela)</h2>
+  <p>20 itens. Se 5+ falham, refazer.</p>
+  <div class="card">
+    <ul class="checklist">
+      <li>Tipografia tem 3+ tamanhos com contraste real</li>
+      <li>Hover state visível</li>
+      <li>Focus ring 2-4px com cor primary</li>
+      <li>Pressed state (scale 0.97 + sombra reduzida)</li>
+      <li>Disabled state (opacity 40% + cursor not-allowed)</li>
+      <li>Sombras 2-camadas tinted (não preto puro)</li>
+      <li>Border-radius VARIA entre componentes</li>
+      <li>Padding segue escala 4/8/12/16/24/32</li>
+      <li>Empty state tem copy custom + CTA</li>
+      <li>Loading é skeleton com forma do conteúdo</li>
+      <li>Nenhum gradiente verde→cyan ou roxo</li>
+      <li>Nenhum emoji como ícone de navegação</li>
+      <li>Modal abre com spring + backdrop blur</li>
+      <li>Listas têm stagger animation</li>
+      <li>Números grandes animam count-up</li>
+      <li>Easing cubic-bezier custom</li>
+      <li>Texto de erro específico</li>
+      <li>Nenhuma menção a "IA"</li>
+      <li>tabular-nums em TODO valor clínico</li>
+      <li>Toast vem de baixo no mobile com spring</li>
+    </ul>
+  </div>
+</section>
+
+<section id="s11">
+  <div class="section-num">11</div>
+  <h2>3 Blue oceans (ninguém tem no Brasil)</h2>
+  <ol>
+    <li><strong>Selo de emergência via QR sem app</strong> — Apple Medical ID + RoadID no Brasil. Conecte SUS NÃO faz. Memed NÃO faz.</li>
+    <li><strong>Linha do tempo médica unificada</strong> — NINGUÉM no BR consolida consultas + exames + receitas + vacinas + alergias num feed cronológico filtrável.</li>
+    <li><strong>Portabilidade absoluta entre planos</strong> — brasileiro troca plano a cada 3-4 anos. vita id é o ÚNICO que segue com ele.</li>
+  </ol>
+</section>
+
+<section id="s12">
+  <div class="section-num">12</div>
+  <h2>Execução</h2>
+
+  <h3>Fase A — Aprovação (HOJE, Lucas valida)</h3>
+  <ul class="checklist">
+    <li>Posicionamento "gov.br 2030 + Stripe" — OK?</li>
+    <li>Tipografia IBM Plex Sans + Newsreader — OK?</li>
+    <li>Paleta dessaturada — OK?</li>
+    <li>Hub + sheet (sem tab bar) — OK?</li>
+    <li>7 features hero — OK?</li>
+    <li>Cartão RG como artefato central — OK?</li>
+  </ul>
+
+  <h3>Fase B — Construção</h3>
+  <ol>
+    <li>Criar <code>_core.css v4</code> com tokens consolidados (1h)</li>
+    <li>Construir CARTÃO RG perfeito (template ouro, 3-4 iterações até 10/10) (~3h)</li>
+    <li>Construir HOME com hub + sheet (~2h)</li>
+    <li>Construir 6 telas restantes em paralelo (~4h)</li>
+    <li>Sistema de navegação com hrefs reais</li>
+    <li>Servir em localhost direto na home</li>
+  </ol>
+  <p><strong>Total: ~10h de trabalho focado.</strong></p>
+</section>
+
+<section id="s13">
+  <div class="section-num">13</div>
+  <h2>16 anti-padrões a evitar</h2>
+  <div class="anti">Tab bar embaixo (Lucas vetou)</div>
+  <div class="anti">Gradient verde→cyan vibrante (AI startup 2024)</div>
+  <div class="anti">Plus Jakarta Sans (saturada em healthtech genérico)</div>
+  <div class="anti">Border-radius 12px universal (cara de IA)</div>
+  <div class="anti">Sombras pretas puras (cara de IA)</div>
+  <div class="anti">Spinner genérico de loading</div>
+  <div class="anti">Empty state "Nenhum dado encontrado"</div>
+  <div class="anti">Ícones Material/FontAwesome</div>
+  <div class="anti">Emoji em UI</div>
+  <div class="anti">Mencionar "IA" em qualquer copy</div>
+  <div class="anti">Score 0-100 inventado</div>
+  <div class="anti">Idade biológica fake</div>
+  <div class="anti">Confete/celebração lúdica</div>
+  <div class="anti">Grid 2x2 ou 3x3 de "atalhos" na home</div>
+  <div class="anti">Verde Unimed <code>#00995D</code> (lê como Unimed)</div>
+  <div class="anti">Azul Einstein <code>#0033A0</code> puro (lê como Einstein-clone)</div>
+</section>
+
+<div id="s14" class="decision-cta">
+  <h2 style="color:white; border-color:rgba(255,255,255,0.5);">Decisão Lucas</h2>
+  <p style="font-size:18px;"><strong>Aprova essa direção pra eu construir?</strong></p>
+  <p>Se sim, próximo passo: construo o CARTÃO RG perfeito primeiro (3-4 iterações), você aprova, e só depois sigo pras outras 6 telas.</p>
+  <p>Se algo tá errado, me fala AGORA antes de eu codar uma única linha. Esse doc é o blueprint — se a fundação estiver torta, tudo cai.</p>
+</div>
+
+<hr>
+
+<footer style="text-align:center; color:var(--text-3); font-size:13px;">
+  <p>vita id Design Strategy v4 · 11 Mai 2026</p>
+  <p>Síntese de 12 agentes de pesquisa em paralelo · 20+ apps analisados</p>
+  <p style="margin-top:16px; font-family:var(--font-mono);">d:\vitae-app-novo\DESIGN-STRATEGY-vita-id-2026-05-11.md</p>
+</footer>
+
+</div>
+</body>
+</html>

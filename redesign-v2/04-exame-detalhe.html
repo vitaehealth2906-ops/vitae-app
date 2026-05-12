@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hemograma completo — vita id</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  /* Header com back + título + share */
+  .detail-header {
+    padding: 12px 20px 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .detail-header .title-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+  .detail-header h1 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+    color: var(--text);
+  }
+  .share-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .share-btn svg { width: 16px; height: 16px; color: var(--text); }
+
+  .sub-header {
+    padding: 0 20px 12px;
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .sub-header .dot {
+    color: var(--text-3);
+    margin: 0 6px;
+  }
+
+  /* Resumo */
+  .summary-card {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    margin: 4px 16px 12px;
+    padding: 22px 20px;
+    box-shadow: 0 2px 12px rgba(10, 79, 74, 0.05), 0 1px 2px rgba(10, 79, 74, 0.04);
+    border: 1px solid var(--border-2);
+    text-align: center;
+  }
+  .summary-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: var(--r-pill);
+    background: var(--warn-soft);
+    color: #B45309;
+    font-size: var(--t-xs);
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    margin-bottom: 18px;
+  }
+  .summary-pill .pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--warn);
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 0;
+    align-items: center;
+  }
+  .summary-divider {
+    width: 1px;
+    height: 44px;
+    background: var(--border);
+    justify-self: center;
+  }
+  .summary-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .summary-num {
+    font-family: var(--font-display);
+    font-size: 38px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1.2px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .summary-num.warn { color: var(--warn); }
+  .summary-cell .label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-3);
+  }
+  .summary-note {
+    margin-top: 18px;
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+
+  /* Parâmetros */
+  .param-list {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    margin: 0 16px 12px;
+    box-shadow: var(--sh-md);
+    border: 1px solid var(--border-2);
+    overflow: hidden;
+  }
+  .param-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px 14px 14px;
+    border-bottom: 1px solid var(--border-2);
+    position: relative;
+  }
+  .param-row:last-child { border-bottom: none; }
+  .param-row.attn {
+    border-left: 3px solid var(--warn);
+    padding-left: 11px;
+    background: linear-gradient(90deg, rgba(217, 119, 6, 0.03), transparent 40%);
+  }
+  .param-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .param-dot.ok { background: var(--ok); }
+  .param-dot.warn { background: var(--warn); box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.12); }
+  .param-info { min-width: 0; }
+  .param-name {
+    font-family: var(--font-ui);
+    font-size: var(--t-base);
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .param-value-line {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-top: 3px;
+  }
+  .param-value {
+    font-family: var(--font-mono);
+    font-size: var(--t-lg);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .param-unit {
+    font-family: var(--font-mono);
+    font-size: var(--t-xs);
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .param-ref {
+    font-size: var(--t-xs);
+    color: var(--text-3);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.1px;
+  }
+  .param-right {
+    display: flex;
+    align-items: center;
+  }
+  .see-all {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    font-size: var(--t-sm);
+    font-weight: 500;
+    color: var(--primary);
+    cursor: pointer;
+    background: var(--surface-2);
+  }
+  .see-all svg { width: 14px; height: 14px; }
+
+  /* Gráfico */
+  .chart-card {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    margin: 0 16px 12px;
+    padding: 18px 18px 16px;
+    box-shadow: 0 2px 12px rgba(10, 79, 74, 0.05);
+    border: 1px solid var(--border-2);
+  }
+  .chart-title {
+    font-family: var(--font-ui);
+    font-size: var(--t-base);
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .chart-sub {
+    font-size: var(--t-xs);
+    color: var(--text-3);
+    margin-bottom: 14px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .chart-svg {
+    width: 100%;
+    height: 160px;
+    display: block;
+  }
+  .chart-note {
+    margin-top: 12px;
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    line-height: 1.5;
+    padding: 10px 12px;
+    background: var(--warn-soft);
+    border-radius: var(--r-md);
+    border-left: 3px solid var(--warn);
+    color: #92400E;
+  }
+
+  /* Ações */
+  .actions {
+    padding: 8px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .actions .btn { padding: 15px 20px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status">
+    <span>9:41</span>
+    <span>vita id</span>
+  </div>
+
+  <div class="content">
+
+    <!-- HEADER -->
+    <div class="detail-header">
+      <div class="back-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+      <div class="title-wrap">
+        <h1>Hemograma completo</h1>
+      </div>
+      <div class="share-btn" title="Compartilhar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7"/>
+          <polyline points="16 6 12 2 8 6"/>
+          <line x1="12" y1="2" x2="12" y2="15"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="sub-header">
+      09 de maio de 2026<span class="dot">·</span>Lab Vita Mooca
+    </div>
+
+    <!-- SEÇÃO 1 — RESUMO -->
+    <div class="summary-card">
+      <div class="summary-pill">
+        <span class="pulse"></span>
+        1 parâmetro com atenção
+      </div>
+      <div class="summary-grid">
+        <div class="summary-cell">
+          <div class="summary-num">12</div>
+          <div class="label">Parâmetros</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-cell">
+          <div class="summary-num warn">1</div>
+          <div class="label">Atenção</div>
+        </div>
+      </div>
+      <div class="summary-note">Vale conversar com seu médico — não é urgente.</div>
+    </div>
+
+    <!-- SEÇÃO 2 — PARÂMETROS -->
+    <div class="section-label">Parâmetros</div>
+    <div class="param-list">
+
+      <div class="param-row attn">
+        <div class="param-dot warn"></div>
+        <div class="param-info">
+          <div class="param-name">Hemoglobina</div>
+          <div class="param-value-line">
+            <span class="param-value">11,8</span>
+            <span class="param-unit">g/dL</span>
+          </div>
+          <div class="param-ref">Referência: 12,0 – 16,0</div>
+        </div>
+        <div class="param-right">
+          <span class="pill warn">Baixo</span>
+        </div>
+      </div>
+
+      <div class="param-row">
+        <div class="param-dot ok"></div>
+        <div class="param-info">
+          <div class="param-name">Hematócrito</div>
+          <div class="param-value-line">
+            <span class="param-value">39</span>
+            <span class="param-unit">%</span>
+          </div>
+          <div class="param-ref">Referência: 36 – 47</div>
+        </div>
+        <div class="param-right">
+          <span class="pill ok">Normal</span>
+        </div>
+      </div>
+
+      <div class="param-row">
+        <div class="param-dot ok"></div>
+        <div class="param-info">
+          <div class="param-name">Plaquetas</div>
+          <div class="param-value-line">
+            <span class="param-value">250.000</span>
+            <span class="param-unit">/mm³</span>
+          </div>
+          <div class="param-ref">Referência: 150.000 – 450.000</div>
+        </div>
+        <div class="param-right">
+          <span class="pill ok">Normal</span>
+        </div>
+      </div>
+
+      <div class="param-row">
+        <div class="param-dot ok"></div>
+        <div class="param-info">
+          <div class="param-name">Leucócitos</div>
+          <div class="param-value-line">
+            <span class="param-value">7.200</span>
+            <span class="param-unit">/mm³</span>
+          </div>
+          <div class="param-ref">Referência: 4.000 – 11.000</div>
+        </div>
+        <div class="param-right">
+          <span class="pill ok">Normal</span>
+        </div>
+      </div>
+
+      <div class="param-row">
+        <div class="param-dot ok"></div>
+        <div class="param-info">
+          <div class="param-name">VCM</div>
+          <div class="param-value-line">
+            <span class="param-value">88</span>
+            <span class="param-unit">fL</span>
+          </div>
+          <div class="param-ref">Referência: 80 – 100</div>
+        </div>
+        <div class="param-right">
+          <span class="pill ok">Normal</span>
+        </div>
+      </div>
+
+      <div class="see-all">
+        <span>Ver todos os 12 parâmetros</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
+
+    </div>
+
+    <!-- SEÇÃO 3 — HISTÓRICO -->
+    <div class="section-label">Evolução</div>
+    <div class="chart-card">
+      <div class="chart-title">Hemoglobina ao longo do tempo</div>
+      <div class="chart-sub">Últimos 9 meses · g/dL</div>
+
+      <svg class="chart-svg" viewBox="0 0 340 160" preserveAspectRatio="none">
+        <!-- defs -->
+        <defs>
+          <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#0A4F4A"/>
+            <stop offset="100%" stop-color="#14716A"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Faixa de referência sombreada (12.0–16.0 g/dL) -->
+        <!-- Eixo Y vai de 10 a 17. Y = 16 -> 18, Y=12 -> 102 -->
+        <rect x="32" y="18" width="296" height="84" fill="#16A34A" fill-opacity="0.08" rx="4"/>
+
+        <!-- Linhas de grade horizontais -->
+        <line x1="32" y1="18" x2="328" y2="18" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="2 3"/>
+        <line x1="32" y1="60" x2="328" y2="60" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="2 3"/>
+        <line x1="32" y1="102" x2="328" y2="102" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="2 3"/>
+
+        <!-- Labels eixo Y -->
+        <text x="6" y="22" font-family="JetBrains Mono, monospace" font-size="9" fill="#9CA3AF" font-weight="500">16</text>
+        <text x="6" y="64" font-family="JetBrains Mono, monospace" font-size="9" fill="#9CA3AF" font-weight="500">14</text>
+        <text x="6" y="106" font-family="JetBrains Mono, monospace" font-size="9" fill="#9CA3AF" font-weight="500">12</text>
+
+        <!-- Pontos (5): Ago/25=14.2, Out/25=13.8, Dez/25=13.1, Mar/26=12.4, Mai/26=11.8 -->
+        <!-- mapeamento Y: y = 18 + (16 - val) * 21 -->
+        <!-- 14.2 -> 55.8 | 13.8 -> 64.2 | 13.1 -> 78.9 | 12.4 -> 93.6 | 11.8 -> 106.2 -->
+        <!-- X: 50, 115, 180, 245, 310 -->
+
+        <!-- Linha conectora -->
+        <path d="M 50 55.8 L 115 64.2 L 180 78.9 L 245 93.6 L 310 106.2"
+              fill="none" stroke="url(#lineGrad)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Pontos passados (verdes) -->
+        <circle cx="50" cy="55.8" r="4" fill="#FFFFFF" stroke="#0A4F4A" stroke-width="2"/>
+        <circle cx="115" cy="64.2" r="4" fill="#FFFFFF" stroke="#0A4F4A" stroke-width="2"/>
+        <circle cx="180" cy="78.9" r="4" fill="#FFFFFF" stroke="#0A4F4A" stroke-width="2"/>
+        <circle cx="245" cy="93.6" r="4" fill="#FFFFFF" stroke="#0A4F4A" stroke-width="2"/>
+
+        <!-- Ponto atual (amarelo, destacado) -->
+        <circle cx="310" cy="106.2" r="8" fill="#D97706" fill-opacity="0.18"/>
+        <circle cx="310" cy="106.2" r="5" fill="#D97706" stroke="#FFFFFF" stroke-width="2"/>
+
+        <!-- Label valor atual -->
+        <text x="310" y="124" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#B45309" font-weight="700">11,8</text>
+
+        <!-- Eixo X labels -->
+        <text x="50"  y="148" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#9CA3AF" font-weight="500">Ago/25</text>
+        <text x="115" y="148" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#9CA3AF" font-weight="500">Out/25</text>
+        <text x="180" y="148" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#9CA3AF" font-weight="500">Dez/25</text>
+        <text x="245" y="148" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#9CA3AF" font-weight="500">Mar/26</text>
+        <text x="310" y="148" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#B45309" font-weight="700">Mai/26</text>
+
+        <!-- Label da faixa -->
+        <text x="324" y="14" text-anchor="end" font-family="Inter, sans-serif" font-size="8" fill="#15803D" font-weight="600" letter-spacing="0.5">FAIXA NORMAL</text>
+      </svg>
+
+      <div class="chart-note">Está caindo gradualmente nos últimos 6 meses.</div>
+    </div>
+
+    <!-- SEÇÃO 4 — AÇÕES -->
+    <div class="actions">
+      <button class="btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+        </svg>
+        Falar com o médico
+      </button>
+      <button class="btn secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        Ver PDF original
+      </button>
+      <button class="btn ghost">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="5" r="3"/>
+          <circle cx="6" cy="12" r="3"/>
+          <circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+        Compartilhar
+      </button>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

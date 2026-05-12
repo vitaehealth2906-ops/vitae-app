@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Quem viu meus dados</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  /* ===== Page-specific ===== */
+  .hero-info {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border-2);
+    border-left: 3px solid var(--info);
+    margin: 8px 16px 4px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    box-shadow: var(--sh-sm);
+  }
+  .hero-info .ico {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--info-soft);
+    color: #1E40AF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .hero-info .ico svg { width: 18px; height: 18px; }
+  .hero-info .body { flex: 1; min-width: 0; }
+  .hero-info .title {
+    font-size: var(--t-base);
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+    letter-spacing: -0.1px;
+  }
+  .hero-info .sub {
+    font-size: var(--t-sm);
+    color: var(--text-2);
+    line-height: 1.45;
+  }
+
+  /* ===== Médico card ativo ===== */
+  .med-card {
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r-lg);
+    margin: 0 16px 10px;
+    padding: 16px;
+    box-shadow: var(--sh-md);
+  }
+  .med-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .med-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .med-id { flex: 1; min-width: 0; }
+  .med-name {
+    font-size: var(--t-base);
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.1px;
+    line-height: 1.2;
+  }
+  .med-meta {
+    font-size: var(--t-xs);
+    color: var(--text-2);
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.2px;
+  }
+
+  .med-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 0;
+    border-top: 1px solid var(--border-2);
+    font-size: var(--t-sm);
+  }
+  .med-row .lbl {
+    color: var(--text-3);
+    font-size: var(--t-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    width: 76px;
+    flex-shrink: 0;
+  }
+  .med-row .val {
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+    flex: 1;
+  }
+  .med-row .val strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .med-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-2);
+  }
+  .btn-inline {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 12px;
+    border-radius: var(--r-md);
+    font-family: var(--font-ui);
+    font-size: var(--t-sm);
+    font-weight: 500;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .btn-inline:hover { background: var(--surface-2); }
+  .btn-inline svg { width: 14px; height: 14px; }
+  .btn-inline.danger { color: var(--danger); border-color: rgba(220, 38, 38, 0.18); }
+  .btn-inline.danger:hover { background: var(--danger-soft); }
+
+  /* ===== Histórico compacto ===== */
+  .hist-list {
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r-lg);
+    margin: 0 16px 12px;
+    overflow: hidden;
+    box-shadow: var(--sh-sm);
+  }
+  .hist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-2);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .hist-item:last-child { border-bottom: none; }
+  .hist-item:hover { background: var(--surface-2); }
+  .hist-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .hist-info { flex: 1; min-width: 0; }
+  .hist-name {
+    font-size: var(--t-sm);
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.25;
+  }
+  .hist-sub {
+    font-size: var(--t-xs);
+    color: var(--text-3);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .hist-chev { color: var(--text-3); flex-shrink: 0; }
+  .hist-chev svg { width: 14px; height: 14px; }
+
+  /* ===== Rodapé ações ===== */
+  .footer-actions {
+    margin: 24px 16px 16px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-sm);
+  }
+  .btn-revoke-all {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid rgba(220, 38, 38, 0.18);
+    color: var(--danger);
+    border-radius: var(--r-md);
+    font-family: var(--font-ui);
+    font-size: var(--t-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .btn-revoke-all:hover { background: var(--danger-soft); }
+  .btn-revoke-all svg { width: 16px; height: 16px; }
+  .footer-note {
+    margin-top: 10px;
+    font-size: var(--t-xs);
+    color: var(--text-3);
+    text-align: center;
+    line-height: 1.45;
+  }
+
+  /* Count pill */
+  .count-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 6px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    border-radius: var(--r-pill);
+    font-size: 10px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-left: 8px;
+    letter-spacing: 0.3px;
+  }
+  .section-label-row {
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    margin: 20px 0 12px;
+  }
+  .section-label-row .lbl {
+    font-size: var(--t-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-3);
+  }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="status">
+      <span>9:41</span>
+      <span>100%</span>
+    </div>
+
+    <div class="content">
+      <!-- Header -->
+      <div class="app-header">
+        <button class="back-btn" aria-label="Voltar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <h1>Quem viu<br>meus dados</h1>
+        <div style="width:36px"></div>
+      </div>
+
+      <!-- HERO INFO -->
+      <div class="hero-info">
+        <div class="ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="title">Você tem total controle</div>
+          <div class="sub">Lei Geral de Proteção de Dados (LGPD): você pode revogar acesso a qualquer momento.</div>
+        </div>
+      </div>
+
+      <!-- ATIVOS -->
+      <div class="section-label-row">
+        <span class="lbl">Ativos</span>
+        <span class="count-pill">3</span>
+      </div>
+
+      <!-- Card 1: Helena -->
+      <div class="med-card">
+        <div class="med-head">
+          <div class="med-avatar">H</div>
+          <div class="med-id">
+            <div class="med-name">Dra. Helena Vieira</div>
+            <div class="med-meta">CRM 12345-SP · Cardiologia</div>
+          </div>
+          <span class="pill ok">Ativo</span>
+        </div>
+
+        <div class="med-row">
+          <span class="lbl">Acesso</span>
+          <span class="val"><strong>até 22/Set/2026</strong> · 134 dias restantes</span>
+        </div>
+        <div class="med-row">
+          <span class="lbl">Permissão</span>
+          <span class="val"><span class="pill" style="background:var(--primary-soft);color:var(--primary)">ACESSO COMPLETO</span></span>
+        </div>
+        <div class="med-row">
+          <span class="lbl">Última vez</span>
+          <span class="val">Viu há 2 dias</span>
+        </div>
+
+        <div class="med-actions">
+          <button class="btn-inline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Ver o que viu
+          </button>
+          <button class="btn-inline danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+            Revogar
+          </button>
+        </div>
+      </div>
+
+      <!-- Card 2: Almeida -->
+      <div class="med-card">
+        <div class="med-head">
+          <div class="med-avatar">A</div>
+          <div class="med-id">
+            <div class="med-name">Dr. Almeida</div>
+            <div class="med-meta">CRM 67890-SP · Clínico Geral</div>
+          </div>
+          <span class="pill ok">Ativo</span>
+        </div>
+
+        <div class="med-row">
+          <span class="lbl">Acesso</span>
+          <span class="val"><strong>até 15/Ago/2026</strong> · 96 dias</span>
+        </div>
+        <div class="med-row">
+          <span class="lbl">Permissão</span>
+          <span class="val"><span class="pill" style="background:var(--primary-soft);color:var(--primary)">ACESSO COMPLETO</span></span>
+        </div>
+        <div class="med-row">
+          <span class="lbl">Última vez</span>
+          <span class="val">Viu há 12 dias</span>
+        </div>
+
+        <div class="med-actions">
+          <button class="btn-inline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Ver o que viu
+          </button>
+          <button class="btn-inline danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+            Revogar
+          </button>
+        </div>
+      </div>
+
+      <!-- Card 3: Roberto -->
+      <div class="med-card">
+        <div class="med-head">
+          <div class="med-avatar">R</div>
+          <div class="med-id">
+            <div class="med-name">Dr. Roberto Silva</div>
+            <div class="med-meta">CRM 11122-SP · UBS</div>
+          </div>
+          <span class="pill warn">Acabando</span>
+        </div>
+
+        <div class="med-row">
+          <span class="lbl">Acesso</span>
+          <span class="val"><strong>até 29/Mai/2026</strong> · 18 dias</span>
+        </div>
+        <div class="med-row">
+          <span class="lbl">Permissão</span>
+          <span class="val"><span class="pill warn">SÓ EMERGÊNCIA</span></span>
+        </div>
+        <div class="med-row">
+          <span class="lbl">Última vez</span>
+          <span class="val" style="color:var(--text-3)">Nunca acessou</span>
+        </div>
+
+        <div class="med-actions">
+          <button class="btn-inline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Ver o que viu
+          </button>
+          <button class="btn-inline danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+            Revogar
+          </button>
+        </div>
+      </div>
+
+      <!-- HISTÓRICO -->
+      <div class="section-label-row">
+        <span class="lbl">Histórico</span>
+        <span class="count-pill">5</span>
+      </div>
+
+      <div class="hist-list">
+        <div class="hist-item">
+          <div class="hist-avatar">C</div>
+          <div class="hist-info">
+            <div class="hist-name">Dr. Carlos Mendes</div>
+            <div class="hist-sub">Revogou em 02/Mar/2026</div>
+          </div>
+          <span class="hist-chev">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </span>
+        </div>
+
+        <div class="hist-item">
+          <div class="hist-avatar">P</div>
+          <div class="hist-info">
+            <div class="hist-name">Dra. Patrícia Lima</div>
+            <div class="hist-sub">Expirou em 04/Jan/2026</div>
+          </div>
+          <span class="hist-chev">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </span>
+        </div>
+
+        <div class="hist-item">
+          <div class="hist-avatar">J</div>
+          <div class="hist-info">
+            <div class="hist-name">Dr. João Pereira</div>
+            <div class="hist-sub">Expirou em 12/Dez/2025</div>
+          </div>
+          <span class="hist-chev">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </span>
+        </div>
+
+        <div class="hist-item">
+          <div class="hist-avatar">M</div>
+          <div class="hist-info">
+            <div class="hist-name">Dra. Mariana Costa</div>
+            <div class="hist-sub">Revogou em 18/Out/2025</div>
+          </div>
+          <span class="hist-chev">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </span>
+        </div>
+
+        <div class="hist-item">
+          <div class="hist-avatar">F</div>
+          <div class="hist-info">
+            <div class="hist-name">Dr. Fernando Souza</div>
+            <div class="hist-sub">Expirou em 03/Set/2025</div>
+          </div>
+          <span class="hist-chev">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <!-- RODAPÉ AÇÕES -->
+      <div class="footer-actions">
+        <button class="btn-revoke-all">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+          </svg>
+          Revogar todos os acessos
+        </button>
+        <div class="footer-note">Em emergência, equipe médica vai precisar de novo consentimento.</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
