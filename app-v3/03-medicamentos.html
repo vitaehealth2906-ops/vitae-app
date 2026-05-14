@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>vita id — Medicamentos</title>
+<script src="api.js"></script>
 <link rel="stylesheet" href="_core.css">
 <style>
   /* Calendário semanal */
@@ -176,109 +177,21 @@
 
   <div class="content">
     <h1 class="page-title anim anim-d1">Seus <em>medicamentos</em></h1>
-    <div class="page-subtitle anim anim-d1">87% de adesão esta semana</div>
+    <div class="page-subtitle anim anim-d1" id="medsSubtitle">&nbsp;</div>
 
     <!-- BUSCA -->
     <div class="search-wrap anim anim-d2">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" class="input" placeholder="Buscar medicamento...">
+      <input type="text" class="input" id="medsSearch" placeholder="Buscar medicamento..." oninput="filtrarMeds(this.value)">
     </div>
 
-    <!-- CALENDÁRIO SEMANAL -->
-    <div class="week-calendar anim anim-d2">
-      <div class="day complete" onclick="selectDay(this,'Segunda','12 de maio')">
-        <div class="day-letter">SEG</div>
-        <div class="day-num">12</div>
-        <div class="day-status"></div>
-      </div>
-      <div class="day complete" onclick="selectDay(this,'Terça','13 de maio')">
-        <div class="day-letter">TER</div>
-        <div class="day-num">13</div>
-        <div class="day-status"></div>
-      </div>
-      <div class="day today partial" onclick="selectDay(this,'Quarta','14 de maio')">
-        <div class="day-letter">QUA</div>
-        <div class="day-num">14</div>
-        <div class="day-status"></div>
-      </div>
-      <div class="day future" onclick="selectDay(this,'Quinta','15 de maio')">
-        <div class="day-letter">QUI</div>
-        <div class="day-num">15</div>
-        <div class="day-status"></div>
-      </div>
-      <div class="day future" onclick="selectDay(this,'Sexta','16 de maio')">
-        <div class="day-letter">SEX</div>
-        <div class="day-num">16</div>
-        <div class="day-status"></div>
-      </div>
-      <div class="day future" onclick="selectDay(this,'Sábado','17 de maio')">
-        <div class="day-letter">SAB</div>
-        <div class="day-num">17</div>
-        <div class="day-status"></div>
-      </div>
-      <div class="day future" onclick="selectDay(this,'Domingo','18 de maio')">
-        <div class="day-letter">DOM</div>
-        <div class="day-num">18</div>
-        <div class="day-status"></div>
-      </div>
-    </div>
+    <!-- CALENDÁRIO SEMANAL (semana atual, dinâmico) -->
+    <div class="week-calendar anim anim-d2" id="weekCalendar"></div>
 
     <!-- LISTA DO DIA -->
-    <div class="section-label anim anim-d3" id="day-label">Hoje, quarta · 14 de maio</div>
+    <div class="section-label anim anim-d3" id="day-label">&nbsp;</div>
 
-    <!-- 08:00 -->
-    <div class="med-card-detail anim anim-d3" onclick="window.location='04-med-detalhe.html'">
-      <div class="med-detail-icon">
-        <svg viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
-      </div>
-      <div class="med-detail-info">
-        <div class="med-detail-name">Losartana 50mg</div>
-        <div class="med-detail-meta">1 comprimido · oral</div>
-        <div class="med-detail-time-row">
-          <span>08:00</span> · <span>Todo dia</span>
-          <span class="badge green" style="margin-left:6px"><span class="dot"></span>Pressão</span>
-        </div>
-      </div>
-      <button class="med-detail-check taken" onclick="event.stopPropagation(); toggleCheck(this);">
-        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-      </button>
-    </div>
-
-    <!-- 07:30 -->
-    <div class="med-card-detail anim anim-d4" onclick="window.location='04-med-detalhe.html'">
-      <div class="med-detail-icon">
-        <svg viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
-      </div>
-      <div class="med-detail-info">
-        <div class="med-detail-name">Omeprazol 20mg</div>
-        <div class="med-detail-meta">1 cápsula · em jejum</div>
-        <div class="med-detail-time-row">
-          <span>07:30</span> · <span>Todo dia</span>
-          <span class="badge blue" style="margin-left:6px"><span class="dot"></span>Refluxo</span>
-        </div>
-      </div>
-      <button class="med-detail-check taken" onclick="event.stopPropagation(); toggleCheck(this);">
-        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-      </button>
-    </div>
-
-    <!-- 20:00 - pendente -->
-    <div class="med-card-detail warn anim anim-d5" onclick="window.location='04-med-detalhe.html'">
-      <div class="med-detail-icon">
-        <svg viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
-      </div>
-      <div class="med-detail-info">
-        <div class="med-detail-name">Vitamina D 2000UI</div>
-        <div class="med-detail-meta">1 cápsula · com comida</div>
-        <div class="med-detail-time-row">
-          <span>20:00</span> · <span>Todo dia</span>
-          <span class="badge warn" style="margin-left:6px"><span class="dot"></span>aguardando</span>
-        </div>
-      </div>
-      <button class="med-detail-check" onclick="event.stopPropagation(); toggleCheck(this);">
-        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-      </button>
-    </div>
+    <div id="medsList"></div>
 
     <div style="height: 80px"></div>
   </div>
@@ -303,14 +216,161 @@
   </div>
 </div>
 <script>
-  function toggleCheck(btn) { btn.classList.toggle('taken'); }
-  function selectDay(el, dia, data) {
-    document.querySelectorAll('.day').forEach(d => d.classList.remove('today'));
-    el.classList.add('today');
-    const label = document.getElementById('day-label');
-    const hoje = el.querySelector('.day-num').textContent === '14';
-    label.textContent = (hoje ? 'Hoje, ' : '') + dia.toLowerCase() + ' · ' + data;
+  // ===== Lote 2: lista de medicamentos conectada =====
+  let MEDS = [];
+  let DIA_ATIVO = new Date();
+
+  const DIAS_SEM_NOMES = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const DIAS_SEM_ABREV = ['DOM','SEG','TER','QUA','QUI','SEX','SAB'];
+  const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+  function escapeHtml(s){
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
+
+  function mesmaData(a, b) {
+    return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  }
+
+  function renderCalendario() {
+    const hoje = new Date();
+    const cal = document.getElementById('weekCalendar');
+    cal.innerHTML = '';
+    // Pega segunda-feira da semana atual (ou domingo? usar domingo como inicio é mais brasileiro? Vamos domingo→sabado)
+    const inicio = new Date(hoje);
+    inicio.setDate(hoje.getDate() - hoje.getDay()); // volta pro domingo
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(inicio);
+      d.setDate(inicio.getDate() + i);
+      const ehHoje = mesmaData(d, hoje);
+      const ehFuturo = d > hoje && !ehHoje;
+      const ehAtivo = mesmaData(d, DIA_ATIVO);
+      const classes = ['day'];
+      if (ehAtivo) classes.push('today');
+      if (ehFuturo) classes.push('future');
+      const div = document.createElement('div');
+      div.className = classes.join(' ');
+      div.innerHTML = `
+        <div class="day-letter">${DIAS_SEM_ABREV[d.getDay()]}</div>
+        <div class="day-num">${d.getDate()}</div>
+        <div class="day-status"></div>
+      `;
+      div.dataset.date = d.toISOString();
+      div.addEventListener('click', () => {
+        DIA_ATIVO = new Date(div.dataset.date);
+        renderCalendario();
+        renderDia();
+      });
+      cal.appendChild(div);
+    }
+  }
+
+  function rotuloDia() {
+    const hoje = new Date();
+    const ehHoje = mesmaData(DIA_ATIVO, hoje);
+    const dia = DIAS_SEM_NOMES[DIA_ATIVO.getDay()].toLowerCase();
+    const data = `${DIA_ATIVO.getDate()} de ${MESES[DIA_ATIVO.getMonth()]}`;
+    return (ehHoje ? 'Hoje, ' : '') + dia + ' · ' + data;
+  }
+
+  function extrairHorario(med) {
+    if (!med.horario) return null;
+    if (typeof med.horario === 'string') {
+      const m = med.horario.match(/(\d{1,2})[h:](\d{0,2})/);
+      if (m) return `${m[1].padStart(2,'0')}:${(m[2]||'00').padStart(2,'0')}`;
+      return med.horario;
+    }
+    if (Array.isArray(med.horario) && med.horario.length) return String(med.horario[0]);
+    return null;
+  }
+
+  function medAtivoEm(med, data) {
+    if (med.ativo === false) return false;
+    const inicio = med.dataInicio ? new Date(med.dataInicio) : null;
+    const fim = med.dataFim ? new Date(med.dataFim) : null;
+    if (inicio && data < inicio) return false;
+    if (fim && data > fim) return false;
+    return true;
+  }
+
+  function badgeCategoria(motivo) {
+    if (!motivo) return '';
+    const m = String(motivo).toLowerCase();
+    if (/press/i.test(m)) return '<span class="badge green" style="margin-left:6px">Pressão</span>';
+    if (/reflux|gastr/i.test(m)) return '<span class="badge blue" style="margin-left:6px">Estômago</span>';
+    if (/diab|insulin/i.test(m)) return '<span class="badge warn" style="margin-left:6px">Diabetes</span>';
+    if (/dor|cefal|enxa/i.test(m)) return '<span class="badge warn" style="margin-left:6px">Dor</span>';
+    return `<span class="badge" style="margin-left:6px">${escapeHtml(motivo).slice(0,20)}</span>`;
+  }
+
+  function renderDia() {
+    document.getElementById('day-label').textContent = rotuloDia();
+    const lista = document.getElementById('medsList');
+    const busca = (document.getElementById('medsSearch').value || '').toLowerCase();
+
+    const ativos = MEDS.filter(m => medAtivoEm(m, DIA_ATIVO))
+      .filter(m => !busca || (m.nome||'').toLowerCase().includes(busca))
+      .map(m => ({...m, _hr: extrairHorario(m)}))
+      .sort((a,b) => (a._hr||'99:99').localeCompare(b._hr||'99:99'));
+
+    if (MEDS.length === 0) {
+      lista.innerHTML = `
+        <div style="margin:0 var(--s5); padding:32px var(--s4); text-align:center; background:var(--surface); border:var(--border); border-radius:var(--r-md);">
+          <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px">Nenhum medicamento cadastrado</div>
+          <div style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin-bottom:18px">Adicione seu primeiro medicamento pra começar a receber lembretes.</div>
+          <button class="btn btn-primary" style="display:inline-block;padding:12px 24px" onclick="window.location='05-add-medicamento.html'">Adicionar medicamento</button>
+        </div>`;
+      return;
+    }
+
+    if (ativos.length === 0) {
+      lista.innerHTML = `<div style="margin:0 var(--s5); padding:24px var(--s4); text-align:center; color:var(--ink3); font-size:13px">Nenhum medicamento ${busca?'encontrado pra "'+escapeHtml(busca)+'"':'pra este dia'}</div>`;
+      return;
+    }
+
+    lista.innerHTML = ativos.map((m, i) => {
+      const meta = [m.dosagem, m.via || m.frequencia].filter(Boolean).join(' · ');
+      const horarioStr = m._hr || (m.frequencia || '—');
+      return `<div class="med-card-detail anim anim-d${Math.min(5, 3+i)}" onclick="window.location='04-med-detalhe.html?id=${encodeURIComponent(m.id)}'">
+        <div class="med-detail-icon">
+          <svg viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+        </div>
+        <div class="med-detail-info">
+          <div class="med-detail-name">${escapeHtml(m.nome||'—')}${m.dosagem?' '+escapeHtml(m.dosagem):''}</div>
+          <div class="med-detail-meta">${escapeHtml(meta)||'—'}</div>
+          <div class="med-detail-time-row">
+            <span>${escapeHtml(horarioStr)}</span>${m.frequencia?' · <span>'+escapeHtml(m.frequencia)+'</span>':''}
+            ${badgeCategoria(m.motivo)}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function filtrarMeds() { renderDia(); }
+
+  async function iniciarMeds() {
+    try {
+      const r = await vitaeAPI.listarMedicamentos();
+      MEDS = r.medicamentos || r || [];
+      const ativos = MEDS.filter(m => m.ativo !== false).length;
+      const total = MEDS.length;
+      const sub = document.getElementById('medsSubtitle');
+      if (total === 0) sub.textContent = 'Nenhum medicamento cadastrado';
+      else if (ativos === total) sub.textContent = `${total} medicamento${total===1?'':'s'} ativo${total===1?'':'s'}`;
+      else sub.textContent = `${ativos} ativo${ativos===1?'':'s'} · ${total-ativos} pausado${(total-ativos)===1?'':'s'}`;
+      renderCalendario();
+      renderDia();
+    } catch (e) {
+      console.error('[03-medicamentos] erro init', e);
+      document.getElementById('medsSubtitle').textContent = 'Sem conexão. Tente novamente.';
+      document.getElementById('medsList').innerHTML = `<div style="margin:0 var(--s5); padding:24px; text-align:center; color:var(--bad); font-size:13px">Não consegui buscar seus medicamentos. <a href="javascript:location.reload()" style="color:var(--green2);font-weight:700">Tentar de novo</a></div>`;
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciarMeds);
+  else iniciarMeds();
 </script>
 </body>
 </html>

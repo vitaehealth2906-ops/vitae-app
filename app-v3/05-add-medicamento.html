@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>vita id — Novo Medicamento</title>
+<script src="api.js"></script>
 <link rel="stylesheet" href="_core.css">
 <style>
   .form-group { margin: 0 var(--s5) var(--s4); }
@@ -129,39 +130,53 @@
   </div>
 
   <div class="content no-tab">
-    <h1 class="page-title anim anim-d1">Novo <em>medicamento</em></h1>
+    <h1 class="page-title anim anim-d1" id="pageTitle">Novo <em>medicamento</em></h1>
     <div class="page-subtitle anim anim-d1">A gente lembra você de tomar</div>
 
     <div class="form-group anim anim-d2">
       <label class="form-label">Nome do medicamento</label>
-      <input type="text" class="input" placeholder="Ex: Losartana 50mg">
-      <div class="form-hint">A gente busca na base da Anvisa pra preencher o resto</div>
+      <input type="text" class="input" id="inputNome" placeholder="Ex: Losartana" required>
+      <div class="form-hint">Nome principal — sem a dose</div>
     </div>
 
     <div class="form-row anim anim-d3" style="margin: 0 var(--s5) var(--s4);">
       <div>
         <label class="form-label">Dose</label>
-        <input type="text" class="input" placeholder="1 comp.">
+        <input type="text" class="input" id="inputDose" placeholder="50mg">
       </div>
       <div>
         <label class="form-label">Via</label>
-        <select class="input" style="appearance:none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239CA3AF%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>'); background-repeat:no-repeat; background-position: right 14px center; padding-right: 32px;">
-          <option>Oral</option>
-          <option>Sublingual</option>
-          <option>Tópico</option>
-          <option>Injetável</option>
-          <option>Inalatório</option>
+        <select class="input" id="inputVia" style="appearance:none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239CA3AF%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>'); background-repeat:no-repeat; background-position: right 14px center; padding-right: 32px;">
+          <option value="oral">Oral</option>
+          <option value="sublingual">Sublingual</option>
+          <option value="tópico">Tópico</option>
+          <option value="injetável">Injetável</option>
+          <option value="inalatório">Inalatório</option>
         </select>
       </div>
     </div>
 
+    <div class="form-group anim anim-d3">
+      <label class="form-label">Motivo (opcional)</label>
+      <input type="text" class="input" id="inputMotivo" placeholder="Ex: pressão alta, refluxo, dor crônica">
+    </div>
+
+    <div class="form-group anim anim-d3">
+      <label class="form-label">Frequência</label>
+      <select class="input" id="inputFreq" style="appearance:none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239CA3AF%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>'); background-repeat:no-repeat; background-position: right 14px center; padding-right: 32px;">
+        <option value="diário">Todo dia</option>
+        <option value="2x ao dia">2x ao dia</option>
+        <option value="3x ao dia">3x ao dia</option>
+        <option value="semanal">Uma vez por semana</option>
+        <option value="se necessário">Se necessário</option>
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+
     <div class="form-group anim anim-d4">
-      <label class="form-label">Horários</label>
-      <div class="time-chips" id="timeChips">
-        <span class="time-chip">08:00 <span class="x" onclick="this.parentElement.remove()">×</span></span>
-        <button class="time-add" onclick="addTime()">+ Adicionar horário</button>
-        <input type="time" id="timeInput" style="display:none">
-      </div>
+      <label class="form-label">Horário principal</label>
+      <input type="time" class="input" id="inputHorario" value="08:00">
+      <div class="form-hint">Horário pra você lembrar de tomar</div>
     </div>
 
     <div class="form-group anim anim-d5">
@@ -169,32 +184,16 @@
       <div class="duration-block">
         <input type="date" class="input" id="dateEnd" style="width:100%; margin-bottom: var(--s3);">
         <div class="continuous-row">
-          <input type="checkbox" id="cont" onchange="document.getElementById('dateEnd').disabled = this.checked; document.getElementById('dateEnd').style.opacity = this.checked ? '0.4' : '1';">
+          <input type="checkbox" id="cont" checked onchange="document.getElementById('dateEnd').disabled = this.checked; document.getElementById('dateEnd').style.opacity = this.checked ? '0.4' : '1';">
           <label for="cont">Uso contínuo (sem data de fim)</label>
         </div>
       </div>
     </div>
 
-    <div class="form-group anim anim-d6">
-      <label class="form-label">Lembretes</label>
-      <div class="toggle-row">
-        <div class="toggle-info">
-          <div class="toggle-info-title">Alarme nos horários</div>
-          <div class="toggle-info-desc">A gente te avisa pra não esquecer</div>
-        </div>
-        <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
-      </div>
-      <div class="toggle-row">
-        <div class="toggle-info">
-          <div class="toggle-info-title">Avisar quando acabar</div>
-          <div class="toggle-info-desc">3 dias antes do estoque acabar</div>
-        </div>
-        <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
-      </div>
-    </div>
+    <div id="erroBox" style="display:none;margin:0 var(--s5) var(--s3);padding:12px;background:var(--bad-bg);color:var(--bad);border-radius:8px;font-size:13px;font-weight:600"></div>
 
     <div style="padding: var(--s4) var(--s5);">
-      <button class="btn btn-primary" onclick="window.location='03-medicamentos.html'">Salvar medicamento</button>
+      <button class="btn btn-primary" id="btnSalvar" onclick="salvar()">Salvar medicamento</button>
     </div>
 
     <div style="height: 60px"></div>
@@ -202,22 +201,90 @@
 </div>
 
 <script>
-  function addTime() {
-    const input = document.getElementById('timeInput');
-    input.style.display = '';
-    input.focus();
-    input.click();
-    input.onchange = function() {
-      if (input.value) {
-        const chip = document.createElement('span');
-        chip.className = 'time-chip';
-        chip.innerHTML = input.value + ' <span class="x" onclick="this.parentElement.remove()">×</span>';
-        document.querySelector('.time-add').before(chip);
-        input.value = '';
+  // ===== Lote 2: novo medicamento — POST real =====
+  const ID_EDITAR = new URLSearchParams(location.search).get('id');
+  const TITULO_EL = document.getElementById('pageTitle');
+
+  document.getElementById('dateEnd').disabled = true;
+  document.getElementById('dateEnd').style.opacity = '0.4';
+
+  async function carregarParaEditar() {
+    if (!ID_EDITAR) return;
+    try {
+      const r = await vitaeAPI.listarMedicamentos();
+      const m = (r.medicamentos || r || []).find(x => x.id === ID_EDITAR);
+      if (!m) return;
+      TITULO_EL.innerHTML = 'Editar <em>medicamento</em>';
+      document.getElementById('inputNome').value = m.nome || '';
+      document.getElementById('inputDose').value = m.dosagem || '';
+      document.getElementById('inputVia').value = m.via || 'oral';
+      document.getElementById('inputMotivo').value = m.motivo || '';
+      document.getElementById('inputFreq').value = m.frequencia || 'diário';
+      if (m.horario) document.getElementById('inputHorario').value = m.horario;
+      if (m.dataFim) {
+        document.getElementById('cont').checked = false;
+        document.getElementById('dateEnd').disabled = false;
+        document.getElementById('dateEnd').style.opacity = '1';
+        document.getElementById('dateEnd').value = m.dataFim.split('T')[0];
       }
-      input.style.display = 'none';
-    };
+      document.getElementById('btnSalvar').textContent = 'Salvar alterações';
+    } catch (e) {
+      console.error('[05-add-med] erro carregar', e);
+    }
   }
+
+  function validar() {
+    const nome = document.getElementById('inputNome').value.trim();
+    if (!nome || nome.length < 2) return 'Coloca o nome do medicamento (mínimo 2 letras)';
+    return null;
+  }
+
+  function mostrarErro(msg) {
+    const box = document.getElementById('erroBox');
+    box.textContent = msg;
+    box.style.display = msg ? '' : 'none';
+  }
+
+  async function salvar() {
+    const erro = validar();
+    if (erro) { mostrarErro(erro); return; }
+    mostrarErro('');
+
+    // Note: campo "via" mostrado na UI nao e persistido (schema backend nao suporta — ficaria em observacao futura)
+    const dados = {
+      nome: document.getElementById('inputNome').value.trim(),
+      dosagem: document.getElementById('inputDose').value.trim() || undefined,
+      motivo: document.getElementById('inputMotivo').value.trim() || undefined,
+      frequencia: document.getElementById('inputFreq').value,
+      horario: document.getElementById('inputHorario').value || undefined
+    };
+    // remove undefined pra nao enviar
+    Object.keys(dados).forEach(k => dados[k] === undefined && delete dados[k]);
+    const ehContinuo = document.getElementById('cont').checked;
+    if (!ehContinuo && document.getElementById('dateEnd').value) {
+      dados.dataFim = document.getElementById('dateEnd').value;
+    }
+
+    const btn = document.getElementById('btnSalvar');
+    btn.disabled = true;
+    btn.textContent = 'Salvando…';
+
+    try {
+      if (ID_EDITAR) {
+        await vitaeAPI.atualizarMedicamento(ID_EDITAR, dados);
+      } else {
+        await vitaeAPI.adicionarMedicamento(dados);
+      }
+      window.location = '03-medicamentos.html';
+    } catch (e) {
+      mostrarErro(e.message || 'Não consegui salvar. Tente de novo.');
+      btn.disabled = false;
+      btn.textContent = ID_EDITAR ? 'Salvar alterações' : 'Salvar medicamento';
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', carregarParaEditar);
+  else carregarParaEditar();
 </script>
 </body>
 </html>
