@@ -198,10 +198,7 @@ router.put('/:id', validate(atualizarMedicamentoSchema), async (req, res, next) 
 
     const medicamento = await prisma.medicamento.update({
       where: { id },
-      data: {
-        ...req.body,
-        atualizadoEm: new Date(),
-      },
+      data: req.body,
     });
 
     return res.status(200).json({ medicamento });
