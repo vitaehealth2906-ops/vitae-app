@@ -559,15 +559,32 @@
             <button class="btn-next" onclick="validateAndGoNext(4)">Próximo</button>
         </div>
 
-        <!-- STEP 4: Medicamentos em uso -->
+        <!-- STEP 4: Medicamentos em uso (formulário estruturado) -->
         <div class="step" id="step4">
             <div class="step-title">Medicamentos em <span>uso</span></div>
-            <div class="step-subtitle">Para seu médico saber o que você já toma</div>
+            <div class="step-subtitle">Adicione um por vez para seu médico ter clareza</div>
 
             <div class="field">
-                <div class="field-label">Medicamentos que usa atualmente</div>
-                <textarea class="field-input" id="medicamentosInput" placeholder="Ex: losartana 50mg manhã, sertralina 50mg noite, omeprazol 20mg jejum..." rows="4" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
-                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Separe por vírgula. Inclua dose e horário se souber. Deixe vazio se nenhum.</div>
+                <div class="field-label">Medicamentos cadastrados</div>
+                <div id="medsListaQuiz" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+
+                <!-- Formulário inline -->
+                <div id="medFormBox" style="background:rgba(0,0,0,0.025);border:1px dashed rgba(0,0,0,0.12);border-radius:12px;padding:14px;margin-bottom:8px">
+                    <div style="display:grid;grid-template-columns:1fr;gap:8px">
+                        <input type="text" class="field-input" id="medNomeInput" placeholder="Nome (ex: Losartana)" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                            <input type="text" class="field-input" id="medDoseInput" placeholder="Dose (ex: 50mg)" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px">
+                            <input type="time" class="field-input" id="medHoraInput" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px">
+                        </div>
+                        <input type="text" class="field-input" id="medMotivoInput" placeholder="Motivo (opcional)" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px">
+                    </div>
+                    <button type="button" onclick="adicionarMedQuiz()" style="margin-top:10px;width:100%;padding:10px;border:none;border-radius:10px;background:rgba(0,229,160,0.12);color:#00B486;font-weight:700;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Adicionar à lista</button>
+                </div>
+
+                <!-- Campo hidden compatível com sistema antigo (concatena nomes) -->
+                <textarea id="medicamentosInput" style="display:none"></textarea>
+
+                <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Pode pular se não usa nenhum medicamento.</div>
             </div>
 
             <button class="btn-next" onclick="validateAndGoNext(5)">Próximo</button>
@@ -1877,6 +1894,89 @@
             }
         };
     } catch(e) {}
+
+    // ===== Lote 9: gerenciador de meds estruturados =====
+    window.MEDS_QUIZ = [];
+
+    window.adicionarMedQuiz = function() {
+        const nome = document.getElementById('medNomeInput').value.trim();
+        if (!nome || nome.length < 2) {
+            quizToast('Coloca o nome do medicamento', 'warn');
+            return;
+        }
+        const med = {
+            nome: nome,
+            dosagem: document.getElementById('medDoseInput').value.trim(),
+            horario: document.getElementById('medHoraInput').value,
+            motivo: document.getElementById('medMotivoInput').value.trim()
+        };
+        // Detecta cruzamento alergia-med usando o helper existente (se houver)
+        try {
+            if (typeof quizDetectarCruzamentoAlergiaMed === 'function') {
+                const alergias = (document.getElementById('alergiasInput')?.value || '');
+                const cruz = quizDetectarCruzamentoAlergiaMed(alergias, nome);
+                if (cruz) { quizToast(cruz, 'danger', 7000); }
+            }
+        } catch(_) {}
+
+        MEDS_QUIZ.push(med);
+        renderMedsListaQuiz();
+
+        document.getElementById('medNomeInput').value = '';
+        document.getElementById('medDoseInput').value = '';
+        document.getElementById('medHoraInput').value = '';
+        document.getElementById('medMotivoInput').value = '';
+        document.getElementById('medNomeInput').focus();
+    };
+
+    window.removerMedQuiz = function(idx) {
+        MEDS_QUIZ.splice(idx, 1);
+        renderMedsListaQuiz();
+    };
+
+    function renderMedsListaQuiz() {
+        const lista = document.getElementById('medsListaQuiz');
+        if (!lista) return;
+        if (MEDS_QUIZ.length === 0) {
+            lista.innerHTML = '';
+            document.getElementById('medicamentosInput').value = '';
+            return;
+        }
+        lista.innerHTML = MEDS_QUIZ.map((m, i) => {
+            const partes = [m.nome];
+            if (m.dosagem) partes.push(m.dosagem);
+            if (m.horario) partes.push(m.horario);
+            const linha = partes.join(' · ');
+            const sub = m.motivo ? `<div style="font-size:11px;color:rgba(0,0,0,0.55);margin-top:2px">${m.motivo.replace(/</g,'&lt;')}</div>` : '';
+            return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:10px">
+                <div style="flex:1;min-width:0">
+                    <div style="font-weight:700;font-size:13px;color:#0D0F14">${linha.replace(/</g,'&lt;')}</div>
+                    ${sub}
+                </div>
+                <button type="button" onclick="removerMedQuiz(${i})" style="border:none;background:rgba(239,68,68,0.1);color:#EF4444;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700">×</button>
+            </div>`;
+        }).join('');
+        // sincroniza textarea hidden pra compat com legado: nome + dose + horário separados por vírgula
+        document.getElementById('medicamentosInput').value = MEDS_QUIZ.map(m => {
+            const partes = [m.nome];
+            if (m.dosagem) partes.push(m.dosagem);
+            if (m.horario) partes.push(m.horario);
+            return partes.join(' ');
+        }).join(', ');
+    }
+
+    // Carrega meds salvos no parcial (se houver) → texto vira lista visual
+    try {
+        const raw = localStorage.getItem('vitae_quiz_parcial_v2');
+        if (raw) {
+            const p = JSON.parse(raw);
+            if (p && p.medicamentos && typeof p.medicamentos === 'string') {
+                const tokens = p.medicamentos.split(/,|\n/).map(s => s.trim()).filter(Boolean);
+                tokens.forEach(t => MEDS_QUIZ.push({ nome: t, dosagem:'', horario:'', motivo:'' }));
+                if (MEDS_QUIZ.length) renderMedsListaQuiz();
+            }
+        }
+    } catch(_) {}
 
     // Detector online/offline
     window.addEventListener('offline', function() {
