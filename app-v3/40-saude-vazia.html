@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>vita id — Minha Saúde (vazia)</title>
+<script src="api.js"></script>
 <link rel="stylesheet" href="_core.css">
 <style>
   .empty-block {
@@ -51,7 +52,7 @@
   <div class="header">
     <div style="flex:1">
       <div style="font-size:12px;color:var(--ink3);font-weight:500">Olá,</div>
-      <div style="font-size:17px;font-weight:800;color:var(--ink)">Lucas Borelli</div>
+      <div id="vazioNome" style="font-size:17px;font-weight:800;color:var(--ink)">&nbsp;</div>
     </div>
     <div class="header-actions">
       <button class="header-icon-btn" onclick="window.location='18-perfil.html'">
@@ -76,12 +77,12 @@
             </div>
           </div>
           <div class="rgcard-mid">
-            <div class="rgcard-name">LUCAS BORELLI</div>
-            <div class="rgcard-id">RG da Saúde · #001234567</div>
+            <div class="rgcard-name" id="vazioRGNome">&nbsp;</div>
+            <div class="rgcard-id">RG da Saúde · #<span id="vazioRGId">&nbsp;</span></div>
             <div class="rgcard-cols">
-              <div class="rgcol"><div class="slbl">TIPO</div><div class="vbig">A+</div></div>
-              <div class="rgcol"><div class="slbl">NASCIMENTO</div><div class="vmid">12/03/2008</div></div>
-              <div class="rgcol"><div class="slbl">EMERGÊNCIA</div><div class="vmid">(11) 98765-4321</div></div>
+              <div class="rgcol"><div class="slbl">TIPO</div><div class="vbig" id="vazioSangue">&nbsp;</div></div>
+              <div class="rgcol"><div class="slbl">NASCIMENTO</div><div class="vmid" id="vazioNasc">&nbsp;</div></div>
+              <div class="rgcol"><div class="slbl">EMERGÊNCIA</div><div class="vmid" id="vazioEmerg">&nbsp;</div></div>
             </div>
           </div>
         </div>
@@ -151,6 +152,34 @@
 </div>
 <script>
   function flipCard(el) { el.classList.toggle('flipped'); }
+
+  const SANGUE_LABEL = {'O_POS':'O+','O_NEG':'O-','A_POS':'A+','A_NEG':'A-','B_POS':'B+','B_NEG':'B-','AB_POS':'AB+','AB_NEG':'AB-'};
+
+  function fmtData(d){if(!d)return'—';const x=new Date(d);if(isNaN(x.getTime()))return'—';return `${String(x.getDate()).padStart(2,'0')}/${String(x.getMonth()+1).padStart(2,'0')}/${x.getFullYear()}`;}
+  function shortId(id){return id?String(id).replace(/-/g,'').slice(0,9).toUpperCase():'—';}
+
+  async function iniciarTelaVazia(){
+    try{
+      const r = await vitaeAPI.getPerfil();
+      const u = r.usuario || r;
+      const p = r.perfil || r.perfilSaude || null;
+      document.getElementById('vazioNome').textContent = u.nome || '';
+      document.getElementById('vazioRGNome').textContent = (u.nome || '').toUpperCase();
+      document.getElementById('vazioRGId').textContent = shortId(u.id);
+      document.getElementById('vazioSangue').textContent = SANGUE_LABEL[p?.tipoSanguineo] || '—';
+      document.getElementById('vazioNasc').textContent = fmtData(p?.dataNascimento);
+      document.getElementById('vazioEmerg').textContent = p?.contatoEmergenciaTel || '—';
+    }catch(e){
+      try{
+        const u = JSON.parse(localStorage.getItem('vitae_usuario')||'{}');
+        document.getElementById('vazioNome').textContent = u.nome || '';
+        document.getElementById('vazioRGNome').textContent = (u.nome || '').toUpperCase();
+      }catch(_){}
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciarTelaVazia);
+  else iniciarTelaVazia();
 </script>
 </body>
 </html>
