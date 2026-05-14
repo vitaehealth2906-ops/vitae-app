@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Consulta</title>
+<link rel="stylesheet" href="_core.css">
+<style>
+  body { background: #F4F6FA; }
+  .phone { background: #F4F6FA; }
+
+  /* Header */
+  .header { background: #F4F6FA !important; border-bottom: none; }
+  .header-back {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.07);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.2px;
+  }
+
+  /* Doctor block — texto puro, sem container */
+  .doctor-block {
+    padding: 8px var(--s5) 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .doctor-avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--grad);
+    color: var(--ink);
+    font-size: 19px;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: -0.5px;
+    box-shadow: 0 4px 16px rgba(0,229,160,0.22);
+  }
+  .doctor-info { flex: 1; min-width: 0; }
+  .doctor-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+    margin-bottom: 3px;
+  }
+  .doctor-spec {
+    font-size: 13px;
+    color: var(--ink3);
+    font-weight: 500;
+  }
+
+  /* Tópicos data + local (texto organizado) */
+  .topics {
+    padding: 0 var(--s5);
+    margin-bottom: 26px;
+  }
+  .topic {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+  }
+  .topic:not(:last-child) {
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .topic-ic {
+    width: 30px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 3px;
+  }
+  .topic-ic svg {
+    width: 16px; height: 16px;
+    stroke: var(--green2);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .topic-text { flex: 1; min-width: 0; }
+  .topic-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink4);
+    margin-bottom: 3px;
+  }
+  .topic-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.35;
+    letter-spacing: -0.1px;
+  }
+
+  /* Section label */
+  .section-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--ink3);
+    margin: 0 var(--s5) 10px;
+  }
+
+  /* Retorno proposto — insight-card style */
+  .retorno-card {
+    margin: 0 var(--s5) 32px;
+    background: #FFFFFF;
+    border: 1px solid rgba(0,0,0,0.07);
+    border-left: 4px solid var(--warn);
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 12px rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
+  }
+  .retorno-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1.5px;
+    background: linear-gradient(90deg, var(--warn), rgba(245,158,11,0.3), transparent);
+  }
+  .retorno-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--warn);
+    margin-bottom: 6px;
+  }
+  .retorno-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.25;
+    letter-spacing: -0.1px;
+    margin-bottom: 4px;
+  }
+  .retorno-sub {
+    font-size: 12.5px;
+    color: var(--ink3);
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+  .retorno-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  .btn-primary, .btn-secondary {
+    flex: 1;
+    padding: 11px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: var(--grad);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0,229,160,0.28);
+  }
+  .btn-secondary {
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid rgba(0,0,0,0.10);
+  }
+
+  /* Documentos compactos */
+  .doc {
+    margin: 0 var(--s5) 8px;
+    background: #FFFFFF;
+    border: 1px solid rgba(0,0,0,0.07);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+    transition: all 0.18s var(--ease);
+  }
+  .doc:active { transform: scale(0.99); border-color: rgba(0,0,0,0.14); }
+  .doc-ic {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--bad-bg);
+    color: var(--bad);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .doc-ic svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+  .doc-ic.green { background: rgba(0,229,160,0.08); color: var(--green2); }
+  .doc-body { flex: 1; min-width: 0; }
+  .doc-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--ink4);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 2px;
+  }
+  .doc-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+    margin-bottom: 2px;
+    letter-spacing: -0.1px;
+  }
+  .doc-meta {
+    font-size: 11px;
+    color: var(--ink3);
+    font-weight: 500;
+  }
+  .doc-dl {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(0,229,160,0.08);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .doc-dl:hover { background: rgba(0,229,160,0.14); }
+  .doc-dl svg { width: 16px; height: 16px; stroke: var(--green2); fill: none; stroke-width: 2; }
+
+  /* Conversar */
+  .talk-card {
+    margin: 22px var(--s5) 0;
+    background: #FFFFFF;
+    border: 1px solid rgba(0,229,160,0.18);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 12px rgba(0,229,160,0.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .talk-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1.5px;
+    background: linear-gradient(90deg, var(--green), var(--cyan), transparent);
+  }
+  .talk-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .talk-header svg { width: 18px; height: 18px; stroke: var(--green2); fill: none; stroke-width: 2; }
+  .talk-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.1px;
+  }
+  .talk-desc {
+    font-size: 12px;
+    color: var(--ink3);
+    line-height: 1.45;
+    margin-bottom: 14px;
+  }
+  .btn-wa {
+    width: 100%;
+    padding: 13px;
+    border-radius: 12px;
+    background: var(--grad);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(0,229,160,0.28);
+  }
+  .btn-wa svg { width: 17px; height: 17px; stroke: #fff; fill: none; stroke-width: 2; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status-bar"><span>9:41</span><span class="right"><svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="1" y="1" width="20" height="9" rx="2" stroke="currentColor" stroke-opacity=".35"/><rect x="2.5" y="2.5" width="17" height="6" rx="1" fill="currentColor"/></svg></span></div>
+
+  <div class="header">
+    <a href="15-consultas.html" class="header-back">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <div class="header-title">Consulta</div>
+  </div>
+
+  <div class="content no-tab">
+
+    <!-- Médico (sem box, texto puro) -->
+    <div class="doctor-block anim anim-d1">
+      <div class="doctor-avatar">RC</div>
+      <div class="doctor-info">
+        <div class="doctor-name">Dra. Renata Cardoso</div>
+        <div class="doctor-spec">Cardiologia</div>
+      </div>
+    </div>
+
+    <!-- Tópicos: Data + Local (texto organizado) -->
+    <div class="topics anim anim-d2">
+      <div class="topic">
+        <div class="topic-ic">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="topic-text">
+          <div class="topic-label">Data</div>
+          <div class="topic-value">Quarta, 05 de maio · 14h30</div>
+        </div>
+      </div>
+      <div class="topic">
+        <div class="topic-ic">
+          <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="topic-text">
+          <div class="topic-label">Local</div>
+          <div class="topic-value">Clínica Vitae · R. dos Pinheiros, 1456</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Documentos -->
+    <div class="section-lbl anim anim-d3">Documentos da Dra. Renata</div>
+
+    <div class="doc anim anim-d3" onclick="window.open('#', '_blank')">
+      <div class="doc-ic">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="doc-body">
+        <div class="doc-label">Laudo</div>
+        <div class="doc-name">Laudo cardiológico</div>
+        <div class="doc-meta">PDF · 245 KB · 05/maio</div>
+      </div>
+      <div class="doc-dl" onclick="event.stopPropagation();" title="Baixar">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+    </div>
+
+    <div class="doc anim anim-d4" onclick="window.open('#', '_blank')">
+      <div class="doc-ic green">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </div>
+      <div class="doc-body">
+        <div class="doc-label">Receita</div>
+        <div class="doc-name">Losartana 50mg</div>
+        <div class="doc-meta">Receita digital · válida 60 dias</div>
+      </div>
+      <div class="doc-dl" onclick="event.stopPropagation();" title="Baixar">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+    </div>
+
+    <!-- Retorno proposto (movido pra DEPOIS dos documentos) -->
+    <div class="retorno-card anim anim-d5" style="margin-top: 22px;">
+      <div class="retorno-label">Retorno proposto</div>
+      <div class="retorno-title">Reavaliar pressão em 30 dias</div>
+      <div class="retorno-sub">Sugerido: terça, 03/jun · 14h30 · Clínica Vitae</div>
+      <div class="retorno-buttons">
+        <button class="btn-primary">Confirmar</button>
+        <button class="btn-secondary">Sugerir outra data</button>
+      </div>
+    </div>
+
+    <!-- Conversar com a médica -->
+    <div class="talk-card anim anim-d6">
+      <div class="talk-header">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <div class="talk-title">Tire dúvidas direto com a Dra. Renata</div>
+      </div>
+      <div class="talk-desc">Canal liberado esta semana até quinta · responde em até 24h</div>
+      <button class="btn-wa">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Abrir conversa
+      </button>
+    </div>
+
+    <div style="height: 60px"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>vitaid — Pré-Consulta</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background:#F4F6FA;
+            display:flex; justify-content:center; align-items:center;
+            min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif;
+        }
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh; background:#F4F6FA;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(0,229,160,0.15), 0 0 0 3px #1A1E26, 0 40px 120px rgba(0,0,0,0.9);
+        }
+        .notch {
+            position:absolute; top:0; left:50%; transform:translateX(-50%);
+            width:126px; height:34px; background:#F4F6FA;
+            border-radius:0 0 20px 20px; z-index:10;
+        }
+        .status {
+            position:absolute; top:14px; left:28px; right:28px;
+            display:flex; justify-content:space-between;
+            font-size:13px; font-weight:600; color:#9CA3AF;
+            z-index:11;
+        }
+
+        .quiz-header {
+            position:absolute; top:58px; left:28px; right:28px;
+            display:flex; align-items:center; justify-content:space-between;
+            z-index:5;
+        }
+        .back-btn {
+            width:40px; height:40px; border-radius:12px;
+            background:#FFFFFF;
+            border:1px solid rgba(0,0,0,0.07);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; transition:all 0.2s;
+        }
+        .back-btn:hover { background:rgba(0,0,0,0.03); }
+        .step-indicator {
+            font-size:13px; font-weight:600;
+            color:#9CA3AF;
+            letter-spacing:0.5px;
+        }
+        .step-indicator span { color:#00E5A0; }
+
+        .progress-bar {
+            position:absolute; top:108px; left:28px; right:28px;
+            height:3px; background:#F0F2F7;
+            border-radius:2px; z-index:5; overflow:hidden;
+        }
+        .progress-fill {
+            height:100%; width:25%;
+            background:linear-gradient(90deg, #00E5A0, #00E5A0);
+            border-radius:2px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .quiz-container {
+            position:absolute; top:130px; bottom:0; left:0; right:0;
+            overflow:hidden;
+        }
+        .step {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            padding:24px 28px 56px;
+            display:flex; flex-direction:column;
+            opacity:0; transform:translateX(80px);
+            transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events:none;
+            overflow-y:auto;
+        }
+        .step.active { opacity:1; transform:translateX(0); pointer-events:all; }
+        .step.before { opacity:0; transform:translateX(-80px); }
+
+        .step-title {
+            font-family:'Plus Jakarta Sans', sans-serif;
+            font-size:28px; font-weight:700;
+            color:#0D0F14; line-height:1.3;
+            margin-bottom:8px;
+        }
+        .step-title span { color:#00E5A0; font-style:italic; }
+        .step-subtitle {
+            font-size:14px; color:#9CA3AF;
+            margin-bottom:24px;
+        }
+
+        /* Gender cards */
+        .gender-cards { display:flex; flex-direction:column; gap:14px; margin-top:12px; }
+        .gender-card {
+            display:flex; align-items:center; gap:20px;
+            padding:22px 24px;
+            background:#FFFFFF;
+            border:1.5px solid rgba(0,0,0,0.07);
+            border-radius:20px; cursor:pointer;
+            transition:all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .gender-card:hover { background:rgba(0,0,0,0.02); }
+        .gender-card:active { transform:scale(0.97); }
+        .gender-card.selected {
+            border-color:#00E5A0;
+            background:rgba(0,229,160,0.06);
+            box-shadow:0 0 28px rgba(0,229,160,0.12);
+        }
+        .gender-icon-wrap {
+            width:48px; height:48px; border-radius:50%;
+            background:#FFFFFF;
+            border:1px solid rgba(0,0,0,0.07);
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0; font-size:22px;
+        }
+        .gender-card.selected .gender-icon-wrap {
+            background:rgba(0,229,160,0.1);
+            border-color:rgba(0,229,160,0.3);
+        }
+        .gender-label { font-size:17px; font-weight:600; color:#4B5563; }
+        .gender-card.selected .gender-label { color:#0D0F14; }
+        .gender-card .check-circle {
+            margin-left:auto; width:24px; height:24px;
+            border-radius:50%; border:1.5px solid rgba(0,0,0,0.07);
+            display:flex; align-items:center; justify-content:center;
+            transition:all 0.35s; flex-shrink:0;
+        }
+        .gender-card.selected .check-circle {
+            border-color:#00E5A0; background:#00E5A0;
+        }
+        .gender-card .check-circle::after { content:''; }
+        .gender-card.selected .check-circle::after { content:'✓'; color:#0D0F14; font-size:14px; font-weight:700; }
+
+        /* Date picker */
+        .picker-section { margin-top:8px; flex:1; display:flex; flex-direction:column; }
+        .picker-container {
+            position:relative; display:flex;
+            width:100%; height:220px; margin:16px 0 24px;
+        }
+        .picker-column {
+            flex:1; height:100%;
+            overflow-y:scroll; scroll-snap-type:y mandatory;
+            -webkit-overflow-scrolling:touch;
+            scrollbar-width:none;
+        }
+        .picker-column::-webkit-scrollbar { display:none; }
+        .picker-item {
+            height:44px; display:flex; align-items:center; justify-content:center;
+            font-size:18px; font-weight:600; color:#4B5563;
+            scroll-snap-align:center; user-select:none; cursor:grab;
+        }
+        .picker-item.spacer { visibility:hidden; }
+        .picker-highlight {
+            position:absolute; left:8px; right:8px;
+            top:88px; height:44px;
+            border-top:1px solid rgba(0,229,160,0.2);
+            border-bottom:1px solid rgba(0,229,160,0.2);
+            background:rgba(0,229,160,0.04);
+            border-radius:10px; pointer-events:none; z-index:1;
+        }
+        .picker-fade { position:absolute; left:0; right:0; height:88px; pointer-events:none; z-index:2; }
+        .picker-fade.top { top:0; background:linear-gradient(to bottom, #F4F6FA 15%, transparent); }
+        .picker-fade.bottom { bottom:0; background:linear-gradient(to top, #F4F6FA 15%, transparent); }
+        .picker-col-label { display:flex; justify-content:space-around; margin-bottom:8px; }
+        .picker-col-label span {
+            flex:1; text-align:center; font-size:11px; font-weight:700;
+            color:rgba(0,229,160,0.35); letter-spacing:1.5px; text-transform:uppercase;
+        }
+
+        /* Sliders */
+        .slider-section { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding-bottom:20px; }
+        .value-display { display:flex; flex-direction:column; align-items:center; position:relative; margin-bottom:48px; }
+        .value-glow {
+            position:absolute; width:180px; height:180px; border-radius:50%;
+            background:radial-gradient(circle, rgba(0,229,160,0.07) 0%, transparent 70%);
+            top:50%; left:50%; transform:translate(-50%,-50%);
+        }
+        .value-number {
+            font-family:'Plus Jakarta Sans', sans-serif; font-size:80px; font-weight:800;
+            color:#0D0F14; line-height:1; position:relative; z-index:1;
+        }
+        .value-unit {
+            font-size:16px; font-weight:600; color:rgba(0,229,160,0.45);
+            letter-spacing:3px; text-transform:uppercase; margin-top:6px; position:relative; z-index:1;
+        }
+        .slider-wrap { width:100%; padding:0 8px; }
+        .slider-track {
+            position:relative; width:100%; height:6px;
+            background:#F0F2F7; border-radius:3px; cursor:pointer;
+        }
+        .slider-fill {
+            position:absolute; left:0; top:0; height:100%; border-radius:3px;
+            background:linear-gradient(90deg, rgba(0,229,160,0.3), #00E5A0);
+            pointer-events:none;
+        }
+        .slider-thumb {
+            position:absolute; top:50%; width:30px; height:30px;
+            background:linear-gradient(120deg, #00E5A0, #00B4D8);
+            border-radius:50%; transform:translate(-50%,-50%);
+            box-shadow:0 2px 12px rgba(0,229,160,0.35), 0 0 0 4px rgba(0,229,160,0.1);
+            pointer-events:none;
+        }
+        .slider-labels { display:flex; justify-content:space-between; margin-top:28px; }
+        .slider-labels span { font-size:12px; font-weight:500; color:#C4C9D4; }
+
+        /* Form fields (for picker triggers and text inputs) */
+        .field { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+        .field-label {
+            font-size:12px; font-weight:600;
+            color:#4B5563;
+            letter-spacing:0.5px; text-transform:uppercase;
+        }
+        .field-input {
+            width:100%; padding:16px 18px;
+            background:#FFFFFF;
+            border:1.5px solid rgba(0,0,0,0.07);
+            border-radius:14px;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:500;
+            color:#0D0F14; outline:none;
+            transition:all 0.3s ease;
+        }
+        .field-input::placeholder { color:#9CA3AF; }
+        .field-input:focus { border-color:rgba(0,229,160,0.3); }
+
+        .picker-field {
+            width:100%; padding:16px 18px;
+            background:#FFFFFF;
+            border:1.5px solid rgba(0,0,0,0.07);
+            border-radius:14px;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:500;
+            color:#9CA3AF;
+            cursor:pointer; transition:all 0.3s ease;
+            display:flex; align-items:center; justify-content:space-between;
+        }
+        .picker-field.has-value { color:#0D0F14; }
+        .picker-field:hover { border-color:rgba(0,0,0,0.12); }
+        .picker-field .arrow { color:#9CA3AF; font-size:18px; }
+
+        /* Picker Modal (bottom sheet) */
+        .picker-modal-overlay {
+            position:absolute; top:0; left:0; right:0; bottom:0;
+            background:rgba(0,0,0,0.6);
+            z-index:50; opacity:0; pointer-events:none;
+            transition:opacity 0.3s;
+        }
+        .picker-modal-overlay.active { opacity:1; pointer-events:all; }
+
+        .picker-modal {
+            position:absolute; bottom:0; left:0; right:0;
+            background:#FFFFFF;
+            border-radius:24px 24px 0 0;
+            padding:20px 24px 40px;
+            max-height:70%;
+            overflow-y:auto;
+            z-index:51;
+            transform:translateY(100%);
+            transition:transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .picker-modal-overlay.active .picker-modal {
+            transform:translateY(0);
+        }
+
+        .picker-modal-header {
+            display:flex; align-items:center; justify-content:space-between;
+            margin-bottom:16px;
+        }
+        .picker-modal-title {
+            font-family:'Plus Jakarta Sans', sans-serif;
+            font-size:20px; font-weight:700; color:#0D0F14;
+        }
+        .picker-modal-close {
+            width:32px; height:32px; border-radius:50%;
+            background:rgba(0,0,0,0.05);
+            border:none; color:#4B5563;
+            font-size:18px; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+        }
+
+        .picker-search {
+            width:100%; padding:12px 16px;
+            background:#FFFFFF;
+            border:1.5px solid rgba(0,0,0,0.07);
+            border-radius:12px; font-family:'Plus Jakarta Sans',sans-serif;
+            font-size:14px; color:#0D0F14; outline:none;
+            margin-bottom:16px;
+        }
+        .picker-search::placeholder { color:#9CA3AF; }
+
+        .picker-options { display:flex; flex-direction:column; gap:4px; }
+        .picker-option {
+            padding:14px 16px;
+            background:#FFFFFF;
+            border:1px solid rgba(0,0,0,0.07);
+            border-radius:12px; cursor:pointer;
+            font-size:14px; color:#4B5563;
+            transition:all 0.2s;
+            display:flex; align-items:center; gap:12px;
+        }
+        .picker-option .plan-logo {
+            width:28px; height:28px; border-radius:6px;
+            object-fit:contain; flex-shrink:0;
+            background:#F0F2F7; padding:2px;
+        }
+        .picker-option .plan-icon {
+            width:28px; height:28px; border-radius:6px;
+            background:rgba(0,229,160,0.10); border:1px solid rgba(0,229,160,0.22);
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .picker-option .plan-name { flex:1; }
+        .picker-option .plan-add {
+            color:#00E5A0; font-weight:700; font-size:13px;
+        }
+        .picker-option:hover { background:rgba(0,0,0,0.02); }
+        .picker-option.selected {
+            border-color:#00E5A0;
+            background:rgba(0,229,160,0.08);
+            color:#0D0F14;
+        }
+        .picker-option.selected::after { content:'✓'; color:#00E5A0; font-weight:700; }
+
+        /* Buttons */
+        .btn-next {
+            width:100%; padding:18px;
+            background:linear-gradient(120deg, #00E5A0, #00B4D8);
+            border:none; border-radius:16px;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700;
+            color:#0D0F14; cursor:pointer; letter-spacing:0.5px;
+            transition:all 0.25s ease; margin-top:auto; flex-shrink:0;
+        }
+        .btn-next:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,229,160,0.3); }
+        .btn-next:active { transform:scale(0.98); }
+
+        /* Condition cards (reused from original) */
+        .condition-grid {
+            display:grid; grid-template-columns:1fr 1fr;
+            gap:12px; margin-top:8px;
+        }
+        .condition-card {
+            display:flex; flex-direction:column;
+            align-items:center; justify-content:center;
+            gap:10px; padding:20px 12px;
+            background:#FFFFFF;
+            border:1.5px solid rgba(0,0,0,0.07);
+            border-radius:18px; cursor:pointer;
+            transition:all 0.3s ease;
+        }
+        .condition-card:hover { background:rgba(0,0,0,0.02); }
+        .condition-card:active { transform:scale(0.96); }
+        .condition-card.selected {
+            border-color:#00E5A0;
+            background:rgba(0,229,160,0.06);
+        }
+        .condition-icon { font-size:24px; }
+        .condition-label {
+            font-size:13px; font-weight:600;
+            color:#4B5563; text-align:center;
+        }
+        .condition-card.selected .condition-label { color:#0D0F14; }
+        .condition-card.none-card.selected {
+            border-color:#00E5A0;
+            background:rgba(0,229,160,0.06);
+        }
+        .condition-card.none-card.selected .condition-label { color:#00E5A0; }
+
+        /* Foto step */
+        .foto-wrap { display:flex; flex-direction:column; align-items:center; gap:18px; padding:8px 0 4px; }
+        .foto-circle {
+            width:180px; height:180px; border-radius:50%;
+            background:linear-gradient(135deg, rgba(0,229,160,0.08), rgba(0,180,216,0.08));
+            border:2px dashed rgba(0,229,160,0.35);
+            display:flex; align-items:center; justify-content:center;
+            overflow:hidden; position:relative; flex-shrink:0;
+            transition:all 0.25s ease;
+        }
+        .foto-circle.has-photo { border-style:solid; border-color:#00E5A0; box-shadow:0 8px 28px rgba(0,229,160,0.2); }
+        .foto-circle img { width:100%; height:100%; object-fit:cover; display:block; }
+        .foto-icon-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; }
+        .foto-icon-wrap svg { width:44px; height:44px; stroke:#00E5A0; stroke-width:1.6; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+        .foto-icon-wrap .foto-plus { font-size:11px; font-weight:700; color:#00E5A0; letter-spacing:0.5px; text-transform:uppercase; }
+        .foto-hint { font-size:13px; color:#6B7280; text-align:center; line-height:1.5; padding:0 20px; }
+        .foto-hint.ok { color:#00C47A; font-weight:600; }
+        .foto-btns { display:flex; gap:10px; width:100%; margin-top:4px; }
+        .foto-btn {
+            flex:1; padding:14px 10px;
+            background:#FFFFFF; border:1.5px solid rgba(0,0,0,0.07);
+            border-radius:14px; font-family:inherit; font-size:13px; font-weight:600;
+            color:#0D0F14; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; gap:7px;
+            transition:all 0.15s;
+        }
+        .foto-btn:hover { background:rgba(0,229,160,0.04); border-color:rgba(0,229,160,0.25); }
+        .foto-btn:active { transform:scale(0.98); }
+        .foto-btn svg { width:16px; height:16px; stroke:#0D0F14; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+        .btn-next:disabled { opacity:0.4; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
+    @media(max-width:480px){body{padding:0!important;background:inherit!important}.phone{width:100vw!important;height:100vh!important;height:100svh!important;max-width:100vw!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}.notch,.status{display:none!important}}</style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        /* Exam upload components (copied from 11-exames-lista.html) */
+        @keyframes shimmerWave{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+        .quiz-shimmer{position:relative;overflow:hidden;pointer-events:none;opacity:0.7;}
+        .quiz-shimmer::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(0,229,160,0.08) 40%,rgba(0,229,160,0.15) 50%,rgba(0,229,160,0.08) 60%,transparent 100%);animation:shimmerWave 1.8s ease-in-out infinite;}
+        .quiz-exam-card{border-radius:14px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);border:none;padding:10px;margin-bottom:10px;animation:fadeUp 0.4s ease both;}
+        .quiz-exam-inner{display:flex;gap:14px;align-items:stretch;}
+        .quiz-exam-thumb{width:80px;min-height:96px;border-radius:8px;background:#f0f2f5;overflow:hidden;flex-shrink:0;}
+        .quiz-exam-thumb img{width:100%;height:100%;object-fit:cover;}
+        .quiz-exam-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0;}
+        .quiz-exam-type{font-size:11px;color:rgba(13,15,20,0.4);text-transform:capitalize;}
+        .quiz-exam-name{font-size:14px;font-weight:700;color:#00E5A0;line-height:1.35;}
+        .quiz-exam-meta{font-size:11px;color:rgba(13,15,20,0.35);margin-top:2px;}
+        .quiz-exam-status{font-size:11px;font-weight:600;color:#00C47A;margin-top:4px;display:flex;align-items:center;gap:4px;}
+        .quiz-upload-area{border-radius:16px;background:rgba(0,229,160,0.03);border:1.5px dashed rgba(0,229,160,0.2);padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:background 0.2s;}
+        .quiz-upload-area:active{background:rgba(0,229,160,0.06);}
+        .quiz-upload-icon{width:44px;height:44px;border-radius:12px;background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.15);display:flex;align-items:center;justify-content:center;}
+        .quiz-upload-title{font-size:15px;font-weight:600;color:#0D0F14;}
+        .quiz-upload-sub{font-size:12px;color:#9CA3AF;}
+        .quiz-upload-btn{margin-top:4px;padding:10px 24px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;border:none;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,229,160,0.2);}
+        .quiz-skip-link{display:block;text-align:center;margin-top:12px;font-size:13px;color:#9CA3AF;cursor:pointer;font-weight:500;}
+        .quiz-skip-link:hover{color:#00E5A0;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+    <style>
+        .air-datepicker { --adp-font-family:'Plus Jakarta Sans',sans-serif; --adp-background-color:#fff; --adp-color:#0D0F14; --adp-color-secondary:rgba(13,15,20,0.35); --adp-accent-color:#00E5A0; --adp-color-current-date:#00E5A0; --adp-cell-background-color-selected:#00E5A0; --adp-cell-background-color-selected-hover:#00B4D8; --adp-color-other-month:rgba(13,15,20,0.2); --adp-day-name-color:rgba(13,15,20,0.35); --adp-border-color:rgba(0,0,0,0.08); --adp-cell-border-radius:10px; --adp-pointer-size:0; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.12); border:1px solid rgba(0,0,0,0.06); z-index:100; }
+        .air-datepicker-nav { border-bottom:1px solid rgba(0,0,0,0.06); padding:12px 16px; }
+        .air-datepicker-nav--title { font-weight:600; font-size:14px; }
+        .air-datepicker-nav--action svg { fill:rgba(13,15,20,0.4); }
+        .air-datepicker-cell.-selected- { color:#fff !important; }
+        .air-datepicker-cell.-current- { color:#00E5A0; }
+        .air-datepicker-cell.-focus- { background:rgba(0,229,160,0.08); }
+        .air-datepicker-buttons { border-top:1px solid rgba(0,0,0,0.06); padding:8px 16px; }
+        .air-datepicker-button { color:#00E5A0 !important; font-weight:600; }
+    @media(max-width:480px){body{padding:0!important;background:inherit!important}.phone{width:100vw!important;height:100vh!important;height:100svh!important;max-width:100vw!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}.notch,.status{display:none!important}}</style>
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128267;</span></div>
+
+    <div class="quiz-header">
+        <div class="back-btn" onclick="goBack()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18L9 12L15 6"/></svg>
+        </div>
+        <div class="step-indicator">Passo <span id="stepNum">1</span> de 7</div>
+    </div>
+
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <div class="quiz-container">
+
+        <!-- STEP 0: Gender + Birth Date + Height/Weight -->
+        <div class="step active" id="step0">
+            <div class="step-title">Dados <span>básicos</span></div>
+            <div class="step-subtitle">Informações essenciais do seu RG da Saúde</div>
+
+            <div class="field">
+                <div class="field-label">Sexo</div>
+                <div class="picker-field" id="sexoField" onclick="openPicker('sexo')">
+                    Selecione... <span class="arrow">›</span>
+                </div>
+            </div>
+
+            <div class="field">
+                <div class="field-label">Data de Nascimento</div>
+                <input class="field-input" type="text" id="nascimentoInput" placeholder="dd/mm/aaaa" autocomplete="off" inputmode="numeric" style="cursor:pointer;" oninput="formatDate(this)" maxlength="10">
+                <input type="hidden" id="nascimentoISO">
+            </div>
+
+            <div style="display:flex; gap:12px;">
+                <div class="field" style="flex:1;">
+                    <div class="field-label">Altura (cm)</div>
+                    <input class="field-input" type="number" id="alturaInput" placeholder="170" min="50" max="250">
+                </div>
+                <div class="field" style="flex:1;">
+                    <div class="field-label">Peso (kg)</div>
+                    <input class="field-input" type="number" id="pesoInput" placeholder="70" min="20" max="300" step="0.1">
+                </div>
+            </div>
+
+            <div class="field">
+                <div class="field-label">CPF</div>
+                <input class="field-input" type="text" id="cpfInput" placeholder="000.000.000-00" maxlength="14" oninput="formatCPF(this)">
+                <div id="cpfError" style="display:none;font-size:11px;color:#EF4444;margin-top:4px;font-weight:600;"></div>
+            </div>
+            <div id="nascError" style="display:none;font-size:11px;color:#EF4444;margin-top:-8px;margin-bottom:8px;font-weight:600;"></div>
+
+            <button class="btn-next" onclick="validateAndGoNext(1)">Próximo</button>
+        </div>
+
+        <!-- STEP 1: Blood Type + Conditions + Surgeries -->
+        <div class="step" id="step1">
+            <div class="step-title">Saúde <span>geral</span></div>
+            <div class="step-subtitle">Informações importantes para emergências</div>
+
+            <div class="field">
+                <div class="field-label">Tipo Sanguíneo</div>
+                <div class="picker-field" id="tipoSangueField" onclick="openPicker('tipoSangue')">
+                    Selecione... <span class="arrow">›</span>
+                </div>
+            </div>
+
+            <div class="field">
+                <div class="field-label">Condições Crônicas</div>
+                <textarea class="field-input" id="condicoesInput" placeholder="Ex: diabetes, hipertensão, asma..." rows="2" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
+                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Separe por vírgula. Deixe vazio se nenhuma.</div>
+            </div>
+
+            <div class="field">
+                <div class="field-label">Cirurgias Anteriores</div>
+                <textarea class="field-input" id="cirurgiasInput" placeholder="Ex: apendicectomia, hérnia..." rows="2" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
+                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Separe por vírgula. Deixe vazio se nenhuma.</div>
+            </div>
+
+            <div class="field">
+                <div class="field-label">Plano de Saúde</div>
+                <div class="picker-field" id="planoField" onclick="openPicker('plano')">
+                    Selecione... <span class="arrow">›</span>
+                </div>
+            </div>
+
+            <div class="field" id="carteirinhaField" style="display:none;">
+                <div class="field-label">Nº da Carteirinha</div>
+                <input class="field-input" type="text" id="carteirinhaInput" placeholder="Número do plano">
+            </div>
+
+            <button class="btn-next" onclick="goToStep(2)">Próximo</button>
+        </div>
+
+        <!-- STEP 2: Emergency Contact -->
+        <div class="step" id="step2">
+            <div class="step-title">Contato de <span>emergência</span></div>
+            <div class="step-subtitle">Para quem devemos ligar em caso de emergência?</div>
+
+            <div class="field">
+                <div class="field-label">Nome do contato</div>
+                <input class="field-input" type="text" id="emergenciaNome" placeholder="Nome completo">
+            </div>
+
+            <div class="field">
+                <div class="field-label">Telefone do contato</div>
+                <input class="field-input" type="tel" id="emergenciaTel" inputmode="numeric" maxlength="15" placeholder="(11) 99999-9999" oninput="maskTelEmergencia(this)">
+            </div>
+
+            <button class="btn-next" onclick="goToStep(3)">Próximo</button>
+        </div>
+
+        <!-- STEP 3: Alergias -->
+        <div class="step" id="step3">
+            <div class="step-title">Suas <span>alergias</span></div>
+            <div class="step-subtitle">Importante para segurança em medicações e procedimentos</div>
+
+            <div class="field">
+                <div class="field-label">Tem alguma alergia?</div>
+                <textarea class="field-input" id="alergiasInput" placeholder="Ex: dipirona, penicilina, amendoim, frutos do mar..." rows="3" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
+                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Separe por vírgula. Deixe vazio se nenhuma.</div>
+            </div>
+
+            <button class="btn-next" onclick="goToStep(4)">Próximo</button>
+        </div>
+
+        <!-- STEP 4: Medicamentos em uso -->
+        <div class="step" id="step4">
+            <div class="step-title">Medicamentos em <span>uso</span></div>
+            <div class="step-subtitle">Para seu médico saber o que você já toma</div>
+
+            <div class="field">
+                <div class="field-label">Medicamentos que usa atualmente</div>
+                <textarea class="field-input" id="medicamentosInput" placeholder="Ex: losartana 50mg manhã, sertralina 50mg noite, omeprazol 20mg jejum..." rows="4" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
+                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Separe por vírgula. Inclua dose e horário se souber. Deixe vazio se nenhum.</div>
+            </div>
+
+            <button class="btn-next" onclick="goToStep(5)">Próximo</button>
+        </div>
+
+        <!-- STEP 5: Últimos exames (upload real) -->
+        <div class="step" id="step5">
+            <div class="step-title">Ultimos <span>exames</span></div>
+            <div class="step-subtitle">Anexe resultados recentes para seu medico</div>
+
+            <!-- Upload area -->
+            <div class="quiz-upload-area" id="examUploadArea" onclick="triggerExamUpload()">
+                <div class="quiz-upload-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(0,229,160,0.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div class="quiz-upload-title">Anexar exame</div>
+                <div class="quiz-upload-sub">PDF, foto ou imagem do laboratorio</div>
+                <button class="quiz-upload-btn" type="button">Escolher arquivo</button>
+            </div>
+
+            <!-- Exam cards list (populated by JS) -->
+            <div id="examCardsList" style="margin-top:12px;"></div>
+
+            <button class="btn-next" onclick="goToStep(6)" id="step5ContinueBtn">Proximo</button>
+        </div>
+
+        <!-- STEP 6: Foto do rosto -->
+        <div class="step" id="step6">
+            <div class="step-title">Sua <span>foto</span></div>
+            <div class="step-subtitle">Uma foto do rosto ajuda medicos a te identificarem em emergencias</div>
+
+            <div class="foto-wrap">
+                <div class="foto-circle" id="fotoCircle" onclick="document.getElementById('fotoGaleria').click()">
+                    <div class="foto-icon-wrap" id="fotoPlaceholder">
+                        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <div class="foto-plus">Toque para adicionar</div>
+                    </div>
+                    <img id="fotoPreview" src="" alt="" style="display:none">
+                </div>
+
+                <div class="foto-hint" id="fotoHint">Uma foto recente, com boa luz e sem oculos escuros</div>
+
+                <div class="foto-btns">
+                    <button class="foto-btn" type="button" onclick="document.getElementById('fotoCamera').click()">
+                        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Tirar foto
+                    </button>
+                    <button class="foto-btn" type="button" onclick="document.getElementById('fotoGaleria').click()">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                        Galeria
+                    </button>
+                </div>
+
+                <input type="file" id="fotoCamera" accept="image/*" capture="user" style="display:none" onchange="handleFotoSelect(this)">
+                <input type="file" id="fotoGaleria" accept="image/*" style="display:none" onchange="handleFotoSelect(this)">
+            </div>
+
+            <button class="btn-next" id="btnConcluir" onclick="conclude()" disabled>Continuar para a pre-consulta</button>
+        </div>
+
+    </div>
+
+    <!-- Picker modals -->
+    <div class="picker-modal-overlay" id="pickerOverlay" onclick="closePicker()">
+        <div class="picker-modal" onclick="event.stopPropagation()">
+            <div class="picker-modal-header">
+                <div class="picker-modal-title" id="pickerTitle">Selecione</div>
+                <button class="picker-modal-close" onclick="closePicker()">✕</button>
+            </div>
+            <input class="picker-search" id="pickerSearch" placeholder="Buscar..." oninput="filterPickerOptions()">
+            <div class="picker-options" id="pickerOptions"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.js"></script>
+<script src="api.js?v=4"></script>
+<script>
+    // ===== State =====
+    let currentStep = 0;
+    const totalSteps = 7;
+    const steps = [0,1,2,3,4,5,6].map(i => document.getElementById('step'+i));
+
+    // Guardar o token da pre-consulta (se vier na URL) — para voltar depois
+    const urlParams = new URLSearchParams(window.location.search);
+    const preConsultaToken = urlParams.get('retorno')
+      || urlParams.get('token')
+      || localStorage.getItem('vitae_quiz_retorno')
+      || localStorage.getItem('vitae_pre_consulta_token')
+      || '';
+    if (preConsultaToken) localStorage.setItem('vitae_pre_consulta_token', preConsultaToken);
+    const progressFill = document.getElementById('progressFill');
+    const stepNum = document.getElementById('stepNum');
+
+    // Air Datepicker for date of birth
+    const nascEl = document.getElementById('nascimentoInput');
+    const nascISO = document.getElementById('nascimentoISO');
+    try {
+        if (typeof AirDatepicker !== 'undefined') {
+            const localePtBR = {
+                days: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
+                daysShort: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+                daysMin: ['Do','Se','Te','Qu','Qu','Se','Sá'],
+                months: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+                monthsShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+                today: 'Hoje',
+                clear: 'Limpar',
+                dateFormat: 'dd/MM/yyyy',
+                timeFormat: 'HH:mm',
+                firstDay: 0
+            };
+            new AirDatepicker(nascEl, {
+                locale: localePtBR,
+                dateFormat: 'dd/MM/yyyy',
+                maxDate: new Date(),
+                minDate: new Date(1920, 0, 1),
+                startDate: new Date(1990, 0, 1),
+                view: 'years',
+                autoClose: true,
+                isMobile: window.innerWidth < 500,
+                buttons: ['clear', 'today'],
+                container: nascEl.closest('.phone') || document.body,
+                onSelect({date}) {
+                    if (date) {
+                        const y = date.getFullYear();
+                        const m = String(date.getMonth()+1).padStart(2,'0');
+                        const d = String(date.getDate()).padStart(2,'0');
+                        nascISO.value = `${y}-${m}-${d}`;
+                    } else {
+                        nascISO.value = '';
+                    }
+                }
+            });
+        }
+    } catch(e) { console.warn('Datepicker init error:', e); }
+
+    // Form data
+    const formData = {
+        genero: '',
+        dataNascimento: '',
+        alturaCm: null,
+        pesoKg: null,
+        cpf: '',
+        tipoSanguineo: '',
+        condicoes: '',
+        cirurgias: [],
+        planoSaude: '',
+        carteirinhaPlano: '',
+        historicoFamiliar: [],
+        contatoEmergenciaNome: '',
+        contatoEmergenciaTel: '',
+        fotoUrl: '',
+    };
+
+    // ===== Foto handler =====
+    function handleFotoSelect(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (!/^image\//.test(file.type)) { alert('Selecione uma imagem.'); return; }
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                const MAX = 1200;
+                if (w > MAX || h > MAX) {
+                    if (w > h) { h = Math.round(h * (MAX / w)); w = MAX; }
+                    else { w = Math.round(w * (MAX / h)); h = MAX; }
+                }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                const base64 = canvas.toDataURL('image/jpeg', 0.8);
+                formData.fotoUrl = base64;
+                const preview = document.getElementById('fotoPreview');
+                preview.src = base64;
+                preview.style.display = 'block';
+                document.getElementById('fotoPlaceholder').style.display = 'none';
+                document.getElementById('fotoCircle').classList.add('has-photo');
+                const hint = document.getElementById('fotoHint');
+                hint.textContent = 'Foto adicionada. Toque no circulo pra trocar.';
+                hint.classList.add('ok');
+                const btn = document.getElementById('btnConcluir');
+                if (btn) btn.disabled = false;
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+    }
+
+    // ===== Navigation =====
+    function goToStep(newStep) {
+        if (newStep < 0 || newStep >= totalSteps) return;
+        steps.forEach((s, i) => {
+            s.classList.remove('active','before');
+            if (i < newStep) s.classList.add('before');
+            else if (i === newStep) s.classList.add('active');
+        });
+        currentStep = newStep;
+        stepNum.textContent = newStep + 1;
+        progressFill.style.width = ((newStep + 1) / totalSteps * 100) + '%';
+    }
+
+    function goBack() {
+        if (currentStep === 0) window.location.href = '26-cadastro.html';
+        else goToStep(currentStep - 1);
+    }
+
+    // ===== Validation before step change =====
+    function validateAndGoNext(nextStep) {
+        // Validate step 0 (dados basicos)
+        if (currentStep === 0) {
+            let valid = true;
+            const cpfEl = document.getElementById('cpfInput');
+            const cpfErr = document.getElementById('cpfError');
+            const nascEl = document.getElementById('nascimentoInput');
+            const nascErr = document.getElementById('nascError');
+            const nascISO = document.getElementById('nascimentoISO');
+
+            // Reset errors
+            cpfEl.style.borderColor = '';
+            cpfErr.style.display = 'none';
+            nascErr.style.display = 'none';
+
+            // Validate CPF
+            const cpfDigits = cpfEl.value.replace(/\D/g, '');
+            if (!cpfDigits || cpfDigits.length !== 11) {
+                cpfEl.style.borderColor = '#EF4444';
+                cpfErr.textContent = 'CPF precisa ter 11 digitos';
+                cpfErr.style.display = 'block';
+                valid = false;
+            }
+
+            // Validate date
+            const hasDate = nascISO.value || nascEl.value;
+            if (!hasDate) {
+                nascErr.textContent = 'Selecione sua data de nascimento';
+                nascErr.style.display = 'block';
+                valid = false;
+            }
+
+            if (!valid) return;
+        }
+        goToStep(nextStep);
+    }
+
+    // ===== Pre-fill from existing profile =====
+    (async function prefillFromProfile() {
+        if (typeof vitaeAPI === 'undefined' || !vitaeAPI.isLoggedIn()) return;
+        try {
+            const result = await vitaeAPI.getPerfil();
+            const p = result.perfil || result || {};
+
+            if (p.cpf) {
+                const el = document.getElementById('cpfInput');
+                let v = p.cpf.replace(/\D/g, '');
+                if (v.length === 11) {
+                    el.value = v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+                }
+            }
+            if (p.dataNascimento) {
+                const iso = typeof p.dataNascimento === 'string' ? p.dataNascimento.split('T')[0] : '';
+                if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+                    document.getElementById('nascimentoISO').value = iso;
+                    const parts = iso.split('-');
+                    document.getElementById('nascimentoInput').value = parts[2] + '/' + parts[1] + '/' + parts[0];
+                }
+            }
+            if (p.alturaCm) document.getElementById('alturaInput').value = p.alturaCm;
+            if (p.pesoKg) document.getElementById('pesoInput').value = p.pesoKg;
+            if (p.genero) {
+                const sexoField = document.getElementById('sexoField');
+                if (sexoField) {
+                    const map = { MASCULINO: 'Masculino', FEMININO: 'Feminino', OUTRO: 'Outro' };
+                    const label = map[p.genero] || p.genero;
+                    sexoField.textContent = label;
+                    sexoField.dataset.value = label;
+                }
+            }
+            if (p.tipoSanguineo) {
+                const sangueField = document.getElementById('tipoSangueField');
+                if (sangueField) {
+                    const label = p.tipoSanguineo.replace('_POS', '+').replace('_NEG', '-');
+                    sangueField.textContent = label;
+                    sangueField.dataset.value = label;
+                }
+            }
+            if (p.contatoEmergenciaNome) {
+                const el = document.getElementById('emergNomeInput');
+                if (el) el.value = p.contatoEmergenciaNome;
+            }
+            if (p.contatoEmergenciaTel) {
+                const el = document.getElementById('emergTelInput');
+                if (el) el.value = p.contatoEmergenciaTel;
+            }
+        } catch (e) {
+            console.log('[QUIZ] Prefill error:', e.message);
+        }
+    })();
+
+    // ===== Date formatter (dd/mm/aaaa) =====
+    function formatDate(el) {
+        let v = el.value.replace(/\D/g, '');
+        if (v.length > 8) v = v.slice(0, 8);
+        if (v.length > 4) v = v.replace(/(\d{2})(\d{2})(\d{1,4})/, '$1/$2/$3');
+        else if (v.length > 2) v = v.replace(/(\d{2})(\d{1,2})/, '$1/$2');
+        el.value = v;
+
+        // If complete (dd/mm/yyyy), fill the hidden ISO field
+        if (v.length === 10) {
+            const parts = v.split('/');
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+            const year = parseInt(parts[2]);
+            if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900 && year <= 2026) {
+                const iso = year + '-' + parts[1] + '-' + parts[0];
+                document.getElementById('nascimentoISO').value = iso;
+            }
+        }
+    }
+
+    // ===== CPF formatter =====
+    function formatCPF(el) {
+        let v = el.value.replace(/\D/g,'');
+        if (v.length > 11) v = v.slice(0,11);
+        if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+        else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+        else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+        el.value = v;
+    }
+
+    // ===== Picker system =====
+    let currentPickerType = '';
+    let pickerMulti = false;
+    let pickerSelected = [];
+
+    const pickerConfigs = {
+        sexo: {
+            title: 'Sexo',
+            multi: false,
+            search: false,
+            options: ['Masculino', 'Feminino', 'Outro'],
+        },
+        tipoSangue: {
+            title: 'Tipo Sanguíneo',
+            multi: false,
+            search: false,
+            options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Não sei'],
+        },
+        condicoes: {
+            title: 'Condições Crônicas',
+            multi: true,
+            search: true,
+            options: ['Diabetes tipo 1', 'Diabetes tipo 2', 'Hipertensão', 'Asma', 'Ansiedade', 'Depressão', 'Hipotireoidismo', 'Hipertireoidismo', 'Artrite', 'Fibromialgia', 'Enxaqueca', 'Epilepsia', 'Doença celíaca', 'Lúpus', 'Doença de Crohn', 'Colite ulcerativa', 'DPOC', 'Insuficiência cardíaca', 'Arritmia', 'Nenhuma'],
+        },
+        cirurgias: {
+            title: 'Cirurgias Anteriores',
+            multi: true,
+            search: true,
+            options: ['Apendicectomia', 'Amigdalectomia', 'Cesariana', 'Colecistectomia', 'Hérnia', 'Artroscopia', 'Cirurgia cardíaca', 'Cirurgia bariátrica', 'Rinoplastia', 'Mastectomia', 'Histerectomia', 'Prostatectomia', 'Cirurgia de coluna', 'Cirurgia ocular', 'Outra', 'Nenhuma'],
+        },
+        plano: {
+            title: 'Plano de Saúde',
+            multi: false,
+            search: true,
+            options: [
+                // Brasil
+                'SUS','Particular (sem plano)','Hapvida','NotreDame Intermédica','Amil','Bradesco Saúde','SulAmérica','Unimed Seguros','Unimed BH','Unimed Rio','Unimed Campinas','Unimed Curitiba','Unimed Porto Alegre','Unimed Fortaleza','Unimed Recife','Unimed SP','Unimed Central RS','Unimed Goiânia','Unimed Santos','Unimed Belém','Unimed Manaus','Unimed Salvador','Unimed Vitória','Unimed Londrina','Unimed Ribeirão Preto','Unimed Juiz de Fora','Unimed São José dos Campos','Unimed Natal','Unimed João Pessoa','Unimed Maceió','Unimed (outra regional)',
+                'Porto Seguro Saúde','Prevent Senior','Care Plus','CASSI','GEAP','Petrobras Saúde','Fundação Copel','Postal Saúde','Caixa de Assistência (FUNCEF)','FAPES','Embratel Saúde','Saúde Caixa',
+                'Grupo São Francisco','São Cristóvão','MedSênior','Intermédica','Notredame','Golden Cross','Assim Saúde','Samp','Medical','One Health','Omint','Mediservice','Paraná Clínicas','Clinipam','Santa Helena','Smile Saúde','Dental Uni','Odontoprev','Metlife Dental','Interodonto',
+                'Lincx','Trasmontano','Santa Casa Saúde','Economus','Sabesprev','Real Grandeza','Serpros','Fascal','Capesesp','São Lucas Saúde','Life Empresarial','Vitallis','Mútua','Classes Laboriosas',
+                // Argentina
+                'PAMI','OSDE','Swiss Medical','Galeno','Medicus','Accord Salud','Omint AR','Hospital Alemán','Hospital Británico','Hospital Italiano','Sancor Salud','Prevención Salud','Luis Pasteur','Federada Salud','OSECAC','OSPACA','Medifé','Unión Personal','OSPLAD','OSDEPYM','OSUTHGRA','Otro (Argentina)',
+                // Colombia
+                'Nueva EPS','Sanitas','Sura EPS','Compensar','Famisanar','Salud Total','Coomeva','Coosalud','Mutual Ser','Aliansalud','Comfenalco Valle','Capital Salud','Cajacopi','Colsanitas','Medisanitas','Otro (Colombia)',
+                // Chile
+                'FONASA','Banmédica','Colmena','Cruz Blanca','Consalud','Vida Tres','Nueva Masvida','Esencial','Otro (Chile)',
+                // México
+                'IMSS','ISSSTE','IMSS-Bienestar','Seguros Monterrey','GNP Seguros','AXA Seguros','MetLife México','MAPFRE México','Allianz México','Bupa México','Plan Seguro','Otro (México)',
+                // Peru
+                'EsSalud','SIS','Rímac Seguros','Pacífico Seguros','MAPFRE Perú','La Positiva','Sanitas Perú','Otro (Perú)',
+                // Uruguay
+                'ASSE','MUCAM','CASMU','Médica Uruguaya','SMI','Asociación Española','Hospital Británico UY','Blue Cross UY','MP','COSEM','Hospital Evangélico','Otro (Uruguay)',
+                // Outros países
+                'IESS (Ecuador)','Saludsa','Ecuasanitas','BMI Ecuador','Otro (Ecuador)',
+                'IPS (Paraguay)','Asismed','AMSA','Otro (Paraguay)',
+                'CNS (Bolivia)','BISA Seguros','Otro (Bolivia)',
+                'CCSS (Costa Rica)','INS Salud','Otro (Costa Rica)',
+                'IVSS (Venezuela)','Seguros Caracas','Mercantil Seguros','Otro (Venezuela)',
+                'CSS (Panamá)','ASSA Panamá','Otro (Panamá)',
+                'Otro','Nenhum'
+            ],
+        },
+    };
+
+    // Plan logos (favicon URLs from clearbit/logo.dev)
+    var planLogos = {
+        'SUS':'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/SUS_logo.svg/120px-SUS_logo.svg.png',
+        'Hapvida':'https://logo.clearbit.com/hapvida.com.br',
+        'NotreDame Intermédica':'https://logo.clearbit.com/gndi.com.br',
+        'Amil':'https://logo.clearbit.com/amil.com.br',
+        'Bradesco Saúde':'https://logo.clearbit.com/bradescosaude.com.br',
+        'SulAmérica':'https://logo.clearbit.com/sulamerica.com.br',
+        'Porto Seguro Saúde':'https://logo.clearbit.com/portoseguro.com.br',
+        'Prevent Senior':'https://logo.clearbit.com/preventsenior.com.br',
+        'Care Plus':'https://logo.clearbit.com/careplus.com.br',
+        'CASSI':'https://logo.clearbit.com/cassi.com.br',
+        'GEAP':'https://logo.clearbit.com/geap.com.br',
+        'Golden Cross':'https://logo.clearbit.com/goldencross.com.br',
+        'Omint':'https://logo.clearbit.com/omint.com.br',
+        'Mediservice':'https://logo.clearbit.com/mediservice.com.br',
+        'Odontoprev':'https://logo.clearbit.com/odontoprev.com.br',
+        'MetLife Dental':'https://logo.clearbit.com/metlife.com.br',
+        'Trasmontano':'https://logo.clearbit.com/trasmontano.com.br',
+        'OSDE':'https://logo.clearbit.com/osde.com.ar',
+        'Swiss Medical':'https://logo.clearbit.com/swissmedical.com.ar',
+        'Galeno':'https://logo.clearbit.com/galeno.com.ar',
+        'Medicus':'https://logo.clearbit.com/medicus.com.ar',
+        'Sanitas':'https://logo.clearbit.com/sanitas.com.co',
+        'Sura EPS':'https://logo.clearbit.com/segurossura.com.co',
+        'Colsanitas':'https://logo.clearbit.com/colsanitas.com',
+        'FONASA':'https://logo.clearbit.com/fonasa.cl',
+        'Banmédica':'https://logo.clearbit.com/banmedica.cl',
+        'IMSS':'https://logo.clearbit.com/imss.gob.mx',
+        'GNP Seguros':'https://logo.clearbit.com/gnp.com.mx',
+        'AXA Seguros':'https://logo.clearbit.com/axa.com.mx',
+        'EsSalud':'https://logo.clearbit.com/essalud.gob.pe',
+        'Rímac Seguros':'https://logo.clearbit.com/rimac.com',
+        'Pacífico Seguros':'https://logo.clearbit.com/pacifico.com.pe',
+        'MAPFRE Perú':'https://logo.clearbit.com/mapfre.com.pe',
+    };
+    function getPlanLogo(name) {
+        if (planLogos[name]) return planLogos[name];
+        // Try partial match
+        for (var key in planLogos) {
+            if (name.toLowerCase().indexOf(key.toLowerCase().substring(0,5)) !== -1 ||
+                key.toLowerCase().indexOf(name.toLowerCase().substring(0,5)) !== -1) return planLogos[key];
+        }
+        // Try Unimed variants
+        if (name.toLowerCase().indexOf('unimed') !== -1) return 'https://logo.clearbit.com/unimed.coop.br';
+        return null;
+    }
+
+    function openPicker(type) {
+        const config = pickerConfigs[type];
+        currentPickerType = type;
+        pickerMulti = config.multi;
+
+        document.getElementById('pickerTitle').textContent = config.title;
+        document.getElementById('pickerSearch').style.display = config.search ? 'block' : 'none';
+        document.getElementById('pickerSearch').value = '';
+
+        // Get current selections
+        if (type === 'sexo') pickerSelected = formData.genero ? [formData.genero] : [];
+        else if (type === 'tipoSangue') pickerSelected = formData.tipoSanguineo ? [formData.tipoSanguineo] : [];
+        else if (type === 'condicoes') pickerSelected = formData.condicoes ? formData.condicoes.split(', ').filter(Boolean) : [];
+        else if (type === 'cirurgias') pickerSelected = [...formData.cirurgias];
+        else if (type === 'plano') pickerSelected = formData.planoSaude ? [formData.planoSaude] : [];
+
+        renderPickerOptions(config.options);
+        document.getElementById('pickerOverlay').classList.add('active');
+    }
+
+    function renderPickerOptions(options) {
+        const container = document.getElementById('pickerOptions');
+        container.innerHTML = '';
+        options.forEach(opt => {
+            const div = document.createElement('div');
+            div.className = 'picker-option' + (pickerSelected.includes(opt) ? ' selected' : '');
+            div.textContent = opt;
+            div.onclick = () => selectPickerOption(opt, div);
+            container.appendChild(div);
+        });
+    }
+
+    function filterPickerOptions() {
+        const query = document.getElementById('pickerSearch').value.toLowerCase();
+        const config = pickerConfigs[currentPickerType];
+        const filtered = config.options.filter(o => o.toLowerCase().includes(query));
+        renderPickerOptions(filtered);
+
+        // Show "Add custom" option for plano when no exact match
+        if (currentPickerType === 'plano' && query.length >= 2) {
+            var exactMatch = config.options.some(o => o.toLowerCase() === query);
+            if (!exactMatch) {
+                var container = document.getElementById('pickerOptions');
+                var addDiv = document.createElement('div');
+                addDiv.className = 'picker-option';
+                var typed = document.getElementById('pickerSearch').value;
+                addDiv.innerHTML = '<div class="plan-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>' +
+                    '<span class="plan-name">Adicionar "<strong>' + typed + '</strong>"</span>' +
+                    '<span class="plan-add">Adicionar</span>';
+                addDiv.onclick = function() { selectPickerOption(typed, addDiv); };
+                container.insertBefore(addDiv, container.firstChild);
+            }
+        }
+    }
+
+    function selectPickerOption(value, el) {
+        if (pickerMulti) {
+            if (value === 'Nenhuma' || value === 'Nenhum') {
+                pickerSelected = [value];
+                document.querySelectorAll('.picker-option').forEach(o => o.classList.remove('selected'));
+                el.classList.add('selected');
+            } else {
+                pickerSelected = pickerSelected.filter(v => v !== 'Nenhuma' && v !== 'Nenhum');
+                if (pickerSelected.includes(value)) {
+                    pickerSelected = pickerSelected.filter(v => v !== value);
+                    el.classList.remove('selected');
+                } else {
+                    pickerSelected.push(value);
+                    el.classList.add('selected');
+                }
+                document.querySelectorAll('.picker-option').forEach(o => {
+                    if (o.textContent === 'Nenhuma' || o.textContent === 'Nenhum') o.classList.remove('selected');
+                });
+            }
+        } else {
+            pickerSelected = [value];
+            document.querySelectorAll('.picker-option').forEach(o => o.classList.remove('selected'));
+            el.classList.add('selected');
+            setTimeout(() => closePicker(), 200);
+        }
+    }
+
+    function closePicker() {
+        document.getElementById('pickerOverlay').classList.remove('active');
+
+        const displayVal = pickerSelected.length > 0 ? pickerSelected.join(', ') : '';
+
+        if (currentPickerType === 'sexo') {
+            formData.genero = pickerSelected[0] || '';
+            const field = document.getElementById('sexoField');
+            field.innerHTML = (displayVal || 'Selecione...') + ' <span class="arrow">›</span>';
+            if (displayVal) field.classList.add('has-value'); else field.classList.remove('has-value');
+        } else if (currentPickerType === 'tipoSangue') {
+            formData.tipoSanguineo = pickerSelected[0] || '';
+            const field = document.getElementById('tipoSangueField');
+            field.innerHTML = (displayVal || 'Selecione...') + ' <span class="arrow">›</span>';
+            if (displayVal) field.classList.add('has-value'); else field.classList.remove('has-value');
+        } else if (currentPickerType === 'condicoes') {
+            formData.condicoes = displayVal;
+            const field = document.getElementById('condicoesField');
+            field.innerHTML = (displayVal || 'Selecione...') + ' <span class="arrow">›</span>';
+            if (displayVal) field.classList.add('has-value'); else field.classList.remove('has-value');
+        } else if (currentPickerType === 'cirurgias') {
+            formData.cirurgias = [...pickerSelected];
+            const field = document.getElementById('cirurgiasField');
+            field.innerHTML = (displayVal || 'Nenhuma') + ' <span class="arrow">›</span>';
+            if (displayVal && displayVal !== 'Nenhuma') field.classList.add('has-value'); else field.classList.remove('has-value');
+        } else if (currentPickerType === 'plano') {
+            formData.planoSaude = pickerSelected[0] || '';
+            const field = document.getElementById('planoField');
+            field.innerHTML = (displayVal || 'Selecione...') + ' <span class="arrow">›</span>';
+            if (displayVal) field.classList.add('has-value'); else field.classList.remove('has-value');
+            // Show carteirinha field if has plan
+            document.getElementById('carteirinhaField').style.display =
+                (formData.planoSaude && formData.planoSaude !== 'SUS' && formData.planoSaude !== 'Nenhum') ? 'flex' : 'none';
+        }
+    }
+
+    // ===== Conditions (family history) =====
+    function toggleCondition(card) {
+        card.classList.toggle('selected');
+        const noneCard = document.querySelector('.none-card');
+        if (card.classList.contains('selected')) noneCard.classList.remove('selected');
+    }
+
+    function toggleNone(card) {
+        const isNow = !card.classList.contains('selected');
+        document.querySelectorAll('.condition-card:not(.none-card)').forEach(c => c.classList.remove('selected'));
+        card.classList.toggle('selected', isNow);
+    }
+
+    // ===== Blood type mapping =====
+    const bloodTypeMap = {
+        'A+': 'A_POS', 'A-': 'A_NEG', 'B+': 'B_POS', 'B-': 'B_NEG',
+        'AB+': 'AB_POS', 'AB-': 'AB_NEG', 'O+': 'O_POS', 'O-': 'O_NEG',
+    };
+
+    const genderMap = {
+        'Masculino': 'MASCULINO', 'Feminino': 'FEMININO', 'Outro': 'OUTRO',
+    };
+
+    // ═══ TRADUTOR DE ERROS — paciente nunca vê mensagem técnica ═══
+    const QP_CAMPOS = {
+      cpf: 'CPF', dataNascimento: 'Data de nascimento', alturaCm: 'Altura', pesoKg: 'Peso',
+      email: 'Email', senha: 'Senha', nome: 'Nome', celular: 'Celular',
+      tipoSanguineo: 'Tipo sanguíneo', genero: 'Sexo',
+      historicoFamiliar: 'Histórico familiar', cirurgias: 'Cirurgias anteriores',
+      planoSaude: 'Plano de saúde', carteirinhaPlano: 'Carteirinha do plano',
+      condicoes: 'Condições crônicas',
+      contatoEmergenciaNome: 'Nome do contato de emergência',
+      contatoEmergenciaTel: 'Telefone do contato de emergência',
+      fotoUrl: 'Foto'
+    };
+    function qpTraduzirCampo(linha) {
+      const m = linha.match(/^([a-zA-Z][a-zA-Z0-9_.]*)\s*:\s*(.+)$/);
+      if (!m) return '• ' + linha;
+      const campo = QP_CAMPOS[m[1]] || m[1];
+      const msg = m[2]
+        .replace(/Required/i, 'precisa ser preenchido')
+        .replace(/Invalid/i, 'inválido')
+        .replace(/minimo/gi, 'mínimo')
+        .replace(/maximo/gi, 'máximo')
+        .replace(/digitos?/gi, 'dígitos')
+        .replace(/Data deve estar no formato YYYY-MM-DD/i, 'use o calendário pra escolher');
+      return campo + ' — ' + msg;
+    }
+    function qpTraduzirErro(erro) {
+      if (!erro) return 'Algo deu errado. Tenta de novo.';
+      const msg = (typeof erro === 'string') ? erro : (erro.message || String(erro));
+      if (/409|ja existe|already exists/i.test(msg)) return 'Já existe uma conta com esses dados. Tenta entrar.';
+      if (/401|unauthorized/i.test(msg)) return 'Sua sessão expirou. Faz login de novo.';
+      if (/500|503|502|504|server/i.test(msg)) return 'Servidor com problema temporário. Tenta de novo em segundos.';
+      if (/network|fetch|failed to fetch|connection/i.test(msg)) return 'Sem conexão com o servidor. Verifica sua internet.';
+      if (msg.includes('\n')) {
+        const linhas = msg.split('\n').map(s=>s.trim()).filter(Boolean);
+        if (linhas.length > 1) return 'Confere esses campos:\n\n' + linhas.slice(1).map(qpTraduzirCampo).join('\n');
+      }
+      return msg.replace(/HTTP \d+/i, '').trim() || 'Algo deu errado. Tenta de novo.';
+    }
+
+    // ===== Máscara de telefone do contato de emergência =====
+    function maskTelEmergencia(input) {
+      let v = (input.value || '').replace(/\D/g, '').slice(0, 11);
+      if (v.length >= 7) v = v.replace(/^(\d{2})(\d{5})(\d{0,4}).*/, '($1) $2-$3');
+      else if (v.length >= 3) v = v.replace(/^(\d{2})(\d{0,5}).*/, '($1) $2');
+      input.value = v;
+    }
+    window.maskTelEmergencia = maskTelEmergencia;
+
+    // ===== Conclude =====
+    let _concluindo = false;
+    async function conclude() {
+        // Anti duplo-clique: trava no primeiro clique
+        if (_concluindo) return;
+        _concluindo = true;
+        const btnTravar = document.getElementById('btnConcluir');
+        if (btnTravar) {
+            btnTravar.disabled = true;
+            btnTravar.textContent = 'Salvando…';
+            btnTravar.style.opacity = '0.6';
+            btnTravar.style.cursor = 'not-allowed';
+        }
+
+        // Collect all data
+        const nascInput = document.getElementById('nascimentoISO').value || document.getElementById('nascimentoInput').value;
+        const alturaVal = parseInt(document.getElementById('alturaInput').value) || null;
+        const pesoVal = parseFloat(document.getElementById('pesoInput').value) || null;
+        const cpfVal = document.getElementById('cpfInput').value.replace(/\D/g,'');
+        const carteirinha = document.getElementById('carteirinhaInput').value.trim();
+        const emergNome = document.getElementById('emergenciaNome').value.trim();
+        const emergTel = document.getElementById('emergenciaTel').value.trim();
+
+        // Family history
+        const famHistory = [];
+        document.querySelectorAll('.condition-card.selected:not(.none-card)').forEach(c => {
+            famHistory.push(c.querySelector('.condition-label').textContent);
+        });
+
+        // Build profile data
+        const profileData = {};
+
+        // genero always included — prevents "empty profile" redirect loop
+        profileData.genero = genderMap[formData.genero] || 'NAO_INFORMADO';
+
+        // dataNascimento: use ISO field from datepicker first, else convert dd/mm/yyyy
+        const nascISO = document.getElementById('nascimentoISO');
+        if (nascISO && nascISO.value && /^\d{4}-\d{2}-\d{2}$/.test(nascISO.value)) {
+            profileData.dataNascimento = nascISO.value;
+        } else if (nascInput) {
+            // Handle dd/mm/yyyy (with 1 or 2 digit day/month)
+            const parts = nascInput.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (parts) {
+                const dd = parts[1].padStart(2, '0');
+                const mm = parts[2].padStart(2, '0');
+                profileData.dataNascimento = `${parts[3]}-${mm}-${dd}`;
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(nascInput)) {
+                profileData.dataNascimento = nascInput; // already YYYY-MM-DD
+            }
+            // If invalid format, skip dataNascimento (don't send bad data)
+        }
+        if (alturaVal && alturaVal >= 50 && alturaVal <= 300) profileData.alturaCm = alturaVal;
+        if (pesoVal && pesoVal >= 1 && pesoVal <= 500) profileData.pesoKg = pesoVal;
+        if (cpfVal && cpfVal.length === 11) profileData.cpf = cpfVal;
+        if (formData.tipoSanguineo && bloodTypeMap[formData.tipoSanguineo]) {
+            profileData.tipoSanguineo = bloodTypeMap[formData.tipoSanguineo];
+        }
+        // Read from free text fields
+        var condicoesVal = (document.getElementById('condicoesInput') || {}).value || '';
+        if (condicoesVal.trim()) profileData.condicoes = condicoesVal.trim();
+        var cirurgiasVal = (document.getElementById('cirurgiasInput') || {}).value || '';
+        if (cirurgiasVal.trim()) {
+            profileData.cirurgias = cirurgiasVal.split(',').map(function(s){return s.trim()}).filter(Boolean);
+        }
+        if (formData.planoSaude && formData.planoSaude !== 'Nenhum') profileData.planoSaude = formData.planoSaude;
+        if (carteirinha) profileData.carteirinhaPlano = carteirinha;
+        if (famHistory.length > 0) profileData.historicoFamiliar = famHistory;
+        if (emergNome) profileData.contatoEmergenciaNome = emergNome;
+        if (emergTel) profileData.contatoEmergenciaTel = emergTel;
+
+        // Save to backend — wait for confirmation before redirecting
+        let saveSuccess = false;
+        const isLogged = typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn();
+        console.log('[QUIZ] isLoggedIn:', isLogged, 'profileData:', JSON.stringify(profileData));
+        if (!isLogged) {
+            alert('Você não está logado. Faça login novamente.');
+            window.location.href = '26-cadastro.html';
+            return;
+        }
+        // Check critical fields before saving
+        if (!profileData.cpf) {
+            alert('CPF nao preenchido ou invalido. Volte ao passo 1 e preencha corretamente.');
+            goToStep(0);
+            return;
+        }
+        if (!profileData.dataNascimento) {
+            alert('Data de nascimento nao preenchida. Volte ao passo 1 e selecione no calendario.');
+            goToStep(0);
+            return;
+        }
+
+        try {
+            console.log('[QUIZ] Enviando profileData:', JSON.stringify(profileData, null, 2));
+            await vitaeAPI.atualizarPerfil(profileData);
+            if (formData.fotoUrl) {
+                try { await vitaeAPI.uploadFoto(formData.fotoUrl); }
+                catch (fe) { console.warn('[QUIZ] Foto nao salva:', fe); }
+            }
+            saveSuccess = true;
+        } catch (e) {
+            console.error('[QUIZ] Erro ao salvar perfil. profileData enviado:', profileData);
+            console.error('[QUIZ] Erro completo:', e);
+            const errMsg = (e && e.message) ? e.message : 'Erro de conexão';
+            // Show error in UI
+            const btn = document.getElementById('btnConcluir');
+            if (btn) {
+                btn.textContent = 'Erro ao salvar — tente novamente';
+                btn.style.background = '#EF4444';
+                btn.disabled = false;
+                btn.style.opacity = '';
+                btn.style.cursor = '';
+                setTimeout(() => {
+                    btn.textContent = 'Continuar para a pre-consulta';
+                    btn.style.background = '';
+                }, 4000);
+            }
+            _concluindo = false; // libera pra retry
+            alert(qpTraduzirErro(e));
+            return;
+        }
+
+        // Salvar alergias, medicamentos e exames (novos passos)
+        try {
+            const alergiasTxt = (document.getElementById('alergiasInput') || {}).value || '';
+            if (alergiasTxt.trim()) {
+                const lista = alergiasTxt.split(',').map(s => s.trim()).filter(Boolean);
+                for (const nome of lista) {
+                    try { await vitaeAPI.adicionarAlergia({ nome }); } catch (e) { console.log('alergia', nome, e.message); }
+                }
+            }
+        } catch (e) { console.log('erro alergias:', e.message); }
+
+        try {
+            const medsTxt = (document.getElementById('medicamentosInput') || {}).value || '';
+            if (medsTxt.trim()) {
+                const lista = medsTxt.split(',').map(s => s.trim()).filter(Boolean);
+                for (const item of lista) {
+                    try { await vitaeAPI.adicionarMedicamento({ nome: item }); } catch (e) { console.log('med', item, e.message); }
+                }
+            }
+        } catch (e) { console.log('erro meds:', e.message); }
+
+        // Exames: nao precisa salvar aqui — ja foram uploadeados via API durante o passo 6
+        // Os exames ficam na tabela Exame vinculados ao usuario
+
+        // Register LGPD consents (non-blocking)
+        if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
+            try {
+                await vitaeAPI.registrarConsentimento({ tipo: 'TERMOS_USO', aceito: true });
+                await vitaeAPI.registrarConsentimento({ tipo: 'POLITICA_PRIVACIDADE', aceito: true });
+                await vitaeAPI.registrarConsentimento({ tipo: 'DADOS_SAUDE', aceito: true });
+            } catch (e) {
+                console.log('Erro ao registrar consentimentos:', e.message);
+            }
+        }
+
+        // Voltar para a pre-consulta com o token original.
+        // Marcador ?voltei=quizvid avisa o state machine pra dar tempo do save propagar.
+        if (saveSuccess) {
+            setTimeout(() => {
+                if (preConsultaToken) {
+                    localStorage.removeItem('vitae_pre_consulta_token');
+                    localStorage.removeItem('vitae_quiz_retorno');
+                    window.location.href = 'pre-consulta.html?token=' + encodeURIComponent(preConsultaToken) + '&voltei=quizvid';
+                } else {
+                    window.location.href = '01-saude.html';
+                }
+            }, 800);
+        }
+    }
+
+    // ═══════════════════════════════════
+    // EXAM UPLOAD (Step 5)
+    // ═══════════════════════════════════
+
+    const examFileInput = document.createElement('input');
+    examFileInput.type = 'file';
+    examFileInput.accept = 'image/*,.pdf';
+    examFileInput.style.display = 'none';
+    document.body.appendChild(examFileInput);
+
+    let uploadedExams = [];
+
+    function triggerExamUpload() {
+        examFileInput.click();
+    }
+
+    examFileInput.addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Arquivo muito grande. Maximo 10MB.');
+            return;
+        }
+
+        // Show shimmer card immediately
+        const cardId = 'exam-temp-' + Date.now();
+        const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+        addShimmerCard(cardId, previewUrl, file.name);
+
+        // Update continue button text
+        const btn = document.getElementById('step5ContinueBtn');
+        if (btn) btn.textContent = 'Continuar — seus exames serao analisados em seguida';
+
+        try {
+            const result = await vitaeAPI.uploadExame(file);
+            const exameId = result.exameId || (result.exame && result.exame.id);
+            uploadedExams.push({ id: exameId, fileName: file.name, previewUrl });
+            updateExamCard(cardId, file.name, previewUrl);
+        } catch (err) {
+            removeExamCard(cardId);
+            alert('Erro ao enviar exame: ' + (err.message || 'tente novamente'));
+        }
+        examFileInput.value = '';
+    });
+
+    function addShimmerCard(cardId, previewUrl, fileName) {
+        const list = document.getElementById('examCardsList');
+        const thumbHtml = previewUrl
+            ? '<img src="' + previewUrl + '" style="width:100%;height:100%;object-fit:cover;">'
+            : '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f6f8;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,0.12)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>';
+
+        list.innerHTML += '<div class="quiz-exam-card quiz-shimmer" id="' + cardId + '">' +
+            '<div class="quiz-exam-inner">' +
+            '<div class="quiz-exam-thumb">' + thumbHtml + '</div>' +
+            '<div class="quiz-exam-info">' +
+            '<div class="quiz-exam-type">Enviando</div>' +
+            '<div class="quiz-exam-name">Processando seu exame...</div>' +
+            '<div class="quiz-exam-meta">' + (fileName || '') + '</div>' +
+            '</div></div></div>';
+    }
+
+    function updateExamCard(cardId, fileName, previewUrl) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+        card.classList.remove('quiz-shimmer');
+        const thumbHtml = previewUrl
+            ? '<img src="' + previewUrl + '" style="width:100%;height:100%;object-fit:cover;">'
+            : '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f6f8;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(0,229,160,0.4)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>';
+
+        card.innerHTML = '<div class="quiz-exam-inner">' +
+            '<div class="quiz-exam-thumb">' + thumbHtml + '</div>' +
+            '<div class="quiz-exam-info">' +
+            '<div class="quiz-exam-type">Exame</div>' +
+            '<div class="quiz-exam-name">' + (fileName || 'Exame anexado') + '</div>' +
+            '<div class="quiz-exam-status"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Exame anexado</div>' +
+            '</div></div>';
+    }
+
+    function removeExamCard(cardId) {
+        const card = document.getElementById(cardId);
+        if (card) card.remove();
+    }
+</script>
+</body>
+</html>

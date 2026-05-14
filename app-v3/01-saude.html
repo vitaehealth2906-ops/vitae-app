@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Minha Saúde</title>
+<script src="api.js"></script>
+<script>
+  // Gate de primeiro acesso: se ainda não tem RG da Saúde, força onboarding+quiz.
+  (function () {
+    if (!window.vitaeAPI) return;
+    if (!vitaeAPI.isLoggedIn()) { window.location.replace('20-splash.html'); return; }
+    if (!vitaeAPI.jaTemRG()) {
+      const jaViuOnb = localStorage.getItem('vitae_onb_quiz_visto') === '1';
+      window.location.replace(jaViuOnb ? '30-quiz.html' : '28-onboarding.html');
+      return;
+    }
+  })();
+</script>
+<link rel="stylesheet" href="_core.css">
+<style>
+  /* Cartão hero — overrides especificos pra home */
+  .rgcard-hero { margin-top: var(--s2); margin-bottom: var(--s5); }
+
+  /* Bloco "Adicionar medicamentos" (estado vazio) */
+  .add-meds-card {
+    background: var(--surface);
+    border: 2px dashed rgba(0,229,160,0.25);
+    border-radius: var(--r-md);
+    padding: var(--s5);
+    margin: 0 var(--s5) var(--s4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--dur) var(--ease);
+  }
+  .add-meds-card:active { transform: scale(0.98); }
+  .add-meds-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--acc);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--s3);
+    color: var(--green2);
+  }
+  .add-meds-icon svg {
+    width: 26px;
+    height: 26px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .add-meds-title { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .add-meds-sub { font-size: 12px; color: var(--ink3); line-height: 1.4; max-width: 220px; }
+
+  /* Bloco "Medicamentos de hoje" (estado com dados) */
+  .meds-today {
+    background: var(--surface);
+    border: var(--border);
+    border-radius: var(--r-md);
+    margin: 0 var(--s5) var(--s4);
+    box-shadow: var(--sh);
+    overflow: hidden;
+  }
+  .meds-today-header {
+    padding: var(--s4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: var(--border);
+  }
+  .meds-today-title { font-size: 14px; font-weight: 800; color: var(--ink); }
+  .meds-today-count { font-size: 11px; font-weight: 700; color: var(--green2); }
+  .meds-today-list { padding: var(--s2) 0; }
+  .med-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    padding: var(--s2) var(--s4);
+  }
+  .med-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--ok-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .med-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--green2);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .med-icon.bad { background: var(--bad-bg); }
+  .med-icon.bad svg { stroke: var(--bad); }
+  .med-icon.muted { background: rgba(0,0,0,0.05); }
+  .med-icon.muted svg { stroke: var(--ink3); }
+  .med-row-info { flex: 1; min-width: 0; }
+  .med-row-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .med-row-time { font-size: 11px; color: var(--ink3); margin-top: 1px; }
+  .med-check {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--warn);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--dur) var(--ease);
+    flex-shrink: 0;
+    background: transparent;
+  }
+  .med-check svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: transparent;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .med-check.taken {
+    background: var(--green2);
+    border-color: var(--green2);
+  }
+  .med-check.taken svg {
+    stroke: #fff;
+  }
+  .med-check.late {
+    animation: pulse 2s infinite;
+  }
+  .meds-today-footer {
+    padding: var(--s3) var(--s4);
+    border-top: var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .meds-today-link {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--green2);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .meds-today-link svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  /* Bloco "Alergias" */
+  .allergies-card {
+    background: var(--surface);
+    border: var(--border);
+    border-radius: var(--r-md);
+    padding: var(--s4);
+    margin: 0 var(--s5) var(--s4);
+    box-shadow: var(--sh);
+  }
+  .allergies-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--s3);
+  }
+  .allergies-title { font-size: 14px; font-weight: 800; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+  .allergies-title svg { width: 16px; height: 16px; stroke: var(--bad); fill: none; stroke-width: 2; }
+  .allergies-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Condições crônicas */
+  .conditions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 var(--s5);
+    margin-bottom: var(--s5);
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+
+  <div class="status-bar">
+    <span>9:41</span>
+    <span class="right">
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M1 4c0-.55.45-1 1-1h1v5H2c-.55 0-1-.45-1-1V4zm4-2h1v6H5V2zm4-2h1v8H9V0zm4-1h1v9h-1V-1z"/></svg>
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M8 9.5c-1.5 0-2.7-.5-3.7-1.4l1.4-1.4c.6.6 1.4 1 2.3 1s1.7-.4 2.3-1l1.4 1.4c-1 .9-2.2 1.4-3.7 1.4zm0-4c-.6 0-1.1.2-1.5.5L5.1 4.6C5.9 4 6.9 3.6 8 3.6s2.1.4 2.9 1l-1.4 1.4c-.4-.3-.9-.5-1.5-.5z"/></svg>
+      <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="1" y="1" width="20" height="9" rx="2" stroke="currentColor" stroke-opacity=".35"/><rect x="2.5" y="2.5" width="17" height="6" rx="1" fill="currentColor"/><rect x="22" y="4" width="1.5" height="3" rx=".5" fill="currentColor" opacity=".35"/></svg>
+    </span>
+  </div>
+
+  <div class="header">
+    <div style="flex:1">
+      <div style="font-size:12px;color:var(--ink3);font-weight:500">Olá,</div>
+      <div style="font-size:17px;font-weight:800;color:var(--ink)">Lucas Borelli</div>
+    </div>
+    <div class="header-actions">
+      <button class="header-icon-btn" aria-label="Perfil" onclick="window.location='18-perfil.html'">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+    <h1 class="page-title anim anim-d1">Minha <em>saúde</em></h1>
+    <div class="page-subtitle anim anim-d1">Tudo sobre você, em um só lugar</div>
+
+    <!-- CARTÃO RG HERO -->
+    <div class="rgcard rgcard-hero anim anim-d2" onclick="flipCard(this); event.stopPropagation()" id="rgCard">
+      <div class="rgcard-inner">
+        <!-- FRENTE -->
+        <div class="rgcard-face">
+          <div class="rgcard-top">
+            <div class="rgcard-brand">vita <span class="it">id</span></div>
+            <div class="rgcard-flip-hint">
+              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              tocar pra virar
+            </div>
+          </div>
+          <div class="rgcard-mid">
+            <div class="rgcard-name">LUCAS BORELLI</div>
+            <div class="rgcard-id">RG da Saúde · #001234567</div>
+            <div class="rgcard-cols">
+              <div class="rgcol">
+                <div class="slbl">TIPO</div>
+                <div class="vbig">A+</div>
+              </div>
+              <div class="rgcol">
+                <div class="slbl">NASCIMENTO</div>
+                <div class="vmid">12/03/2008</div>
+              </div>
+              <div class="rgcol">
+                <div class="slbl">EMERGÊNCIA</div>
+                <div class="vmid">(11) 98765-4321</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- VERSO -->
+        <div class="rgcard-face rgcard-back">
+          <div class="rgcard-top">
+            <div class="rgcard-brand">vita <span class="it">id</span></div>
+            <div class="rgcard-flip-hint">
+              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              tocar pra voltar
+            </div>
+          </div>
+          <div style="margin-top: -4px;">
+            <div class="rgcard-back-section">
+              <div class="rgcard-back-label">Alergias críticas</div>
+              <div class="rgcard-back-content allergy">Dipirona · Penicilina</div>
+            </div>
+            <div class="rgcard-back-section">
+              <div class="rgcard-back-label">Medicamentos em uso</div>
+              <div class="rgcard-back-content">Losartana 50mg · Omeprazol 20mg</div>
+            </div>
+            <div class="rgcard-back-section">
+              <div class="rgcard-back-label">Contato de emergência</div>
+              <div class="rgcard-back-content">Marina Borelli (mãe) · (11) 98765-4321</div>
+            </div>
+          </div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.42);font-weight:600;letter-spacing:0.05em;text-align:right;">
+            Atualizado em 12/mai
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEDICAMENTOS DE HOJE -->
+    <div class="section-label anim anim-d3">Medicamentos de hoje</div>
+    <div class="meds-today anim anim-d3">
+      <div class="meds-today-header">
+        <div class="meds-today-title">2 de 3 tomados</div>
+        <a href="03-medicamentos.html" class="meds-today-link">
+          Ver semana
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </div>
+      <div class="meds-today-list">
+        <div class="med-row">
+          <div class="med-icon">
+            <svg viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+          </div>
+          <div class="med-row-info">
+            <div class="med-row-name">Losartana 50mg</div>
+            <div class="med-row-time">08:00 · oral</div>
+          </div>
+          <button class="med-check taken" onclick="toggleCheck(this); event.stopPropagation();" aria-label="Tomado">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+        <div class="med-row">
+          <div class="med-icon">
+            <svg viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+          </div>
+          <div class="med-row-info">
+            <div class="med-row-name">Omeprazol 20mg</div>
+            <div class="med-row-time">07:30 · em jejum</div>
+          </div>
+          <button class="med-check taken" onclick="toggleCheck(this); event.stopPropagation();" aria-label="Tomado">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+        <div class="med-row">
+          <div class="med-icon">
+            <svg viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+          </div>
+          <div class="med-row-info">
+            <div class="med-row-name">Vitamina D 2000UI</div>
+            <div class="med-row-time">20:00 · com comida</div>
+          </div>
+          <button class="med-check" onclick="toggleCheck(this); event.stopPropagation();" aria-label="Marcar como tomado">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERGIAS -->
+    <div class="section-label anim anim-d4">Alergias</div>
+    <div class="meds-today anim anim-d4">
+      <div class="meds-today-header">
+        <div class="meds-today-title">2 críticas · 1 leve</div>
+        <a href="06-alergias.html" class="meds-today-link">
+          Ver todas
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </div>
+      <div class="meds-today-list">
+        <div class="med-row" onclick="window.location='07-alergia-detalhe.html'" style="cursor:pointer">
+          <div class="med-icon bad">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="med-row-info">
+            <div class="med-row-name">Dipirona</div>
+            <div class="med-row-time">Alta gravidade · anafilaxia</div>
+          </div>
+        </div>
+        <div class="med-row" onclick="window.location='07-alergia-detalhe.html'" style="cursor:pointer">
+          <div class="med-icon bad">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="med-row-info">
+            <div class="med-row-name">Penicilina</div>
+            <div class="med-row-time">Alta gravidade · edema laríngeo</div>
+          </div>
+        </div>
+        <div class="med-row" onclick="window.location='07-alergia-detalhe.html'" style="cursor:pointer">
+          <div class="med-icon bad">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="med-row-info">
+            <div class="med-row-name">Camarão</div>
+            <div class="med-row-time">Leve · urticária</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div style="height: 20px;"></div>
+  </div>
+
+  <!-- TAB BAR — 5 abas padrão app-v3 (estilo das telas reais) -->
+  <div class="tab-bar" style="position:absolute;bottom:0;left:0;right:0;height:80px;display:flex;justify-content:space-around;align-items:flex-start;padding:10px 0 0;background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(0,0,0,0.07);z-index:10;">
+    <div class="tab active" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:default;border:none;background:none;font-family:'Plus Jakarta Sans',sans-serif;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg>
+      <span style="font-size:10px;font-weight:700;color:#00E5A0;">Meu RG</span>
+    </div>
+    <div class="tab" onclick="window.location.href='09-exames-lista.html'" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border:none;background:none;font-family:'Plus Jakarta Sans',sans-serif;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span style="font-size:10px;font-weight:600;color:#9CA3AF;">Exames</span>
+    </div>
+    <div class="tab" onclick="window.location.href='12-qr-code.html'" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border:none;background:none;font-family:'Plus Jakarta Sans',sans-serif;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/></svg>
+      <span style="font-size:10px;font-weight:600;color:#9CA3AF;">QR Code</span>
+    </div>
+    <div class="tab" onclick="window.location.href='15-consultas.html'" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border:none;background:none;font-family:'Plus Jakarta Sans',sans-serif;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span style="font-size:10px;font-weight:600;color:#9CA3AF;">Consultas</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  function flipCard(el) {
+    el.classList.toggle('flipped');
+  }
+  function toggleCheck(btn) {
+    btn.classList.toggle('taken');
+  }
+</script>
+</body>
+</html>

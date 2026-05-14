@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>vitaid — Meu Perfil</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        body {
+            background:#1a1a2e;
+            display:flex; justify-content:center; align-items:center;
+            min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif;
+        }
+
+        .phone {
+            width:393px; max-width:100vw; height:852px; max-height:100vh;
+            background:#F2F4F7;
+            border-radius:52px; overflow:hidden; position:relative;
+            box-shadow: 0 0 0 1px rgba(0,229,160,0.2), 0 0 0 3px #2a2a3e, 0 40px 120px rgba(0,0,0,0.8);
+        }
+
+        .notch {
+            position:absolute; top:0; left:50%; transform:translateX(-50%);
+            width:126px; height:34px; background:#0D0F14;
+            border-radius:0 0 20px 20px; z-index:20;
+        }
+
+        /* ── HEADER ESCURO ── */
+        .header {
+            position:absolute; top:0; left:0; right:0;
+            height:180px;
+            background: #0D0F14;
+            z-index:5;
+            overflow:hidden;
+        }
+        .header::before {
+            content:''; position:absolute; top:-50px; right:-50px;
+            width:200px; height:200px; border-radius:50%;
+            background:radial-gradient(circle, rgba(0,229,160,0.14) 0%, transparent 70%);
+            pointer-events:none;
+        }
+        .header::after {
+            content:''; position:absolute; bottom:0; left:0; right:0;
+            height:2px;
+            background:linear-gradient(90deg, #00E5A0, #00B4D8, transparent);
+        }
+
+        .header-top {
+            position:absolute; top:44px; left:0; right:0;
+            display:flex; align-items:center; justify-content:space-between;
+            padding:0 20px;
+        }
+
+        .btn-back {
+            width:34px; height:34px; border-radius:9px;
+            background:rgba(255,255,255,0.08);
+            border:1px solid rgba(255,255,255,0.12);
+            cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .btn-back svg { color:#fff; }
+
+        .header-title {
+            font-size:17px; font-weight:700; color:#fff;
+            letter-spacing:-0.3px;
+        }
+
+        .header-spacer { width:36px; }
+
+        /* ── AVATAR ── */
+        .avatar-wrap {
+            position:absolute; top:132px; left:50%; transform:translateX(-50%);
+            z-index:10;
+        }
+        .avatar-circle {
+            width:88px; height:88px; border-radius:50%;
+            background: linear-gradient(120deg, #00E5A0, #00B4D8);
+            border:4px solid #F2F4F7;
+            display:flex; align-items:center; justify-content:center;
+            font-size:30px; font-weight:800; color:#0D0F14;
+            box-shadow: 0 8px 24px rgba(0,229,160,0.25);
+            position:relative; cursor:pointer;
+        }
+        .avatar-cam {
+            position:absolute; bottom:2px; right:2px;
+            width:24px; height:24px; border-radius:50%;
+            background:#fff; border:2px solid #F2F4F7;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .avatar-cam svg { width:13px; height:13px; color:#00E5A0; }
+
+        /* ── SCROLL CONTENT ── */
+        .scroll-area {
+            position:absolute; top:0; left:0; right:0; bottom:0;
+            overflow-y:auto; overflow-x:hidden;
+            padding-top:240px; padding-bottom:100px;
+        }
+        .scroll-area::-webkit-scrollbar { display:none; }
+
+        /* ── NOME/EMAIL ABAIXO DO AVATAR ── */
+        .profile-name {
+            text-align:center;
+            padding:0 20px 4px;
+        }
+        .profile-name h2 {
+            font-size:20px; font-weight:800; color:#1A1A2E;
+            letter-spacing:-0.5px;
+        }
+        .profile-name p {
+            font-size:13px; color:#7B8FA1; margin-top:2px;
+        }
+
+        /* ── SECTIONS ── */
+        .section {
+            margin:20px 16px 0;
+        }
+        .section-label {
+            font-size:11px; font-weight:700; color:#7B8FA1;
+            text-transform:uppercase; letter-spacing:1px;
+            padding:0 4px 8px;
+        }
+        .section-card {
+            background:#fff;
+            border-radius:16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            overflow:hidden;
+        }
+
+        /* ── FIELD ROW ── */
+        .field-row {
+            display:flex; align-items:center;
+            padding:14px 16px;
+            cursor:pointer;
+            transition:background 0.15s;
+            border-bottom:1px solid #F0F2F5;
+            position:relative;
+        }
+        .field-row:last-child { border-bottom:none; }
+        .field-row:active { background:#F8FAFB; }
+
+        .field-icon {
+            width:36px; height:36px; border-radius:10px;
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0; margin-right:12px;
+        }
+        .icon-blue   { background:#EBF8FF; }
+        .icon-green  { background:#E8FBF4; }
+        .icon-purple { background:#F3EEFF; }
+        .icon-orange { background:#FFF4E8; }
+        .icon-red    { background:#FFF0F0; }
+        .icon-teal   { background:#E8F8FF; }
+
+        .field-info { flex:1; min-width:0; }
+        .field-label {
+            font-size:11px; font-weight:600; color:#9BA8B5;
+            text-transform:uppercase; letter-spacing:0.5px;
+        }
+        .field-value {
+            font-size:15px; font-weight:600; color:#1A1A2E;
+            margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+        }
+        .field-value.empty { color:#C4CDD8; font-weight:400; }
+
+        .field-chevron {
+            color:#C4CDD8; margin-left:8px; flex-shrink:0;
+        }
+
+        /* ── BOTTOM SHEET ── */
+        .sheet-overlay {
+            position:absolute; top:0; left:0; right:0; bottom:0;
+            background:rgba(0,0,0,0.45);
+            z-index:50;
+            opacity:0; pointer-events:none;
+            transition:opacity 0.25s;
+        }
+        .sheet-overlay.open { opacity:1; pointer-events:all; }
+
+        .bottom-sheet {
+            position:absolute; bottom:0; left:0; right:0;
+            background:#fff; border-radius:24px 24px 0 0;
+            padding:0 0 32px;
+            z-index:51;
+            transform:translateY(100%);
+            transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+            max-height:70%;
+            overflow-y:auto;
+        }
+        .bottom-sheet.open { transform:translateY(0); }
+
+        .sheet-handle {
+            width:40px; height:4px; border-radius:2px;
+            background:#E0E5EB;
+            margin:12px auto 0;
+        }
+        .sheet-header {
+            padding:16px 20px 12px;
+            display:flex; align-items:center; justify-content:space-between;
+            border-bottom:1px solid #F0F2F5;
+        }
+        .sheet-title { font-size:16px; font-weight:700; color:#1A1A2E; }
+        .sheet-close {
+            width:28px; height:28px; border-radius:50%;
+            background:#F2F4F7; border:none; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            color:#7B8FA1;
+        }
+
+        .sheet-body { padding:20px; }
+
+        .sheet-input {
+            width:100%; padding:14px 16px;
+            border:2px solid #E8ECF0; border-radius:12px;
+            font-size:16px; font-family:'Plus Jakarta Sans',sans-serif;
+            color:#1A1A2E; background:#FAFBFC;
+            outline:none; transition:border-color 0.15s;
+        }
+        .sheet-input:focus { border-color:#00E5A0; background:#fff; }
+
+        .sheet-hint {
+            font-size:12px; color:#9BA8B5; margin-top:8px;
+            padding:0 2px;
+        }
+
+        /* Opções de seleção no sheet */
+        .sheet-options { display:flex; flex-direction:column; gap:8px; }
+        .sheet-option {
+            padding:14px 16px; border-radius:12px;
+            border:2px solid #E8ECF0; cursor:pointer;
+            font-size:15px; font-weight:500; color:#1A1A2E;
+            background:#FAFBFC; transition:all 0.15s;
+            text-align:left;
+        }
+        .sheet-option:hover { border-color:#00E5A0; background:#EBF8FF; }
+        .sheet-option.selected { border-color:#00E5A0; background:#EBF8FF; color:#00E5A0; font-weight:600; }
+
+        /* Botão salvar no sheet */
+        .btn-save {
+            width:100%; padding:15px;
+            border-radius:14px; border:none; cursor:pointer;
+            background: #00E5A0;
+            color:#fff; font-size:16px; font-weight:700;
+            font-family:'Plus Jakarta Sans',sans-serif;
+            margin-top:16px;
+            transition:opacity 0.15s, transform 0.1s;
+        }
+        .btn-save:active { opacity:0.85; transform:scale(0.98); }
+        .btn-save:disabled { opacity:0.5; cursor:not-allowed; }
+
+        /* ── TOAST ── */
+        .toast {
+            position:absolute; bottom:40px; left:50%; transform:translateX(-50%) translateY(20px);
+            background:#1A1A2E; color:#fff;
+            padding:10px 20px; border-radius:24px;
+            font-size:13px; font-weight:600;
+            white-space:nowrap; z-index:100;
+            opacity:0; transition:opacity 0.2s, transform 0.2s;
+            pointer-events:none;
+        }
+        .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+        /* ── TAB BAR ── */
+        .tab-bar {
+            position:absolute; bottom:0; left:0; right:0;
+            height:80px; padding:10px 0 0;
+            background:rgba(255,255,255,0.95);
+            backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+            border-top:1px solid rgba(0,0,0,0.07);
+            display:flex; align-items:flex-start; justify-content:space-around;
+            z-index:30;
+        }
+        .tab {
+            display:flex; flex-direction:column; align-items:center; gap:4px;
+            cursor:pointer; padding:4px 12px; border-radius:12px;
+            transition:background 0.15s;
+        }
+        .tab:active { background:#F2F4F7; }
+        .tab svg { opacity:0.3; transition:opacity 0.2s; }
+        .tab-label {
+            font-size:10px; font-weight:600; color:#9BA8B5;
+        }
+        .tab.active svg { opacity:1; }
+        .tab.active .tab-label { color:#00E5A0; }
+
+        /* ── LOADING ── */
+        .loading-dots {
+            display:inline-flex; gap:4px; align-items:center;
+        }
+        .loading-dots span {
+            width:6px; height:6px; border-radius:50%; background:#00E5A0;
+            animation:dot-bounce 0.8s infinite;
+        }
+        .loading-dots span:nth-child(2) { animation-delay:0.15s; }
+        .loading-dots span:nth-child(3) { animation-delay:0.3s; }
+        @keyframes dot-bounce {
+            0%,80%,100% { transform:scale(0.6); opacity:0.4; }
+            40% { transform:scale(1); opacity:1; }
+        }
+
+        /* Grid para tipo sanguíneo */
+        .sheet-grid {
+            display:grid; grid-template-columns:1fr 1fr;
+            gap:8px;
+        }
+        .sheet-grid .sheet-option { text-align:center; }
+    @media(max-width:480px){body{padding:0!important;background:#F2F4F7!important}.phone{width:100vw!important;height:100vh!important;height:100svh!important;max-width:100vw!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}.notch{display:none!important}}
+    </style>
+    <link rel="stylesheet" href="vitae-core.css">
+</head>
+<body>
+<div class="phone">
+    <div class="notch"></div>
+
+    <!-- HEADER GRADIENTE -->
+    <div class="header">
+        <div class="header-top">
+            <button class="btn-back" onclick="goBack()">
+                <svg width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <span class="header-title">Meu Perfil</span>
+            <div class="header-spacer"></div>
+        </div>
+    </div>
+
+    <!-- AVATAR -->
+    <div class="avatar-wrap">
+        <div class="avatar-circle" id="avatarCircle" onclick="document.getElementById('fotoInput').click()">
+            <img id="avatarImg" src="" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:none;">
+            <span id="avatarInitials">?</span>
+            <div class="avatar-cam">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+            </div>
+        </div>
+        <input type="file" id="fotoInput" accept="image/*" style="display:none;" onchange="uploadFoto(this)">
+    </div>
+
+    <!-- SCROLL CONTENT -->
+    <div class="scroll-area" id="scrollArea">
+
+        <!-- NOME E EMAIL -->
+        <div class="profile-name">
+            <h2 id="displayNome">Carregando...</h2>
+            <p id="displayEmail">—</p>
+        </div>
+
+        <!-- SEÇÃO: CONTA -->
+        <div class="section">
+            <div class="section-label">Conta</div>
+            <div class="section-card">
+                <div class="field-row" onclick="openSheet('nome')">
+                    <div class="field-icon icon-blue">
+                        <svg width="18" height="18" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Nome completo</div>
+                        <div class="field-value" id="val-nome">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                <div class="field-row" onclick="openSheet('email')">
+                    <div class="field-icon icon-blue">
+                        <svg width="18" height="18" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">E-mail</div>
+                        <div class="field-value" id="val-email">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                <div class="field-row" onclick="openSheet('celular')">
+                    <div class="field-icon icon-blue">
+                        <svg width="18" height="18" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Celular</div>
+                        <div class="field-value" id="val-celular">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO: IDENTIDADE -->
+        <div class="section">
+            <div class="section-label">Identidade</div>
+            <div class="section-card">
+                <div class="field-row" onclick="openSheet('cpf')">
+                    <div class="field-icon icon-purple">
+                        <svg width="18" height="18" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">CPF</div>
+                        <div class="field-value" id="val-cpf">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                <div class="field-row" onclick="openSheet('dataNascimento')">
+                    <div class="field-icon icon-purple">
+                        <svg width="18" height="18" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Data de nascimento</div>
+                        <div class="field-value" id="val-dataNascimento">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                <div class="field-row" onclick="openSheet('genero')">
+                    <div class="field-icon icon-purple">
+                        <svg width="18" height="18" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Gênero</div>
+                        <div class="field-value" id="val-genero">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO: SAÚDE -->
+        <div class="section">
+            <div class="section-label">Saúde</div>
+            <div class="section-card">
+                <div class="field-row" onclick="openSheet('alturaCm')">
+                    <div class="field-icon icon-green">
+                        <svg width="18" height="18" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Altura</div>
+                        <div class="field-value" id="val-alturaCm">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                <div class="field-row" onclick="openSheet('pesoKg')">
+                    <div class="field-icon icon-green">
+                        <svg width="18" height="18" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Peso</div>
+                        <div class="field-value" id="val-pesoKg">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                <div class="field-row" onclick="openSheet('tipoSanguineo')">
+                    <div class="field-icon icon-red">
+                        <svg width="18" height="18" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93V18a1 1 0 012 0v1.93C9.27 19.5 7 17 6.07 14H8a1 1 0 000-2H5.07A10.08 10.08 0 015 12c0-.34.02-.67.05-1H8a1 1 0 000-2H5.39A10 10 0 0112 4a10 10 0 018.61 5H18a1 1 0 000 2h2.95c.03.33.05.66.05 1 0 .34-.02.67-.05 1H18a1 1 0 000 2h2.93C19 17 16.73 19.5 14 19.93V18a1 1 0 00-2 0v1.93z"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Tipo sanguíneo</div>
+                        <div class="field-value" id="val-tipoSanguineo">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                <div class="field-row" onclick="openSheet('condicoes')">
+                    <div class="field-icon icon-orange">
+                        <svg width="18" height="18" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Condições de saúde</div>
+                        <div class="field-value" id="val-condicoes">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                <div class="field-row" onclick="openSheet('cirurgias')">
+                    <div class="field-icon icon-orange">
+                        <svg width="18" height="18" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Cirurgias</div>
+                        <div class="field-value" id="val-cirurgias">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO: PLANO DE SAÚDE -->
+        <div class="section">
+            <div class="section-label">Plano de Saúde</div>
+            <div class="section-card">
+                <div class="field-row" onclick="openSheet('planoSaude')">
+                    <div class="field-icon icon-teal">
+                        <svg width="18" height="18" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Nome do plano</div>
+                        <div class="field-value" id="val-planoSaude">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                <div class="field-row" onclick="openSheet('carteirinhaPlano')">
+                    <div class="field-icon icon-teal">
+                        <svg width="18" height="18" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Número da carteirinha</div>
+                        <div class="field-value" id="val-carteirinhaPlano">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO: EMERGÊNCIA -->
+        <div class="section" style="margin-bottom:0;">
+            <div class="section-label">Contato de Emergência</div>
+            <div class="section-card">
+                <div class="field-row" onclick="openSheet('contatoEmergenciaNome')">
+                    <div class="field-icon icon-red">
+                        <svg width="18" height="18" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Nome do contato</div>
+                        <div class="field-value" id="val-contatoEmergenciaNome">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                <div class="field-row" onclick="openSheet('contatoEmergenciaTel')">
+                    <div class="field-icon icon-red">
+                        <svg width="18" height="18" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.13 1.27a2 2 0 012-2.18h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 6.91a16 16 0 006 6l.61-.61a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.92z"/>
+                        </svg>
+                    </div>
+                    <div class="field-info">
+                        <div class="field-label">Telefone</div>
+                        <div class="field-value" id="val-contatoEmergenciaTel">—</div>
+                    </div>
+                    <svg class="field-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sair da conta -->
+        <div style="margin-top:24px;text-align:center;">
+            <button onclick="vitaeAPI.logout()" style="
+                background:rgba(217,68,82,0.08); border:1px solid rgba(217,68,82,0.15);
+                border-radius:14px; padding:14px 32px; cursor:pointer; width:100%;
+                font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:600;
+                color:rgba(217,68,82,0.7); transition:all 0.2s;
+            ">Sair da conta</button>
+        </div>
+
+        <div style="height:20px;"></div>
+    </div>
+
+    <!-- BOTTOM SHEET OVERLAY -->
+    <div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+
+    <!-- BOTTOM SHEET -->
+    <div class="bottom-sheet" id="bottomSheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+            <span class="sheet-title" id="sheetTitle">Editar</span>
+            <button class="sheet-close" onclick="closeSheet()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="sheet-body" id="sheetBody"></div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast">Salvo com sucesso!</div>
+
+    <!-- TAB BAR -->
+    <div class="tab-bar">
+        <div class="tab" onclick="navigateTo('perfil')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg>
+            <div class="tab-label">Meu RG</div>
+        </div>
+        <div class="tab" onclick="navigateTo('exames')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div class="tab-label">Exames</div>
+        </div>
+        <div class="tab" onclick="navigateTo('qrcode')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/></svg>
+            <div class="tab-label">QR Code</div>
+        </div>
+        <div class="tab" onclick="navigateTo('consultas')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <div class="tab-label">Consultas</div>
+        </div>
+    </div>
+</div>
+
+<script src="api.js?v=4"></script>
+<script>
+// ── DADOS LOCAIS ──────────────────────────────────────────────────────────
+let dadosUsuario = {};
+let dadosPerfil  = {};
+let campoAtivo   = null;
+
+// Mapeamentos de exibição
+const BLOOD_MAP = {
+    A_POS:'A+', A_NEG:'A−', B_POS:'B+', B_NEG:'B−',
+    AB_POS:'AB+', AB_NEG:'AB−', O_POS:'O+', O_NEG:'O−'
+};
+const BLOOD_SAVE = Object.fromEntries(Object.entries(BLOOD_MAP).map(([k,v])=>[v,k]));
+
+const GENERO_MAP = {
+    MASCULINO:'Masculino', FEMININO:'Feminino',
+    OUTRO:'Outro', NAO_INFORMADO:'Prefiro não informar'
+};
+const GENERO_SAVE = Object.fromEntries(Object.entries(GENERO_MAP).map(([k,v])=>[v,k]));
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+async function init() {
+    try {
+        const dados = await vitaeAPI.buscarPerfil();
+        dadosUsuario = dados.usuario || {};
+        dadosPerfil  = dados.perfil  || {};
+        renderTudo();
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function renderTudo() {
+    const nome = dadosUsuario.nome || '';
+    document.getElementById('displayNome').textContent = nome || 'Sem nome';
+    document.getElementById('displayEmail').textContent = dadosUsuario.email || '—';
+
+    // Avatar: foto ou iniciais
+    const avatarImg = document.getElementById('avatarImg');
+    const avatarInitials = document.getElementById('avatarInitials');
+    if (dadosUsuario.fotoUrl) {
+        avatarImg.src = dadosUsuario.fotoUrl;
+        avatarImg.style.display = 'block';
+        avatarInitials.style.display = 'none';
+    } else {
+        avatarImg.style.display = 'none';
+        avatarInitials.style.display = '';
+        avatarInitials.textContent = nome ? nome.trim()[0].toUpperCase() : '?';
+    }
+
+    setVal('nome',   nome);
+    setVal('email',  dadosUsuario.email);
+    setVal('celular',dadosUsuario.celular);
+    setVal('cpf',    formatCPF(dadosPerfil.cpf));
+
+    if (dadosPerfil.dataNascimento) {
+        const d = new Date(dadosPerfil.dataNascimento);
+        setVal('dataNascimento', d.toLocaleDateString('pt-BR'));
+    } else {
+        setVal('dataNascimento', null);
+    }
+
+    setVal('genero',       GENERO_MAP[dadosPerfil.genero] || null);
+    setVal('alturaCm',     dadosPerfil.alturaCm ? dadosPerfil.alturaCm + ' cm' : null);
+    setVal('pesoKg',       dadosPerfil.pesoKg   ? dadosPerfil.pesoKg + ' kg'   : null);
+    setVal('tipoSanguineo',BLOOD_MAP[dadosPerfil.tipoSanguineo] || null);
+    setVal('condicoes',    dadosPerfil.condicoes);
+    setVal('cirurgias',    Array.isArray(dadosPerfil.cirurgias) ? dadosPerfil.cirurgias.join(', ') : dadosPerfil.cirurgias);
+    setVal('planoSaude',         dadosPerfil.planoSaude);
+    setVal('carteirinhaPlano',   dadosPerfil.carteirinhaPlano);
+    setVal('contatoEmergenciaNome', dadosPerfil.contatoEmergenciaNome);
+    setVal('contatoEmergenciaTel',  dadosPerfil.contatoEmergenciaTel);
+}
+
+function setVal(campo, valor) {
+    const el = document.getElementById('val-'+campo);
+    if (!el) return;
+    if (valor && String(valor).trim()) {
+        el.textContent = valor;
+        el.classList.remove('empty');
+    } else {
+        el.textContent = 'Toque para adicionar';
+        el.classList.add('empty');
+    }
+}
+
+function formatCPF(cpf) {
+    if (!cpf) return null;
+    cpf = cpf.replace(/\D/g,'');
+    if (cpf.length !== 11) return cpf;
+    return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+// ── BOTTOM SHEET ──────────────────────────────────────────────────────────
+function openSheet(campo) {
+    campoAtivo = campo;
+    const overlay = document.getElementById('sheetOverlay');
+    const sheet   = document.getElementById('bottomSheet');
+    const title   = document.getElementById('sheetTitle');
+    const body    = document.getElementById('sheetBody');
+
+    title.textContent = titulosCampo[campo] || campo;
+    body.innerHTML = buildSheetContent(campo);
+
+    overlay.classList.add('open');
+    sheet.classList.add('open');
+
+    // Focus no input se existir
+    setTimeout(() => {
+        const inp = body.querySelector('input, textarea');
+        if (inp) inp.focus();
+    }, 200);
+}
+
+function closeSheet() {
+    document.getElementById('sheetOverlay').classList.remove('open');
+    document.getElementById('bottomSheet').classList.remove('open');
+    campoAtivo = null;
+}
+
+const titulosCampo = {
+    nome:'Nome completo', email:'E-mail', celular:'Celular',
+    cpf:'CPF', dataNascimento:'Data de nascimento', genero:'Gênero',
+    alturaCm:'Altura', pesoKg:'Peso',
+    tipoSanguineo:'Tipo sanguíneo', condicoes:'Condições de saúde',
+    cirurgias:'Cirurgias anteriores', planoSaude:'Plano de saúde',
+    carteirinhaPlano:'Nº da carteirinha',
+    contatoEmergenciaNome:'Nome do contato', contatoEmergenciaTel:'Telefone de emergência'
+};
+
+function buildSheetContent(campo) {
+    // Campos de texto simples
+    const textFields = {
+        nome: { type:'text', placeholder:'Nome completo', value: dadosUsuario.nome || '', hint:'' },
+        email: { type:'email', placeholder:'seu@email.com', value: dadosUsuario.email || '', hint:'' },
+        celular: { type:'tel', placeholder:'(11) 99999-9999', value: dadosUsuario.celular || '', hint:'' },
+        cpf: { type:'text', placeholder:'000.000.000-00', value: formatCPF(dadosPerfil.cpf) || '', hint:'Somente números', maxlength:14 },
+        dataNascimento: { type:'date', placeholder:'', value: dadosPerfil.dataNascimento ? dadosPerfil.dataNascimento.substring(0,10) : '', hint:'DD/MM/AAAA' },
+        alturaCm: { type:'number', placeholder:'Ex: 170', value: dadosPerfil.alturaCm || '', hint:'Em centímetros (ex: 170)', min:50, max:300 },
+        pesoKg: { type:'number', placeholder:'Ex: 70', value: dadosPerfil.pesoKg || '', hint:'Em quilogramas (ex: 70)', min:1, max:500 },
+        condicoes: { type:'textarea', placeholder:'Ex: diabetes, hipertensão, asma...', value: dadosPerfil.condicoes || '', hint:'' },
+        cirurgias: { type:'textarea', placeholder:'Ex: apendicectomia (2018), joelho (2020)...', value: Array.isArray(dadosPerfil.cirurgias) ? dadosPerfil.cirurgias.join(', ') : (dadosPerfil.cirurgias || ''), hint:'Separe por vírgula' },
+        planoSaude: { type:'text', placeholder:'Ex: Unimed, Amil, SulAmérica...', value: dadosPerfil.planoSaude || '', hint:'' },
+        carteirinhaPlano: { type:'text', placeholder:'Número da carteirinha', value: dadosPerfil.carteirinhaPlano || '', hint:'' },
+        contatoEmergenciaNome: { type:'text', placeholder:'Nome do contato', value: dadosPerfil.contatoEmergenciaNome || '', hint:'' },
+        contatoEmergenciaTel: { type:'tel', placeholder:'(11) 99999-9999', value: dadosPerfil.contatoEmergenciaTel || '', hint:'' },
+    };
+
+    if (textFields[campo]) {
+        const f = textFields[campo];
+        const inputId = 'sheetInput';
+        let inputHtml = '';
+        if (f.type === 'textarea') {
+            inputHtml = `<textarea id="${inputId}" class="sheet-input" style="height:90px;resize:none;" placeholder="${f.placeholder}">${f.value}</textarea>`;
+        } else {
+            const extra = f.min !== undefined ? `min="${f.min}" max="${f.max}"` : '';
+            const ml    = f.maxlength ? `maxlength="${f.maxlength}"` : '';
+            inputHtml = `<input id="${inputId}" type="${f.type}" class="sheet-input" placeholder="${f.placeholder}" value="${escHtml(String(f.value))}" ${extra} ${ml}>`;
+        }
+        return `
+            ${inputHtml}
+            ${f.hint ? `<div class="sheet-hint">${f.hint}</div>` : ''}
+            <button class="btn-save" onclick="salvarCampo()">Salvar</button>
+        `;
+    }
+
+    // Gênero — opções
+    if (campo === 'genero') {
+        const opts = ['Masculino','Feminino','Outro','Prefiro não informar'];
+        const cur  = GENERO_MAP[dadosPerfil.genero] || '';
+        return `
+            <div class="sheet-options">
+                ${opts.map(o=>`<button class="sheet-option ${o===cur?'selected':''}" onclick="selecionarOpcao(this,'${escHtml(o)}')">${o}</button>`).join('')}
+            </div>
+            <button class="btn-save" onclick="salvarCampo()">Salvar</button>
+        `;
+    }
+
+    // Tipo sanguíneo — grid
+    if (campo === 'tipoSanguineo') {
+        const opts = ['A+','A−','B+','B−','AB+','AB−','O+','O−'];
+        const cur  = BLOOD_MAP[dadosPerfil.tipoSanguineo] || '';
+        return `
+            <div class="sheet-grid">
+                ${opts.map(o=>`<button class="sheet-option ${o===cur?'selected':''}" onclick="selecionarOpcao(this,'${o}')">${o}</button>`).join('')}
+            </div>
+            <button class="btn-save" onclick="salvarCampo()">Salvar</button>
+        `;
+    }
+
+    return '<p>Em breve</p>';
+}
+
+let opcaoSelecionada = null;
+function selecionarOpcao(btn, valor) {
+    btn.closest('.sheet-options, .sheet-grid').querySelectorAll('.sheet-option').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    opcaoSelecionada = valor;
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── SALVAR ────────────────────────────────────────────────────────────────
+async function salvarCampo() {
+    const campo = campoAtivo;
+    const btn   = document.querySelector('.btn-save');
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
+    try {
+        // Campos da conta (usuario table)
+        if (['nome','email','celular'].includes(campo)) {
+            const val = document.getElementById('sheetInput').value.trim();
+            await vitaeAPI.atualizarConta({ [campo]: val });
+            dadosUsuario[campo] = val;
+        }
+        // Campos do perfil
+        else if (campo === 'cpf') {
+            const raw = document.getElementById('sheetInput').value.replace(/\D/g,'');
+            await vitaeAPI.atualizarPerfil({ cpf: raw });
+            dadosPerfil.cpf = raw;
+        }
+        else if (campo === 'dataNascimento') {
+            const val = document.getElementById('sheetInput').value;
+            if (val) {
+                await vitaeAPI.atualizarPerfil({ dataNascimento: val });
+                dadosPerfil.dataNascimento = val;
+            }
+        }
+        else if (campo === 'genero') {
+            if (!opcaoSelecionada) { closeSheet(); return; }
+            const val = GENERO_SAVE[opcaoSelecionada];
+            await vitaeAPI.atualizarPerfil({ genero: val });
+            dadosPerfil.genero = val;
+            opcaoSelecionada = null;
+        }
+        else if (campo === 'tipoSanguineo') {
+            if (!opcaoSelecionada) { closeSheet(); return; }
+            // Normalizar o sinal
+            const raw = opcaoSelecionada.replace('−','-').replace('‑','-');
+            const val = BLOOD_SAVE[raw] || BLOOD_SAVE[opcaoSelecionada];
+            if (val) {
+                await vitaeAPI.atualizarPerfil({ tipoSanguineo: val });
+                dadosPerfil.tipoSanguineo = val;
+            }
+            opcaoSelecionada = null;
+        }
+        else if (campo === 'alturaCm') {
+            const val = parseInt(document.getElementById('sheetInput').value);
+            if (val >= 50 && val <= 300) {
+                await vitaeAPI.atualizarPerfil({ alturaCm: val });
+                dadosPerfil.alturaCm = val;
+            }
+        }
+        else if (campo === 'pesoKg') {
+            const val = parseFloat(document.getElementById('sheetInput').value);
+            if (val >= 1 && val <= 500) {
+                await vitaeAPI.atualizarPerfil({ pesoKg: val });
+                dadosPerfil.pesoKg = val;
+            }
+        }
+        else if (campo === 'condicoes') {
+            const val = document.getElementById('sheetInput').value.trim();
+            await vitaeAPI.atualizarPerfil({ condicoes: val });
+            dadosPerfil.condicoes = val;
+        }
+        else if (campo === 'cirurgias') {
+            const val = document.getElementById('sheetInput').value.trim();
+            const arr = val ? val.split(',').map(s=>s.trim()).filter(Boolean) : [];
+            await vitaeAPI.atualizarPerfil({ cirurgias: arr });
+            dadosPerfil.cirurgias = arr;
+        }
+        else if (campo === 'planoSaude') {
+            const val = document.getElementById('sheetInput').value.trim();
+            await vitaeAPI.atualizarPerfil({ planoSaude: val });
+            dadosPerfil.planoSaude = val;
+        }
+        else if (campo === 'carteirinhaPlano') {
+            const val = document.getElementById('sheetInput').value.trim();
+            await vitaeAPI.atualizarPerfil({ carteirinhaPlano: val });
+            dadosPerfil.carteirinhaPlano = val;
+        }
+        else if (campo === 'contatoEmergenciaNome') {
+            const val = document.getElementById('sheetInput').value.trim();
+            await vitaeAPI.atualizarPerfil({ contatoEmergenciaNome: val });
+            dadosPerfil.contatoEmergenciaNome = val;
+        }
+        else if (campo === 'contatoEmergenciaTel') {
+            const val = document.getElementById('sheetInput').value.trim();
+            await vitaeAPI.atualizarPerfil({ contatoEmergenciaTel: val });
+            dadosPerfil.contatoEmergenciaTel = val;
+        }
+
+        closeSheet();
+        renderTudo();
+        showToast('Salvo com sucesso!');
+    } catch(e) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
+        showToast('Erro: ' + (e.message || 'Tente novamente'));
+    }
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ── UPLOAD FOTO ───────────────────────────────────────────────────────────
+async function uploadFoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+        showToast('Imagem muito grande (max 2MB)');
+        input.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const base64 = e.target.result;
+        try {
+            await vitaeAPI.uploadFoto(base64);
+            dadosUsuario.fotoUrl = base64;
+            renderTudo();
+            showToast('Foto atualizada!');
+        } catch(err) {
+            showToast('Erro ao salvar foto');
+        }
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+}
+
+// ── NAVEGAÇÃO ─────────────────────────────────────────────────────────────
+function goBack() {
+    window.location.href = '01-saude.html';
+}
+
+function navigateTo(target) {
+    const map = {
+        perfil:      '01-saude.html',
+        score:       '10-score.html',
+        exames:      '09-exames-lista.html',
+        qrcode:      '12-qr-code.html',
+        consultas:   '15-consultas.html',
+        editar:      '18-perfil.html',
+    };
+    if (map[target]) window.location.href = map[target];
+}
+
+init();
+</script>
+</body>
+</html>

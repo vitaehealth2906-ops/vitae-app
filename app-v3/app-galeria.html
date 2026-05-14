@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — app paciente (todas as telas em ordem do fluxo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0F1216;
+    color: #fff;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    padding: 48px 24px 80px;
+  }
+
+  /* Cabeçalho topo */
+  .topo {
+    max-width: 1200px;
+    margin: 0 auto 48px;
+    text-align: center;
+  }
+  .topo h1 {
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: -0.8px;
+    line-height: 1.1;
+    margin-bottom: 10px;
+  }
+  .topo h1 em {
+    font-style: italic;
+    background: linear-gradient(120deg, #00E5A0, #00B4D8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .topo p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.5;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* Etapas do fluxo */
+  .etapa {
+    max-width: 1200px;
+    margin: 60px auto 0;
+  }
+  .etapa-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+  .etapa-num {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(0,229,160,0.12);
+    color: #00E5A0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px;
+    letter-spacing: 0.5px;
+  }
+  .etapa-titulo {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+  }
+  .etapa-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    margin-left: auto;
+  }
+
+  /* Lane horizontal (cada etapa) */
+  .lane {
+    display: flex;
+    flex-direction: row;
+    gap: 32px;
+    overflow-x: auto;
+    padding: 8px 0 28px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.15) transparent;
+  }
+  .lane::-webkit-scrollbar { height: 8px; }
+  .lane::-webkit-scrollbar-track { background: transparent; }
+  .lane::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+
+  /* Cada tela (item) */
+  .tela {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tela-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 4px;
+  }
+  .tela-num {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 11px; font-weight: 700;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+    padding: 4px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+  .tela-nome {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .tela-arquivo {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+  }
+  .tela iframe {
+    width: 393px;
+    height: 852px;
+    border: none;
+    border-radius: 52px;
+    background: #F4F6FA;
+    box-shadow:
+      0 0 0 1px rgba(0,229,160,0.15),
+      0 0 0 3px #1A1E26,
+      0 30px 80px rgba(0,0,0,0.5);
+  }
+
+  /* Setas entre telas */
+  .seta {
+    flex-shrink: 0;
+    align-self: center;
+    display: flex; align-items: center;
+    color: rgba(255,255,255,0.20);
+    font-size: 28px;
+    padding: 0 2px;
+    margin-top: 16px;
+  }
+
+  /* Rodapé */
+  .rodape {
+    max-width: 1200px;
+    margin: 80px auto 0;
+    padding: 28px 0;
+    border-top: 1px solid rgba(255,255,255,0.10);
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255,255,255,0.40);
+  }
+  .rodape b { color: rgba(255,255,255,0.80); }
+
+  @media (max-width: 480px) {
+    body { padding: 24px 12px 60px; }
+    .topo h1 { font-size: 24px; }
+    .tela iframe { width: 320px; height: 694px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topo">
+  <h1>vita id · <em>todas as telas em ordem do fluxo</em></h1>
+  <p>app paciente · 32 telas frontend em um único arquivo · cada moldura é a tela real renderizada</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     ETAPA 1 — ENTRADA + CADASTRO NOVO
+     splash → boas-vindas → cadastro → SMS → onboarding pós-cadastro → quiz → pronto
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="etapa">
+  <div class="etapa-head">
+    <div class="etapa-num">01</div>
+    <div class="etapa-titulo">Entrada + cadastro novo</div>
+    <div class="etapa-sub">7 telas · paciente abre o app pela primeira vez</div>
+  </div>
+  <div class="lane">
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">20</span><span class="tela-nome">Splash</span><span class="tela-arquivo">20-splash.html</span></div>
+      <iframe src="20-splash.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">21</span><span class="tela-nome">Boas-vindas</span><span class="tela-arquivo">21-boas-vindas.html</span></div>
+      <iframe src="21-boas-vindas.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">26</span><span class="tela-nome">Criar conta</span><span class="tela-arquivo">26-cadastro.html</span></div>
+      <iframe src="26-cadastro.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">27</span><span class="tela-nome">Verificação SMS</span><span class="tela-arquivo">27-sms.html</span></div>
+      <iframe src="27-sms.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">28</span><span class="tela-nome">Onboarding (3 slides)</span><span class="tela-arquivo">28-onboarding.html</span></div>
+      <iframe src="28-onboarding.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">30</span><span class="tela-nome">Quiz vita id (7 passos)</span><span class="tela-arquivo">30-quiz.html</span></div>
+      <iframe src="30-quiz.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">31</span><span class="tela-nome">Pronto!</span><span class="tela-arquivo">31-pronto.html</span></div>
+      <iframe src="31-pronto.html" loading="lazy"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     ETAPA 2 — LOGIN + RECUPERAÇÃO DE SENHA
+     (paciente que já tem conta)
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="etapa">
+  <div class="etapa-head">
+    <div class="etapa-num">02</div>
+    <div class="etapa-titulo">Login + recuperação de senha</div>
+    <div class="etapa-sub">3 telas · paciente que já tem conta</div>
+  </div>
+  <div class="lane">
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">23</span><span class="tela-nome">Login (redirect)</span><span class="tela-arquivo">23-login.html</span></div>
+      <iframe src="23-login.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">24</span><span class="tela-nome">Esqueci senha</span><span class="tela-arquivo">24-esqueci-senha.html</span></div>
+      <iframe src="24-esqueci-senha.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">25</span><span class="tela-nome">Nova senha</span><span class="tela-arquivo">25-nova-senha.html</span></div>
+      <iframe src="25-nova-senha.html" loading="lazy"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     ETAPA 3 — HOME E ABA SAÚDE
+     home (01) + medicamentos + alergias
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="etapa">
+  <div class="etapa-head">
+    <div class="etapa-num">03</div>
+    <div class="etapa-titulo">Aba Saúde — home + medicamentos + alergias</div>
+    <div class="etapa-sub">7 telas · principal do app</div>
+  </div>
+  <div class="lane">
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">01</span><span class="tela-nome">Minha Saúde (home)</span><span class="tela-arquivo">01-saude.html</span></div>
+      <iframe src="01-saude.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">03</span><span class="tela-nome">Medicamentos</span><span class="tela-arquivo">03-medicamentos.html</span></div>
+      <iframe src="03-medicamentos.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">04</span><span class="tela-nome">Detalhe medicamento</span><span class="tela-arquivo">04-med-detalhe.html</span></div>
+      <iframe src="04-med-detalhe.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">05</span><span class="tela-nome">Novo medicamento</span><span class="tela-arquivo">05-add-medicamento.html</span></div>
+      <iframe src="05-add-medicamento.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">06</span><span class="tela-nome">Alergias</span><span class="tela-arquivo">06-alergias.html</span></div>
+      <iframe src="06-alergias.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">07</span><span class="tela-nome">Detalhe alergia</span><span class="tela-arquivo">07-alergia-detalhe.html</span></div>
+      <iframe src="07-alergia-detalhe.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">08</span><span class="tela-nome">Nova alergia</span><span class="tela-arquivo">08-add-alergia.html</span></div>
+      <iframe src="08-add-alergia.html" loading="lazy"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     ETAPA 4 — ABA EXAMES
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="etapa">
+  <div class="etapa-head">
+    <div class="etapa-num">04</div>
+    <div class="etapa-titulo">Aba Exames</div>
+    <div class="etapa-sub">2 telas · lista + detalhe do exame</div>
+  </div>
+  <div class="lane">
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">09</span><span class="tela-nome">Lista de exames</span><span class="tela-arquivo">09-exames-lista.html</span></div>
+      <iframe src="09-exames-lista.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">10</span><span class="tela-nome">Detalhe do exame</span><span class="tela-arquivo">10-exame-detalhe.html</span></div>
+      <iframe src="10-exame-detalhe.html" loading="lazy"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     ETAPA 5 — ABA QR CODE
+     QR do paciente + RG público (o que médico vê quando escaneia)
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="etapa">
+  <div class="etapa-head">
+    <div class="etapa-num">05</div>
+    <div class="etapa-titulo">Aba QR Code</div>
+    <div class="etapa-sub">2 telas · meu QR + RG público (visão do médico)</div>
+  </div>
+  <div class="lane">
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">12</span><span class="tela-nome">Meu QR Code</span><span class="tela-arquivo">12-qr-code.html</span></div>
+      <iframe src="12-qr-code.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">14</span><span class="tela-nome">RG público</span><span class="tela-arquivo">14-rg-publico.html</span></div>
+      <iframe src="14-rg-publico.html" loading="lazy"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     ETAPA 6 — ABA CONSULTAS
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="etapa">
+  <div class="etapa-head">
+    <div class="etapa-num">06</div>
+    <div class="etapa-titulo">Aba Consultas</div>
+    <div class="etapa-sub">2 telas · lista + detalhe</div>
+  </div>
+  <div class="lane">
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">15</span><span class="tela-nome">Lista de consultas</span><span class="tela-arquivo">15-consultas.html</span></div>
+      <iframe src="15-consultas.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">16</span><span class="tela-nome">Detalhe da consulta</span><span class="tela-arquivo">16-consulta-detalhe.html</span></div>
+      <iframe src="16-consulta-detalhe.html" loading="lazy"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     ETAPA 7 — PERFIL E AUTORIZAÇÕES
+     acessadas pelo header do app, fora da tab bar
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="etapa">
+  <div class="etapa-head">
+    <div class="etapa-num">07</div>
+    <div class="etapa-titulo">Perfil e Autorizações</div>
+    <div class="etapa-sub">2 telas · acessadas pelo header</div>
+  </div>
+  <div class="lane">
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">18</span><span class="tela-nome">Meu Perfil</span><span class="tela-arquivo">18-perfil.html</span></div>
+      <iframe src="18-perfil.html" loading="lazy"></iframe>
+    </div>
+    <div class="seta">→</div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">71</span><span class="tela-nome">Privacidade / Autorizações</span><span class="tela-arquivo">71-privacidade.html</span></div>
+      <iframe src="71-privacidade.html" loading="lazy"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     ETAPA 8 — ESTADOS VAZIOS
+     (variações das abas pra paciente sem dados)
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="etapa">
+  <div class="etapa-head">
+    <div class="etapa-num">08</div>
+    <div class="etapa-titulo">Estados vazios</div>
+    <div class="etapa-sub">5 telas · paciente novo, sem dados</div>
+  </div>
+  <div class="lane">
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">40</span><span class="tela-nome">Saúde · vazia</span><span class="tela-arquivo">40-saude-vazia.html</span></div>
+      <iframe src="40-saude-vazia.html" loading="lazy"></iframe>
+    </div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">41</span><span class="tela-nome">Medicamentos · vazia</span><span class="tela-arquivo">41-medicamentos-vazia.html</span></div>
+      <iframe src="41-medicamentos-vazia.html" loading="lazy"></iframe>
+    </div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">42</span><span class="tela-nome">Alergias · vazia</span><span class="tela-arquivo">42-alergias-vazia.html</span></div>
+      <iframe src="42-alergias-vazia.html" loading="lazy"></iframe>
+    </div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">43</span><span class="tela-nome">Exames · vazia</span><span class="tela-arquivo">43-exames-vazia.html</span></div>
+      <iframe src="43-exames-vazia.html" loading="lazy"></iframe>
+    </div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">44</span><span class="tela-nome">Consultas · vazia</span><span class="tela-arquivo">44-consultas-vazia.html</span></div>
+      <iframe src="44-consultas-vazia.html" loading="lazy"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     ETAPA 9 — LOADING + ERRO
+     ════════════════════════════════════════════════════════════════════════ -->
+<section class="etapa">
+  <div class="etapa-head">
+    <div class="etapa-num">09</div>
+    <div class="etapa-titulo">Loading + Erro</div>
+    <div class="etapa-sub">2 telas · carregando home + sem internet</div>
+  </div>
+  <div class="lane">
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">52</span><span class="tela-nome">Carregando home</span><span class="tela-arquivo">52-loading-home.html</span></div>
+      <iframe src="52-loading-home.html" loading="lazy"></iframe>
+    </div>
+    <div class="tela">
+      <div class="tela-label"><span class="tela-num">60</span><span class="tela-nome">Sem internet</span><span class="tela-arquivo">60-erro-offline.html</span></div>
+      <iframe src="60-erro-offline.html" loading="lazy"></iframe>
+    </div>
+  </div>
+</section>
+
+<div class="rodape">
+  <p><b>32 telas · 9 etapas · em ordem do fluxo</b></p>
+  <p style="margin-top:6px;">cada moldura carrega o arquivo original via iframe — sem refatorar, sem mexer no código</p>
+  <p style="margin-top:6px;">para abrir uma tela isolada, clique no nome do arquivo · ou abra direto pelo nome no navegador</p>
+</div>
+
+</body>
+</html>
