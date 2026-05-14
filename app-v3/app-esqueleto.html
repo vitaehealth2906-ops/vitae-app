@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>vita id — App único (esqueleto)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS — mesmas referências do app-v3 atual
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  --green: #00E5A0;
+  --green-deep: #00C47A;
+  --cyan: #00B4D8;
+  --gradient: linear-gradient(120deg, #00E5A0 0%, #00B4D8 100%);
+  --ink-1: #0D0F14;
+  --ink-2: #4B5563;
+  --ink-3: #6B7280;
+  --ink-4: #9CA3AF;
+  --ink-5: #C4C9D4;
+  --bg: #F4F6FA;
+  --surface: #FFFFFF;
+  --hairline: rgba(13,15,20,0.06);
+  --hairline-strong: rgba(13,15,20,0.10);
+  --shadow-card: 0 1px 2px rgba(13,15,20,0.04), 0 4px 16px rgba(13,15,20,0.04);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #0F1216;
+  color: var(--ink-1);
+}
+
+body {
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; justify-content: center; align-items: center;
+  padding: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SHELL — phone frame, notch, status bar (sempre presentes)
+   ═══════════════════════════════════════════════════════════════════════ */
+.phone {
+  width: 393px; height: 852px;
+  max-width: 100vw; max-height: 100vh;
+  background: var(--bg);
+  border-radius: 52px;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(0,229,160,0.15),
+    0 0 0 3px #1A1E26,
+    0 40px 120px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column;
+}
+
+@media (max-width: 480px) {
+  body { padding: 0; background: var(--bg); }
+  .phone {
+    width: 100vw; max-width: 100vw;
+    height: 100vh; height: 100dvh;
+    max-height: none; border-radius: 0; box-shadow: none;
+  }
+  .notch { display: none; }
+}
+
+.notch {
+  position: absolute;
+  top: 12px; left: 50%; transform: translateX(-50%);
+  width: 126px; height: 34px;
+  background: #000;
+  border-radius: 20px;
+  z-index: 100;
+}
+
+.status {
+  position: absolute;
+  top: 18px; left: 28px; right: 28px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 14px; font-weight: 700;
+  color: var(--ink-1);
+  font-variant-numeric: tabular-nums;
+  z-index: 99;
+}
+.status .right { display: flex; align-items: center; gap: 5px; }
+.status .right svg { display: block; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SCREEN STACK — todas as telas ficam aqui, só a ativa aparece
+   ═══════════════════════════════════════════════════════════════════════ */
+.screen-stack {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 52px 22px 100px;
+}
+.screen.active {
+  display: flex;
+  animation: screenIn 0.25s ease forwards;
+}
+
+/* Telas SEM tab bar (públicas + onboarding): tira o padding-bottom de 100px */
+.screen[data-auth="public"],
+.screen[data-auth="onb"] {
+  padding-bottom: 24px;
+}
+
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PLACEHOLDER VISUAL — cada tela mostra: número, nome, breadcrumb, botões
+   ═══════════════════════════════════════════════════════════════════════ */
+.ph-eyebrow {
+  font-size: 11px; font-weight: 800;
+  letter-spacing: 1.8px; text-transform: uppercase;
+  color: var(--green-deep);
+  margin-bottom: 10px;
+}
+
+.ph-num {
+  font-size: 56px; font-weight: 900;
+  letter-spacing: -2px;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.ph-title {
+  font-size: 24px; font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--ink-1);
+  margin-bottom: 8px;
+}
+
+.ph-desc {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.ph-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 22px 20px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 16px;
+}
+
+.ph-meta {
+  display: flex; flex-direction: column; gap: 6px;
+  padding-top: 14px; margin-top: 14px;
+  border-top: 1px dashed var(--hairline);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.ph-meta b { color: var(--ink-2); font-weight: 700; }
+
+.ph-actions {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-top: 4px;
+}
+
+.ph-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface);
+  color: var(--ink-1);
+  font-family: inherit;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ph-btn:hover { background: rgba(0,229,160,0.04); border-color: rgba(0,229,160,0.30); }
+.ph-btn:active { transform: scale(0.98); }
+.ph-btn.primary {
+  background: var(--gradient);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0,229,160,0.25);
+}
+.ph-btn.ghost {
+  border: 1px dashed var(--hairline-strong);
+  background: transparent;
+  color: var(--ink-3);
+}
+
+.ph-section-title {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin: 22px 0 10px;
+}
+
+/* Header com botão voltar (telas filhas) */
+.ph-topbar {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 16px;
+}
+.ph-back {
+  width: 38px; height: 38px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ph-back svg { width: 16px; height: 16px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TAB BAR — só aparece em telas data-auth="auth"
+   ═══════════════════════════════════════════════════════════════════════ */
+.tabbar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 80px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  border-top: 1px solid var(--hairline);
+  display: none;
+  padding: 8px 0 16px;
+  z-index: 50;
+}
+.tabbar.show { display: flex; }
+
+.tab {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  color: var(--ink-4);
+  cursor: pointer;
+  transition: color 0.15s;
+  background: none; border: none;
+  font-family: inherit;
+}
+.tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tab .tab-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.tab.active { color: var(--green); }
+.tab.active .tab-label { font-weight: 800; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PAINEL DE DEV — só pro esqueleto. Some quando movermos conteúdo real.
+   ═══════════════════════════════════════════════════════════════════════ */
+.dev-btn {
+  position: fixed;
+  bottom: 22px; right: 22px;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--ink-1);
+  color: #fff;
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  cursor: pointer;
+  z-index: 1000;
+}
+.dev-btn:hover { background: var(--green-deep); }
+
+.dev-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 340px; max-width: 90vw;
+  background: #0F1216;
+  border-left: 1px solid rgba(255,255,255,0.1);
+  box-shadow: -20px 0 80px rgba(0,0,0,0.5);
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  z-index: 999;
+  display: flex; flex-direction: column;
+  color: #fff;
+}
+.dev-panel.open { transform: translateX(0); }
+
+.dev-panel-head {
+  padding: 24px 22px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 12px;
+}
+.dev-panel-head h2 {
+  font-size: 17px; font-weight: 800;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.dev-panel-head p { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.5; }
+.dev-panel-close {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+
+.dev-list { flex: 1; overflow-y: auto; padding: 14px 14px 24px; }
+.dev-group {
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.40);
+  padding: 14px 10px 6px;
+}
+.dev-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 13px; font-weight: 500;
+  color: rgba(255,255,255,0.85);
+  cursor: pointer;
+  background: none; border: none;
+  width: 100%; text-align: left;
+  font-family: inherit;
+}
+.dev-item:hover { background: rgba(255,255,255,0.06); }
+.dev-item.active { background: rgba(0,229,160,0.12); color: var(--green); }
+.dev-item-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  background: rgba(255,255,255,0.06);
+  padding: 3px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  min-width: 28px; text-align: center;
+}
+.dev-item.active .dev-item-num { background: rgba(0,229,160,0.18); color: var(--green); }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PHONE — uma vez só, todas as telas vivem aqui dentro
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status">
+    <span>9:41</span>
+    <span class="right">
+      <svg width="24" height="11" viewBox="0 0 24 11" fill="none">
+        <rect x="1" y="1" width="20" height="9" rx="2" stroke="currentColor" stroke-opacity=".4"/>
+        <rect x="2.5" y="2.5" width="17" height="6" rx="1" fill="currentColor"/>
+      </svg>
+    </span>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════════
+       STACK DE TELAS — cada section é um "cômodo"
+       ═════════════════════════════════════════════════════════════════════ -->
+  <div class="screen-stack" id="stack">
+
+    <!-- ─── PÚBLICAS (sem tab bar) ─────────────────────────────────── -->
+
+    <section class="screen" data-screen="splash" data-auth="public" data-group="publicas">
+      <div style="margin:auto; text-align:center;">
+        <div class="ph-num">20</div>
+        <div class="ph-title">Splash</div>
+        <div class="ph-desc">Tela de abertura · animação de 8 segundos · decide pra onde mandar (login, quiz ou home).</div>
+        <button class="ph-btn primary" onclick="irPara('boas-vindas')">→ Boas-vindas</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="boas-vindas" data-auth="public" data-group="publicas">
+      <div style="margin:auto; text-align:center;">
+        <div class="ph-eyebrow">Onboarding inicial</div>
+        <div class="ph-num">21</div>
+        <div class="ph-title">Boas-vindas</div>
+        <div class="ph-desc">Primeiro contato. Slides explicando o que é o vita id.</div>
+        <div class="ph-actions">
+          <button class="ph-btn primary" onclick="irPara('cadastro')">Criar conta</button>
+          <button class="ph-btn" onclick="irPara('login')">Já tenho conta</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="login" data-auth="public" data-group="publicas">
+      <div style="margin:auto; text-align:center;">
+        <div class="ph-num">23</div>
+        <div class="ph-title">Login</div>
+        <div class="ph-desc">Entrar com email e senha · ou Google · ou esqueci minha senha.</div>
+        <div class="ph-actions">
+          <button class="ph-btn primary" onclick="fingirLogin()">Entrar (mock)</button>
+          <button class="ph-btn" onclick="irPara('esqueci-senha')">Esqueci minha senha</button>
+          <button class="ph-btn ghost" onclick="irPara('cadastro')">Criar conta nova</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="cadastro" data-auth="public" data-group="publicas">
+      <div style="margin:auto; text-align:center;">
+        <div class="ph-num">26</div>
+        <div class="ph-title">Criar conta</div>
+        <div class="ph-desc">Nome · celular · email · senha · termos. Cadastra e segue pro onboarding do quiz.</div>
+        <div class="ph-actions">
+          <button class="ph-btn primary" onclick="fingirCadastro()">Criar conta (mock)</button>
+          <button class="ph-btn ghost" onclick="irPara('login')">Já tenho conta</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="esqueci-senha" data-auth="public" data-group="publicas">
+      <div style="margin:auto; text-align:center;">
+        <div class="ph-num">24</div>
+        <div class="ph-title">Esqueci senha</div>
+        <div class="ph-desc">Digita email · recebe link · clica · cai na nova-senha.</div>
+        <div class="ph-actions">
+          <button class="ph-btn primary" onclick="irPara('nova-senha')">Enviar link (mock)</button>
+          <button class="ph-btn ghost" onclick="irPara('login')">Voltar pro login</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="nova-senha" data-auth="public" data-group="publicas">
+      <div style="margin:auto; text-align:center;">
+        <div class="ph-num">25</div>
+        <div class="ph-title">Nova senha</div>
+        <div class="ph-desc">Cria senha nova · medidor de força · 4 regras visuais.</div>
+        <button class="ph-btn primary" onclick="irPara('login')">Salvar (mock)</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="rg-publico" data-auth="public" data-group="publicas">
+      <div style="margin:auto; text-align:center;">
+        <div class="ph-num">14</div>
+        <div class="ph-title">RG público</div>
+        <div class="ph-desc">Tela que o médico vê quando escaneia seu QR Code. Sem login.</div>
+        <button class="ph-btn ghost" onclick="irPara('qr')">Voltar (acessada por QR)</button>
+      </div>
+    </section>
+
+    <!-- ─── ONBOARDING (sem tab bar) ───────────────────────────────── -->
+
+    <section class="screen" data-screen="sms" data-auth="onb" data-group="onboarding">
+      <div style="margin:auto; text-align:center;">
+        <div class="ph-num">27</div>
+        <div class="ph-title">Verificação SMS</div>
+        <div class="ph-desc">Hoje o cadastro NÃO pede SMS. Tela existe mas tá fora do fluxo — pode ser deletada.</div>
+        <button class="ph-btn ghost" onclick="irPara('onboarding')">Pular pra onboarding</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="onboarding" data-auth="onb" data-group="onboarding">
+      <div style="margin:auto; text-align:center;">
+        <div class="ph-eyebrow">Pós-cadastro</div>
+        <div class="ph-num">28</div>
+        <div class="ph-title">Onboarding (3 slides)</div>
+        <div class="ph-desc">Explica como funciona o quiz · pode pular · só você + médico veem · 100% privado.</div>
+        <button class="ph-btn primary" onclick="irPara('quiz')">Continuar pro quiz</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="quiz" data-auth="onb" data-group="onboarding">
+      <div style="margin:auto; text-align:center;">
+        <div class="ph-num">30</div>
+        <div class="ph-title">Quiz vita id</div>
+        <div class="ph-desc">7 passos · saúde geral · contato emergência · alergias · medicamentos · exames · foto · conclusão.</div>
+        <button class="ph-btn primary" onclick="fingirQuizCompleto()">Concluir quiz (mock)</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="pronto" data-auth="onb" data-group="onboarding">
+      <div style="margin:auto; text-align:center;">
+        <div class="ph-num">31</div>
+        <div class="ph-title">Pronto!</div>
+        <div class="ph-desc">Celebração · check verde · "RG da Saúde criado" · auto-redirect pra Saúde em 5s.</div>
+        <button class="ph-btn primary" onclick="irPara('saude')">Ir pra Minha Saúde</button>
+      </div>
+    </section>
+
+    <!-- ─── AUTENTICADAS PRINCIPAIS (com tab bar) ──────────────────── -->
+
+    <section class="screen" data-screen="saude" data-auth="auth" data-group="abas">
+      <div class="ph-eyebrow">Aba principal</div>
+      <div class="ph-num">01</div>
+      <div class="ph-title">Minha Saúde</div>
+      <div class="ph-desc">Home do paciente. Cartão do RG no topo · medicamentos · alergias · score · atalhos.</div>
+
+      <div class="ph-section-title">De dentro dessa tela você vai pra…</div>
+      <div class="ph-actions">
+        <button class="ph-btn" onclick="irPara('medicamentos')">→ Ver medicamentos (3)</button>
+        <button class="ph-btn" onclick="irPara('alergias')">→ Ver alergias (6)</button>
+        <button class="ph-btn ghost" onclick="irPara('perfil')">→ Perfil (header)</button>
+      </div>
+
+      <div class="ph-meta">
+        <div><b>Tab bar:</b> aparece (logado)</div>
+        <div><b>Header:</b> avatar leva pro perfil</div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="exames" data-auth="auth" data-group="abas">
+      <div class="ph-eyebrow">Aba principal</div>
+      <div class="ph-num">09</div>
+      <div class="ph-title">Exames</div>
+      <div class="ph-desc">Lista de exames enviados · clique no card vê detalhes.</div>
+    </section>
+
+    <section class="screen" data-screen="qr" data-auth="auth" data-group="abas">
+      <div class="ph-eyebrow">Aba principal</div>
+      <div class="ph-num">12</div>
+      <div class="ph-title">Meu QR Code</div>
+      <div class="ph-desc">QR Code gigante · médico escaneia · vê o RG público. Compartilhar · gerar novo.</div>
+
+      <div class="ph-section-title">De dentro dessa tela você vai pra…</div>
+      <div class="ph-actions">
+        <button class="ph-btn" onclick="irPara('rg-publico')">→ Ver RG público (o que médico vê)</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="consultas" data-auth="auth" data-group="abas">
+      <div class="ph-eyebrow">Aba principal</div>
+      <div class="ph-num">15</div>
+      <div class="ph-title">Consultas</div>
+      <div class="ph-desc">Lista de consultas · próximas · histórico · pré-consultas pendentes.</div>
+
+      <div class="ph-section-title">De dentro dessa tela você vai pra…</div>
+      <div class="ph-actions">
+        <button class="ph-btn" onclick="irPara('detalhe-consulta')">→ Detalhe da consulta</button>
+      </div>
+    </section>
+
+    <!-- ─── AUTENTICADAS FILHAS (com tab bar, abertas via outras telas) ─ -->
+
+    <section class="screen" data-screen="perfil" data-auth="auth" data-group="filhas">
+      <div class="ph-topbar">
+        <button class="ph-back" onclick="voltar()" title="Voltar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="ph-eyebrow" style="margin-bottom:2px">Tela filha</div>
+          <div style="font-size:13px;font-weight:700">#18 · Perfil</div>
+        </div>
+      </div>
+
+      <div class="ph-num">18</div>
+      <div class="ph-title">Meu Perfil</div>
+      <div class="ph-desc">Dados pessoais · foto · contato emergência · privacidade · logout.</div>
+
+      <div class="ph-actions">
+        <button class="ph-btn" onclick="irPara('saude')">Voltar pra Saúde</button>
+        <button class="ph-btn ghost" onclick="fingirLogout()">Sair (logout)</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="medicamentos" data-auth="auth" data-group="filhas">
+      <div class="ph-topbar">
+        <button class="ph-back" onclick="voltar()" title="Voltar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="ph-eyebrow" style="margin-bottom:2px">Tela filha</div>
+          <div style="font-size:13px;font-weight:700">#03 · Medicamentos</div>
+        </div>
+      </div>
+
+      <div class="ph-num">03</div>
+      <div class="ph-title">Medicamentos</div>
+      <div class="ph-desc">Lista de meds · agora · próximas doses · adicionar novo.</div>
+
+      <div class="ph-actions">
+        <button class="ph-btn" onclick="irPara('detalhe-medicamento')">→ Detalhe de um med</button>
+        <button class="ph-btn" onclick="irPara('add-medicamento')">→ Adicionar medicamento</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="detalhe-medicamento" data-auth="auth" data-group="filhas">
+      <div class="ph-topbar">
+        <button class="ph-back" onclick="voltar()" title="Voltar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="ph-eyebrow" style="margin-bottom:2px">Tela filha</div>
+          <div style="font-size:13px;font-weight:700">#04 · Detalhe med</div>
+        </div>
+      </div>
+      <div class="ph-num">04</div>
+      <div class="ph-title">Detalhe do medicamento</div>
+      <div class="ph-desc">Nome · dosagem · horários · motivo · prescritor · histórico · editar · excluir.</div>
+    </section>
+
+    <section class="screen" data-screen="add-medicamento" data-auth="auth" data-group="filhas">
+      <div class="ph-topbar">
+        <button class="ph-back" onclick="voltar()" title="Voltar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="ph-eyebrow" style="margin-bottom:2px">Tela filha</div>
+          <div style="font-size:13px;font-weight:700">#05 · Add med</div>
+        </div>
+      </div>
+      <div class="ph-num">05</div>
+      <div class="ph-title">Adicionar medicamento</div>
+      <div class="ph-desc">Formulário · digitar manual · CMED autocomplete.</div>
+    </section>
+
+    <section class="screen" data-screen="alergias" data-auth="auth" data-group="filhas">
+      <div class="ph-topbar">
+        <button class="ph-back" onclick="voltar()" title="Voltar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="ph-eyebrow" style="margin-bottom:2px">Tela filha</div>
+          <div style="font-size:13px;font-weight:700">#06 · Alergias</div>
+        </div>
+      </div>
+      <div class="ph-num">06</div>
+      <div class="ph-title">Alergias</div>
+      <div class="ph-desc">Lista de alergias por gravidade · adicionar nova.</div>
+
+      <div class="ph-actions">
+        <button class="ph-btn" onclick="irPara('detalhe-alergia')">→ Detalhe de uma alergia</button>
+        <button class="ph-btn" onclick="irPara('add-alergia')">→ Adicionar alergia</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="detalhe-alergia" data-auth="auth" data-group="filhas">
+      <div class="ph-topbar">
+        <button class="ph-back" onclick="voltar()" title="Voltar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="ph-eyebrow" style="margin-bottom:2px">Tela filha</div>
+          <div style="font-size:13px;font-weight:700">#07 · Detalhe alergia</div>
+        </div>
+      </div>
+      <div class="ph-num">07</div>
+      <div class="ph-title">Detalhe da alergia</div>
+      <div class="ph-desc">Substância · gravidade · reação · histórico · cruzamento com meds em uso.</div>
+    </section>
+
+    <section class="screen" data-screen="add-alergia" data-auth="auth" data-group="filhas">
+      <div class="ph-topbar">
+        <button class="ph-back" onclick="voltar()" title="Voltar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="ph-eyebrow" style="margin-bottom:2px">Tela filha</div>
+          <div style="font-size:13px;font-weight:700">#08 · Add alergia</div>
+        </div>
+      </div>
+      <div class="ph-num">08</div>
+      <div class="ph-title">Adicionar alergia</div>
+      <div class="ph-desc">Formulário · categoria · gravidade · reação · observações.</div>
+    </section>
+
+    <section class="screen" data-screen="detalhe-consulta" data-auth="auth" data-group="filhas">
+      <div class="ph-topbar">
+        <button class="ph-back" onclick="voltar()" title="Voltar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="ph-eyebrow" style="margin-bottom:2px">Tela filha</div>
+          <div style="font-size:13px;font-weight:700">#16 · Detalhe consulta</div>
+        </div>
+      </div>
+      <div class="ph-num">16</div>
+      <div class="ph-title">Detalhe da consulta</div>
+      <div class="ph-desc">Médico · data · queixa · receita · próximo retorno · documentos.</div>
+    </section>
+
+    <!-- ─── ESTADOS VAZIOS (variações das abas pra paciente novo) ──── -->
+
+    <section class="screen" data-screen="saude-vazia" data-auth="auth" data-group="vazios">
+      <div class="ph-eyebrow">Estado vazio</div>
+      <div class="ph-num">40</div>
+      <div class="ph-title">Saúde · vazia</div>
+      <div class="ph-desc">Paciente novo · sem dados ainda · CTA pra fazer o quiz ou adicionar info.</div>
+    </section>
+
+    <section class="screen" data-screen="medicamentos-vazia" data-auth="auth" data-group="vazios">
+      <div class="ph-eyebrow">Estado vazio</div>
+      <div class="ph-num">41</div>
+      <div class="ph-title">Medicamentos · vazio</div>
+      <div class="ph-desc">Sem medicamento cadastrado · CTA pra adicionar primeiro.</div>
+    </section>
+
+    <section class="screen" data-screen="alergias-vazia" data-auth="auth" data-group="vazios">
+      <div class="ph-eyebrow">Estado vazio</div>
+      <div class="ph-num">42</div>
+      <div class="ph-title">Alergias · vazio</div>
+      <div class="ph-desc">Sem alergia cadastrada · CTA pra adicionar primeira.</div>
+    </section>
+
+    <section class="screen" data-screen="exames-vazia" data-auth="auth" data-group="vazios">
+      <div class="ph-eyebrow">Estado vazio</div>
+      <div class="ph-num">43</div>
+      <div class="ph-title">Exames · vazio</div>
+      <div class="ph-desc">Sem exame enviado · CTA pra mandar primeiro.</div>
+    </section>
+
+    <section class="screen" data-screen="consultas-vazia" data-auth="auth" data-group="vazios">
+      <div class="ph-eyebrow">Estado vazio</div>
+      <div class="ph-num">44</div>
+      <div class="ph-title">Consultas · vazio</div>
+      <div class="ph-desc">Sem consulta agendada · sem histórico · CTA pra marcar.</div>
+    </section>
+
+    <!-- ─── ESTADO DE LOADING (só carregando home) ─────────────────── -->
+
+    <section class="screen" data-screen="loading-home" data-auth="auth" data-group="loadings">
+      <div class="ph-eyebrow">Loading</div>
+      <div class="ph-num">52</div>
+      <div class="ph-title">Carregando home</div>
+      <div class="ph-desc">Buscando perfil + meds + alergias · skeleton.</div>
+    </section>
+
+    <!-- ─── ERRO (só sem internet) ─────────────────────────────────── -->
+
+    <section class="screen" data-screen="erro-offline" data-auth="auth" data-group="erros">
+      <div class="ph-eyebrow">Erro</div>
+      <div class="ph-num">60</div>
+      <div class="ph-title">Sem internet</div>
+      <div class="ph-desc">Sem conexão · CTA "tentar de novo" · suas respostas estão salvas.</div>
+    </section>
+
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════════
+       TAB BAR — aparece só em telas data-auth="auth"
+       ═════════════════════════════════════════════════════════════════════ -->
+  <nav class="tabbar" id="tabbar">
+    <button class="tab" data-tab="saude" onclick="irPara('saude')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg>
+      <span class="tab-label">Meu RG</span>
+    </button>
+    <button class="tab" data-tab="exames" onclick="irPara('exames')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span class="tab-label">Exames</span>
+    </button>
+    <button class="tab" data-tab="qr" onclick="irPara('qr')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/></svg>
+      <span class="tab-label">QR Code</span>
+    </button>
+    <button class="tab" data-tab="consultas" onclick="irPara('consultas')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="tab-label">Consultas</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PAINEL DE DEV — pular pra qualquer tela. Sai quando virar produção.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<button class="dev-btn" onclick="toggleDev()" title="Abrir lista de telas">DEV</button>
+
+<aside class="dev-panel" id="devPanel">
+  <div class="dev-panel-head">
+    <div>
+      <h2>Mapa do app único</h2>
+      <p>Clique numa tela pra pular direto. Tudo num arquivo só — sem recarregar nada.</p>
+    </div>
+    <button class="dev-panel-close" onclick="toggleDev()">×</button>
+  </div>
+  <div class="dev-list" id="devList"></div>
+</aside>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   ESTADO + NAVEGAÇÃO
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const APP = {
+  tela: null,
+  historico: [],
+  logado: false,
+  temRG: false,
+};
+
+const TELA_INICIAL = 'splash';
+
+// Grupos pra renderizar no painel de dev (e pra possível filtragem)
+const GRUPOS = [
+  { id: 'publicas',    nome: 'Públicas (sem login)' },
+  { id: 'onboarding',  nome: 'Onboarding (logado, sem RG)' },
+  { id: 'abas',        nome: 'Autenticadas — abas principais' },
+  { id: 'filhas',      nome: 'Autenticadas — telas filhas' },
+  { id: 'vazios',      nome: 'Estados vazios' },
+  { id: 'loadings',    nome: 'Loadings' },
+  { id: 'erros',       nome: 'Erros' },
+];
+
+// Qual tela ativa cada aba da tab bar
+const ABA_DA_TELA = {
+  // tela → tab que fica acesa
+  'saude':                'saude',
+  'medicamentos':         'saude',
+  'detalhe-medicamento':  'saude',
+  'add-medicamento':      'saude',
+  'alergias':             'saude',
+  'detalhe-alergia':      'saude',
+  'add-alergia':          'saude',
+  'perfil':               'saude',
+  'saude-vazia':          'saude',
+  'medicamentos-vazia':   'saude',
+  'alergias-vazia':       'saude',
+
+  'exames':               'exames',
+  'exames-vazia':         'exames',
+
+  'qr':                   'qr',
+
+  'consultas':            'consultas',
+  'detalhe-consulta':     'consultas',
+  'consultas-vazia':      'consultas',
+};
+
+function irPara(nome, opts) {
+  opts = opts || {};
+  const alvo = document.querySelector(`.screen[data-screen="${nome}"]`);
+  if (!alvo) { console.warn('Tela não existe:', nome); return; }
+
+  // Empurra a tela anterior no histórico (pra back funcionar)
+  if (APP.tela && APP.tela !== nome && !opts.semHistorico) {
+    APP.historico.push(APP.tela);
+    if (APP.historico.length > 20) APP.historico.shift();
+  }
+
+  // Esconde todas, mostra a alvo
+  document.querySelectorAll('.screen.active').forEach(s => s.classList.remove('active'));
+  alvo.classList.add('active');
+
+  APP.tela = nome;
+
+  // Atualiza hash sem disparar o listener
+  if (location.hash.slice(1) !== nome) {
+    history.replaceState(null, '', '#' + nome);
+  }
+
+  // Tab bar: aparece só se tela é "auth"
+  const auth = alvo.getAttribute('data-auth');
+  const tabbar = document.getElementById('tabbar');
+  tabbar.classList.toggle('show', auth === 'auth');
+
+  // Marca a tab ativa
+  const tabAtiva = ABA_DA_TELA[nome] || null;
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.getAttribute('data-tab') === tabAtiva);
+  });
+
+  // Marca item ativo no painel de dev
+  document.querySelectorAll('.dev-item').forEach(it => {
+    it.classList.toggle('active', it.getAttribute('data-go') === nome);
+  });
+
+  // Rola pro topo da tela
+  alvo.scrollTop = 0;
+}
+
+function voltar() {
+  if (APP.historico.length === 0) {
+    // Não tem pra onde voltar — mantém na atual
+    return;
+  }
+  const anterior = APP.historico.pop();
+  irPara(anterior, { semHistorico: true });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOCKS DE FLUXO — pra simular login/cadastro/quiz sem backend
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function fingirLogin() {
+  APP.logado = true;
+  APP.temRG = true; // assume que quem faz login já tem conta criada com quiz pronto
+  irPara('saude');
+}
+
+function fingirCadastro() {
+  APP.logado = true;
+  APP.temRG = false;
+  irPara('onboarding');
+}
+
+function fingirQuizCompleto() {
+  APP.temRG = true;
+  irPara('pronto');
+}
+
+function fingirLogout() {
+  APP.logado = false;
+  APP.temRG = false;
+  APP.historico = [];
+  irPara('splash');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PAINEL DE DEV — lista todas as telas agrupadas
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function montarPainelDev() {
+  const list = document.getElementById('devList');
+  let html = '';
+  GRUPOS.forEach(g => {
+    const telas = Array.from(document.querySelectorAll(`.screen[data-group="${g.id}"]`));
+    if (!telas.length) return;
+    html += `<div class="dev-group">${g.nome} · ${telas.length}</div>`;
+    telas.forEach(t => {
+      const nome = t.getAttribute('data-screen');
+      const titulo = (t.querySelector('.ph-title') || {}).textContent || nome;
+      const num = (t.querySelector('.ph-num') || {}).textContent || '··';
+      html += `<button class="dev-item" data-go="${nome}" onclick="irPara('${nome}'); toggleDev();">
+        <span class="dev-item-num">${num}</span>
+        <span>${titulo}</span>
+      </button>`;
+    });
+  });
+  list.innerHTML = html;
+}
+
+function toggleDev() {
+  document.getElementById('devPanel').classList.toggle('open');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════════ */
+
+window.addEventListener('hashchange', () => {
+  const alvo = location.hash.slice(1);
+  if (alvo && document.querySelector(`.screen[data-screen="${alvo}"]`)) {
+    irPara(alvo, { semHistorico: true });
+  }
+});
+
+// Atalho de teclado D = abrir/fechar dev
+window.addEventListener('keydown', (e) => {
+  if (e.key.toLowerCase() === 'd' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+    toggleDev();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  montarPainelDev();
+  // Se URL tem hash, vai pra ela. Senão, vai pra tela inicial.
+  const inicial = location.hash.slice(1) || TELA_INICIAL;
+  irPara(inicial, { semHistorico: true });
+});
+</script>
+</body>
+</html>

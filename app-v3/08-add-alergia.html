@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Adicionar Alergia</title>
+<script src="api.js"></script>
+<link rel="stylesheet" href="_core.css">
+<style>
+  .form-group { margin: 0 var(--s5) var(--s4); }
+  .form-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink3); margin-bottom: 6px; }
+  .form-hint { font-size: 11px; color: var(--ink4); margin-top: 4px; font-weight: 500; }
+
+  .severity-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .sev-option {
+    padding: var(--s3) var(--s2);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    border: var(--border);
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--dur) var(--ease);
+  }
+  .sev-option.on {
+    border-width: 2px;
+    transform: translateY(-2px);
+  }
+  .sev-option.critical.on { border-color: var(--bad); background: var(--bad-bg); }
+  .sev-option.medium.on { border-color: var(--warn); background: var(--warn-bg); }
+  .sev-option.light.on { border-color: var(--ink4); background: var(--bg-alt); }
+  .sev-option-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin: 0 auto 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sev-option.critical .sev-option-icon { background: var(--bad-bg); color: var(--bad); }
+  .sev-option.medium .sev-option-icon { background: var(--warn-bg); color: var(--warn); }
+  .sev-option.light .sev-option-icon { background: var(--bg-alt); color: var(--ink3); }
+  .sev-option-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.5; }
+  .sev-option-name { font-size: 12px; font-weight: 800; color: var(--ink); }
+  .sev-option-desc { font-size: 9px; color: var(--ink4); font-weight: 600; margin-top: 1px; }
+
+  .cat-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .opt-pill {
+    padding: 8px 14px;
+    border-radius: 100px;
+    border: var(--border);
+    background: var(--surface);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink2);
+    cursor: pointer;
+    transition: all var(--dur) var(--ease);
+  }
+  .opt-pill.on {
+    background: var(--acc);
+    border-color: var(--accb);
+    color: var(--green2);
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status-bar"><span>9:41</span><span class="right"><svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="1" y="1" width="20" height="9" rx="2" stroke="currentColor" stroke-opacity=".35"/><rect x="2.5" y="2.5" width="17" height="6" rx="1" fill="currentColor"/></svg></span></div>
+  <div class="header">
+    <a href="06-alergias.html" class="header-back">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </a>
+    <div class="header-title">Nova alergia</div>
+  </div>
+
+  <div class="content no-tab">
+    <h1 class="page-title anim anim-d1">Nova <em>alergia</em></h1>
+    <div class="page-subtitle anim anim-d1">Pra te proteger em qualquer consulta</div>
+
+    <div class="form-group anim anim-d2">
+      <label class="form-label">Substância *</label>
+      <input type="text" class="input" id="inputNome" placeholder="Ex: Dipirona, Camarão...">
+      <div class="form-hint">A gente verifica se há substâncias relacionadas pra evitar</div>
+    </div>
+
+    <div class="form-group anim anim-d3">
+      <label class="form-label">Tipo *</label>
+      <select class="input" id="inputTipo" style="appearance:none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239CA3AF%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>'); background-repeat:no-repeat; background-position: right 14px center; padding-right: 32px;">
+        <option value="MEDICAMENTO">Medicamento</option>
+        <option value="ALIMENTO">Alimento</option>
+        <option value="CONTATO">Contato (látex, metal, tecido…)</option>
+        <option value="AMBIENTAL">Ambiental (pólen, ácaro, pelo…)</option>
+        <option value="OUTRO">Outro</option>
+      </select>
+    </div>
+
+    <div class="form-group anim anim-d3">
+      <label class="form-label">Gravidade *</label>
+      <div class="severity-options">
+        <div class="sev-option critical on" data-gravidade="GRAVE" onclick="selectSeveridade(this)">
+          <div class="sev-option-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+          </div>
+          <div class="sev-option-name">Alta</div>
+          <div class="sev-option-desc">Anafilaxia</div>
+        </div>
+        <div class="sev-option medium" data-gravidade="MODERADA" onclick="selectSeveridade(this)">
+          <div class="sev-option-icon">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          </div>
+          <div class="sev-option-name">Média</div>
+          <div class="sev-option-desc">Urticária</div>
+        </div>
+        <div class="sev-option light" data-gravidade="LEVE" onclick="selectSeveridade(this)">
+          <div class="sev-option-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+          </div>
+          <div class="sev-option-name">Leve</div>
+          <div class="sev-option-desc">Coceira</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="erroBox" style="display:none;margin:0 var(--s5) var(--s3);padding:12px;background:var(--bad-bg);color:var(--bad);border-radius:8px;font-size:13px;font-weight:600"></div>
+
+    <div style="padding: var(--s4) var(--s5);">
+      <button class="btn btn-primary" id="btnSalvar" onclick="salvar()">Salvar alergia</button>
+    </div>
+
+    <div style="height: 60px"></div>
+  </div>
+</div>
+
+<script>
+  function selectSeveridade(el) {
+    document.querySelectorAll('.sev-option').forEach(o => o.classList.remove('on'));
+    el.classList.add('on');
+  }
+
+  function getGravidade(){
+    const sel = document.querySelector('.sev-option.on');
+    return sel ? sel.dataset.gravidade : 'MODERADA';
+  }
+
+  function mostrarErro(msg){
+    const box = document.getElementById('erroBox');
+    box.textContent = msg;
+    box.style.display = msg ? '' : 'none';
+  }
+
+  function validar(){
+    const nome = document.getElementById('inputNome').value.trim();
+    if (!nome || nome.length < 2) return 'Coloca a substância da alergia (mínimo 2 letras)';
+    return null;
+  }
+
+  async function salvar(){
+    const erro = validar();
+    if (erro) { mostrarErro(erro); return; }
+    mostrarErro('');
+
+    const dados = {
+      nome: document.getElementById('inputNome').value.trim(),
+      tipo: document.getElementById('inputTipo').value,
+      gravidade: getGravidade()
+    };
+
+    const btn = document.getElementById('btnSalvar');
+    btn.disabled = true;
+    btn.textContent = 'Salvando…';
+
+    try {
+      await vitaeAPI.adicionarAlergia(dados);
+      window.location = '06-alergias.html';
+    } catch (e) {
+      mostrarErro(e.message || 'Não consegui salvar. Tente de novo.');
+      btn.disabled = false;
+      btn.textContent = 'Salvar alergia';
+    }
+  }
+</script>
+</body>
+</html>

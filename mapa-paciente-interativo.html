@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>vita id — mapa interativo do app do paciente</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;}
+  body{background:#0D0F14;color:#E5E7EB;overflow:hidden;}
+  .app{display:grid;grid-template-columns:340px 1fr 440px;height:100vh;}
+
+  /* ===== SIDEBAR ===== */
+  .sidebar{background:#11141B;border-right:1px solid rgba(255,255,255,0.05);overflow-y:auto;padding:28px 0;}
+  .sidebar-header{padding:0 24px 24px;border-bottom:1px solid rgba(255,255,255,0.05);}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-logo{font-weight:900;font-size:22px;letter-spacing:-1px;color:#fff;}
+  .brand-logo span{background:#00B4D8;color:#0D0F14;padding:2px 10px;border-radius:8px;margin-left:2px;}
+  .brand-sub{font-size:11px;color:#6B7280;letter-spacing:1.5px;text-transform:uppercase;margin-top:8px;}
+  .sidebar-title{padding:24px 24px 8px;font-size:11px;color:#6B7280;letter-spacing:1.5px;text-transform:uppercase;}
+  .flow{margin-bottom:6px;}
+  .flow-header{display:flex;align-items:center;gap:10px;padding:14px 24px;cursor:pointer;transition:background .15s;}
+  .flow-header:hover{background:rgba(0,180,216,0.05);}
+  .flow-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(0,180,216,0.1);border:1px solid rgba(0,180,216,0.25);flex-shrink:0;}
+  .flow-icon svg{width:16px;height:16px;stroke:#00B4D8;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .flow-name{flex:1;font-weight:700;font-size:14px;color:#F3F4F6;}
+  .flow-count{font-size:11px;color:#6B7280;background:rgba(255,255,255,0.04);padding:3px 8px;border-radius:6px;}
+  .flow-arrow{transition:transform .2s;color:#6B7280;font-size:10px;}
+  .flow.open .flow-arrow{transform:rotate(90deg);}
+  .flow-screens{display:none;padding:4px 0 12px;}
+  .flow.open .flow-screens{display:block;}
+  .screen-item{padding:10px 24px 10px 70px;cursor:pointer;font-size:13px;color:#9CA3AF;display:flex;align-items:center;gap:10px;transition:all .15s;border-left:2px solid transparent;}
+  .screen-item:hover{color:#fff;background:rgba(0,180,216,0.04);}
+  .screen-item.active{color:#00E5A0;background:rgba(0,229,160,0.06);border-left-color:#00E5A0;font-weight:600;}
+  .screen-num{font-size:10px;color:#6B7280;font-variant-numeric:tabular-nums;width:22px;}
+  .screen-item.active .screen-num{color:#00E5A0;}
+
+  /* ===== CENTRO (iframe) ===== */
+  .center{display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%, #1A1E26 0%, #0D0F14 70%);position:relative;padding:28px;}
+  .phone-frame{width:393px;height:852px;background:#000;border-radius:48px;padding:8px;box-shadow:0 0 0 2px #2A2F3A, 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(0,180,216,0.08);position:relative;}
+  .phone-screen{width:100%;height:100%;border-radius:42px;overflow:hidden;background:#fff;position:relative;}
+  .phone-screen iframe{width:100%;height:100%;border:none;display:block;}
+  .center-info{position:absolute;top:24px;left:24px;display:flex;align-items:center;gap:10px;background:rgba(17,20,27,0.8);backdrop-filter:blur(12px);padding:10px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);}
+  .center-info-dot{width:8px;height:8px;border-radius:50%;background:#00E5A0;box-shadow:0 0 12px #00E5A0;}
+  .center-info-text{font-size:12px;color:#9CA3AF;}
+  .center-info-text strong{color:#fff;font-weight:700;}
+  .center-empty{text-align:center;color:#6B7280;}
+  .center-empty h2{font-size:24px;font-weight:800;color:#F3F4F6;margin-bottom:8px;}
+  .center-empty p{font-size:14px;line-height:1.6;max-width:340px;margin:0 auto;}
+
+  /* ===== EXPLICAÇÃO ===== */
+  .explain{background:#11141B;border-left:1px solid rgba(255,255,255,0.05);overflow-y:auto;padding:32px;}
+  .explain-empty{color:#6B7280;font-size:14px;line-height:1.7;}
+  .explain-empty h3{color:#fff;font-size:18px;font-weight:800;margin-bottom:12px;}
+  .ex-tag{display:inline-block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#00E5A0;background:rgba(0,229,160,0.08);padding:4px 10px;border-radius:6px;margin-bottom:12px;}
+  .ex-title{font-size:24px;font-weight:900;color:#fff;letter-spacing:-0.5px;margin-bottom:8px;}
+  .ex-subtitle{font-size:13px;color:#9CA3AF;margin-bottom:24px;}
+  .ex-section{margin-bottom:24px;}
+  .ex-section h4{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#6B7280;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .ex-section h4::before{content:'';width:14px;height:1px;background:#374151;}
+  .ex-section p{font-size:14px;line-height:1.6;color:#D1D5DB;}
+  .ex-section ul{list-style:none;}
+  .ex-section li{font-size:13px;line-height:1.5;color:#D1D5DB;padding-left:16px;position:relative;margin-bottom:6px;}
+  .ex-section li::before{content:'';position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:#00B4D8;}
+  .ex-pain{background:linear-gradient(135deg, rgba(239,68,68,0.08), rgba(239,68,68,0.02));border:1px solid rgba(239,68,68,0.15);border-radius:12px;padding:14px 16px;}
+  .ex-pain h4{color:#FCA5A5;}
+  .ex-pain h4::before{background:#7F1D1D;}
+  .ex-pain p{color:#FECACA;font-size:13px;}
+  .ex-flow{background:rgba(0,180,216,0.05);border:1px solid rgba(0,180,216,0.15);border-radius:12px;padding:12px 14px;font-size:12px;color:#7DD3FC;line-height:1.6;}
+  .ex-data{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ex-data-box{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:12px;}
+  .ex-data-box .label{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#6B7280;margin-bottom:6px;}
+  .ex-data-box .value{font-size:12px;color:#E5E7EB;line-height:1.5;}
+  .ex-ia{background:linear-gradient(135deg, rgba(0,229,160,0.06), rgba(0,180,216,0.06));border:1px solid rgba(0,229,160,0.2);border-radius:12px;padding:14px 16px;}
+  .ex-ia h4{color:#6EE7B7;}
+  .ex-ia h4::before{background:#065F46;}
+  .ex-ia p{color:#A7F3D0;font-size:13px;}
+
+  /* scrollbar */
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:4px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.12);}
+
+  @media(max-width:1280px){
+    .app{grid-template-columns:300px 1fr 380px;}
+    .phone-frame{transform:scale(0.85);transform-origin:center;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand"><div class="brand-logo">vita<span>id</span></div></div>
+      <div class="brand-sub">Mapa do app do paciente</div>
+    </div>
+    <div class="sidebar-title">Fluxos do app</div>
+    <div id="flows"></div>
+  </aside>
+
+  <!-- ===== CENTRO ===== -->
+  <main class="center">
+    <div class="center-info" id="centerInfo" style="display:none;">
+      <div class="center-info-dot"></div>
+      <div class="center-info-text">Você está vendo <strong id="centerName"></strong></div>
+    </div>
+    <div class="center-empty" id="centerEmpty">
+      <h2>Escolha uma tela ao lado</h2>
+      <p>Clique em qualquer tela do menu da esquerda para abrir ela aqui dentro do celular e ler a explicação no painel da direita.</p>
+    </div>
+    <div class="phone-frame" id="phoneFrame" style="display:none;">
+      <div class="phone-screen"><iframe id="screenFrame" src="about:blank"></iframe></div>
+    </div>
+  </main>
+
+  <!-- ===== EXPLICAÇÃO ===== -->
+  <aside class="explain" id="explain">
+    <div class="explain-empty">
+      <h3>O que é esse mapa</h3>
+      <p>Aqui você vê <strong>todas as telas do app do paciente</strong> do vita id, organizadas pelos 5 caminhos principais que ele faz dentro do app. Clique numa tela à esquerda — ela aparece no celular do meio, e aqui aparece a explicação completa: pra que serve, que dor resolve, o que entra, o que sai, e quando o vita id usa leitor inteligente.</p>
+      <br>
+      <p style="color:#6B7280;font-size:12px;">Sem código. Sem termos técnicos. Pra você entender o app inteiro de relance.</p>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+// ===== DADOS DAS TELAS =====
+const FLOWS = [
+  {
+    id:'onboarding',
+    name:'Primeira vez no app',
+    icon:'<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>',
+    screens:['01-splash','02-slides-paciente','03-cadastro','04-verificacao','05-quiz','06-concluido']
+  },
+  {
+    id:'casa',
+    name:'Casa do paciente (uso diário)',
+    icon:'<path d="M3 12l9-9 9 9M5 10v10h14V10"/>',
+    screens:['08-perfil','09-dados-pessoais','10-score','15-bioage-sem-dados']
+  },
+  {
+    id:'cuidado',
+    name:'Cuidado: exames, meds, alergias',
+    icon:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+    screens:['11-exames-lista','16-medicamentos','17-alergias','26-scan-receita','27-processando','31-revisao-alergias']
+  },
+  {
+    id:'compartilhar',
+    name:'Compartilhar (QR + autorização)',
+    icon:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+    screens:['21-qrcode','22-autorizacao','rg-publico','exame-publico']
+  },
+  {
+    id:'consultas',
+    name:'Consultas e lembretes',
+    icon:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    screens:['23-agendamentos','30-lembretes','pre-consulta','25-summary']
+  },
+  {
+    id:'recuperacao',
+    name:'Recuperar senha',
+    icon:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    screens:['14-esqueci-senha','15-nova-senha']
+  },
+  {
+    id:'legal',
+    name:'Termos e privacidade',
+    icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
+    screens:['termos','lgpd']
+  }
+];
+
+const SCREENS = {
+  '01-splash':{
+    file:'01-splash.html',
+    title:'Tela de abertura',
+    subtitle:'Os primeiros 8 segundos do app',
+    purpose:'É o primeiro contato do paciente com o vita id. Mostra o logo grande com brilho e fica 8 segundos no ar enquanto decide pra onde mandar o usuário: se ele já tem conta, vai direto pra casa dele (perfil); se não tem, vai pros slides de boas-vindas.',
+    pain:'O paciente precisa entender em 1 segundo "isso é sério, isso é meu, isso é saúde". Splash bem feita planta autoridade e tira a ansiedade de "será que isso é golpe?".',
+    in:'Verifica se tem conta salva no celular (token de acesso).',
+    out:'Decide o destino: vai pros slides (paciente novo) ou pra casa do paciente (já cadastrado).',
+    ai:null,
+    where:'Abre automaticamente quando o paciente toca no app pela primeira vez ou volta no app sem login válido.'
+  },
+  '02-slides-paciente':{
+    file:'02-slides-paciente.html',
+    title:'Boas-vindas (3 slides)',
+    subtitle:'Apresentação do que o vita id faz',
+    purpose:'Três telas que rolam pra explicar o que o paciente vai ganhar: organizar exames num lugar só, ter o RG da Saúde sempre no bolso, e poder mostrar pra qualquer médico em segundos. Tem botão "Pular" pra quem já entendeu.',
+    pain:'Paciente baixou o app sem saber direito o que é. Se entrar direto no cadastro sem entender o valor, abandona. Os slides são a venda em 30 segundos.',
+    in:'Nada — é só conteúdo visual.',
+    out:'Quando termina ou pula, manda pro cadastro.',
+    ai:null,
+    where:'Aparece logo depois da tela de abertura, só pra quem ainda não tem conta.'
+  },
+  '03-cadastro':{
+    file:'03-cadastro.html',
+    title:'Criar conta',
+    subtitle:'Email + senha ou Google',
+    purpose:'Tela onde o paciente cria a conta. Tem botão "Continuar com Google" (mais rápido) e formulário com nome, email, celular e senha. Quem já tem conta pode entrar (login) na mesma tela.',
+    pain:'Cadastro é o ponto de maior abandono em qualquer app. Dois caminhos (Google e manual) reduzem fricção. Pedir só o essencial — dados de saúde vêm depois no quiz.',
+    in:'Nome, email, celular, senha — ou um clique no Google.',
+    out:'Cria a conta no servidor e manda código por SMS pra próxima tela.',
+    ai:null,
+    where:'Vem dos slides (paciente novo) ou direto do botão "voltar" da tela de abertura.'
+  },
+  '04-verificacao':{
+    file:'04-verificacao.html',
+    title:'Código por SMS',
+    subtitle:'Confirmar que é uma pessoa real',
+    purpose:'Caixa pra digitar o código de 6 números que o paciente recebeu por SMS no celular. Isso garante que o número é real e que ninguém criou conta com celular alheio.',
+    pain:'LGPD exige verificação. Sem isso, qualquer um pode criar conta com dados de outra pessoa — e dados de saúde são sensíveis.',
+    in:'Os 6 números do SMS.',
+    out:'Confirma o cadastro e libera pra fazer o quiz inicial.',
+    ai:null,
+    where:'Vem direto do cadastro, depois do servidor disparar o SMS pelo Twilio.'
+  },
+  '05-quiz':{
+    file:'05-quiz.html',
+    title:'Quiz inicial (criar o RG)',
+    subtitle:'Os dados que salvam vida em emergência',
+    purpose:'Conjunto de perguntas em etapas: data de nascimento, sexo, tipo sanguíneo, CPF, altura, peso, contato de emergência e foto. É aqui que o RG da Saúde toma forma — sem isso, o app não tem o que mostrar.',
+    pain:'Esses são exatamente os dados que faltam quando alguém chega desmaiado no pronto-socorro. Tipo sanguíneo errado mata. Contato de emergência fora do alcance perde tempo. Quiz curto = paciente preenche; quiz longo = abandona.',
+    in:'O paciente digita ou seleciona cada resposta.',
+    out:'Tudo vai pro servidor e fica salvo como o perfil do paciente.',
+    ai:null,
+    where:'Vem da verificação por SMS. Termina indo pra tela de "concluído".'
+  },
+  '06-concluido':{
+    file:'06-concluido.html',
+    title:'Pronto! RG criado',
+    subtitle:'Celebração + próximo passo',
+    purpose:'Tela curta com confete e mensagem de boas-vindas. Tem um botão grande "Conhecer meu RG da Saúde" que leva pra casa do paciente.',
+    pain:'Cadastro é trabalhoso. Celebrar a conclusão dá sensação de "valeu a pena" e prepara o paciente pra explorar o app com bom humor.',
+    in:'Nada — só lê o nome do paciente pra cumprimentar.',
+    out:'Manda pra casa do paciente (perfil principal).',
+    ai:null,
+    where:'Vem direto do quiz, é a última tela do onboarding.'
+  },
+  '08-perfil':{
+    file:'08-perfil.html',
+    title:'Casa do paciente (RG da Saúde)',
+    subtitle:'A tela mais importante do app',
+    purpose:'É a HOME. Mostra o cartão do RG (com efeito de virar — frente: nome/sangue/idade; verso: alergias e contato de emergência), o score de saúde, próximas consultas, últimos exames e medicamentos ativos. É de onde se navega pra tudo.',
+    pain:'Paciente abre o app sem saber o que vai ver. Se a primeira tela for confusa, ele fecha. A casa precisa mostrar em 3 segundos: "esse é meu RG, esse é meu score, esse é meu próximo médico".',
+    in:'Carrega do servidor: dados pessoais, score, exames recentes, meds ativos, alergias e próximos compromissos.',
+    out:'Botões levam pra qualquer outra tela. Botão de sair (logout) limpa a conta e volta pra tela de cadastro.',
+    ai:null,
+    where:'Chega aqui depois do onboarding, ou direto da abertura quando já tem conta. Volta-se aqui de qualquer tela pelo menu inferior.'
+  },
+  '09-dados-pessoais':{
+    file:'09-dados-pessoais.html',
+    title:'Editar meus dados',
+    subtitle:'Atualizar nome, peso, contato, etc.',
+    purpose:'Formulário pra editar todos os dados pessoais e de saúde básica: nome, email, celular, CPF, sangue, altura, peso, nascimento, contato de emergência, histórico familiar, hábitos (sono, atividade, fumo, álcool).',
+    pain:'Paciente engorda, muda de número, casa novo, descobre histórico familiar. Os dados precisam estar sempre atuais — senão o RG vira ficção.',
+    in:'Carrega o que já está salvo pra mostrar nos campos.',
+    out:'Salva qualquer mudança no servidor imediatamente.',
+    ai:null,
+    where:'Vem da casa pelo botão "Editar" ou pelo menu de configurações.'
+  },
+  '10-score':{
+    file:'10-score.html',
+    title:'Score de saúde',
+    subtitle:'Sua saúde de 0 a 100',
+    purpose:'Anel grande com a nota geral (0 a 100) e quatro pilares — colesterol, hemoglobina, metabolismo, hormonal. Cada pilar tem barra própria e explicação em português simples.',
+    pain:'Paciente não sabe se está bem ou mal. Médico fala "exame ok" mas isso não vira sensação concreta. O score traduz dezenas de números em uma sensação clara: "estou no verde" ou "preciso cuidar".',
+    in:'O servidor calcula a partir dos exames cadastrados e devolve o número e os pilares.',
+    out:'Tela de leitura — não escreve nada.',
+    ai:'O cálculo do score lê todos os exames do paciente e compara com referências brasileiras (SBPC/ML) pra dar a nota. O paciente só vê o resultado.',
+    where:'Vem da casa (cartão do score) ou do menu inferior.'
+  },
+  '11-exames-lista':{
+    file:'11-exames-lista.html',
+    title:'Meus exames',
+    subtitle:'Lista completa em um lugar só',
+    purpose:'Lista todos os exames já enviados (mais recentes em cima). Cada cartão mostra tipo (sangue, urina, etc), data, laboratório e status (Pronto, Processando, Atenção). Clicar abre os detalhes. Botão "+ Novo exame" leva ao envio.',
+    pain:'Hoje exame fica perdido em WhatsApp, gaveta, email do laboratório. Paciente refaz exame que já tinha (gastando R$ 40-50 cada) só porque não acha. 25-40% dos exames no Brasil são repetidos por isso.',
+    in:'Carrega do servidor todos os exames e seus parâmetros já interpretados.',
+    out:'Pode apagar exame antigo. Botão de novo exame leva pro scan.',
+    ai:'Quando o paciente envia foto ou PDF de exame, um leitor inteligente lê o documento, identifica cada parâmetro (hemoglobina, glicose, etc), classifica como normal/atenção/crítico e escreve um resumo em português simples. Demora de 15 a 40 segundos.',
+    where:'Vem da casa, do menu inferior, ou de um agendamento.'
+  },
+  '16-medicamentos':{
+    file:'16-medicamentos.html',
+    title:'Meus medicamentos',
+    subtitle:'O que tomo, quando tomo, por que tomo',
+    purpose:'Lista de medicamentos divididos em "ativos" e "histórico". Cada card mostra nome, dose, horário e botões de editar/apagar. Pode adicionar manualmente OU escanear uma receita.',
+    pain:'Menos de 60% dos diabéticos seguem direito a prescrição. O paciente esquece nome do remédio, dose, e até por que toma. Sem registro, vira "aquela cápsula branca" — perigoso quando outro médico precisa saber.',
+    in:'Carrega a lista de meds do servidor.',
+    out:'Cria, edita ou apaga med. Quando cria med novo, o sistema verifica se bate com alguma alergia cadastrada — se sim, dispara alerta na tela de revisão de alergias.',
+    ai:'Se o paciente escanear a receita, um leitor inteligente identifica cada medicamento na foto (mesmo com letra ruim de médico) e extrai nome, dose e frequência sozinho.',
+    where:'Vem da casa ou do menu inferior. Botão de scan leva pra tela de escanear receita.'
+  },
+  '17-alergias':{
+    file:'17-alergias.html',
+    title:'Minhas alergias',
+    subtitle:'O dado que pode salvar sua vida',
+    purpose:'Lista de alergias separadas por tipo: medicamentos, alimentos, outros. Cada uma tem um selo de gravidade (leve/média/grave) com cor (amarelo/laranja/vermelho). Pode adicionar manualmente ou via scan.',
+    pain:'Essa é a tela origem do app inteiro. O fundador (Lucas) quase morreu de Dipirona + Penicilina porque a alergia não chegou ao médico. Alergia mal registrada = risco de morte. Por isso ela aparece em vermelho na casa do paciente, na frente de tudo.',
+    in:'Carrega lista do servidor.',
+    out:'Cria, edita ou apaga alergia. Toda vez que um med novo é cadastrado, o sistema cruza com essa lista.',
+    ai:'No scan de receita, o leitor inteligente também identifica alergias mencionadas. E sempre que um remédio novo é cadastrado, o sistema confere se bate com alguma alergia daqui (Novalgina = Dipirona, AAS = Aspirina, etc).',
+    where:'Vem da casa, menu inferior, ou direto do alerta de revisão depois de um scan.'
+  },
+  '26-scan-receita':{
+    file:'26-scan-receita.html',
+    title:'Escanear receita',
+    subtitle:'Foto ou PDF da receita médica',
+    purpose:'Tela curta com 2 botões: "Tirar foto" (abre câmera) e "Escolher da galeria". Aceita foto ou PDF. Quando o paciente escolhe, manda pro próximo passo (processamento).',
+    pain:'Digitar receita é chato. Erra dose, erra nome, erra horário. Tirar foto é o caminho mais rápido — e mais confiável, porque a leitura é automática.',
+    in:'Foto da câmera ou arquivo selecionado.',
+    out:'Guarda a imagem temporariamente e leva pra tela de processamento.',
+    ai:null,
+    where:'Vem do botão "Adicionar via scan" das telas de medicamentos ou alergias.'
+  },
+  '27-processando':{
+    file:'27-processando.html',
+    title:'Lendo a receita',
+    subtitle:'Aguarda o leitor inteligente terminar',
+    purpose:'Tela de espera com animação de carregamento e mensagens passo a passo: "Lendo o texto", "Identificando medicamentos", "Salvando". Se der erro, mostra botão pra tentar de novo.',
+    pain:'Paciente fica ansioso esperando. Loader silencioso parece travado. Mostrar os passos reduz a sensação de demora.',
+    in:'A imagem da tela anterior.',
+    out:'Manda pra revisão de alergias (se a receita tinha alergias) ou direto pra lista de medicamentos.',
+    ai:'Aqui é onde o leitor inteligente trabalha de verdade: olha a foto, lê o texto manuscrito, identifica cada medicamento, extrai dose e frequência, e devolve uma lista pronta. Demora 5 a 20 segundos.',
+    where:'Vem do scan de receita. Saída depende do que foi encontrado.'
+  },
+  '31-revisao-alergias':{
+    file:'31-revisao-alergias.html',
+    title:'Revisar alergias encontradas',
+    subtitle:'Confirma o que vai entrar no perfil',
+    purpose:'Mostra as alergias que o leitor encontrou na receita escaneada, cada uma com toggle ligado por padrão. O paciente confirma quais entram de verdade, edita gravidade se quiser, e salva.',
+    pain:'O leitor não é perfeito. Pode confundir nome de remédio com alergia. Por isso o paciente sempre revisa antes de salvar — segurança máxima em um dado tão crítico.',
+    in:'Lista de alergias que vieram do processamento.',
+    out:'Salva as confirmadas no perfil do paciente.',
+    ai:'A IA já fez o trabalho na tela anterior. Aqui só apresenta o que ela encontrou pra revisão humana.',
+    where:'Vem do processamento da receita, quando o leitor identificou alergias.'
+  },
+  '21-qrcode':{
+    file:'21-qrcode.html',
+    title:'Meu QR Code',
+    subtitle:'Mostre seu RG em 1 segundo pra qualquer médico',
+    purpose:'Mostra um QR Code grande no centro da tela com nome, foto e tipo sanguíneo do paciente. Tem botão pra copiar link e pra compartilhar (WhatsApp, etc).',
+    pain:'Esse é o uso mais crítico do app: paciente desmaiado no pronto-socorro. Médico escaneia o QR (do celular dele, ou do print na carteira/cadarço), abre uma página pública sem login, vê alergias em vermelho, sangue, meds em uso. Decisão clínica em 1 segundo.',
+    in:'Gera o QR a partir do código único do paciente.',
+    out:'Quem escaneia abre a tela pública do RG (rg-publico).',
+    ai:null,
+    where:'Vem da casa ou do menu inferior. Pode ser printado e levado em qualquer lugar.'
+  },
+  '22-autorizacao':{
+    file:'22-autorizacao.html',
+    title:'Quem pode ver meus dados',
+    subtitle:'Você é o dono — você decide',
+    purpose:'Lista os médicos que têm autorização de acesso aos dados do paciente, com data de expiração e botão pra revogar. Botão "+ Autorizar médico" abre formulário pra dar acesso novo (por email do médico ou link).',
+    pain:'A LGPD diz que o paciente é dono dos dados de saúde dele. Mas hoje, na prática, ninguém sabe quem viu o que. Essa tela materializa esse direito: você vê, você revoga, você controla.',
+    in:'Lista de autorizações ativas do servidor.',
+    out:'Cria autorização nova, revoga ou estende prazo. Servidor avisa o médico por email.',
+    ai:null,
+    where:'Vem do menu de configurações. Cada autorização nova dispara email pro médico via Resend.'
+  },
+  '23-agendamentos':{
+    file:'23-agendamentos.html',
+    title:'Minha agenda',
+    subtitle:'Consultas, exames e retornos',
+    purpose:'Lista cronológica de tudo que o paciente tem marcado: consultas, exames a fazer, retornos. Cada cartão mostra ícone, data, hora, médico e especialidade. Pode adicionar manualmente.',
+    pain:'Paciente esquece consulta. Esquece retorno. Esquece de marcar exame que o médico pediu. A agenda no app vira lembrete ativo (com notificação 1 dia antes e 2h antes).',
+    in:'Carrega lista do servidor (e no futuro, também sincroniza com Google Calendar).',
+    out:'Cria, edita ou cancela agendamento.',
+    ai:null,
+    where:'Vem da casa ou do menu. Cada agendamento dispara lembrete por push e WhatsApp.'
+  },
+  '30-lembretes':{
+    file:'30-lembretes.html',
+    title:'Meus lembretes',
+    subtitle:'Tomar remédio, fazer check-in, voltar ao médico',
+    purpose:'Central de lembretes do dia. Lembretes de medicamentos por horário (manhã, tarde, noite) com checkbox "tomei". Cartão no topo mostra a porcentagem de adesão (quantas tomadas foram confirmadas no mês).',
+    pain:'Adesão a tratamento crônico é menos de 60% no Brasil. O lembrete simples + acompanhamento da adesão sobe esse número em ~4 pontos (estudo OpenNotes). Em hipertensão, isso pode evitar AVC.',
+    in:'Lista de lembretes do dia + histórico de adesão.',
+    out:'Marca cada lembrete como tomado ou não. Servidor acumula pra calcular adesão.',
+    ai:null,
+    where:'Vem do menu ou direto da notificação push quando chega a hora.'
+  },
+  '15-bioage-sem-dados':{
+    file:'15-bioage-sem-dados.html',
+    title:'Idade biológica',
+    subtitle:'Quantos anos seu corpo tem de verdade (em construção)',
+    purpose:'Tela placeholder por enquanto. Explica o conceito de idade biológica (estimar a idade do corpo a partir de exames + hábitos) e diz "em breve". Ainda não calcula nada.',
+    pain:'Motivação de longo prazo. Mostrar que hábitos hoje impactam idade biológica é gancho pra paciente cuidar mais. Faz sentido só quando tiver dados suficientes pra calcular bem.',
+    in:'Nada — é placeholder.',
+    out:'Botão volta pra casa.',
+    ai:'Quando ativada, vai usar leitor inteligente pra cruzar exames + hábitos + idade real.',
+    where:'Vem do score quando o paciente clica em "Idade".'
+  },
+  'pre-consulta':{
+    file:'pre-consulta.html',
+    title:'Pré-consulta (responder pelo médico)',
+    subtitle:'O médico mandou um link pra você responder antes da consulta',
+    purpose:'Tela pública (não precisa estar logado). O médico mandou um link por WhatsApp. Paciente abre, vê foto e nome do médico, e responde perguntas como "Qual a queixa?", "Há quanto tempo?", "Toma algum remédio?". Pode responder por texto ou por áudio (gravando no próprio navegador).',
+    pain:'A consulta presencial sempre começa com 5 minutos de "me conta o que tá sentindo" — coisa que o paciente já podia ter dito em casa, com calma. Pré-consulta antecipa isso: paciente responde tranquilo, médico chega preparado, atendimento começa direto no que importa.',
+    in:'Pega o token único da URL. Carrega as perguntas do médico.',
+    out:'Manda respostas (texto e áudio) pro servidor. Em 5 segundos diz "recebido". Em background, transcreve áudio e gera resumo de 1 minuto pro médico.',
+    ai:'O áudio gravado pelo paciente vira texto via leitor inteligente. Em seguida, outro leitor lê tudo e gera um resumo estruturado de 1 minuto: queixa principal, histórico, pontos de atenção. O médico recebe esse resumo + um áudio sintetizado pra ouvir de carro.',
+    where:'Vem do link enviado pelo médico via WhatsApp. Não tem botão dentro do app pra chegar aqui — é entrada externa.'
+  },
+  '25-summary':{
+    file:'25-summary.html',
+    title:'Resumo da pré-consulta (visão do médico)',
+    subtitle:'Não é tela do paciente — é como o médico vê o que você respondeu',
+    purpose:'Tela do app médico (vitae). Mostra ao médico, antes da consulta, o resumo de 1 minuto da pré-consulta: queixa, histórico, alergias destacadas, meds ativos e exames recentes. Tem player de áudio com a versão falada do resumo.',
+    pain:'Consulta de 12 minutos é rotina no Brasil. Médico chega sem contexto e gasta metade do tempo perguntando. Esse resumo devolve 5 minutos pra ele cuidar de verdade.',
+    in:'O servidor já gerou tudo a partir das respostas do paciente.',
+    out:'Médico só lê — não edita por aqui.',
+    ai:'O resumo é gerado por leitor inteligente que organiza a transcrição em formato clínico. O áudio sintetizado usa voz natural pra falar o resumo.',
+    where:'Está aqui só pra você entender o ciclo completo. É lado médico, não paciente.'
+  },
+  '14-esqueci-senha':{
+    file:'14-esqueci-senha.html',
+    title:'Esqueci a senha',
+    subtitle:'Recuperar acesso por email',
+    purpose:'Caixa pra digitar email cadastrado. Se existir, o servidor manda email com link pra criar nova senha.',
+    pain:'Paciente que perde acesso ao RG é paciente sem dados. Recuperação simples e rápida é obrigatória.',
+    in:'Email digitado.',
+    out:'Servidor manda email via Resend com link único.',
+    ai:null,
+    where:'Vem do link "esqueci a senha" na tela de cadastro.'
+  },
+  '15-nova-senha':{
+    file:'15-nova-senha.html',
+    title:'Definir nova senha',
+    subtitle:'Cria a senha nova depois de clicar no email',
+    purpose:'Formulário com 2 campos: nova senha e confirmação. Aparece quando o paciente clica no link do email de recuperação.',
+    pain:'Sem essa tela, recuperação não fecha o ciclo.',
+    in:'Senha nova + token único da URL.',
+    out:'Salva a nova senha no servidor (criptografada) e leva pra tela de cadastro pra entrar.',
+    ai:null,
+    where:'Vem do link clicado no email enviado pela tela "esqueci a senha".'
+  },
+  'rg-publico':{
+    file:'rg-publico.html',
+    title:'RG da Saúde público (emergência)',
+    subtitle:'O que aparece quando alguém escaneia seu QR',
+    purpose:'Tela aberta — não precisa estar logado. Mostra: nome, foto, sangue (em destaque), idade, alergias (em vermelho, sempre visível), medicamentos em uso, contato de emergência e últimos exames críticos.',
+    pain:'Emergência é o uso mais crítico do app. Cada segundo conta. Médico não vai criar conta, não vai esperar verificação por SMS — escaneia, vê, decide. Token na URL é único e gera log de quem viu.',
+    in:'Token da URL identifica o paciente. Servidor devolve dados públicos.',
+    out:'Servidor registra cada acesso (IP, hora) pra auditoria LGPD.',
+    ai:null,
+    where:'Vem do QR Code escaneado por outra pessoa. O paciente nunca abre essa tela diretamente — é pra ser vista por médicos, equipe de emergência, familiares.'
+  },
+  'exame-publico':{
+    file:'exame-publico.html',
+    title:'Exame compartilhado (sem login)',
+    subtitle:'Quando você compartilha um exame específico',
+    purpose:'Página pública de um exame só. Quem recebe o link vê os parâmetros, valores e a explicação simples — sem precisar de conta.',
+    pain:'Mandar foto do exame por WhatsApp perde contexto. Esse link traz o exame estruturado, com explicação de cada parâmetro.',
+    in:'Token do exame na URL.',
+    out:'Servidor registra o acesso.',
+    ai:null,
+    where:'Sai do detalhe de um exame quando o paciente clica em "Compartilhar".'
+  },
+  'termos':{
+    file:'termos.html',
+    title:'Termos de uso',
+    subtitle:'O contrato entre você e o vita id',
+    purpose:'Documento jurídico estático com as regras de uso do app. Linguagem mais formal mas com seções claras.',
+    pain:'Obrigatório por lei e pra credibilidade. Paciente precisa ter onde ler antes de aceitar.',
+    in:'Nada — é texto fixo.',
+    out:'Nada.',
+    ai:null,
+    where:'Linkado nos rodapés (cadastro, escolha) e no menu de configurações.'
+  },
+  'lgpd':{
+    file:'lgpd.html',
+    title:'Política LGPD',
+    subtitle:'Como tratamos seus dados de saúde',
+    purpose:'Documento de privacidade explicando: que dados são coletados, pra que, com quem são compartilhados, como o paciente exporta tudo (Art. 18 da LGPD), como apaga conta.',
+    pain:'Dados de saúde são supersensíveis. LGPD exige transparência total. Sem isso, não pode operar legalmente.',
+    in:'Nada — é texto fixo.',
+    out:'Nada.',
+    ai:null,
+    where:'Linkado nos rodapés do cadastro e no menu de configurações.'
+  }
+};
+
+// ===== RENDER =====
+const flowsEl = document.getElementById('flows');
+FLOWS.forEach(flow => {
+  const div = document.createElement('div');
+  div.className = 'flow';
+  div.innerHTML = `
+    <div class="flow-header">
+      <div class="flow-icon"><svg viewBox="0 0 24 24">${flow.icon}</svg></div>
+      <div class="flow-name">${flow.name}</div>
+      <div class="flow-count">${flow.screens.length}</div>
+      <div class="flow-arrow">▶</div>
+    </div>
+    <div class="flow-screens">
+      ${flow.screens.map((id, i) => {
+        const s = SCREENS[id];
+        if(!s) return '';
+        return `<div class="screen-item" data-id="${id}"><span class="screen-num">${String(i+1).padStart(2,'0')}</span>${s.title}</div>`;
+      }).join('')}
+    </div>
+  `;
+  flowsEl.appendChild(div);
+  div.querySelector('.flow-header').onclick = () => {
+    const wasOpen = div.classList.contains('open');
+    document.querySelectorAll('.flow').forEach(f => f.classList.remove('open'));
+    if (!wasOpen) div.classList.add('open');
+  };
+  div.querySelectorAll('.screen-item').forEach(item => {
+    item.onclick = () => openScreen(item.dataset.id, item);
+  });
+});
+// abrir primeiro fluxo por padrão
+document.querySelector('.flow').classList.add('open');
+
+function openScreen(id, itemEl){
+  const s = SCREENS[id];
+  if(!s) return;
+  document.querySelectorAll('.screen-item').forEach(i => i.classList.remove('active'));
+  if(itemEl) itemEl.classList.add('active');
+
+  document.getElementById('centerEmpty').style.display = 'none';
+  document.getElementById('phoneFrame').style.display = 'block';
+  document.getElementById('centerInfo').style.display = 'flex';
+  document.getElementById('centerName').textContent = s.title;
+  document.getElementById('screenFrame').src = s.file;
+
+  const ex = document.getElementById('explain');
+  ex.innerHTML = `
+    <div class="ex-tag">${s.file}</div>
+    <h2 class="ex-title">${s.title}</h2>
+    <div class="ex-subtitle">${s.subtitle}</div>
+
+    <div class="ex-section">
+      <h4>Pra que serve</h4>
+      <p>${s.purpose}</p>
+    </div>
+
+    <div class="ex-section ex-pain">
+      <h4>Que dor resolve</h4>
+      <p>${s.pain}</p>
+    </div>
+
+    <div class="ex-section">
+      <h4>Dados</h4>
+      <div class="ex-data">
+        <div class="ex-data-box">
+          <div class="label">Entra</div>
+          <div class="value">${s.in}</div>
+        </div>
+        <div class="ex-data-box">
+          <div class="label">Sai</div>
+          <div class="value">${s.out}</div>
+        </div>
+      </div>
+    </div>
+
+    ${s.ai ? `
+    <div class="ex-section ex-ia">
+      <h4>Quando o vita id "lê" por você</h4>
+      <p>${s.ai}</p>
+    </div>` : ''}
+
+    <div class="ex-section">
+      <h4>De onde se chega</h4>
+      <div class="ex-flow">${s.where}</div>
+    </div>
+  `;
+  ex.scrollTop = 0;
+}
+</script>
+</body>
+</html>

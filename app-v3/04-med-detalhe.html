@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Detalhe do medicamento</title>
+<script src="api.js"></script>
+<link rel="stylesheet" href="_core.css">
+<style>
+  .hero-med {
+    margin: var(--s2) var(--s5) var(--s5);
+    background: var(--surface);
+    border: var(--border);
+    border-radius: var(--r-md);
+    padding: var(--s5);
+    box-shadow: var(--sh);
+    text-align: center;
+  }
+  .hero-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: var(--ok-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--s3);
+  }
+  .hero-icon svg { width: 32px; height: 32px; fill: none; stroke: var(--green2); stroke-width: 2; }
+  .hero-med-name { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+  .hero-med-sub { font-size: 13px; color: var(--ink3); margin-bottom: var(--s3); }
+  .hero-med-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    background: var(--ok-bg);
+    color: var(--green2);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .info-block {
+    background: var(--surface);
+    border: var(--border);
+    border-radius: var(--r-md);
+    margin: 0 var(--s5) var(--s3);
+    box-shadow: var(--sh);
+    overflow: hidden;
+  }
+  .info-row-detail {
+    display: flex;
+    align-items: center;
+    padding: var(--s3) var(--s4);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .info-row-detail:last-child { border-bottom: none; }
+  .info-row-label { font-size: 11px; color: var(--ink3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; width: 110px; }
+  .info-row-value { font-size: 13px; font-weight: 700; color: var(--ink); flex: 1; }
+
+  .weekly-strip {
+    display: flex;
+    gap: 5px;
+    padding: var(--s3) var(--s4);
+  }
+  .day-mini {
+    flex: 1;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .day-mini.ok { background: var(--green2); }
+  .day-mini.miss { background: var(--bad); opacity: 0.4; }
+  .day-mini.pending { background: var(--bg-alt); color: var(--ink4); }
+
+  .interaction-alert {
+    background: var(--bad-bg);
+    border: var(--border-red);
+    border-radius: var(--r-md);
+    padding: var(--s4);
+    margin: 0 var(--s5) var(--s3);
+    display: flex;
+    gap: var(--s3);
+  }
+  .interaction-alert-icon {
+    color: var(--bad);
+    flex-shrink: 0;
+  }
+  .interaction-alert-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .interaction-alert-title { font-size: 13px; font-weight: 800; color: var(--bad); margin-bottom: 2px; }
+  .interaction-alert-text { font-size: 12px; color: var(--ink2); line-height: 1.4; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status-bar"><span>9:41</span><span class="right"><svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="1" y="1" width="20" height="9" rx="2" stroke="currentColor" stroke-opacity=".35"/><rect x="2.5" y="2.5" width="17" height="6" rx="1" fill="currentColor"/></svg></span></div>
+  <div class="header">
+    <a href="03-medicamentos.html" class="header-back">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <div class="header-title">Detalhes</div>
+    <div class="header-actions">
+      <button class="header-icon-btn" id="btnEditar" onclick="abrirEditar()" aria-label="Editar medicamento">
+        <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="content no-tab" id="conteudo">
+    <div class="hero-med anim anim-d1">
+      <div class="hero-icon">
+        <svg viewBox="0 0 24 24"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+      </div>
+      <div class="hero-med-name" id="heroNome">&nbsp;</div>
+      <div class="hero-med-sub" id="heroSub">&nbsp;</div>
+      <span class="hero-med-badge" id="heroBadge" style="display:none"><span class="dot" style="width:5px;height:5px;border-radius:50%;background:currentColor"></span><span id="heroBadgeText"></span></span>
+    </div>
+
+    <div class="section-label anim anim-d2">Como tomar</div>
+    <div class="info-block anim anim-d2" id="comoTomarBlock"></div>
+
+    <div id="prescricaoSection" style="display:none">
+      <div class="section-label anim anim-d4">Prescrição</div>
+      <div class="info-block anim anim-d4" id="prescricaoBlock"></div>
+    </div>
+
+    <div style="padding: var(--s4) var(--s5);">
+      <button class="btn btn-secondary" id="btnPausar" style="margin-bottom:8px" onclick="pausarMed()">Pausar medicamento</button>
+      <button class="btn btn-ghost" id="btnDescontinuar" style="color:var(--bad)" onclick="descontinuarMed()">Descontinuar</button>
+    </div>
+
+    <div style="height: 40px"></div>
+  </div>
+</div>
+
+<script>
+  function escapeHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+  function fmtData(d){if(!d)return null;const x=new Date(d);if(isNaN(x.getTime()))return null;const MS=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];return `${x.getDate()}/${MS[x.getMonth()]}/${x.getFullYear()}`;}
+
+  function getId(){return new URLSearchParams(location.search).get('id');}
+  let MED_ATUAL = null;
+
+  function infoRow(label, value){
+    return `<div class="info-row-detail"><div class="info-row-label">${escapeHtml(label)}</div><div class="info-row-value">${escapeHtml(value)}</div></div>`;
+  }
+
+  function calcularUso(dataInicio){
+    if (!dataInicio) return null;
+    const ini = new Date(dataInicio);
+    if (isNaN(ini.getTime())) return null;
+    const hoje = new Date();
+    const diff = Math.floor((hoje - ini) / (1000*60*60*24));
+    if (diff < 1) return 'Iniciado hoje';
+    if (diff < 30) return `Em uso há ${diff} dia${diff===1?'':'s'}`;
+    if (diff < 365) {
+      const meses = Math.floor(diff/30);
+      return `Em uso há ${meses} ${meses===1?'mês':'meses'}`;
+    }
+    const anos = Math.floor(diff/365);
+    return `Em uso há ${anos} ${anos===1?'ano':'anos'}`;
+  }
+
+  function render(med){
+    MED_ATUAL = med;
+    const nomeCompleto = med.dosagem ? `${med.nome} ${med.dosagem}` : med.nome;
+    document.getElementById('heroNome').textContent = nomeCompleto;
+    document.getElementById('heroSub').textContent = med.motivo || (med.ativo === false ? 'Medicamento pausado' : 'Em uso');
+
+    const uso = calcularUso(med.dataInicio);
+    if (uso) {
+      document.getElementById('heroBadge').style.display = '';
+      document.getElementById('heroBadgeText').textContent = uso;
+    }
+
+    // Como tomar
+    const linhas = [];
+    if (med.dosagem) linhas.push(infoRow('Dose', med.dosagem));
+    if (med.horario) linhas.push(infoRow('Horário', med.horario + (med.frequencia ? ' · ' + med.frequencia : '')));
+    if (med.via) linhas.push(infoRow('Via', med.via));
+    if (med.frequencia && !med.horario) linhas.push(infoRow('Frequência', med.frequencia));
+    if (med.dataFim) {
+      const fim = fmtData(med.dataFim);
+      if (fim) linhas.push(infoRow('Até', fim));
+    } else {
+      linhas.push(infoRow('Duração', 'Contínuo'));
+    }
+    if (med.observacoes) linhas.push(infoRow('Obs.', med.observacoes));
+    document.getElementById('comoTomarBlock').innerHTML = linhas.join('') || '<div style="padding:16px;color:var(--ink3);font-size:12px">Sem detalhes adicionais</div>';
+
+    // Prescrição (so mostra se tem dados)
+    const presc = [];
+    if (med.prescritorNome || med.medicoPrescritor) presc.push(infoRow('Prescritor', med.prescritorNome || med.medicoPrescritor));
+    if (med.dataInicio) {
+      const dt = fmtData(med.dataInicio);
+      if (dt) presc.push(infoRow('Início', dt));
+    }
+    if (presc.length) {
+      document.getElementById('prescricaoSection').style.display = '';
+      document.getElementById('prescricaoBlock').innerHTML = presc.join('');
+    }
+
+    // Botões: ajusta texto se pausado
+    if (med.ativo === false) {
+      document.getElementById('btnPausar').textContent = 'Retomar medicamento';
+    }
+  }
+
+  async function iniciar(){
+    const id = getId();
+    if (!id) {
+      document.getElementById('conteudo').innerHTML = '<div style="padding:40px;text-align:center;color:var(--ink3)">Medicamento não encontrado. <a href="03-medicamentos.html" style="color:var(--green2);font-weight:700">Voltar</a></div>';
+      return;
+    }
+    try {
+      const r = await vitaeAPI.listarMedicamentos();
+      const lista = r.medicamentos || r || [];
+      const med = lista.find(m => m.id === id);
+      if (!med) {
+        document.getElementById('conteudo').innerHTML = '<div style="padding:40px;text-align:center;color:var(--ink3)">Medicamento não encontrado. <a href="03-medicamentos.html" style="color:var(--green2);font-weight:700">Voltar</a></div>';
+        return;
+      }
+      render(med);
+    } catch (e) {
+      console.error('[04-med-detalhe] erro', e);
+      document.getElementById('conteudo').innerHTML = '<div style="padding:40px;text-align:center;color:var(--bad)">Sem conexão. <a href="javascript:location.reload()" style="color:var(--green2);font-weight:700">Tentar de novo</a></div>';
+    }
+  }
+
+  async function pausarMed(){
+    if (!MED_ATUAL) return;
+    const novoEstado = MED_ATUAL.ativo === false;
+    if (!confirm(novoEstado ? 'Retomar este medicamento?' : 'Pausar este medicamento? Você pode retomar depois.')) return;
+    try {
+      await vitaeAPI.atualizarMedicamento(MED_ATUAL.id, { ativo: novoEstado });
+      location.reload();
+    } catch (e) { alert('Erro: ' + (e.message || 'tente de novo')); }
+  }
+
+  async function descontinuarMed(){
+    if (!MED_ATUAL) return;
+    if (!confirm(`Descontinuar ${MED_ATUAL.nome} permanentemente? Isso vai remover do seu histórico ativo.`)) return;
+    try {
+      await vitaeAPI.removerMedicamento(MED_ATUAL.id);
+      window.location = '03-medicamentos.html';
+    } catch (e) { alert('Erro: ' + (e.message || 'tente de novo')); }
+  }
+
+  function abrirEditar(){
+    if (!MED_ATUAL) return;
+    window.location = '05-add-medicamento.html?id=' + encodeURIComponent(MED_ATUAL.id);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
+  else iniciar();
+</script>
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Recuperar senha</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #00E5A0;
+    --cyan: #00B4D8;
+    --ink: #0D0F14;
+    --ink2: #4B5563;
+    --ink3: #6B7280;
+    --ink4: #9CA3AF;
+    --bg: #F4F6FA;
+    --surface: #FFFFFF;
+    --grad: linear-gradient(120deg, #00E5A0, #00B4D8);
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: #0D0F14;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    color: var(--ink);
+  }
+  .phone {
+    width: 393px;
+    max-width: 100vw;
+    height: 852px;
+    max-height: 100vh;
+    background: var(--bg);
+    border-radius: 52px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(0,229,160,0.15), 0 0 0 3px #1a1d24, 0 40px 120px rgba(0,0,0,0.4);
+  }
+  .notch {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 126px;
+    height: 34px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 30;
+  }
+  .status-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 28px 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    z-index: 20;
+  }
+
+  .header {
+    position: absolute;
+    top: 50px;
+    left: 0; right: 0;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .back-btn {
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.07);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .back-btn svg { width: 18px; height: 18px; stroke: var(--ink); fill: none; stroke-width: 2; }
+  .header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.2px;
+  }
+
+  .content {
+    position: absolute;
+    top: 110px;
+    left: 0; right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    padding: 8px 22px 30px;
+  }
+
+  .icon-block {
+    width: 84px;
+    height: 84px;
+    margin: 18px auto 24px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #0D0F14, #1A2E2C);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12px 30px rgba(13,15,20,0.18);
+    position: relative;
+  }
+  .icon-block::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1.5px;
+    background: linear-gradient(90deg, var(--green), var(--cyan), transparent);
+    border-radius: 24px 24px 0 0;
+  }
+  .icon-block svg {
+    width: 36px; height: 36px;
+    stroke: var(--green);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .title {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.7px;
+    line-height: 1.15;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .title em {
+    font-style: italic;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .sub {
+    font-size: 13.5px;
+    color: var(--ink3);
+    line-height: 1.55;
+    text-align: center;
+    max-width: 280px;
+    margin: 0 auto 30px;
+  }
+
+  .field { margin-bottom: 18px; }
+  .field-label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--ink3);
+    margin-bottom: 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .field-wrap { position: relative; }
+  .field-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink4);
+    pointer-events: none;
+  }
+  .field-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .field input {
+    width: 100%;
+    padding: 14px 16px 14px 44px;
+    background: var(--surface);
+    border: 1.5px solid rgba(0,0,0,0.08);
+    border-radius: 14px;
+    font-size: 14.5px;
+    font-family: inherit;
+    color: var(--ink);
+    outline: none;
+    transition: all 0.15s;
+  }
+  .field input::placeholder { color: var(--ink4); }
+  .field input:focus {
+    border-color: rgba(0,229,160,0.45);
+    box-shadow: 0 0 0 3px rgba(0,229,160,0.10);
+  }
+  .field-wrap:focus-within .field-icon { color: var(--green); }
+
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: var(--grad);
+    border: none;
+    border-radius: 14px;
+    font-size: 14.5px;
+    font-weight: 800;
+    color: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 8px 24px rgba(0,229,160,0.32);
+    transition: all 0.15s;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-primary:hover { transform: translateY(-1px); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2.5; }
+
+  .help-card {
+    margin-top: 28px;
+    padding: 14px 16px;
+    background: rgba(0,229,160,0.04);
+    border: 1px solid rgba(0,229,160,0.18);
+    border-radius: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .help-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: rgba(0,229,160,0.10);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .help-icon svg { width: 14px; height: 14px; stroke: var(--green); fill: none; stroke-width: 2.2; }
+  .help-text { font-size: 12px; color: var(--ink2); line-height: 1.5; }
+  .help-text strong { color: var(--ink); font-weight: 700; display: block; margin-bottom: 2px; }
+  .help-text a { color: var(--green); font-weight: 700; text-decoration: none; }
+
+  .footer-hint {
+    margin-top: 22px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink3);
+  }
+  .footer-hint a { color: var(--green); font-weight: 700; text-decoration: none; }
+
+  @media(max-width:480px) {
+    body { padding: 0; background: var(--bg); }
+    .phone {
+      width: 100vw;
+      max-width: 100vw;
+      height: 100vh;
+      max-height: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    .notch, .status-bar { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status-bar"><span>9:41</span><span></span></div>
+
+  <div class="header">
+    <a href="23-login.html" class="back-btn">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <div class="header-title">Recuperar senha</div>
+  </div>
+
+  <div class="content">
+    <div class="icon-block">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="14" r="5"/><path d="m13 10 7-7M16 4l3 3"/></svg>
+    </div>
+
+    <h1 class="title">Vamos <em>recuperar</em></h1>
+    <p class="sub">Digite o e-mail cadastrado. Mandamos um link pra você criar uma senha nova.</p>
+
+    <div class="field">
+      <label class="field-label">E-mail</label>
+      <div class="field-wrap">
+        <input type="email" placeholder="seu@email.com" autocomplete="email">
+        <span class="field-icon">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </span>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="window.location='25-nova-senha.html'">
+      Enviar link de recuperação
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </button>
+
+    <div class="help-card">
+      <div class="help-icon">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div class="help-text">
+        <strong>Não tem mais acesso ao e-mail?</strong>
+        Manda mensagem pra <a href="mailto:ajuda@vita.id">ajuda@vita.id</a> que a gente confirma sua identidade por outro caminho.
+      </div>
+    </div>
+
+    <div class="footer-hint">
+      Lembrou da senha? <a href="23-login.html">Voltar pro login</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

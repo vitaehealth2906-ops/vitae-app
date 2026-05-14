@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Alergias</title>
+<script src="api.js"></script>
+<link rel="stylesheet" href="_core.css">
+<style>
+  .severity-card {
+    background: var(--surface);
+    border: var(--border);
+    border-radius: var(--r-md);
+    padding: var(--s4);
+    margin: 0 var(--s5) var(--s3);
+    box-shadow: var(--sh);
+    cursor: pointer;
+    transition: all var(--dur) var(--ease);
+    position: relative;
+    overflow: hidden;
+  }
+  .severity-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--ink5);
+  }
+  .severity-card.critica::before { background: var(--bad); }
+  .severity-card.media::before { background: var(--warn); }
+  .severity-card.leve::before { background: var(--ink4); }
+  .severity-card:active { transform: scale(0.98); }
+
+  .sev-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--s2);
+  }
+  .sev-name { font-size: 16px; font-weight: 800; color: var(--ink); }
+  .sev-detail { font-size: 12px; color: var(--ink3); line-height: 1.4; margin-bottom: var(--s2); }
+  .sev-related {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding-top: var(--s2);
+    border-top: 1px solid rgba(0,0,0,0.05);
+  }
+  .sev-related-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink4);
+    width: 100%;
+    margin-bottom: 4px;
+  }
+  .sev-mini {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink3);
+    background: var(--bg-alt);
+    padding: 2px 7px;
+    border-radius: 100px;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status-bar">
+    <span>9:41</span>
+    <span class="right">
+      <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="1" y="1" width="20" height="9" rx="2" stroke="currentColor" stroke-opacity=".35"/><rect x="2.5" y="2.5" width="17" height="6" rx="1" fill="currentColor"/></svg>
+    </span>
+  </div>
+
+  <div class="header">
+    <a href="01-saude.html" class="header-back">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <div class="header-title">Alergias</div>
+    <div class="header-actions">
+      <button class="header-icon-btn" onclick="window.location='08-add-alergia.html'" aria-label="Adicionar alergia">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+    <h1 class="page-title anim anim-d1">Minhas <em>alergias</em></h1>
+    <div class="page-subtitle anim anim-d1" id="alergiasSubtitle">&nbsp;</div>
+
+    <div id="alergiasContainer"></div>
+
+    <!-- INFO LGPD -->
+    <div class="card tight anim anim-d5" style="margin-top: var(--s5); background: var(--ok-bg); border: var(--border-green);">
+      <div style="display: flex; gap: var(--s3); align-items: flex-start;">
+        <div style="color: var(--green2); flex-shrink: 0; padding-top: 2px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div>
+          <div style="font-size: 12px; font-weight: 800; color: var(--green2); margin-bottom: 2px;">Visível no cartão de emergência</div>
+          <div style="font-size: 11px; color: var(--ink2); line-height: 1.4;">
+            Suas alergias críticas aparecem no QR Code público. Em emergência, qualquer médico ou socorrista pode ver e evitar prescrever algo que te coloque em risco.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height: 80px"></div>
+  </div>
+
+<script>
+  // ===== Lote 3: lista de alergias conectada =====
+  function escapeHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+  function gravidadeNivel(g){
+    const t = (g||'').toUpperCase();
+    if (['GRAVE','CRITICA','ALTA'].includes(t)) return 'critica';
+    if (['MODERADA','MEDIA'].includes(t)) return 'media';
+    return 'leve';
+  }
+  function gravidadeLabel(g){
+    const t = gravidadeNivel(g);
+    if (t === 'critica') return 'Alta gravidade';
+    if (t === 'media') return 'Moderada';
+    return 'Leve';
+  }
+  function gravidadeBadge(g){
+    const t = gravidadeNivel(g);
+    if (t === 'critica') return '<span class="badge red"><span class="dot"></span>Alta gravidade</span>';
+    if (t === 'media') return '<span class="badge warn"><span class="dot"></span>Moderada</span>';
+    return '<span class="badge muted"><span class="dot"></span>Leve</span>';
+  }
+
+  function fmtData(d){
+    if (!d) return null;
+    const x = new Date(d);
+    if (isNaN(x.getTime())) return null;
+    return `${String(x.getDate()).padStart(2,'0')}/${String(x.getMonth()+1).padStart(2,'0')}/${x.getFullYear()}`;
+  }
+
+  function cardAlergia(a) {
+    const nivel = gravidadeNivel(a.gravidade);
+    const detalhes = [];
+    if (a.reacao) detalhes.push(escapeHtml(a.reacao));
+    if (a.medicoDiagnostico) detalhes.push(escapeHtml(a.medicoDiagnostico));
+    const dataDx = fmtData(a.dataDiagnostico);
+    if (dataDx) detalhes.push(dataDx);
+    return `<div class="severity-card ${nivel} anim anim-d2" onclick="window.location='07-alergia-detalhe.html?id=${encodeURIComponent(a.id)}'">
+      <div class="sev-header">
+        <div class="sev-name">${escapeHtml(a.nome||'—')}</div>
+        ${gravidadeBadge(a.gravidade)}
+      </div>
+      ${detalhes.length ? `<div class="sev-detail">${detalhes.join(' · ')}</div>` : '<div class="sev-detail" style="color:var(--ink4);font-style:italic">Sem detalhes adicionais</div>'}
+    </div>`;
+  }
+
+  async function iniciar() {
+    try {
+      const r = await vitaeAPI.listarAlergias();
+      const lista = r.alergias || r || [];
+      const total = lista.length;
+
+      const criticas = lista.filter(a => gravidadeNivel(a.gravidade) === 'critica');
+      const medias = lista.filter(a => gravidadeNivel(a.gravidade) === 'media');
+      const leves = lista.filter(a => gravidadeNivel(a.gravidade) === 'leve');
+
+      const sub = document.getElementById('alergiasSubtitle');
+      if (total === 0) {
+        sub.textContent = 'Nenhuma cadastrada';
+      } else {
+        const partes = [`${total} cadastrada${total===1?'':'s'}`];
+        if (criticas.length) partes.push(`${criticas.length} crítica${criticas.length===1?'':'s'}`);
+        sub.textContent = partes.join(' · ');
+      }
+
+      const container = document.getElementById('alergiasContainer');
+      if (total === 0) {
+        container.innerHTML = `
+          <div style="margin:0 var(--s5); padding:32px var(--s4); text-align:center; background:var(--surface); border:var(--border); border-radius:var(--r-md);">
+            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px">Nenhuma alergia cadastrada</div>
+            <div style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin-bottom:18px">Cadastrar suas alergias pode salvar uma vida em emergência.</div>
+            <button class="btn btn-primary" style="display:inline-block;padding:12px 24px" onclick="window.location='08-add-alergia.html'">Adicionar primeira alergia</button>
+          </div>`;
+        return;
+      }
+
+      let html = '';
+      if (criticas.length) {
+        html += `<div class="section-label anim anim-d2" style="color: var(--bad)">Críticas (anafilaxia possível)</div>`;
+        html += criticas.map(cardAlergia).join('');
+      }
+      if (medias.length) {
+        html += `<div class="section-label anim anim-d3" style="color: var(--warn)">Moderadas</div>`;
+        html += medias.map(cardAlergia).join('');
+      }
+      if (leves.length) {
+        html += `<div class="section-label anim anim-d4" style="color: var(--ink3)">Leves</div>`;
+        html += leves.map(cardAlergia).join('');
+      }
+      container.innerHTML = html;
+
+    } catch (e) {
+      console.error('[06-alergias] erro', e);
+      document.getElementById('alergiasSubtitle').textContent = 'Sem conexão';
+      document.getElementById('alergiasContainer').innerHTML = `<div style="margin:0 var(--s5); padding:24px; text-align:center; color:var(--bad); font-size:13px">Não consegui buscar suas alergias. <a href="javascript:location.reload()" style="color:var(--green2);font-weight:700">Tentar de novo</a></div>`;
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
+  else iniciar();
+</script>
+
+  <div class="tab-bar" style="position:absolute;bottom:0;left:0;right:0;height:80px;display:flex;justify-content:space-around;align-items:flex-start;padding:10px 0 0;background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(0,0,0,0.07);z-index:10;">
+    <div class="tab active" onclick="window.location.href='01-saude.html'" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border:none;background:none;font-family:'Plus Jakarta Sans',sans-serif;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg>
+      <span style="font-size:10px;font-weight:700;color:#00E5A0;">Meu RG</span>
+    </div>
+    <div class="tab" onclick="window.location.href='09-exames-lista.html'" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border:none;background:none;font-family:'Plus Jakarta Sans',sans-serif;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span style="font-size:10px;font-weight:600;color:#9CA3AF;">Exames</span>
+    </div>
+    <div class="tab" onclick="window.location.href='12-qr-code.html'" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border:none;background:none;font-family:'Plus Jakarta Sans',sans-serif;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/></svg>
+      <span style="font-size:10px;font-weight:600;color:#9CA3AF;">QR Code</span>
+    </div>
+    <div class="tab" onclick="window.location.href='15-consultas.html'" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border:none;background:none;font-family:'Plus Jakarta Sans',sans-serif;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span style="font-size:10px;font-weight:600;color:#9CA3AF;">Consultas</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
