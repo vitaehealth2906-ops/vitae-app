@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>vita id — Adicionar Alergia</title>
+<script src="api.js"></script>
 <link rel="stylesheet" href="_core.css">
 <style>
   .form-group { margin: 0 var(--s5) var(--s4); }
@@ -83,28 +84,39 @@
 
     <div class="form-group anim anim-d2">
       <label class="form-label">Substância *</label>
-      <input type="text" class="input" placeholder="Ex: Dipirona, Camarão...">
-      <div class="form-hint">A gente sugere substâncias relacionadas depois</div>
+      <input type="text" class="input" id="inputNome" placeholder="Ex: Dipirona, Camarão...">
+      <div class="form-hint">A gente verifica se há substâncias relacionadas pra evitar</div>
+    </div>
+
+    <div class="form-group anim anim-d3">
+      <label class="form-label">Tipo *</label>
+      <select class="input" id="inputTipo" style="appearance:none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239CA3AF%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>'); background-repeat:no-repeat; background-position: right 14px center; padding-right: 32px;">
+        <option value="MEDICAMENTO">Medicamento</option>
+        <option value="ALIMENTO">Alimento</option>
+        <option value="CONTATO">Contato (látex, metal, tecido…)</option>
+        <option value="AMBIENTAL">Ambiental (pólen, ácaro, pelo…)</option>
+        <option value="OUTRO">Outro</option>
+      </select>
     </div>
 
     <div class="form-group anim anim-d3">
       <label class="form-label">Gravidade *</label>
       <div class="severity-options">
-        <div class="sev-option critical on">
+        <div class="sev-option critical on" data-gravidade="GRAVE" onclick="selectSeveridade(this)">
           <div class="sev-option-icon">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
           </div>
           <div class="sev-option-name">Alta</div>
           <div class="sev-option-desc">Anafilaxia</div>
         </div>
-        <div class="sev-option medium">
+        <div class="sev-option medium" data-gravidade="MODERADA" onclick="selectSeveridade(this)">
           <div class="sev-option-icon">
             <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
           </div>
           <div class="sev-option-name">Média</div>
           <div class="sev-option-desc">Urticária</div>
         </div>
-        <div class="sev-option light">
+        <div class="sev-option light" data-gravidade="LEVE" onclick="selectSeveridade(this)">
           <div class="sev-option-icon">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
           </div>
@@ -114,12 +126,63 @@
       </div>
     </div>
 
+    <div id="erroBox" style="display:none;margin:0 var(--s5) var(--s3);padding:12px;background:var(--bad-bg);color:var(--bad);border-radius:8px;font-size:13px;font-weight:600"></div>
+
     <div style="padding: var(--s4) var(--s5);">
-      <button class="btn btn-primary" onclick="window.location='06-alergias.html'">Salvar alergia</button>
+      <button class="btn btn-primary" id="btnSalvar" onclick="salvar()">Salvar alergia</button>
     </div>
 
     <div style="height: 60px"></div>
   </div>
 </div>
+
+<script>
+  function selectSeveridade(el) {
+    document.querySelectorAll('.sev-option').forEach(o => o.classList.remove('on'));
+    el.classList.add('on');
+  }
+
+  function getGravidade(){
+    const sel = document.querySelector('.sev-option.on');
+    return sel ? sel.dataset.gravidade : 'MODERADA';
+  }
+
+  function mostrarErro(msg){
+    const box = document.getElementById('erroBox');
+    box.textContent = msg;
+    box.style.display = msg ? '' : 'none';
+  }
+
+  function validar(){
+    const nome = document.getElementById('inputNome').value.trim();
+    if (!nome || nome.length < 2) return 'Coloca a substância da alergia (mínimo 2 letras)';
+    return null;
+  }
+
+  async function salvar(){
+    const erro = validar();
+    if (erro) { mostrarErro(erro); return; }
+    mostrarErro('');
+
+    const dados = {
+      nome: document.getElementById('inputNome').value.trim(),
+      tipo: document.getElementById('inputTipo').value,
+      gravidade: getGravidade()
+    };
+
+    const btn = document.getElementById('btnSalvar');
+    btn.disabled = true;
+    btn.textContent = 'Salvando…';
+
+    try {
+      await vitaeAPI.adicionarAlergia(dados);
+      window.location = '06-alergias.html';
+    } catch (e) {
+      mostrarErro(e.message || 'Não consegui salvar. Tente de novo.');
+      btn.disabled = false;
+      btn.textContent = 'Salvar alergia';
+    }
+  }
+</script>
 </body>
 </html>

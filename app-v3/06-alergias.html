@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>vita id — Alergias</title>
+<script src="api.js"></script>
 <link rel="stylesheet" href="_core.css">
 <style>
   .severity-card {
@@ -88,49 +89,9 @@
 
   <div class="content">
     <h1 class="page-title anim anim-d1">Minhas <em>alergias</em></h1>
-    <div class="page-subtitle anim anim-d1">3 cadastradas · 2 críticas</div>
+    <div class="page-subtitle anim anim-d1" id="alergiasSubtitle">&nbsp;</div>
 
-    <!-- CRÍTICAS -->
-    <div class="section-label anim anim-d2" style="color: var(--bad)">Críticas (anafilaxia possível)</div>
-
-    <div class="severity-card critica anim anim-d2" onclick="window.location='07-alergia-detalhe.html'">
-      <div class="sev-header">
-        <div class="sev-name">Dipirona</div>
-        <span class="badge red"><span class="dot"></span>Alta gravidade</span>
-      </div>
-      <div class="sev-detail">Choque anafilático · Dr. Renata · 12/03/2024</div>
-      <div class="sev-related">
-        <div class="sev-related-label">Evitar também</div>
-        <span class="sev-mini">Novalgina</span>
-        <span class="sev-mini">Magnopyrol</span>
-        <span class="sev-mini">Metamizol</span>
-      </div>
-    </div>
-
-    <div class="severity-card critica anim anim-d3" onclick="window.location='07-alergia-detalhe.html'">
-      <div class="sev-header">
-        <div class="sev-name">Penicilina</div>
-        <span class="badge red"><span class="dot"></span>Alta gravidade</span>
-      </div>
-      <div class="sev-detail">Edema laríngeo · Hospital Albert Einstein · 28/06/2023</div>
-      <div class="sev-related">
-        <div class="sev-related-label">Evitar também (reação cruzada)</div>
-        <span class="sev-mini">Amoxicilina</span>
-        <span class="sev-mini">Ampicilina</span>
-        <span class="sev-mini">Cefalexina</span>
-      </div>
-    </div>
-
-    <!-- LEVES -->
-    <div class="section-label anim anim-d4" style="color: var(--ink3)">Leves</div>
-
-    <div class="severity-card leve anim anim-d4" onclick="window.location='07-alergia-detalhe.html'">
-      <div class="sev-header">
-        <div class="sev-name">Camarão</div>
-        <span class="badge muted"><span class="dot"></span>Leve</span>
-      </div>
-      <div class="sev-detail">Urticária leve · auto-relatado · 2022</div>
-    </div>
+    <div id="alergiasContainer"></div>
 
     <!-- INFO LGPD -->
     <div class="card tight anim anim-d5" style="margin-top: var(--s5); background: var(--ok-bg); border: var(--border-green);">
@@ -150,6 +111,107 @@
     <div style="height: 80px"></div>
   </div>
 
+<script>
+  // ===== Lote 3: lista de alergias conectada =====
+  function escapeHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+  function gravidadeNivel(g){
+    const t = (g||'').toUpperCase();
+    if (['GRAVE','CRITICA','ALTA'].includes(t)) return 'critica';
+    if (['MODERADA','MEDIA'].includes(t)) return 'media';
+    return 'leve';
+  }
+  function gravidadeLabel(g){
+    const t = gravidadeNivel(g);
+    if (t === 'critica') return 'Alta gravidade';
+    if (t === 'media') return 'Moderada';
+    return 'Leve';
+  }
+  function gravidadeBadge(g){
+    const t = gravidadeNivel(g);
+    if (t === 'critica') return '<span class="badge red"><span class="dot"></span>Alta gravidade</span>';
+    if (t === 'media') return '<span class="badge warn"><span class="dot"></span>Moderada</span>';
+    return '<span class="badge muted"><span class="dot"></span>Leve</span>';
+  }
+
+  function fmtData(d){
+    if (!d) return null;
+    const x = new Date(d);
+    if (isNaN(x.getTime())) return null;
+    return `${String(x.getDate()).padStart(2,'0')}/${String(x.getMonth()+1).padStart(2,'0')}/${x.getFullYear()}`;
+  }
+
+  function cardAlergia(a) {
+    const nivel = gravidadeNivel(a.gravidade);
+    const detalhes = [];
+    if (a.reacao) detalhes.push(escapeHtml(a.reacao));
+    if (a.medicoDiagnostico) detalhes.push(escapeHtml(a.medicoDiagnostico));
+    const dataDx = fmtData(a.dataDiagnostico);
+    if (dataDx) detalhes.push(dataDx);
+    return `<div class="severity-card ${nivel} anim anim-d2" onclick="window.location='07-alergia-detalhe.html?id=${encodeURIComponent(a.id)}'">
+      <div class="sev-header">
+        <div class="sev-name">${escapeHtml(a.nome||'—')}</div>
+        ${gravidadeBadge(a.gravidade)}
+      </div>
+      ${detalhes.length ? `<div class="sev-detail">${detalhes.join(' · ')}</div>` : '<div class="sev-detail" style="color:var(--ink4);font-style:italic">Sem detalhes adicionais</div>'}
+    </div>`;
+  }
+
+  async function iniciar() {
+    try {
+      const r = await vitaeAPI.listarAlergias();
+      const lista = r.alergias || r || [];
+      const total = lista.length;
+
+      const criticas = lista.filter(a => gravidadeNivel(a.gravidade) === 'critica');
+      const medias = lista.filter(a => gravidadeNivel(a.gravidade) === 'media');
+      const leves = lista.filter(a => gravidadeNivel(a.gravidade) === 'leve');
+
+      const sub = document.getElementById('alergiasSubtitle');
+      if (total === 0) {
+        sub.textContent = 'Nenhuma cadastrada';
+      } else {
+        const partes = [`${total} cadastrada${total===1?'':'s'}`];
+        if (criticas.length) partes.push(`${criticas.length} crítica${criticas.length===1?'':'s'}`);
+        sub.textContent = partes.join(' · ');
+      }
+
+      const container = document.getElementById('alergiasContainer');
+      if (total === 0) {
+        container.innerHTML = `
+          <div style="margin:0 var(--s5); padding:32px var(--s4); text-align:center; background:var(--surface); border:var(--border); border-radius:var(--r-md);">
+            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px">Nenhuma alergia cadastrada</div>
+            <div style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin-bottom:18px">Cadastrar suas alergias pode salvar uma vida em emergência.</div>
+            <button class="btn btn-primary" style="display:inline-block;padding:12px 24px" onclick="window.location='08-add-alergia.html'">Adicionar primeira alergia</button>
+          </div>`;
+        return;
+      }
+
+      let html = '';
+      if (criticas.length) {
+        html += `<div class="section-label anim anim-d2" style="color: var(--bad)">Críticas (anafilaxia possível)</div>`;
+        html += criticas.map(cardAlergia).join('');
+      }
+      if (medias.length) {
+        html += `<div class="section-label anim anim-d3" style="color: var(--warn)">Moderadas</div>`;
+        html += medias.map(cardAlergia).join('');
+      }
+      if (leves.length) {
+        html += `<div class="section-label anim anim-d4" style="color: var(--ink3)">Leves</div>`;
+        html += leves.map(cardAlergia).join('');
+      }
+      container.innerHTML = html;
+
+    } catch (e) {
+      console.error('[06-alergias] erro', e);
+      document.getElementById('alergiasSubtitle').textContent = 'Sem conexão';
+      document.getElementById('alergiasContainer').innerHTML = `<div style="margin:0 var(--s5); padding:24px; text-align:center; color:var(--bad); font-size:13px">Não consegui buscar suas alergias. <a href="javascript:location.reload()" style="color:var(--green2);font-weight:700">Tentar de novo</a></div>`;
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
+  else iniciar();
+</script>
 
   <div class="tab-bar" style="position:absolute;bottom:0;left:0;right:0;height:80px;display:flex;justify-content:space-around;align-items:flex-start;padding:10px 0 0;background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(0,0,0,0.07);z-index:10;">
     <div class="tab active" onclick="window.location.href='01-saude.html'" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border:none;background:none;font-family:'Plus Jakarta Sans',sans-serif;">
