@@ -47,6 +47,9 @@ model Usuario {
   pushSubscriptions  PushSubscription[]
   secretariaVinculos SecretariaVinculo[] @relation("secretaria_usuario")
 
+  // ---- Fase 2: Documentos Medicos ----
+  documentosRecebidos DocumentoMedico[]   @relation("paciente_documentos")
+
   @@map("usuarios")
 }
 
@@ -291,6 +294,9 @@ model Medico {
   listaEspera       ListaEspera[]
   locaisAtendimento LocalAtendimento[]
   secretarias       SecretariaVinculo[]
+
+  // ---- Fase 2: Documentos Medicos ----
+  documentosAnexados DocumentoMedico[]   @relation("medico_documentos")
 
   // Google Calendar OAuth (read-only). AES-256-GCM.
   googleTokenEnc    String?   @map("google_token_enc") @db.Text
@@ -752,4 +758,33 @@ model PushSubscription {
 
   @@index([usuarioId, ativo])
   @@map("push_subscriptions")
+}
+
+// ---- DOCUMENTOS MEDICOS (Fase 2: medico anexa receita/laudo/encam, paciente baixa) ----
+model DocumentoMedico {
+  id             String    @id @default(uuid())
+  medicoId       String    @map("medico_id")
+  pacienteId     String    @map("paciente_id")
+  agendamentoId  String?   @map("agendamento_id")
+  tipo           String    // RECEITA | LAUDO | ENCAMINHAMENTO | EXAME_PEDIDO | OUTRO
+  nomeArquivo    String    @map("nome_arquivo")
+  urlArquivo     String    @map("url_arquivo") @db.Text
+  caminhoStorage String?   @map("caminho_storage") @db.Text
+  tamanhoBytes   Int       @map("tamanho_bytes")
+  mimeType       String    @map("mime_type")
+  observacao     String?   @db.Text
+  anexadoEm      DateTime  @default(now()) @map("anexado_em")
+  visualizadoEm  DateTime? @map("visualizado_em")
+  baixadoEm      DateTime? @map("baixado_em")
+  deletadoEm     DateTime? @map("deletado_em")
+  criadoEm       DateTime  @default(now()) @map("criado_em")
+  atualizadoEm   DateTime  @updatedAt @map("atualizado_em")
+
+  medico   Medico  @relation("medico_documentos", fields: [medicoId], references: [id], onDelete: Cascade)
+  paciente Usuario @relation("paciente_documentos", fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([pacienteId, deletadoEm])
+  @@index([medicoId, anexadoEm])
+  @@index([agendamentoId])
+  @@map("documentos_medicos")
 }
