@@ -166,6 +166,50 @@
 .compare-b strong{font-weight:800}
 .compare-b em{color:#00C47A;font-style:normal;font-weight:600}
 
+/* PACIENTE DETALHE — layout 3 colunas */
+.pac-det-wrap{padding:20px 24px;max-width:1320px;margin:0 auto}
+.pac-det-grid{display:grid;grid-template-columns:2fr 1.35fr 1.5fr;gap:18px;align-items:start;margin-top:16px}
+@media(max-width:1100px){.pac-det-grid{grid-template-columns:1fr}}
+.pdc{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px}
+.pdc:last-child{margin-bottom:0}
+.pdc-h{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--bg)}
+.pdc-hl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3)}
+.pdc-b{padding:16px 18px}
+.pdc-b .section-lbl{margin-top:0;margin-bottom:10px}
+/* Med rows no detalhe */
+.pac-med-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.pac-med-row:last-child{border-bottom:none}
+.pac-med-ico{width:36px;height:36px;border-radius:9px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pac-med-ico svg{width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pac-med-nm{font-size:13px;font-weight:700;color:var(--t1);line-height:1.2}
+.pac-med-dose{font-size:11.5px;color:var(--t2);margin-top:2px}
+.pac-med-active{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--ok-bg);color:var(--ok);margin-top:4px;display:inline-block}
+/* Alergia rows */
+.pac-al-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.1);margin-bottom:7px}
+.pac-al-row:last-child{margin-bottom:0}
+.pac-al-nm{font-size:13px;font-weight:700;color:var(--bad);flex:1}
+.pac-al-sev{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px}
+.pas-g{background:rgba(239,68,68,.1);color:var(--bad)}
+.pas-m{background:rgba(245,158,11,.1);color:var(--warn)}
+.pas-l{background:rgba(0,196,122,.08);color:var(--ok)}
+/* Tabela de dados */
+.det-row{display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--border)}
+.det-row:last-child{border-bottom:none}
+.det-lbl{font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-top:1px;line-height:1.3}
+.det-val{font-size:13px;color:var(--t1);font-weight:500;line-height:1.4;word-break:break-word}
+/* WhatsApp config */
+.wa-days{display:flex;gap:5px;flex-wrap:wrap}
+.wa-day{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;font-size:10.5px;font-weight:700;cursor:pointer;color:var(--t3);transition:all .15s;font-family:var(--font)}
+.wa-day:hover{background:var(--s2);color:var(--t2)}
+.wa-day.on{background:var(--green);border-color:var(--green);color:var(--dark)}
+.wa-toggle-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.wa-desc{font-size:12.5px;color:var(--t2);line-height:1.5;flex:1}
+.wa-cfg-note{font-size:11px;color:var(--t3);line-height:1.5;background:rgba(59,130,246,.04);border:1px solid rgba(59,130,246,.1);border-radius:8px;padding:8px 10px;margin-top:10px}
+.wa-time-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.wa-time-inp{border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:var(--font);color:var(--t1);background:var(--surface);outline:none;width:90px;transition:border .15s}
+.wa-time-inp:focus{border-color:var(--green)}
+.wa-time-sep{font-size:12px;color:var(--t3);font-weight:600}
+
 /* PACIENTES — 2 colunas (lista + detail timeline) */
 .pat-grid{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start}
 @media(max-width:1024px){.pat-grid{grid-template-columns:1fr}}
@@ -1809,7 +1853,7 @@ function renderPacientes(){
       var metaTxt;
       if(p.anamneses===0)metaTxt='Cadastrado · sem anamnese';
       else metaTxt=p.anamneses+' anamnese'+(p.anamneses>1?'s':'')+(p.status==='warn'?' · alerta':'');
-      html+='<div class="pat-item '+on+'" onclick="STATE.selectedPaciente=\''+p.id+'\';STATE.comparativoLigado=false;renderPacientes()">'+
+      html+='<div class="pat-item '+on+'" onclick="STATE.selectedPaciente=\''+p.id+'\';STATE.comparativoLigado=false;goto(\'pacientes-detail\')">'+
         '<div class="pat-item-av">'+p.ini+'</div>'+
         '<div class="pat-item-info"><div class="pat-item-name">'+p.nome+'</div><div class="pat-item-meta"><span class="pat-pulse '+pulseCls+'"></span>'+metaTxt+'</div></div>'+
       '</div>';
@@ -1893,28 +1937,227 @@ var COMPARE_MOCK = {};
 function renderPacienteDetail(){
   var p=PACIENTES.find(function(x){return x.id===STATE.selectedPaciente;});
   if(!p){goto('pacientes');return;}
-  var eventos=EVENTOS_MOCK[p.id]||[];
-  var html='<button class="pt-detail-back" onclick="goto(\'pacientes\')"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Voltar para lista</button>';
-  html+='<div class="pt-head"><div class="pt-av-big">'+p.ini+'</div><div style="flex:1"><div class="pt-name-big">'+p.nome+'</div><div class="pt-meta-big">'+p.idade+' anos · '+(p.sexo==='F'?'feminino':'masculino')+' · sangue '+p.sangue+' · '+p.telefone+(p.anamneses>0?' · '+p.anamneses+' pré-consulta'+(p.anamneses>1?'s':''):'')+'</div></div><button class="btn btn-p" onclick="modalCriarPC(\''+p.id+'\')" style="height:38px"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Enviar pré-consulta</button></div>';
 
+  var eventos=EVENTOS_MOCK[p.id]||[];
+  var meds=window.MEDS_MOCK&&MEDS_MOCK[p.id]||[];
+  var alergias=window.ALERG_MOCK&&ALERG_MOCK[p.id]||[];
+  var exames=window.EXAMES_MOCK&&EXAMES_MOCK[p.id]||[];
+  var pd=pcState.currentPacienteData||{};
+  var ps=pd.perfilSaude||{};
+  var loaded=!!pd.id;
+  var waOn=!!(DR.config&&DR.config.whatsappHabilitado);
+  var waDias=DR.config&&DR.config.whatsappDias||[1,2,3,4,5];
+  var waH0=DR.config&&DR.config.whatsappHoraInicio||'08:00';
+  var waH1=DR.config&&DR.config.whatsappHoraFim||'19:00';
+  var DIAS_LABELS=['D','S','T','Q','Q','S','S'];
+
+  // ── HEADER ─────────────────────────────────────────────────
+  var html='<div class="pac-det-wrap">';
+  html+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">';
+  html+='<button class="pt-detail-back" onclick="goto(\'pacientes\')" style="margin-bottom:0"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Pacientes</button>';
+  html+='</div>';
+
+  html+='<div class="pt-head">';
+  if(p.fotoUrl){html+='<div class="pt-av-big"><img src="'+escHtml(p.fotoUrl)+'"/></div>';}
+  else{html+='<div class="pt-av-big">'+p.ini+'</div>';}
+  html+='<div style="flex:1;min-width:0">';
+  html+='<div class="pt-name-big">'+escHtml(p.nome)+'</div>';
+  html+='<div class="pt-meta-big">'+p.idade+' anos · '+(p.sexo==='F'?'feminino':'masculino')+' · sangue '+escHtml(p.sangue||'—');
+  if(p.anamneses>0)html+=' · '+p.anamneses+' pré-consulta'+(p.anamneses>1?'s':'');
+  html+='</div>';
+  // Tags: alergias graves
+  if(p.alergiasGraves&&p.alergiasGraves.length){
+    html+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">';
+    p.alergiasGraves.slice(0,3).forEach(function(a){
+      html+='<span style="display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.14);color:var(--bad)">Alérgico: '+escHtml(a)+'</span>';
+    });
+    html+='</div>';
+  }
+  html+='</div>';
+  html+='<div style="display:flex;gap:8px;flex-shrink:0">';
+  html+='<button class="btn btn-p" onclick="modalCriarPC(\''+p.id+'\')" style="height:38px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Enviar pré-consulta</button>';
+  if(p.telefone){html+='<button class="btn btn-s" onclick="window.open(\'https://wa.me/\'+String(\''+escHtml(p.telefone)+'\').replace(/\\D/g,\'\'),\'_blank\')" style="height:38px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</button>';}
+  html+='</div>';
+  html+='</div>';
+
+  // ── 3 COLUNAS ──────────────────────────────────────────────
+  html+='<div class="pac-det-grid">';
+
+  // ── COLUNA 1: Timeline + IA Collab ─────────────────────────
+  html+='<div>';
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Histórico Clínico</span>';
+  if(eventos.length>2)html+='<button class="btn btn-ghost btn-sm" onclick="">Ver tudo</button>';
+  html+='</div>';
+  html+='<div class="pdc-b">';
   if(!eventos.length){
-    html+='<div class="pcn-empty"><div class="pcn-empty-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="pcn-empty-t">Sem anamneses ainda</div><div class="pcn-empty-d">Quando este paciente gravar a primeira pré-consulta, aparece aqui na linha do tempo.</div><button class="btn btn-p" onclick="modalCriarPC(\''+p.id+'\')" style="margin-top:10px">Enviar pré-consulta</button></div>';
+    html+='<div style="padding:24px 0;text-align:center"><div style="font-size:13.5px;font-weight:700;color:var(--t2);margin-bottom:6px">Sem pré-consultas ainda</div><div style="font-size:12.5px;color:var(--t3);line-height:1.6;max-width:320px;margin:0 auto 12px">Quando este paciente concluir a primeira pré-consulta, a evolução clínica aparece aqui.</div><button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')">Enviar pré-consulta</button></div>';
   }else{
-    html+='<div class="section-lbl" style="margin-top:0">Linha do tempo de anamneses</div><div class="tl-strip">';
+    html+='<div class="tl-strip" style="border:none;padding:0 0 0 22px;background:transparent;border-radius:0;margin-bottom:0">';
     eventos.forEach(function(e){
       var click=e.pc?'onclick="openSummary(\''+e.pc+'\')"':'';
       html+='<div class="tl-evt'+(e.warn?' warn':'')+'"><div class="tl-evt-d">'+e.d+'</div><div class="tl-evt-t" '+click+'>'+e.t+'</div><div class="tl-evt-b">'+e.b+'</div></div>';
     });
     html+='</div>';
-    if(eventos.length>=2){
-      if(STATE.comparativoLigado){
-        html+='<div class="compare-card"><div class="compare-t">⊕ IA Collab</div><div class="compare-b">'+(COMPARE_MOCK[p.id]||'—')+'</div></div>';
-      }else{
-        html+='<div class="compare-cta"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente esta anamnese com as anteriores deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="STATE.comparativoLigado=true;renderPacienteDetail()">Comparar com anamneses anteriores</button></div>';
-      }
+  }
+  html+='</div></div>';
+
+  if(eventos.length>=2){
+    if(STATE.comparativoLigado){
+      html+='<div class="compare-card"><div class="compare-t">⊕ IA Collab</div><div class="compare-b">'+(COMPARE_MOCK[p.id]||'—')+'</div></div>';
+    }else{
+      html+='<div class="compare-cta"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente as anamneses deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">⊕ Comparar anamneses</button></div>';
     }
   }
+  html+='</div>';
+
+  // ── COLUNA 2: Meds + Alergias + Exames ─────────────────────
+  html+='<div>';
+
+  // Medicamentos
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Medicamentos em uso</span>';
+  if(p.meds>0)html+='<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--ok-bg);color:var(--ok)">'+p.meds+' ativos</span>';
+  html+='</div><div class="pdc-b" style="padding:8px 18px">';
+  if(meds.length){
+    meds.forEach(function(m){
+      html+='<div class="pac-med-row"><div class="pac-med-ico"><svg viewBox="0 0 24 24"><path d="M10.5 20.5a3.5 3.5 0 0 1-5-5L15 6a3.5 3.5 0 0 1 5 5l-4.5 4.5"/><line x1="9" y1="15" x2="15" y2="9"/></svg></div><div><div class="pac-med-nm">'+escHtml(m.nome)+'</div><div class="pac-med-dose">'+escHtml(m.freq)+'</div><span class="pac-med-active">Ativo</span></div></div>';
+    });
+  }else{
+    html+='<div style="padding:12px 0;font-size:12.5px;color:var(--t3)">'+(loaded?'Nenhum medicamento registrado':'Carregando...')+'</div>';
+  }
+  html+='</div></div>';
+
+  // Alergias
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Alergias</span>';
+  if(p.alergias>0)html+='<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--bad-bg);color:var(--bad)">'+p.alergias+' registradas</span>';
+  html+='</div><div class="pdc-b" style="padding:10px 18px">';
+  if(alergias.length){
+    alergias.forEach(function(a){
+      var sc={grave:'pas-g',moderada:'pas-m',leve:'pas-l'}[a.gravidade]||'pas-l';
+      html+='<div class="pac-al-row"><span class="pac-al-nm">'+escHtml(a.nome)+'</span><span class="pac-al-sev '+sc+'">'+a.gravidade.charAt(0).toUpperCase()+a.gravidade.slice(1)+'</span></div>';
+    });
+  }else{
+    html+='<div style="padding:8px 0;font-size:12.5px;color:var(--t3)">'+(loaded?'Nenhuma alergia registrada':'Carregando...')+'</div>';
+  }
+  html+='</div></div>';
+
+  // Exames
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Exames de '+escHtml(p.nome.split(' ')[0])+'</span></div>';
+  html+='<div class="pdc-b" style="padding:12px 18px">';
+  html+='<div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Buscar exame..." oninput="pdFilterExames(this.value,\''+p.id+'\')" style="width:100%;padding:9px 12px 9px 32px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px;color:var(--t1);outline:none"/></div>';
+  html+='<div id="pd-exames-list-'+p.id+'">';
+  if(exames.length){
+    exames.forEach(function(e){
+      html+='<div class="exame-item" data-nome="'+escHtml(e.nome).toLowerCase()+'" style="border-radius:12px;background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);padding:10px;margin-bottom:10px;cursor:pointer" onclick="'+(e.url?'window.open(\''+escHtml(e.url)+'\',\'_blank\',\'noopener\')':'')+'"><div style="display:flex;gap:12px;align-items:stretch"><div style="width:72px;min-height:80px;border-radius:8px;background:var(--s2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,.14)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0"><div style="font-size:11px;color:var(--t2);font-weight:600;text-transform:capitalize">'+escHtml(e.nome)+'</div><div style="font-size:14px;font-weight:700;color:var(--green)">'+escHtml(e.nome)+'</div><div style="font-size:11px;color:var(--t3)">'+escHtml(e.data)+'</div></div></div></div>';
+    });
+  }else{
+    html+='<div style="text-align:center;padding:20px 8px;color:var(--t3);font-size:13px">'+(loaded?'Nenhum exame registrado':'Carregando...')+'</div>';
+  }
+  html+='</div>';
+  html+='</div></div>';
+  html+='</div>'; // col 2
+
+  // ── COLUNA 3: Retorno + WhatsApp + Detalhes ─────────────────
+  html+='<div>';
+
+  // Retorno + WhatsApp lado a lado
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">';
+
+  // Próximo Retorno
+  var agend=(pd.proximoAgendamento)||null;
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Próximo Retorno</span></div>';
+  if(agend&&agend.dataHora){
+    var dA=new Date(agend.dataHora);
+    var dAStr=dA.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+    html+='<div class="pdc-b"><div style="font-size:18px;font-weight:900;letter-spacing:-.4px;color:var(--t1);line-height:1">'+dAStr+'</div>';
+    html+='<div style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:7px;background:var(--ok-bg);color:var(--ok);border:1px solid rgba(0,196,122,.18)"><span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span>Agendado</div>';
+    html+='<div style="display:flex;gap:6px;margin-top:10px"><button class="btn btn-s btn-sm">Reagendar</button></div>';
+    html+='</div>';
+  }else{
+    html+='<div class="pdc-b"><div style="font-size:12.5px;color:var(--t3);line-height:1.5;margin-bottom:10px">Nenhum retorno agendado para este paciente.</div><button class="btn btn-p btn-sm" style="width:100%;justify-content:center">+ Marcar retorno</button></div>';
+  }
+  html+='</div>';
+
+  // WhatsApp toggle
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Contato Direto</span></div>';
+  html+='<div class="pdc-b"><div class="wa-toggle-row">';
+  html+='<span class="wa-desc" id="wa-det-desc">'+(waOn?'Seu número visível para o paciente.':'Paciente não pode iniciar contato.')+'</span>';
+  html+='<div class="toggle-sw'+(waOn?' on':'')+'" onclick="pdToggleWa()" style="flex-shrink:0;margin-top:2px"></div>';
+  html+='</div>';
+  if(waOn&&(DR.telefone||DR.config&&DR.config.whatsappNumero)){html+='<div style="font-size:11.5px;color:var(--t2);margin-top:6px;font-weight:600">'+(DR.config&&DR.config.whatsappNumero||DR.telefone||'')+'</div>';}
+  html+='</div></div>';
+  html+='</div>'; // retorno+wa grid
+
+  // Config WhatsApp
+  html+='<div class="pdc" style="margin-bottom:14px">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Configurações de contato</span><button class="btn btn-ghost btn-sm" onclick="pdSaveWaConfig()">Salvar</button></div>';
+  html+='<div class="pdc-b">';
+  html+='<div style="font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Dias disponíveis</div>';
+  html+='<div class="wa-days" id="wa-det-days">';
+  DIAS_LABELS.forEach(function(l,i){html+='<button class="wa-day'+(waDias.indexOf(i)>-1?' on':'')+'" onclick="pdToggleWaDia('+i+')">'+l+'</button>';});
+  html+='</div>';
+  html+='<div style="font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin:12px 0 7px">Horário</div>';
+  html+='<div class="wa-time-row"><input class="wa-time-inp" id="wa-h0" type="time" value="'+waH0+'"/><span class="wa-time-sep">até</span><input class="wa-time-inp" id="wa-h1" type="time" value="'+waH1+'"/></div>';
+  html+='<div class="wa-cfg-note">Fora deste horário o paciente vê quando você estará disponível.</div>';
+  html+='</div></div>';
+
+  // Dados do paciente
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Dados do Paciente</span></div>';
+  html+='<div class="pdc-b" style="padding:4px 18px">';
+  var detRows=[
+    ['CPF',ps.cpf||(pd.cpf)||'—'],
+    ['Telefone',p.telefone||'—'],
+    ['E-mail',pd.email||'—'],
+    ['Convênio',ps.planoSaude||'—'],
+    ['Carteirinha',ps.carteirinhaPlano||'—'],
+    ['Cidade',loaded?(((ps.cidade||'')+(ps.uf?' · '+ps.uf:''))||'—'):'—'],
+    ['Cadastro',pd.criadoEm?'Há '+Math.round((Date.now()-new Date(pd.criadoEm))/(1000*60*60*24*30))+' meses':'—'],
+    ['Hist. familiar',ps.historicoFamiliar||'—']
+  ];
+  detRows.forEach(function(r){
+    html+='<div class="det-row"><span class="det-lbl">'+r[0]+'</span><span class="det-val">'+escHtml(String(r[1]))+'</span></div>';
+  });
+  html+='</div></div>';
+  html+='</div>'; // col 3
+
+  html+='</div>'; // pac-det-grid
+  html+='</div>'; // pac-det-wrap
   $('v-pacientes-detail').innerHTML=html;
+}
+
+function pdFilterExames(q,pid){
+  q=q.toLowerCase();
+  var el=document.getElementById('pd-exames-list-'+pid);
+  if(!el)return;
+  el.querySelectorAll('.exame-item').forEach(function(c){c.style.display=c.getAttribute('data-nome').includes(q)?'':'none';});
+}
+function pdToggleWa(){
+  if(!DR.config)DR.config={};
+  DR.config.whatsappHabilitado=!DR.config.whatsappHabilitado;
+  var el=document.querySelector('.toggle-sw[onclick="pdToggleWa()"]');
+  var desc=document.getElementById('wa-det-desc');
+  if(el)el.classList.toggle('on',DR.config.whatsappHabilitado);
+  if(desc)desc.textContent=DR.config.whatsappHabilitado?'Seu número visível para o paciente.':'Paciente não pode iniciar contato.';
+}
+function pdToggleWaDia(i){
+  if(!DR.config)DR.config={};
+  if(!DR.config.whatsappDias)DR.config.whatsappDias=[1,2,3,4,5];
+  var idx=DR.config.whatsappDias.indexOf(i);
+  if(idx>-1)DR.config.whatsappDias.splice(idx,1);else DR.config.whatsappDias.push(i);
+  document.querySelectorAll('#wa-det-days .wa-day').forEach(function(b,j){b.classList.toggle('on',DR.config.whatsappDias.indexOf(j)>-1);});
+}
+function pdSaveWaConfig(){
+  if(!DR.config)DR.config={};
+  var h0=document.getElementById('wa-h0'),h1=document.getElementById('wa-h1');
+  if(h0)DR.config.whatsappHoraInicio=h0.value;
+  if(h1)DR.config.whatsappHoraFim=h1.value;
+  showToast('Configurações salvas.','ok');
 }
 
 /* ============================================================

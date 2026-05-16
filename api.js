@@ -88,7 +88,7 @@ function logout() {
   localStorage.removeItem('vitae_token');
   localStorage.removeItem('vitae_refresh_token');
   localStorage.removeItem('vitae_usuario');
-  window.location.href = '00-escolha.html';
+  window.location.href = '03-cadastro.html';
 }
 
 function isLoggedIn() {
@@ -98,7 +98,7 @@ function isLoggedIn() {
 // Redireciona para login se nao estiver logado
 function requireAuth() {
   if (!isLoggedIn()) {
-    window.location.href = '00-escolha.html';
+    window.location.href = '03-cadastro.html';
     return false;
   }
   return true;

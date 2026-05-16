@@ -82,20 +82,10 @@ const { chromium } = require('playwright');
   await page.fill('#msgWpp', 'ola meu nome e tiozedu').catch(() => {});
   await page.screenshot({ path: 'd:/vitae-app-novo/tests/shots/debug-quiz-passo5-antes.png', fullPage: true });
 
-  // Limpa requests pra capturar SÓ o que acontece no Salvar
   console.log('\n--- Clicando "Salvar e continuar" ---');
-  const reqsBefore = requests.length;
   await page.click('text=Salvar e continuar');
   await page.waitForTimeout(8000);
   await page.screenshot({ path: 'd:/vitae-app-novo/tests/shots/debug-quiz-passo5-depois.png', fullPage: true });
-
-  console.log('\n=== REQUESTS DURANTE O SALVAR ===');
-  requests.slice(reqsBefore).forEach((r, i) => {
-    if (r.phase === 'response') {
-      console.log(`${r.status} ${r.method} ${r.url}`);
-      if (r.body) console.log('   body: ' + r.body);
-    }
-  });
 
   // Verifica se erro está visível
   const erroVisivel = await page.locator('text=/Recurso não encontrado/').count();
