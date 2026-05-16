@@ -547,6 +547,20 @@ const vitaeAPI = {
     return apiRequest(`/agendamento/${id}/cancelar`, { method: 'POST', body: { motivo } });
   },
 
+  // Documentos Medicos (Fase 2) — paciente baixa docs que medico anexou
+  async listarMeusDocumentos() {
+    return apiRequest('/documentos/meus');
+  },
+  async listarDocumentosConsulta(agendamentoId) {
+    return apiRequest(`/documentos/consulta/${agendamentoId}`);
+  },
+  async getDocumento(id) {
+    return apiRequest(`/documentos/${id}`);
+  },
+  async baixarDocumento(id) {
+    return apiRequest(`/documentos/${id}/baixar`);
+  },
+
   // ===== Modulo Agenda v1 (sessao 26-abr-2026) =====
   async agendaConfig() { return apiRequest('/agenda/config'); },
   async agendaConfigSalvar(dados) { return apiRequest('/agenda/config', { method: 'PUT', body: dados }); },
