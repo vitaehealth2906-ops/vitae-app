@@ -46,6 +46,28 @@
         .empty-state { text-align:center; padding:40px 20px; color:#9CA3AF; font-size:14px; }
         .empty-state .icon { font-size:48px; margin-bottom:16px; }
 
+        /* Retorno proposto pelo medico */
+        .ret-section { margin-bottom:22px; }
+        .ret-section-title { font-size:11px; font-weight:700; color:#9CA3AF; text-transform:uppercase; letter-spacing:.12em; margin-bottom:10px; padding-left:4px; }
+        .ret-card { background:#FFFFFF; border:1px solid rgba(0,0,0,0.07); border-radius:18px; padding:18px; margin-bottom:12px; box-shadow:0 1px 12px rgba(0,0,0,0.07); position:relative; }
+        .ret-card.aguardando { border-left:4px solid #F59E0B; }
+        .ret-card.confirmado { border-left:4px solid #00C47A; }
+        .ret-card.aguardando-medico { border-left:4px solid #00B4D8; }
+        .ret-medico { font-size:12px; color:#9CA3AF; margin-bottom:6px; font-weight:600; }
+        .ret-data { font-size:22px; font-weight:900; color:#0D0F14; letter-spacing:-.5px; line-height:1; margin-bottom:6px; }
+        .ret-data-anterior { font-size:11.5px; color:#9CA3AF; text-decoration:line-through; margin-bottom:8px; }
+        .ret-status-row { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+        .ret-status-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+        .ret-status-txt { font-size:12.5px; font-weight:600; }
+        .ret-meta { font-size:11.5px; color:#9CA3AF; margin-bottom:14px; line-height:1.4; }
+        .ret-obs { font-size:12.5px; color:#4B5563; line-height:1.5; background:#F4F6FA; border-radius:10px; padding:10px 12px; margin-bottom:14px; font-style:italic; }
+        .ret-actions { display:flex; gap:8px; flex-wrap:wrap; }
+        .ret-btn-p { flex:1; min-width:0; padding:11px 14px; background:linear-gradient(120deg,#00E5A0,#00B4D8); border:none; border-radius:12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:700; color:#fff; cursor:pointer; }
+        .ret-btn-s { padding:11px 14px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.07); border-radius:12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600; color:#4B5563; cursor:pointer; }
+        .ret-btn-d { padding:11px 14px; background:#FFFFFF; border:1px solid rgba(239,68,68,0.18); border-radius:12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600; color:#EF4444; cursor:pointer; }
+        .field-textarea { width:100%; padding:14px 16px; background:#FFFFFF; border:1.5px solid rgba(0,0,0,0.07); border-radius:12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; color:#0D0F14; outline:none; resize:vertical; min-height:80px; }
+        .modal-btn-s { width:100%; padding:14px; background:#FFFFFF; border:1px solid rgba(0,0,0,0.07); border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:600; color:#4B5563; cursor:pointer; margin-top:8px; }
+
         /* Modal */
         .modal-overlay { position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.3); z-index:50; opacity:0; pointer-events:none; transition:opacity 0.3s; }
         .modal-overlay.active { opacity:1; pointer-events:all; }
@@ -77,6 +99,12 @@
     </div>
 
     <div class="content">
+        <!-- Retornos propostos pelo medico (Feature 1) -->
+        <div id="retornosSection" class="ret-section" style="display:none">
+            <div class="ret-section-title">Propostos pelo seu médico</div>
+            <div id="retornosList"></div>
+        </div>
+
         <button class="add-btn" onclick="openModal()">+ Novo agendamento</button>
         <div id="agendaList">
             <div class="empty-state" id="emptyState">
@@ -86,6 +114,7 @@
         </div>
     </div>
 
+    <!-- Modal: criar agendamento novo -->
     <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
         <div class="modal" onclick="event.stopPropagation()">
             <div class="modal-title">Novo Agendamento</div>
@@ -98,6 +127,38 @@
                 <input class="field-input" type="datetime-local" id="dataInput">
             </div>
             <button class="modal-btn" onclick="criar()">Criar agendamento</button>
+        </div>
+    </div>
+
+    <!-- Modal: recusar retorno -->
+    <div class="modal-overlay" id="recusaOverlay" onclick="closeRecusa()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-title">Recusar retorno</div>
+            <div style="font-size:13px;color:#6B7280;margin-bottom:14px;line-height:1.5">Conta pro seu médico o motivo (opcional). Ele pode te propor outra data.</div>
+            <div class="field">
+                <div class="field-label">Motivo (opcional)</div>
+                <textarea class="field-textarea" id="recusaMotivoInp" placeholder="Ex: vou estar viajando"></textarea>
+            </div>
+            <button class="modal-btn" id="recusaSubmit" onclick="enviarRecusa()">Recusar retorno</button>
+            <button class="modal-btn-s" onclick="closeRecusa()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Modal: remarcar retorno -->
+    <div class="modal-overlay" id="remarcaOverlay" onclick="closeRemarca()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-title">Propor outra data</div>
+            <div style="font-size:13px;color:#6B7280;margin-bottom:14px;line-height:1.5">Seu médico vai receber e decidir se aceita.</div>
+            <div class="field">
+                <div class="field-label">Nova data</div>
+                <input class="field-input" type="date" id="remarcaDateInp">
+            </div>
+            <div class="field">
+                <div class="field-label">Motivo (opcional)</div>
+                <textarea class="field-textarea" id="remarcaMotivoInp" placeholder="Ex: tenho compromisso nesse dia"></textarea>
+            </div>
+            <button class="modal-btn" id="remarcaSubmit" onclick="enviarRemarca()">Enviar nova proposta</button>
+            <button class="modal-btn-s" onclick="closeRemarca()">Cancelar</button>
         </div>
     </div>
 </div>
@@ -189,6 +250,137 @@
         }
     }
 
+    // ===== Proximo Retorno (Feature 1) =====
+    let _retornoSelecionado = null;
+
+    function _fmtData(d) {
+        try { return new Date(d).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' }); }
+        catch(_e){ return d; }
+    }
+
+    async function loadRetornosPendentes() {
+        if (typeof vitaeAPI.listarRetornosPendentes !== 'function') return;
+        try {
+            const data = await vitaeAPI.listarRetornosPendentes();
+            const retornos = (data && data.retornos) || [];
+            const section = document.getElementById('retornosSection');
+            const list = document.getElementById('retornosList');
+            if (!retornos.length) { section.style.display = 'none'; return; }
+            section.style.display = 'block';
+            list.innerHTML = retornos.map(r => {
+                const st = r.statusProposta;
+                const cfgs = {
+                    AGUARDANDO_PACIENTE: { cls:'aguardando', cor:'#F59E0B', txt:'Aguarda sua resposta' },
+                    AGUARDANDO_MEDICO:   { cls:'aguardando-medico', cor:'#00B4D8', txt:'Aguardando seu médico' },
+                    CONFIRMADO:          { cls:'confirmado', cor:'#00C47A', txt:'Confirmado' },
+                };
+                const c = cfgs[st] || cfgs.AGUARDANDO_PACIENTE;
+                let actions = '';
+                if (st === 'AGUARDANDO_PACIENTE') {
+                    actions = `
+                        <button class="ret-btn-p" onclick="confirmarRet('${r.id}')">Confirmar</button>
+                        <button class="ret-btn-s" onclick="abrirRemarca('${r.id}')">Outra data</button>
+                        <button class="ret-btn-d" onclick="abrirRecusa('${r.id}')">Recusar</button>`;
+                } else if (st === 'CONFIRMADO') {
+                    actions = `<button class="ret-btn-s" onclick="abrirRemarca('${r.id}')">Preciso remarcar</button>`;
+                } else if (st === 'AGUARDANDO_MEDICO') {
+                    actions = `<div style="font-size:12px;color:#9CA3AF;padding:6px 0">Seu médico ainda não respondeu.</div>`;
+                }
+                const obsHtml = r.observacoes ? `<div class="ret-obs">"${_escape(r.observacoes)}"</div>` : '';
+                const dataAntHtml = r.dataAnterior ? `<div class="ret-data-anterior">Era ${_fmtData(r.dataAnterior)}</div>` : '';
+                return `
+                <div class="ret-card ${c.cls}">
+                    <div class="ret-medico">${_escape(r.medico || 'Seu médico')}</div>
+                    <div class="ret-data">${_fmtData(r.dataHora)}</div>
+                    ${dataAntHtml}
+                    <div class="ret-status-row"><div class="ret-status-dot" style="background:${c.cor}"></div><div class="ret-status-txt" style="color:${c.cor}">${c.txt}</div></div>
+                    ${r.local ? `<div class="ret-meta">${_escape(r.local)}</div>` : ''}
+                    ${obsHtml}
+                    <div class="ret-actions">${actions}</div>
+                </div>`;
+            }).join('');
+        } catch (_e) {
+            // silencioso — backend pode estar sem migration aplicada ainda
+        }
+    }
+
+    function _escape(s) {
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    async function confirmarRet(id) {
+        try {
+            await vitaeAPI.confirmarRetorno(id);
+            await loadRetornosPendentes();
+            await loadAgendamentos();
+        } catch (e) {
+            alert(e.message || 'Não consegui confirmar agora. Tenta de novo.');
+        }
+    }
+
+    function abrirRecusa(id) {
+        _retornoSelecionado = id;
+        document.getElementById('recusaMotivoInp').value = '';
+        document.getElementById('recusaOverlay').classList.add('active');
+    }
+    function closeRecusa() {
+        _retornoSelecionado = null;
+        document.getElementById('recusaOverlay').classList.remove('active');
+    }
+    async function enviarRecusa() {
+        const id = _retornoSelecionado;
+        if (!id) return;
+        const motivo = document.getElementById('recusaMotivoInp').value.trim();
+        const btn = document.getElementById('recusaSubmit');
+        btn.disabled = true; btn.textContent = 'Enviando…';
+        try {
+            await vitaeAPI.recusarRetorno(id, motivo || undefined);
+            closeRecusa();
+            await loadRetornosPendentes();
+            await loadAgendamentos();
+        } catch (e) {
+            alert(e.message || 'Falhou. Tenta de novo.');
+        } finally {
+            btn.disabled = false; btn.textContent = 'Recusar retorno';
+        }
+    }
+
+    function abrirRemarca(id) {
+        _retornoSelecionado = id;
+        const inp = document.getElementById('remarcaDateInp');
+        const min = new Date(Date.now() + 86400000);
+        inp.min = min.toISOString().slice(0,10);
+        const def = new Date(Date.now() + 86400000 * 30);
+        inp.value = def.toISOString().slice(0,10);
+        document.getElementById('remarcaMotivoInp').value = '';
+        document.getElementById('remarcaOverlay').classList.add('active');
+    }
+    function closeRemarca() {
+        _retornoSelecionado = null;
+        document.getElementById('remarcaOverlay').classList.remove('active');
+    }
+    async function enviarRemarca() {
+        const id = _retornoSelecionado;
+        if (!id) return;
+        const date = document.getElementById('remarcaDateInp').value;
+        const motivo = document.getElementById('remarcaMotivoInp').value.trim();
+        if (!date) { alert('Escolha uma data'); return; }
+        const novaDataHora = new Date(date + 'T09:00:00').toISOString();
+        const btn = document.getElementById('remarcaSubmit');
+        btn.disabled = true; btn.textContent = 'Enviando…';
+        try {
+            await vitaeAPI.remarcarRetorno(id, novaDataHora, motivo || undefined);
+            closeRemarca();
+            await loadRetornosPendentes();
+            await loadAgendamentos();
+        } catch (e) {
+            alert(e.message || 'Falhou. Tenta de novo.');
+        } finally {
+            btn.disabled = false; btn.textContent = 'Enviar nova proposta';
+        }
+    }
+
+    loadRetornosPendentes();
     loadAgendamentos();
 </script>
 </body>

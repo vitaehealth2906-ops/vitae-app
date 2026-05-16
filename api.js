@@ -525,6 +525,23 @@ const vitaeAPI = {
     return apiRequest(`/agendamento/${id}`, { method: 'DELETE' });
   },
 
+  // Proximo Retorno (Feature 1) — paciente confirma/recusa/remarca
+  async listarRetornosPendentes() {
+    return apiRequest('/agendamento/retornos-pendentes');
+  },
+  async confirmarRetorno(id) {
+    return apiRequest(`/agendamento/${id}/confirmar`, { method: 'POST' });
+  },
+  async recusarRetorno(id, motivo) {
+    return apiRequest(`/agendamento/${id}/recusar`, { method: 'POST', body: { motivo } });
+  },
+  async remarcarRetorno(id, novaDataHora, motivo) {
+    return apiRequest(`/agendamento/${id}/remarcar`, { method: 'POST', body: { novaDataHora, motivo } });
+  },
+  async cancelarRetorno(id, motivo) {
+    return apiRequest(`/agendamento/${id}/cancelar`, { method: 'POST', body: { motivo } });
+  },
+
   // ===== Modulo Agenda v1 (sessao 26-abr-2026) =====
   async agendaConfig() { return apiRequest('/agenda/config'); },
   async agendaConfigSalvar(dados) { return apiRequest('/agenda/config', { method: 'PUT', body: dados }); },
