@@ -5,21 +5,55 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>vitaid · Preview · Nova Aba Pacientes</title>
 <script>
-// ===== PREVIEW MODE — bypass de auth com mock médico =====
+// ===== PREVIEW MODE — bypass de auth + interceptor de fetch =====
 (function(){
-  if (!localStorage.getItem('vitae_token')) {
-    localStorage.setItem('vitae_token', 'preview-mock-token');
-    localStorage.setItem('vitae_usuario', JSON.stringify({
-      id: 'preview-med-1',
-      nome: 'Dra. Helena Souza',
-      email: 'helena@preview.vitaid',
-      tipo: 'MEDICO',
-      especialidade: 'Clínica Geral',
-      crm: 'CRM/SP 123456'
-    }));
-  }
+  localStorage.setItem('vitae_token', 'preview-mock-token');
+  localStorage.setItem('vitae_refresh_token', 'preview-mock-refresh');
+  localStorage.setItem('vitae_usuario', JSON.stringify({
+    id: 'preview-med-1',
+    nome: 'Dra. Helena Souza',
+    email: 'helena@preview.vitaid',
+    tipo: 'MEDICO',
+    especialidade: 'Clínica Geral',
+    crm: 'CRM/SP 123456'
+  }));
   window.__PREVIEW_MODE = true;
   window.__ACC_VERSION = localStorage.getItem('preview_acc_version') || 'C';
+
+  // Intercepta fetch pra nunca chamar o backend real no preview
+  var _fetch = window.fetch;
+  window.fetch = function(url, opts){
+    var s = String(url);
+    // Deixa passar: fontes, CSS, assets locais
+    if (!s.includes('railway') && !s.includes('vitae-app-production')) return _fetch(url, opts);
+    // Mock respostas do backend
+    var path = s.replace(/^https?:\/\/[^/]+/, '');
+    var mockData = {
+      ok: true, status: 200,
+      json: function(){ return Promise.resolve(mockResponse(path)); },
+      text: function(){ return Promise.resolve(''); }
+    };
+    return Promise.resolve(mockData);
+  };
+
+  function mockResponse(path){
+    if (path.includes('/auth/refresh')) return { token:'preview-mock-token', refreshToken:'preview-mock-refresh' };
+    if (path.includes('/medico/me') || path.includes('/medico/dashboard')) return {
+      id:'preview-med-1', nome:'Dra. Helena Souza', email:'helena@preview.vitaid',
+      crm:'123456', uf:'SP', especialidade:'Clínica Geral', clinica:'Clínica Vida',
+      fotoUrl:null, metricasConfig:null,
+      stats:{ totalPacientes:3, preConsultasRespondidas:5, preConsultasPendentes:2 }
+    };
+    if (path.includes('/pre-consulta') && path.includes('listar')) return { preConsultas:[] };
+    if (path.includes('/pre-consulta')) return { preConsultas:[], total:0 };
+    if (path.includes('/agendamento')) return { agendamentos:[] };
+    if (path.includes('/templates')) return { templates:[] };
+    if (path.includes('/notificacoes')) return { notificacoes:[] };
+    if (path.includes('/metricas')) return { metricas:{ tempoEconomizadoMin:0, receita:0 }, precisao:50 };
+    if (path.includes('/agenda')) return { slots:[], sincronizadoEm:null };
+    if (path.includes('/pacientes')) return { pacientes:[] };
+    return {};
+  }
 })();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
