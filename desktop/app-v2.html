@@ -1943,6 +1943,16 @@ function renderPacienteDetail(){
   var alergias=window.ALERG_MOCK&&ALERG_MOCK[p.id]||[];
   var exames=window.EXAMES_MOCK&&EXAMES_MOCK[p.id]||[];
   var pd=pcState.currentPacienteData||{};
+  // Carrega retornos async (1x por paciente carregado) e re-renderiza quando chegar
+  if(pd&&pd.id&&typeof pd.proximoAgendamento==='undefined'&&!pd._retornoCarregando){
+    pd._retornoCarregando=true;
+    (async function(){
+      var ag=await prCarregarRetornos(pd.id);
+      pd.proximoAgendamento=ag||null;
+      pd._retornoCarregando=false;
+      if(STATE.selectedPaciente===p.id) renderPacienteDetail();
+    })();
+  }
   var ps=pd.perfilSaude||{};
   var loaded=!!pd.id;
   var waOn=!!(DR.config&&DR.config.whatsappHabilitado);
@@ -2066,19 +2076,43 @@ function renderPacienteDetail(){
   // Retorno + WhatsApp lado a lado
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">';
 
-  // Próximo Retorno
+  // Próximo Retorno — fluxo completo (medico propoe -> paciente confirma/recusa/remarca)
   var agend=(pd.proximoAgendamento)||null;
+  var pacId=pd.id||p.id||'';
   html+='<div class="pdc">';
   html+='<div class="pdc-h"><span class="pdc-hl">Próximo Retorno</span></div>';
   if(agend&&agend.dataHora){
     var dA=new Date(agend.dataHora);
     var dAStr=dA.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+    var st=agend.statusProposta||'AGENDADO';
+    var stCfg={
+      AGUARDANDO_PACIENTE:{cor:'var(--warn)',bg:'var(--warn-bg)',txt:'Aguardando paciente confirmar',brd:'rgba(245,158,11,.18)'},
+      AGUARDANDO_MEDICO:{cor:'var(--warn)',bg:'var(--warn-bg)',txt:'Paciente remarcou · aguarda sua confirmação',brd:'rgba(245,158,11,.18)'},
+      CONFIRMADO:{cor:'var(--ok)',bg:'var(--ok-bg)',txt:'Confirmado pelo paciente',brd:'rgba(0,196,122,.18)'},
+      RECUSADO:{cor:'var(--bad)',bg:'var(--bad-bg)',txt:'Recusado pelo paciente',brd:'rgba(239,68,68,.18)'},
+      CANCELADO:{cor:'var(--t3)',bg:'var(--s2)',txt:'Cancelado',brd:'var(--border)'},
+      AGENDADO:{cor:'var(--ok)',bg:'var(--ok-bg)',txt:'Agendado',brd:'rgba(0,196,122,.18)'}
+    };
+    var c=stCfg[st]||stCfg.AGENDADO;
     html+='<div class="pdc-b"><div style="font-size:18px;font-weight:900;letter-spacing:-.4px;color:var(--t1);line-height:1">'+dAStr+'</div>';
-    html+='<div style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:7px;background:var(--ok-bg);color:var(--ok);border:1px solid rgba(0,196,122,.18)"><span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span>Agendado</div>';
-    html+='<div style="display:flex;gap:6px;margin-top:10px"><button class="btn btn-s btn-sm">Reagendar</button></div>';
-    html+='</div>';
+    html+='<div style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:7px;background:'+c.bg+';color:'+c.cor+';border:1px solid '+c.brd+'"><span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span>'+c.txt+'</div>';
+    if(agend.motivoStatus){
+      html+='<div style="font-size:11.5px;color:var(--t3);margin-top:8px;line-height:1.45;font-style:italic">"'+escHtml(agend.motivoStatus)+'"</div>';
+    }
+    // Acoes contextuais por status
+    html+='<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">';
+    if(st==='AGUARDANDO_MEDICO'){
+      html+='<button class="btn btn-p btn-sm" onclick="prConfirmarMedico(\''+escHtml(agend.id)+'\')">Aceitar nova data</button>';
+      html+='<button class="btn btn-s btn-sm" onclick="prAbrirRemarcarMedico(\''+escHtml(agend.id)+'\')">Propor outra</button>';
+    }else if(st==='RECUSADO'||st==='CANCELADO'){
+      html+='<button class="btn btn-p btn-sm" onclick="prAbrirMarcarRetorno(\''+escHtml(pacId)+'\')">Propor novo retorno</button>';
+    }else if(st==='AGUARDANDO_PACIENTE'||st==='CONFIRMADO'||st==='AGENDADO'){
+      html+='<button class="btn btn-s btn-sm" onclick="prAbrirRemarcarMedico(\''+escHtml(agend.id)+'\')">Reagendar</button>';
+      html+='<button class="btn btn-ghost btn-sm" onclick="prCancelarRetorno(\''+escHtml(agend.id)+'\')">Cancelar</button>';
+    }
+    html+='</div></div>';
   }else{
-    html+='<div class="pdc-b"><div style="font-size:12.5px;color:var(--t3);line-height:1.5;margin-bottom:10px">Nenhum retorno agendado para este paciente.</div><button class="btn btn-p btn-sm" style="width:100%;justify-content:center">+ Marcar retorno</button></div>';
+    html+='<div class="pdc-b"><div style="font-size:12.5px;color:var(--t3);line-height:1.5;margin-bottom:10px">Nenhum retorno agendado para este paciente.</div><button class="btn btn-p btn-sm" style="width:100%;justify-content:center" onclick="prAbrirMarcarRetorno(\''+escHtml(pacId)+'\')">+ Marcar retorno</button></div>';
   }
   html+='</div>';
 
@@ -2158,6 +2192,204 @@ function pdSaveWaConfig(){
   if(h0)DR.config.whatsappHoraInicio=h0.value;
   if(h1)DR.config.whatsappHoraFim=h1.value;
   showToast('Configurações salvas.','ok');
+}
+
+/* ============================================================
+   PRÓXIMO RETORNO — Feature 1 (médico propõe -> paciente confirma)
+   Rotas usadas:
+     POST   /agendamento/propor-retorno
+     POST   /agendamento/:id/confirmar
+     POST   /agendamento/:id/recusar  (lado paciente)
+     POST   /agendamento/:id/remarcar (lado paciente)
+     POST   /agendamento/:id/cancelar
+     GET    /agendamento/paciente/:id/retornos
+   ============================================================ */
+
+function _prMinDateAttr(){
+  var d=new Date(Date.now()+1000*60*60*24); // amanha
+  return d.toISOString().slice(0,10);
+}
+function _prDefaultDate(){
+  var d=new Date(Date.now()+1000*60*60*24*30); // ~30 dias
+  return d.toISOString().slice(0,10);
+}
+function _prFmt(d){
+  try{ return new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}); }catch(_e){ return d; }
+}
+
+function prAbrirMarcarRetorno(pacienteId){
+  if(!pacienteId){ toast('Paciente sem ID — recarregue a tela'); return; }
+  var html=''
+    +'<div class="modal-h"><div style="font-size:18px;font-weight:900;letter-spacing:-.4px">Marcar retorno</div>'
+      +'<button class="btn btn-ghost btn-sm" onclick="closeModal()">Fechar</button></div>'
+    +'<div class="modal-b">'
+      +'<div style="font-size:12.5px;color:var(--t3);line-height:1.55;margin-bottom:16px">O paciente recebe um aviso e pode confirmar, recusar ou propor outra data.</div>'
+      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Data do retorno</label>'
+      +'<input id="prDateInp" type="date" min="'+_prMinDateAttr()+'" value="'+_prDefaultDate()+'" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;font-weight:600"/>'
+      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Local (opcional)</label>'
+      +'<input id="prLocalInp" type="text" placeholder="Consultório, hospital, telemedicina…" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none"/>'
+      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Observação (opcional)</label>'
+      +'<textarea id="prObsInp" rows="3" placeholder="Ex: trazer exames recentes" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;resize:vertical"></textarea>'
+    +'</div>'
+    +'<div class="modal-f"><button class="btn btn-s" onclick="closeModal()">Cancelar</button>'
+      +'<button class="btn btn-p" id="prSubmitBtn" onclick="prProporRetorno(\''+pacienteId+'\')">Enviar proposta</button></div>';
+  openModal(html);
+  setTimeout(function(){ var i=document.getElementById('prDateInp'); if(i)i.focus(); },50);
+}
+
+async function prProporRetorno(pacienteId){
+  if(!window.BACKEND||!window.BACKEND.api){ toast('Sistema indisponível'); return; }
+  var dateInp=document.getElementById('prDateInp');
+  var localInp=document.getElementById('prLocalInp');
+  var obsInp=document.getElementById('prObsInp');
+  var btn=document.getElementById('prSubmitBtn');
+  if(!dateInp||!dateInp.value){ toast('Escolha uma data'); return; }
+  var dataHora=new Date(dateInp.value+'T09:00:00');
+  if(dataHora<=new Date()){ toast('Data deve ser no futuro'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='Enviando…'; }
+  try{
+    var res=await window.BACKEND.api('/agendamento/propor-retorno',{
+      method:'POST',
+      body:{
+        pacienteId:pacienteId,
+        dataHora:dataHora.toISOString(),
+        local:(localInp&&localInp.value)||undefined,
+        observacoes:(obsInp&&obsInp.value)||undefined
+      }
+    });
+    if(res&&res.agendamento){
+      closeModal();
+      toast('Retorno proposto. Paciente foi avisado.');
+      // Atualiza pd.proximoAgendamento na tela
+      try{
+        var pd=(STATE&&STATE.pacienteDetalheCache)||{};
+        if(pd[pacienteId])pd[pacienteId].proximoAgendamento=res.agendamento;
+      }catch(_e){}
+      if(typeof renderPacienteDetail==='function') renderPacienteDetail();
+    }else{
+      toast((res&&res.erro)||'Erro ao propor retorno');
+      if(btn){ btn.disabled=false; btn.textContent='Enviar proposta'; }
+    }
+  }catch(err){
+    toast('Falha de rede — tente novamente');
+    if(btn){ btn.disabled=false; btn.textContent='Enviar proposta'; }
+  }
+}
+
+function prAbrirRemarcarMedico(agendamentoId){
+  if(!agendamentoId){ toast('Agendamento sem ID'); return; }
+  var html=''
+    +'<div class="modal-h"><div style="font-size:18px;font-weight:900;letter-spacing:-.4px">Reagendar retorno</div>'
+      +'<button class="btn btn-ghost btn-sm" onclick="closeModal()">Fechar</button></div>'
+    +'<div class="modal-b">'
+      +'<div style="font-size:12.5px;color:var(--t3);line-height:1.55;margin-bottom:16px">Proponha uma nova data. O paciente recebe aviso e pode confirmar ou recusar.</div>'
+      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Nova data</label>'
+      +'<input id="prRemarcaDateInp" type="date" min="'+_prMinDateAttr()+'" value="'+_prDefaultDate()+'" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;font-weight:600"/>'
+      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Motivo (opcional)</label>'
+      +'<input id="prRemarcaMotivoInp" type="text" placeholder="Ex: ajuste de agenda" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none"/>'
+    +'</div>'
+    +'<div class="modal-f"><button class="btn btn-s" onclick="closeModal()">Cancelar</button>'
+      +'<button class="btn btn-p" id="prRemarcaBtn" onclick="prRemarcarMedico(\''+agendamentoId+'\')">Enviar nova data</button></div>';
+  openModal(html);
+}
+
+async function prRemarcarMedico(agendamentoId){
+  // Médico reagendando = cancela atual + propõe novo (paciente precisa confirmar de novo)
+  if(!window.BACKEND||!window.BACKEND.api){ toast('Sistema indisponível'); return; }
+  var dateInp=document.getElementById('prRemarcaDateInp');
+  var motivoInp=document.getElementById('prRemarcaMotivoInp');
+  var btn=document.getElementById('prRemarcaBtn');
+  if(!dateInp||!dateInp.value){ toast('Escolha uma nova data'); return; }
+  var novaDataHora=new Date(dateInp.value+'T09:00:00');
+  if(novaDataHora<=new Date()){ toast('Data deve ser no futuro'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='Enviando…'; }
+  try{
+    // Estratégia: cancela atual + propõe novo. Backend mantém histórico via dataAnterior.
+    // Como remarcar pelo médico não tem rota dedicada ainda, faz cancelar + propor.
+    var pdAg=null;
+    try{
+      var pd=(STATE&&STATE.pacienteDetalheCache)||{};
+      Object.keys(pd).forEach(function(k){ if(pd[k]&&pd[k].proximoAgendamento&&pd[k].proximoAgendamento.id===agendamentoId) pdAg=pd[k]; });
+    }catch(_e){}
+    var pacienteId=pdAg&&pdAg.id;
+    // 1. Cancela atual silenciosamente
+    await window.BACKEND.api('/agendamento/'+encodeURIComponent(agendamentoId)+'/cancelar',{
+      method:'POST',
+      body:{ motivo: (motivoInp&&motivoInp.value)||'Reagendado pelo médico' }
+    });
+    // 2. Propoe novo
+    if(pacienteId){
+      var res=await window.BACKEND.api('/agendamento/propor-retorno',{
+        method:'POST',
+        body:{ pacienteId:pacienteId, dataHora:novaDataHora.toISOString() }
+      });
+      if(res&&res.agendamento){
+        closeModal();
+        toast('Nova data enviada ao paciente.');
+        try{ if(pdAg)pdAg.proximoAgendamento=res.agendamento; }catch(_e){}
+        if(typeof renderPacienteDetail==='function') renderPacienteDetail();
+        return;
+      }
+    }
+    closeModal();
+    toast('Retorno cancelado. Crie um novo manualmente.');
+    if(typeof renderPacienteDetail==='function') renderPacienteDetail();
+  }catch(err){
+    toast('Falha de rede — tente novamente');
+    if(btn){ btn.disabled=false; btn.textContent='Enviar nova data'; }
+  }
+}
+
+async function prConfirmarMedico(agendamentoId){
+  if(!window.BACKEND||!window.BACKEND.api){ toast('Sistema indisponível'); return; }
+  try{
+    var res=await window.BACKEND.api('/agendamento/'+encodeURIComponent(agendamentoId)+'/confirmar',{ method:'POST' });
+    if(res&&res.agendamento){
+      toast('Retorno confirmado.');
+      try{
+        var pd=(STATE&&STATE.pacienteDetalheCache)||{};
+        Object.keys(pd).forEach(function(k){ if(pd[k]&&pd[k].proximoAgendamento&&pd[k].proximoAgendamento.id===agendamentoId) pd[k].proximoAgendamento=res.agendamento; });
+      }catch(_e){}
+      if(typeof renderPacienteDetail==='function') renderPacienteDetail();
+    }else{
+      toast((res&&res.erro)||'Erro ao confirmar');
+    }
+  }catch(_e){ toast('Falha de rede — tente novamente'); }
+}
+
+async function prCancelarRetorno(agendamentoId){
+  if(!agendamentoId)return;
+  if(!confirm('Cancelar este retorno? O paciente será avisado.'))return;
+  if(!window.BACKEND||!window.BACKEND.api){ toast('Sistema indisponível'); return; }
+  try{
+    var res=await window.BACKEND.api('/agendamento/'+encodeURIComponent(agendamentoId)+'/cancelar',{
+      method:'POST',
+      body:{ motivo:'' }
+    });
+    if(res&&res.agendamento){
+      toast('Retorno cancelado.');
+      try{
+        var pd=(STATE&&STATE.pacienteDetalheCache)||{};
+        Object.keys(pd).forEach(function(k){ if(pd[k]&&pd[k].proximoAgendamento&&pd[k].proximoAgendamento.id===agendamentoId) pd[k].proximoAgendamento=res.agendamento; });
+      }catch(_e){}
+      if(typeof renderPacienteDetail==='function') renderPacienteDetail();
+    }else{
+      toast((res&&res.erro)||'Erro ao cancelar');
+    }
+  }catch(_e){ toast('Falha de rede — tente novamente'); }
+}
+
+async function prCarregarRetornos(pacienteId){
+  if(!pacienteId||!window.BACKEND||!window.BACKEND.api) return null;
+  try{
+    var res=await window.BACKEND.api('/agendamento/paciente/'+encodeURIComponent(pacienteId)+'/retornos');
+    if(res&&res.retornos&&res.retornos.length){
+      // Retorna o primeiro nao-final (AGUARDANDO_PACIENTE | AGUARDANDO_MEDICO | CONFIRMADO)
+      var ativo=res.retornos.find(function(r){ return ['AGUARDANDO_PACIENTE','AGUARDANDO_MEDICO','CONFIRMADO'].indexOf(r.statusProposta)>-1; });
+      return ativo||res.retornos[0];
+    }
+  }catch(_e){}
+  return null;
 }
 
 /* ============================================================
