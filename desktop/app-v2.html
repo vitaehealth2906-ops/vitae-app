@@ -2437,6 +2437,28 @@ function pdSaveWaConfig(){
      GET    /agendamento/paciente/:id/retornos
    ============================================================ */
 
+// Helper: BACKEND.api retorna Response do fetch (raw). Pra POST/PUT com body JSON
+// precisa stringify + Content-Type + parsear resposta. Encapsula isso.
+async function _prApiJson(path, opts){
+  opts = opts || {};
+  var headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  var body = opts.body;
+  if (body && typeof body === 'object' && !(body instanceof FormData)) {
+    body = JSON.stringify(body);
+  }
+  var res = await window.BACKEND.api(path, { method: opts.method || 'GET', headers: headers, body: body });
+  var data = null;
+  try { data = await res.json(); } catch (_e) {}
+  if (!res.ok) {
+    var err = (data && (data.erro || data.error)) || 'Erro ' + res.status;
+    var e = new Error(err);
+    e.status = res.status;
+    e.data = data;
+    throw e;
+  }
+  return data;
+}
+
 function _prMinDateAttr(){
   var d=new Date(Date.now()+1000*60*60*24); // amanha
   return d.toISOString().slice(0,10);
@@ -2480,7 +2502,7 @@ async function prProporRetorno(pacienteId){
   if(dataHora<=new Date()){ toast('Data deve ser no futuro'); return; }
   if(btn){ btn.disabled=true; btn.textContent='Enviando…'; }
   try{
-    var res=await window.BACKEND.api('/agendamento/propor-retorno',{
+    var res = await _prApiJson('/agendamento/propor-retorno',{
       method:'POST',
       body:{
         pacienteId:pacienteId,
@@ -2492,18 +2514,20 @@ async function prProporRetorno(pacienteId){
     if(res&&res.agendamento){
       closeModal();
       toast('Retorno proposto. Paciente foi avisado.');
-      // Atualiza pd.proximoAgendamento na tela
+      // Limpa cache pra recarregar do backend
       try{
-        var pd=(STATE&&STATE.pacienteDetalheCache)||{};
-        if(pd[pacienteId])pd[pacienteId].proximoAgendamento=res.agendamento;
+        var pcCache=(pcState&&pcState.currentPacienteData)||{};
+        if(pcCache.id===pacienteId){
+          pcCache.proximoAgendamento = res.agendamento;
+        }
       }catch(_e){}
       if(typeof renderPacienteDetail==='function') renderPacienteDetail();
     }else{
-      toast((res&&res.erro)||'Erro ao propor retorno');
+      toast('Resposta inválida do servidor');
       if(btn){ btn.disabled=false; btn.textContent='Enviar proposta'; }
     }
   }catch(err){
-    toast('Falha de rede — tente novamente');
+    toast(err.message || 'Falha de rede — tente novamente');
     if(btn){ btn.disabled=false; btn.textContent='Enviar proposta'; }
   }
 }
@@ -2536,29 +2560,21 @@ async function prRemarcarMedico(agendamentoId){
   if(novaDataHora<=new Date()){ toast('Data deve ser no futuro'); return; }
   if(btn){ btn.disabled=true; btn.textContent='Enviando…'; }
   try{
-    // Estratégia: cancela atual + propõe novo. Backend mantém histórico via dataAnterior.
-    // Como remarcar pelo médico não tem rota dedicada ainda, faz cancelar + propor.
-    var pdAg=null;
-    try{
-      var pd=(STATE&&STATE.pacienteDetalheCache)||{};
-      Object.keys(pd).forEach(function(k){ if(pd[k]&&pd[k].proximoAgendamento&&pd[k].proximoAgendamento.id===agendamentoId) pdAg=pd[k]; });
-    }catch(_e){}
-    var pacienteId=pdAg&&pdAg.id;
-    // 1. Cancela atual silenciosamente
-    await window.BACKEND.api('/agendamento/'+encodeURIComponent(agendamentoId)+'/cancelar',{
+    var pcCache=(pcState&&pcState.currentPacienteData)||{};
+    var pacienteId=pcCache.id;
+    await _prApiJson('/agendamento/'+encodeURIComponent(agendamentoId)+'/cancelar',{
       method:'POST',
       body:{ motivo: (motivoInp&&motivoInp.value)||'Reagendado pelo médico' }
     });
-    // 2. Propoe novo
     if(pacienteId){
-      var res=await window.BACKEND.api('/agendamento/propor-retorno',{
+      var res = await _prApiJson('/agendamento/propor-retorno',{
         method:'POST',
         body:{ pacienteId:pacienteId, dataHora:novaDataHora.toISOString() }
       });
       if(res&&res.agendamento){
         closeModal();
         toast('Nova data enviada ao paciente.');
-        try{ if(pdAg)pdAg.proximoAgendamento=res.agendamento; }catch(_e){}
+        try{ pcCache.proximoAgendamento=res.agendamento; }catch(_e){}
         if(typeof renderPacienteDetail==='function') renderPacienteDetail();
         return;
       }
@@ -2567,7 +2583,7 @@ async function prRemarcarMedico(agendamentoId){
     toast('Retorno cancelado. Crie um novo manualmente.');
     if(typeof renderPacienteDetail==='function') renderPacienteDetail();
   }catch(err){
-    toast('Falha de rede — tente novamente');
+    toast(err.message || 'Falha de rede — tente novamente');
     if(btn){ btn.disabled=false; btn.textContent='Enviar nova data'; }
   }
 }
@@ -2575,18 +2591,18 @@ async function prRemarcarMedico(agendamentoId){
 async function prConfirmarMedico(agendamentoId){
   if(!window.BACKEND||!window.BACKEND.api){ toast('Sistema indisponível'); return; }
   try{
-    var res=await window.BACKEND.api('/agendamento/'+encodeURIComponent(agendamentoId)+'/confirmar',{ method:'POST' });
+    var res = await _prApiJson('/agendamento/'+encodeURIComponent(agendamentoId)+'/confirmar',{ method:'POST' });
     if(res&&res.agendamento){
       toast('Retorno confirmado.');
       try{
-        var pd=(STATE&&STATE.pacienteDetalheCache)||{};
-        Object.keys(pd).forEach(function(k){ if(pd[k]&&pd[k].proximoAgendamento&&pd[k].proximoAgendamento.id===agendamentoId) pd[k].proximoAgendamento=res.agendamento; });
+        var pcCache=(pcState&&pcState.currentPacienteData)||{};
+        if(pcCache.proximoAgendamento&&pcCache.proximoAgendamento.id===agendamentoId){
+          pcCache.proximoAgendamento=res.agendamento;
+        }
       }catch(_e){}
       if(typeof renderPacienteDetail==='function') renderPacienteDetail();
-    }else{
-      toast((res&&res.erro)||'Erro ao confirmar');
     }
-  }catch(_e){ toast('Falha de rede — tente novamente'); }
+  }catch(err){ toast(err.message || 'Falha de rede — tente novamente'); }
 }
 
 async function prCancelarRetorno(agendamentoId){
@@ -2594,29 +2610,28 @@ async function prCancelarRetorno(agendamentoId){
   if(!confirm('Cancelar este retorno? O paciente será avisado.'))return;
   if(!window.BACKEND||!window.BACKEND.api){ toast('Sistema indisponível'); return; }
   try{
-    var res=await window.BACKEND.api('/agendamento/'+encodeURIComponent(agendamentoId)+'/cancelar',{
+    var res = await _prApiJson('/agendamento/'+encodeURIComponent(agendamentoId)+'/cancelar',{
       method:'POST',
       body:{ motivo:'' }
     });
     if(res&&res.agendamento){
       toast('Retorno cancelado.');
       try{
-        var pd=(STATE&&STATE.pacienteDetalheCache)||{};
-        Object.keys(pd).forEach(function(k){ if(pd[k]&&pd[k].proximoAgendamento&&pd[k].proximoAgendamento.id===agendamentoId) pd[k].proximoAgendamento=res.agendamento; });
+        var pcCache=(pcState&&pcState.currentPacienteData)||{};
+        if(pcCache.proximoAgendamento&&pcCache.proximoAgendamento.id===agendamentoId){
+          pcCache.proximoAgendamento=res.agendamento;
+        }
       }catch(_e){}
       if(typeof renderPacienteDetail==='function') renderPacienteDetail();
-    }else{
-      toast((res&&res.erro)||'Erro ao cancelar');
     }
-  }catch(_e){ toast('Falha de rede — tente novamente'); }
+  }catch(err){ toast(err.message || 'Falha de rede — tente novamente'); }
 }
 
 async function prCarregarRetornos(pacienteId){
   if(!pacienteId||!window.BACKEND||!window.BACKEND.api) return null;
   try{
-    var res=await window.BACKEND.api('/agendamento/paciente/'+encodeURIComponent(pacienteId)+'/retornos');
+    var res = await _prApiJson('/agendamento/paciente/'+encodeURIComponent(pacienteId)+'/retornos');
     if(res&&res.retornos&&res.retornos.length){
-      // Retorna o primeiro nao-final (AGUARDANDO_PACIENTE | AGUARDANDO_MEDICO | CONFIRMADO)
       var ativo=res.retornos.find(function(r){ return ['AGUARDANDO_PACIENTE','AGUARDANDO_MEDICO','CONFIRMADO'].indexOf(r.statusProposta)>-1; });
       return ativo||res.retornos[0];
     }
