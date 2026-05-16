@@ -1817,56 +1817,68 @@ function renderPacientes(){
   var q=(STATE.search.pac||'').toLowerCase();
   var f=STATE.filters.pac;
   // Filtro base: SO pacientes que responderam pelo menos 1 pre-consulta.
-  // Pacientes apenas convidados/cadastrados sem nunca ter respondido nao
-  // poluem a lista. Se medico quiser pendentes, vai pra aba Pre-Consultas.
   var soRespondidos = PACIENTES.filter(function(p){
     return (p.pcsRespondidas && p.pcsRespondidas > 0) || (p.anamneses && p.anamneses > 0 && p.ultimaAtividade && p.ultimaAtividade !== '—');
   });
   var filtered=soRespondidos.filter(function(p){
-    if(q&&p.nome.toLowerCase().indexOf(q)<0)return false;
+    if(q){
+      var hay=(p.nome||'').toLowerCase()+' '+(p.cpf||'').toLowerCase()+' '+(p.telefone||'').toLowerCase()+' '+(p.email||'').toLowerCase();
+      if(hay.indexOf(q)<0)return false;
+    }
     if(f==='recentes')return p.ultimaAtividade!=='—';
     return true;
   });
-  if(!filtered.find(function(p){return p.id===STATE.selectedPaciente;}) && filtered.length){
-    STATE.selectedPaciente=filtered[0].id; STATE.comparativoLigado=false;
-  }
 
   var html='';
   var totalAnam = soRespondidos.reduce(function(s,p){return s+(p.anamneses||0);},0);
   html+='<div class="pct-header"><div><h1 class="pct-title">Seus <em>pacientes</em></h1><p class="pct-sub">'+soRespondidos.length+' que já responderam · '+totalAnam+' pré-consulta'+(totalAnam!==1?'s':'')+' no total</p></div><button class="btn btn-s" onclick="modalEmBreve(\'Exportar CSV\',\'Em desenvolvimento. Logo você poderá baixar a lista completa dos seus pacientes em CSV pra abrir em Excel ou importar em outros sistemas.\')"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button></div>';
   html+='<div style="font-size:11.5px;color:var(--t3);margin-bottom:12px;padding:8px 14px;background:rgba(0,0,0,.02);border-radius:8px;line-height:1.5">Lista de pacientes que responderam pelo menos uma pré-consulta. Pendentes ficam em <a href="#" onclick="goto(\'pre-consultas\');return false" style="color:#00A86F;font-weight:600;text-decoration:none">Pré-Consultas</a>.</div>';
   html+='<div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="searchPacInput" type="text" placeholder="Buscar nome, CPF, telefone..." oninput="_onSearch(event,\'pac\',renderPacientes,\'searchPacInput\')" value="'+q+'" style="width:100%;padding:11px 14px 11px 40px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13.5px;color:var(--t1);outline:none"/></div>';
-  html+='<div class="pcn-pills">'+
+  html+='<div class="pcn-pills" style="margin-bottom:14px">'+
     '<button class="pcn-pill '+(f==='all'?'on':'')+'" onclick="setPacFilter(\'all\')">Todos <span class="pcn-ct">'+soRespondidos.length+'</span></button>'+
     '<button class="pcn-pill '+(f==='recentes'?'on':'')+'" onclick="setPacFilter(\'recentes\')">Recentes (30d) <span class="pcn-ct">'+soRespondidos.filter(function(p){return p.ultimaAtividade!=='—';}).length+'</span></button>'+
   '</div>';
 
-  html+='<div class="pat-grid">';
-  /* Lista esquerda */
-  html+='<div class="pat-list">';
+  // Tabela (estilo aba Pre-Consultas)
+  html+='<div class="pct-card">';
+  html+='<div class="pct-thead" style="grid-template-columns:2fr 1.2fr 1fr 0.8fr 0.6fr">'
+    +'<div>Paciente</div>'
+    +'<div>Convênio</div>'
+    +'<div>Última atividade</div>'
+    +'<div>Pré-consultas</div>'
+    +'<div style="text-align:right">Alergias</div>'
+  +'</div>';
   if(!filtered.length){
-    html+='<div style="padding:30px 18px;text-align:center;font-size:12px;color:var(--t3)">Nenhum paciente encontrado.</div>';
+    html+='<div style="padding:40px 22px;text-align:center;font-size:13px;color:var(--t3)">Nenhum paciente encontrado.</div>';
   }else{
     filtered.forEach(function(p){
-      var on=(STATE.selectedPaciente===p.id?'on':'');
-      var pulseCls=p.status==='warn'?'warn':(p.status==='gray'?'gray':'');
-      var metaTxt;
-      if(p.anamneses===0)metaTxt='Cadastrado · sem anamnese';
-      else metaTxt=p.anamneses+' anamnese'+(p.anamneses>1?'s':'')+(p.status==='warn'?' · alerta':'');
-      html+='<div class="pat-item '+on+'" onclick="STATE.selectedPaciente=\''+p.id+'\';STATE.comparativoLigado=false;goto(\'pacientes-detail\')">'+
-        '<div class="pat-item-av">'+p.ini+'</div>'+
-        '<div class="pat-item-info"><div class="pat-item-name">'+p.nome+'</div><div class="pat-item-meta"><span class="pat-pulse '+pulseCls+'"></span>'+metaTxt+'</div></div>'+
-      '</div>';
+      var click='STATE.selectedPaciente=\''+p.id+'\';STATE.comparativoLigado=false;goto(\'pacientes-detail\')';
+      var avatarInner = p.fotoUrl ? '<img src="'+escHtml(p.fotoUrl)+'" alt=""/>' : escHtml(p.ini||'?');
+      var convenio = p.convenio || p.planoSaude || '—';
+      var ultAt = p.ultimaAtividade && p.ultimaAtividade !== '—' ? p.ultimaAtividade : '—';
+      var anamStr = (p.anamneses||0) + (p.anamneses===1 ? ' anamnese' : ' anamneses');
+      var alergStr;
+      if(p.alergiasGraves && p.alergiasGraves.length){
+        alergStr = '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.14);color:var(--bad)"><span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span>'+p.alergiasGraves.length+' grave'+(p.alergiasGraves.length>1?'s':'')+'</span>';
+      }else if(p.alergias>0){
+        alergStr = '<span style="font-size:11.5px;color:var(--t3);font-weight:600">'+p.alergias+'</span>';
+      }else{
+        alergStr = '<span style="font-size:11.5px;color:var(--t4)">—</span>';
+      }
+      html+='<div class="pct-trow" style="grid-template-columns:2fr 1.2fr 1fr 0.8fr 0.6fr" onclick="'+click+'">'
+        +'<div class="pct-pat"><div class="pct-av">'+avatarInner+'</div>'
+          +'<div style="min-width:0"><div class="pct-name">'+escHtml(p.nome||'Sem nome')+'</div>'
+          +'<div class="pct-sub">'+p.idade+' anos · '+(p.sexo==='F'?'feminino':'masculino')+' · sangue '+escHtml(p.sangue||'—')+'</div></div></div>'
+        +'<div class="pct-cell">'+escHtml(convenio)+'</div>'
+        +'<div class="pct-cell">'+escHtml(ultAt)+'</div>'
+        +'<div class="pct-cell" style="font-weight:700;color:var(--t1)">'+anamStr+'</div>'
+        +'<div style="text-align:right">'+alergStr+'</div>'
+      +'</div>';
     });
   }
   html+='</div>';
 
-  /* Detail direita */
-  html+='<div class="pat-detail" id="patDetailInline"></div>';
-  html+='</div>';
-
   $('v-pacientes').innerHTML=html;
-  if(filtered.length) renderPacienteDetailInline();
 }
 function setPacFilter(f){STATE.filters.pac=f;renderPacientes();}
 
