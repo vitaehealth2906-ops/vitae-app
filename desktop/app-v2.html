@@ -1874,46 +1874,228 @@ function renderPacienteDetailInline(){
   var p=PACIENTES.find(function(x){return x.id===STATE.selectedPaciente;});
   if(!p)return;
   var eventos=EVENTOS_MOCK[p.id]||[];
-  var html='';
-  /* Hero (sem botão de criar PC) */
-  html+='<div style="display:flex;align-items:center;gap:14px;padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:22px"><div class="pat-item-av" style="width:54px;height:54px;font-size:17px">'+p.ini+'</div><div style="flex:1;min-width:0"><div style="font-size:21px;font-weight:900;letter-spacing:-.4px">'+p.nome+'</div><div style="font-size:12px;color:var(--t3);margin-top:3px">'+p.idade+' anos · '+(p.sexo==='F'?'feminino':'masculino')+' · sangue '+p.sangue+(p.anamneses>0?' · '+p.anamneses+' pré-consulta'+(p.anamneses>1?'s':''):'')+'</div></div></div>';
+  var meds=window.MEDS_MOCK&&MEDS_MOCK[p.id]||[];
+  var alergias=window.ALERG_MOCK&&ALERG_MOCK[p.id]||[];
+  var exames=window.EXAMES_MOCK&&EXAMES_MOCK[p.id]||[];
+  var pd=pcState.currentPacienteData||{};
+  // Carrega retornos async (1x por paciente carregado) e re-renderiza quando chegar
+  if(pd&&pd.id&&typeof pd.proximoAgendamento==='undefined'&&!pd._retornoCarregando){
+    pd._retornoCarregando=true;
+    (async function(){
+      var ag=await prCarregarRetornos(pd.id);
+      pd.proximoAgendamento=ag||null;
+      pd._retornoCarregando=false;
+      if(STATE.selectedPaciente===p.id) renderPacienteDetailInline();
+    })();
+  }
+  var ps=pd.perfilSaude||{};
+  var loaded=!!pd.id;
+  var waOn=!!(DR.config&&DR.config.whatsappHabilitado);
+  var waDias=DR.config&&DR.config.whatsappDias||[1,2,3,4,5];
+  var waH0=DR.config&&DR.config.whatsappHoraInicio||'08:00';
+  var waH1=DR.config&&DR.config.whatsappHoraFim||'19:00';
+  var DIAS_LABELS=['D','S','T','Q','Q','S','S'];
 
+  var html='';
+  /* Hero compacto (já dentro do painel inline) */
+  html+='<div style="display:flex;align-items:center;gap:14px;padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:22px">';
+  if(p.fotoUrl){html+='<div class="pat-item-av" style="width:54px;height:54px;font-size:17px;overflow:hidden"><img src="'+escHtml(p.fotoUrl)+'" style="width:100%;height:100%;object-fit:cover"/></div>';}
+  else{html+='<div class="pat-item-av" style="width:54px;height:54px;font-size:17px">'+p.ini+'</div>';}
+  html+='<div style="flex:1;min-width:0">';
+  html+='<div style="font-size:21px;font-weight:900;letter-spacing:-.4px">'+escHtml(p.nome)+'</div>';
+  html+='<div style="font-size:12px;color:var(--t3);margin-top:3px">'+p.idade+' anos · '+(p.sexo==='F'?'feminino':'masculino')+' · sangue '+escHtml(p.sangue||'—')+(p.anamneses>0?' · '+p.anamneses+' pré-consulta'+(p.anamneses>1?'s':''):'')+'</div>';
+  if(p.alergiasGraves&&p.alergiasGraves.length){
+    html+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">';
+    p.alergiasGraves.slice(0,3).forEach(function(a){
+      html+='<span style="display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.14);color:var(--bad)">Alérgico: '+escHtml(a)+'</span>';
+    });
+    html+='</div>';
+  }
+  html+='</div>';
+  html+='<div style="display:flex;gap:8px;flex-shrink:0">';
+  html+='<button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova PC</button>';
+  if(p.telefone){html+='<button class="btn btn-s btn-sm" onclick="window.open(\'https://wa.me/\'+String(\''+escHtml(p.telefone)+'\').replace(/\\D/g,\'\'),\'_blank\')">WhatsApp</button>';}
+  html+='</div>';
+  html+='</div>';
+
+  /* 3 COLUNAS (igual Central Clínica) */
+  html+='<div class="pac-det-grid">';
+
+  /* ─── COL 1: Timeline + IA Collab ────────────────────────── */
+  html+='<div>';
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Histórico Clínico</span></div>';
+  html+='<div class="pdc-b">';
   if(!eventos.length){
-    // Lista de pacientes ja filtra so respondidos (Mudanca 4) — todo paciente
-    // clicado tem anamnese. Se eventos local vazio, e porque ainda nao buscou
-    // detalhe do servidor. Mostra skeleton em vez de "Sem anamneses ainda".
-    html+='<div style="margin-top:0">';
-    html+='<div class="section-lbl" style="margin-top:0">Linha do tempo de anamneses</div>';
-    html+='<div style="display:flex;flex-direction:column;gap:10px">';
-    for (var __i = 0; __i < 3; __i++) {
-      html+='<div class="pat-skel" style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:14px 16px;display:flex;align-items:center;gap:14px"><div style="width:60px;height:38px;background:var(--bg);border-radius:6px;animation:patSkelPulse 1.4s ease-in-out infinite"></div><div style="flex:1"><div style="height:11px;width:60%;background:var(--bg);border-radius:4px;margin-bottom:8px;animation:patSkelPulse 1.4s ease-in-out infinite"></div><div style="height:9px;width:40%;background:var(--bg);border-radius:4px;animation:patSkelPulse 1.4s ease-in-out infinite"></div></div></div>';
+    if(!loaded){
+      // Skeleton enquanto carrega do servidor
+      html+='<div style="display:flex;flex-direction:column;gap:10px;padding:6px 0">';
+      for (var __i = 0; __i < 3; __i++) {
+        html+='<div class="pat-skel" style="display:flex;align-items:center;gap:12px"><div style="width:50px;height:34px;background:var(--bg);border-radius:6px;animation:patSkelPulse 1.4s ease-in-out infinite"></div><div style="flex:1"><div style="height:10px;width:60%;background:var(--bg);border-radius:4px;margin-bottom:6px;animation:patSkelPulse 1.4s ease-in-out infinite"></div><div style="height:8px;width:40%;background:var(--bg);border-radius:4px;animation:patSkelPulse 1.4s ease-in-out infinite"></div></div></div>';
+      }
+      html+='</div>';
+    }else{
+      html+='<div style="padding:20px 0;text-align:center"><div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:6px">Sem pré-consultas ainda</div><div style="font-size:12px;color:var(--t3);line-height:1.55;max-width:300px;margin:0 auto 10px">Envie a primeira pré-consulta. Quando o paciente responder, a evolução aparece aqui.</div><button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')">Enviar pré-consulta</button></div>';
     }
-    html+='</div></div>';
   }else{
-    html+='<div class="section-lbl" style="margin-top:0">Linha do tempo de anamneses</div><div class="tl-strip">';
+    html+='<div class="tl-strip" style="border:none;padding:0 0 0 22px;background:transparent;border-radius:0;margin-bottom:0">';
     eventos.forEach(function(e){
       var click=e.pc?'onclick="openSummary(\''+e.pc+'\')"':'';
       html+='<div class="tl-evt'+(e.warn?' warn':'')+'"><div class="tl-evt-d">'+e.d+'</div><div class="tl-evt-t" '+click+'>'+e.t+'</div><div class="tl-evt-b">'+e.b+'</div></div>';
     });
     html+='</div>';
-    // Conta PCs REAIS respondidas do paciente (nao da timeline mock)
-    var pcsRespondidasReais = Object.values(PCS||{}).filter(function(pc){
-      if (pc.pacienteId !== p.id) return false;
-      return (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA' ||
-              pc.cobertura === 'pronta' || pc.cobertura === 'parcial');
-    }).length;
-
-    if(STATE.comparativoLoading){
-      html+='<div class="ia-load"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage" id="iaStage">Lendo anamneses anteriores<span class="ia-dots"><span></span><span></span><span></span></span><small>Analisando padrões da fala, vocabulário e queixa</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
-    } else if(STATE.comparativoLigado){
-      html+='<div class="compare-card"><div class="compare-t">⊕ IA Collab</div><div class="compare-b">'+(COMPARE_MOCK[p.id]||'—')+'</div></div>';
-    } else if(pcsRespondidasReais >= 2){
-      html+='<div class="compare-cta"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente esta anamnese com as anteriores deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">⊕ Comparar com anamneses anteriores</button></div>';
-    } else {
-      // Menos de 2 PCs respondidas: mostra orientacao amigavel em vez de botao quebrado
-      html+='<div class="compare-cta" style="opacity:.85"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Esse paciente tem só '+pcsRespondidasReais+' pré-consulta'+(pcsRespondidasReais===1?'':'s')+' respondida'+(pcsRespondidasReais===1?'':'s')+'. A IA Collab compara a evolução entre 2 ou mais consultas. Quando tiver outra, o botão aparece aqui.</div></div>';
-    }
   }
+  html+='</div></div>';
+
+  // IA Collab
+  var pcsRespondidasReais = Object.values(PCS||{}).filter(function(pc){
+    if (pc.pacienteId !== p.id) return false;
+    return (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA' || pc.cobertura === 'pronta' || pc.cobertura === 'parcial');
+  }).length;
+  if(STATE.comparativoLoading){
+    html+='<div class="ia-load"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage" id="iaStage">Lendo anamneses anteriores<span class="ia-dots"><span></span><span></span><span></span></span><small>Analisando padrões da fala, vocabulário e queixa</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
+  }else if(STATE.comparativoLigado){
+    html+='<div class="compare-card"><div class="compare-t">⊕ IA Collab</div><div class="compare-b">'+(COMPARE_MOCK[p.id]||'—')+'</div></div>';
+  }else if(pcsRespondidasReais>=2){
+    html+='<div class="compare-cta"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente esta anamnese com as anteriores deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">⊕ Comparar anamneses anteriores</button></div>';
+  }else{
+    html+='<div class="compare-cta" style="opacity:.85"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Esse paciente tem só '+pcsRespondidasReais+' pré-consulta'+(pcsRespondidasReais===1?'':'s')+' respondida'+(pcsRespondidasReais===1?'':'s')+'. A IA Collab compara a evolução entre 2 ou mais consultas.</div></div>';
+  }
+  html+='</div>'; // fim col 1
+
+  /* ─── COL 2: Meds + Alergias + Exames ─────────────────────── */
+  html+='<div>';
+
+  // Medicamentos
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Medicamentos em uso</span>';
+  if(p.meds>0)html+='<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--ok-bg);color:var(--ok)">'+p.meds+' ativos</span>';
+  html+='</div><div class="pdc-b" style="padding:8px 18px">';
+  if(meds.length){
+    meds.forEach(function(m){
+      html+='<div class="pac-med-row"><div class="pac-med-ico"><svg viewBox="0 0 24 24"><path d="M10.5 20.5a3.5 3.5 0 0 1-5-5L15 6a3.5 3.5 0 0 1 5 5l-4.5 4.5"/><line x1="9" y1="15" x2="15" y2="9"/></svg></div><div><div class="pac-med-nm">'+escHtml(m.nome)+'</div><div class="pac-med-dose">'+escHtml(m.freq||'')+'</div><span class="pac-med-active">Ativo</span></div></div>';
+    });
+  }else{
+    html+='<div style="padding:12px 0;font-size:12.5px;color:var(--t3)">'+(loaded?'Nenhum medicamento registrado':'Carregando...')+'</div>';
+  }
+  html+='</div></div>';
+
+  // Alergias
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Alergias</span>';
+  if(p.alergias>0)html+='<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--bad-bg);color:var(--bad)">'+p.alergias+' registradas</span>';
+  html+='</div><div class="pdc-b" style="padding:10px 18px">';
+  if(alergias.length){
+    alergias.forEach(function(a){
+      var sc={grave:'pas-g',moderada:'pas-m',leve:'pas-l'}[a.gravidade]||'pas-l';
+      html+='<div class="pac-al-row"><span class="pac-al-nm">'+escHtml(a.nome)+'</span><span class="pac-al-sev '+sc+'">'+a.gravidade.charAt(0).toUpperCase()+a.gravidade.slice(1)+'</span></div>';
+    });
+  }else{
+    html+='<div style="padding:8px 0;font-size:12.5px;color:var(--t3)">'+(loaded?'Nenhuma alergia registrada':'Carregando...')+'</div>';
+  }
+  html+='</div></div>';
+
+  // Exames
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Exames de '+escHtml(p.nome.split(' ')[0])+'</span></div>';
+  html+='<div class="pdc-b" style="padding:12px 18px">';
+  html+='<div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Buscar exame..." oninput="pdFilterExames(this.value,\''+p.id+'\')" style="width:100%;padding:9px 12px 9px 32px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px;color:var(--t1);outline:none"/></div>';
+  html+='<div id="pd-exames-list-'+p.id+'">';
+  if(exames.length){
+    exames.forEach(function(e){
+      html+='<div class="exame-item" data-nome="'+escHtml(e.nome||'').toLowerCase()+'" style="border-radius:12px;background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);padding:10px;margin-bottom:10px;cursor:pointer" onclick="'+(e.url?'window.open(\''+escHtml(e.url)+'\',\'_blank\',\'noopener\')':'')+'"><div style="display:flex;gap:12px;align-items:stretch"><div style="width:72px;min-height:80px;border-radius:8px;background:var(--s2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,.14)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0"><div style="font-size:11px;color:var(--t2);font-weight:600;text-transform:capitalize">'+escHtml(e.tipo||e.nome||'')+'</div><div style="font-size:14px;font-weight:700;color:var(--green)">'+escHtml(e.nome||'')+'</div><div style="font-size:11px;color:var(--t3)">'+escHtml(e.data||'')+'</div></div></div></div>';
+    });
+  }else{
+    html+='<div style="text-align:center;padding:20px 8px;color:var(--t3);font-size:13px">'+(loaded?'Nenhum exame registrado':'Carregando...')+'</div>';
+  }
+  html+='</div></div></div>';
+  html+='</div>'; // fim col 2
+
+  /* ─── COL 3: Retorno + Contato + Configs + Documentos + Dados ─── */
+  html+='<div>';
+
+  // Próximo Retorno
+  var agend=(pd.proximoAgendamento)||null;
+  var pacId=pd.id||p.id||'';
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Próximo Retorno</span></div>';
+  if(agend&&agend.dataHora){
+    var dA=new Date(agend.dataHora);
+    var dAStr=dA.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+    var st=agend.statusProposta||'AGENDADO';
+    var stCfg={
+      AGUARDANDO_PACIENTE:{cor:'var(--warn)',bg:'var(--warn-bg)',txt:'Aguardando paciente confirmar',brd:'rgba(245,158,11,.18)'},
+      AGUARDANDO_MEDICO:{cor:'var(--warn)',bg:'var(--warn-bg)',txt:'Paciente remarcou · aguarda sua confirmação',brd:'rgba(245,158,11,.18)'},
+      CONFIRMADO:{cor:'var(--ok)',bg:'var(--ok-bg)',txt:'Confirmado pelo paciente',brd:'rgba(0,196,122,.18)'},
+      RECUSADO:{cor:'var(--bad)',bg:'var(--bad-bg)',txt:'Recusado pelo paciente',brd:'rgba(239,68,68,.18)'},
+      CANCELADO:{cor:'var(--t3)',bg:'var(--s2)',txt:'Cancelado',brd:'var(--border)'},
+      AGENDADO:{cor:'var(--ok)',bg:'var(--ok-bg)',txt:'Agendado',brd:'rgba(0,196,122,.18)'}
+    };
+    var c=stCfg[st]||stCfg.AGENDADO;
+    html+='<div class="pdc-b"><div style="font-size:18px;font-weight:900;letter-spacing:-.4px;color:var(--t1);line-height:1">'+dAStr+'</div>';
+    html+='<div style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:7px;background:'+c.bg+';color:'+c.cor+';border:1px solid '+c.brd+'"><span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span>'+c.txt+'</div>';
+    if(agend.motivoStatus){html+='<div style="font-size:11.5px;color:var(--t3);margin-top:8px;line-height:1.45;font-style:italic">"'+escHtml(agend.motivoStatus)+'"</div>';}
+    html+='<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">';
+    if(st==='AGUARDANDO_MEDICO'){
+      html+='<button class="btn btn-p btn-sm" onclick="prConfirmarMedico(\''+escHtml(agend.id)+'\')">Aceitar nova data</button>';
+      html+='<button class="btn btn-s btn-sm" onclick="prAbrirRemarcarMedico(\''+escHtml(agend.id)+'\')">Propor outra</button>';
+    }else if(st==='RECUSADO'||st==='CANCELADO'){
+      html+='<button class="btn btn-p btn-sm" onclick="prAbrirMarcarRetorno(\''+escHtml(pacId)+'\')">Propor novo retorno</button>';
+    }else if(st==='AGUARDANDO_PACIENTE'||st==='CONFIRMADO'||st==='AGENDADO'){
+      html+='<button class="btn btn-s btn-sm" onclick="prAbrirRemarcarMedico(\''+escHtml(agend.id)+'\')">Reagendar</button>';
+      html+='<button class="btn btn-ghost btn-sm" onclick="prCancelarRetorno(\''+escHtml(agend.id)+'\')">Cancelar</button>';
+    }
+    html+='</div></div>';
+  }else{
+    html+='<div class="pdc-b"><div style="font-size:12.5px;color:var(--t3);line-height:1.5;margin-bottom:10px">Nenhum retorno agendado para este paciente.</div><button class="btn btn-p btn-sm" style="width:100%;justify-content:center" onclick="prAbrirMarcarRetorno(\''+escHtml(pacId)+'\')">+ Marcar retorno</button></div>';
+  }
+  html+='</div>';
+
+  // Contato Direto
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Contato Direto</span></div>';
+  html+='<div class="pdc-b"><div class="wa-toggle-row">';
+  html+='<span class="wa-desc" id="wa-det-desc">'+(waOn?'Seu número visível para o paciente.':'Paciente não pode iniciar contato.')+'</span>';
+  html+='<div class="toggle-sw'+(waOn?' on':'')+'" onclick="pdToggleWa()" style="flex-shrink:0;margin-top:2px"></div>';
+  html+='</div>';
+  if(waOn&&(DR.telefone||DR.config&&DR.config.whatsappNumero)){html+='<div style="font-size:11.5px;color:var(--t2);margin-top:6px;font-weight:600">'+escHtml(DR.config&&DR.config.whatsappNumero||DR.telefone||'')+'</div>';}
+  html+='</div></div>';
+
+  // Configurações de Contato
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Configurações de contato</span><button class="btn btn-ghost btn-sm" onclick="pdSaveWaConfig()">Salvar</button></div>';
+  html+='<div class="pdc-b">';
+  html+='<div style="font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Dias disponíveis</div>';
+  html+='<div class="wa-days" id="wa-det-days">';
+  DIAS_LABELS.forEach(function(l,i){html+='<button class="wa-day'+(waDias.indexOf(i)>-1?' on':'')+'" onclick="pdToggleWaDia('+i+')">'+l+'</button>';});
+  html+='</div>';
+  html+='<div style="font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin:12px 0 7px">Horário</div>';
+  html+='<div class="wa-time-row"><input class="wa-time-inp" id="wa-h0" type="time" value="'+waH0+'"/><span class="wa-time-sep">até</span><input class="wa-time-inp" id="wa-h1" type="time" value="'+waH1+'"/></div>';
+  html+='<div class="wa-cfg-note">Fora deste horário o paciente vê quando você estará disponível.</div>';
+  html+='</div></div>';
+
+  // Dados do Paciente
+  html+='<div class="pdc">';
+  html+='<div class="pdc-h"><span class="pdc-hl">Dados do Paciente</span></div>';
+  html+='<div class="pdc-b" style="padding:4px 18px">';
+  var detRows=[
+    ['CPF',ps.cpf||(pd.cpf)||'—'],
+    ['Telefone',p.telefone||'—'],
+    ['E-mail',pd.email||'—'],
+    ['Convênio',ps.planoSaude||'—'],
+    ['Carteirinha',ps.carteirinhaPlano||'—'],
+    ['Cidade',loaded?(((ps.cidade||'')+(ps.uf?' · '+ps.uf:''))||'—'):'—'],
+    ['Cadastro',pd.criadoEm?'Há '+Math.round((Date.now()-new Date(pd.criadoEm))/(1000*60*60*24*30))+' meses':'—'],
+    ['Hist. familiar',ps.historicoFamiliar||'—']
+  ];
+  detRows.forEach(function(r){
+    html+='<div class="det-row"><span class="det-lbl">'+r[0]+'</span><span class="det-val">'+escHtml(String(r[1]))+'</span></div>';
+  });
+  html+='</div></div>';
+
+  html+='</div>'; // fim col 3
+  html+='</div>'; // fim pac-det-grid
+
   $('patDetailInline').innerHTML=html;
 }
 
@@ -4935,26 +5117,10 @@ renderTemplates=function(){
   if(btn)btn.onclick=function(){abrirCriarTemplate();};
 };
 
-/* atualizar Pacientes detail pra adicionar links exames/alergias/meds/cond */
-var _renderPacienteDetailOrig=renderPacienteDetailInline;
-renderPacienteDetailInline=function(){
-  _renderPacienteDetailOrig();
-  var p=PACIENTES.find(function(x){return x.id===STATE.selectedPaciente;});
-  if(!p)return;
-  var detail=$('patDetailInline');if(!detail)return;
-  /* injeta cards de cross-link após hero */
-  var head=detail.querySelector(':scope > div:first-child');
-  if(head){
-    var crossDiv=document.createElement('div');
-    crossDiv.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px';
-    crossDiv.innerHTML=
-      '<button class="btn btn-s" style="height:auto;padding:10px;flex-direction:column;gap:4px" onclick="modalVerExames(\''+p.id+'\')"><span style="font-size:18px;font-weight:900">'+(p.exames||0)+'</span><span style="font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Exames</span></button>'+
-      '<button class="btn btn-s" style="height:auto;padding:10px;flex-direction:column;gap:4px" onclick="modalVerAlergias(\''+p.id+'\')"><span style="font-size:18px;font-weight:900;color:'+(p.alergias?'var(--bad)':'var(--t1)')+'">'+(p.alergias||0)+'</span><span style="font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Alergias</span></button>'+
-      '<button class="btn btn-s" style="height:auto;padding:10px;flex-direction:column;gap:4px" onclick="modalVerMeds(\''+p.id+'\')"><span style="font-size:18px;font-weight:900">'+(p.meds||0)+'</span><span style="font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Medicamentos</span></button>'+
-      '<button class="btn btn-s" style="height:auto;padding:10px;flex-direction:column;gap:4px" onclick="modalVerCondicoes(\''+p.id+'\')"><span style="font-size:18px;font-weight:900">'+(p.condicoes||0)+'</span><span style="font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Condições</span></button>';
-    head.parentNode.insertBefore(crossDiv,head.nextSibling);
-  }
-};
+/* Patch dos 4 cards cross-link (Exames/Alergias/Meds/Condicoes) foi NEUTRALIZADO
+   apos a Central Clinica completa virar o layout padrao da aba Pacientes inline
+   (Fase 1 — Sessao 16-mai-2026). Componentes nativos na coluna 2 ja mostram
+   medicamentos, alergias e exames com dados reais. */
 
 /* atualizar perfil para abrir modais reais nas linhas pfn-sg-row */
 var _renderPerfilOrig=renderPerfil;
