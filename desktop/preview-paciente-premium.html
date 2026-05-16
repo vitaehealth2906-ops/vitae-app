@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>vitaid · Central Clínica</title>
+<script>
+(function(){
+  localStorage.setItem('vitae_token','preview-mock-token');
+  localStorage.setItem('vitae_refresh_token','preview-mock-refresh');
+  localStorage.setItem('vitae_usuario',JSON.stringify({
+    id:'med-1',nome:'Dra. Helena Souza',email:'helena@vitaid.com',
+    tipo:'MEDICO',especialidade:'Clínica Geral',crm:'123456',uf:'SP'
+  }));
+  window.__PREVIEW_MODE = true;
+  var _f = window.fetch;
+  window.fetch = function(url,opts){
+    if(!String(url).includes('railway')&&!String(url).includes('vitae-app-production')) return _f(url,opts);
+    return Promise.resolve({ok:true,status:200,json:function(){return Promise.resolve({});},text:function(){return Promise.resolve('');}});
+  };
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wdth,wght@0,75..100,400..700;1,75..100,400..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:   #111118;
+  --ink-2: #52525b;
+  --ink-3: #a1a1aa;
+  --ink-4: #d4d4d8;
+  --paper: #f7f7f6;
+  --surf:  #ffffff;
+  --line:  rgba(0,0,0,.07);
+  --line-2:rgba(0,0,0,.04);
+  --green: #00c47a;
+  --green-dim:rgba(0,196,122,.1);
+  --cyan:  #00b4d8;
+  --red:   #ef4444;
+  --red-dim:rgba(239,68,68,.08);
+  --amber: #d97706;
+  --amber-dim:rgba(217,119,6,.1);
+  --side:  #0f0f11;
+  --r:8px;--r-sm:5px;
+  --mono:'DM Mono',monospace;
+  --font:'Instrument Sans',system-ui,sans-serif;
+}
+html,body{height:100%;background:var(--paper);font-family:var(--font);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+/* ── LAYOUT ─────────────────────────────────── */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sb{width:200px;min-width:200px;background:var(--side);display:flex;flex-direction:column;padding:0;overflow:hidden;border-right:1px solid rgba(255,255,255,.05)}
+.sb-logo{padding:18px 16px 14px;display:flex;align-items:center;gap:9px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-logo-mark{width:26px;height:26px;background:linear-gradient(135deg,var(--green),var(--cyan));border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0f0f11;letter-spacing:-.5px;flex-shrink:0}
+.sb-logo-text{font-size:13px;font-weight:600;color:#fff;letter-spacing:-.3px}
+.sb-logo-badge{margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:rgba(0,196,122,.15);color:var(--green);border:1px solid rgba(0,196,122,.2);border-radius:3px;padding:2px 5px}
+.sb-section{padding:8px 8px 4px;font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.25)}
+.sb-nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
+.sb-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;cursor:pointer;transition:background .12s;text-decoration:none;color:rgba(255,255,255,.5);font-size:13px;font-weight:500;position:relative;white-space:nowrap}
+.sb-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.8)}
+.sb-item.active{background:rgba(0,196,122,.1);color:#fff}
+.sb-item.active .sb-ico{color:var(--green)}
+.sb-ico{width:15px;height:15px;flex-shrink:0;opacity:.7}
+.sb-item.active .sb-ico{opacity:1}
+.sb-badge{margin-left:auto;font-size:10px;font-weight:700;background:rgba(0,196,122,.18);color:var(--green);border-radius:10px;padding:1px 6px;min-width:18px;text-align:center}
+.sb-foot{padding:12px 8px;border-top:1px solid rgba(255,255,255,.06)}
+.sb-user{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;cursor:pointer}
+.sb-user:hover{background:rgba(255,255,255,.05)}
+.sb-av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#374151,#1f2937);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.sb-uname{font-size:12px;font-weight:500;color:rgba(255,255,255,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+.sb-ucrm{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:48px;min-height:48px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 24px;gap:12px;background:var(--surf)}
+.tb-crumb{display:flex;align-items:center;gap:6px;font-size:13px}
+.tb-crumb-root{color:var(--ink-3);cursor:pointer;font-weight:500}
+.tb-crumb-root:hover{color:var(--ink-2)}
+.tb-sep{color:var(--ink-4);font-size:11px}
+.tb-crumb-cur{color:var(--ink);font-weight:600}
+.tb-time{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.02em}
+.content{flex:1;overflow-y:auto;padding:0;background:var(--paper)}
+.content::-webkit-scrollbar{width:5px}
+.content::-webkit-scrollbar-thumb{background:var(--ink-4);border-radius:3px}
+
+/* ── PATIENT LIST VIEW ───────────────────────── */
+.list-wrap{padding:24px 28px}
+.list-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.list-title{font-size:18px;font-weight:700;letter-spacing:-.4px;color:var(--ink)}
+.list-count{font-size:12px;font-weight:500;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:2px 9px;color:var(--ink-2)}
+.list-search{margin-left:auto;display:flex;align-items:center;gap:8px}
+.search-input{border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 12px 6px 32px;font-size:13px;font-family:var(--font);color:var(--ink);background:var(--surf);outline:none;width:220px;transition:border .15s}
+.search-input:focus{border-color:var(--green)}
+.search-wrap{position:relative}
+.search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none}
+
+/* Patient table */
+.ptbl{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.ptbl-head{display:grid;grid-template-columns:2fr 1fr 100px 100px 80px;align-items:center;padding:0 16px;height:36px;border-bottom:1px solid var(--line);background:var(--paper)}
+.ptbl-hcell{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.ptbl-row{display:grid;grid-template-columns:2fr 1fr 100px 100px 80px;align-items:center;padding:0 16px;height:52px;border-bottom:1px solid var(--line-2);cursor:pointer;transition:background .1s;text-decoration:none;color:inherit}
+.ptbl-row:last-child{border-bottom:none}
+.ptbl-row:hover{background:#f9f9f8}
+.ptbl-row:hover .ptbl-open{opacity:1}
+.pat-cell{display:flex;align-items:center;gap:10px}
+.pat-av{width:32px;height:32px;border-radius:50%;background:var(--green-dim);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green);flex-shrink:0;font-family:var(--mono)}
+.pat-name{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.1px}
+.pat-meta{font-size:11.5px;color:var(--ink-3);margin-top:1px}
+.ptbl-cell{font-size:13px;color:var(--ink-2)}
+.status-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.status-badge .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7}
+.s-active{color:var(--green);background:var(--green-dim)}
+.s-alert{color:var(--amber);background:var(--amber-dim)}
+.s-inactive{color:var(--ink-3);background:rgba(0,0,0,.04)}
+.return-date{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.ptbl-open{font-size:12px;color:var(--ink-3);opacity:0;transition:opacity .1s;text-align:right;font-weight:500}
+
+/* ── PATIENT DETAIL VIEW ─────────────────────── */
+.pd-wrap{padding:0;max-width:1080px}
+
+/* Patient header strip */
+.ph{padding:20px 28px 18px;background:var(--surf);border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:14px}
+.ph-av{width:44px;height:44px;border-radius:50%;flex-shrink:0;overflow:hidden;background:var(--green-dim);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--green);font-family:var(--mono)}
+.ph-av img{width:100%;height:100%;object-fit:cover}
+.ph-info{flex:1;min-width:0}
+.ph-name{font-size:18px;font-weight:700;letter-spacing:-.5px;color:var(--ink);line-height:1.2}
+.ph-meta{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap}
+.ph-meta-item{font-size:12.5px;color:var(--ink-3)}
+.ph-dot{color:var(--ink-4);font-size:10px}
+.ph-tags{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.ph-tag{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:500;padding:3px 9px;border-radius:20px;border:1px solid var(--line);color:var(--ink-2)}
+.ph-tag.alert{border-color:rgba(239,68,68,.25);background:var(--red-dim);color:#dc2626}
+.ph-tag.cond{border-color:rgba(0,0,0,.08);background:rgba(0,0,0,.03);color:var(--ink-2)}
+.ph-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-top:3px}
+.btn-primary{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--green);color:#0f0f11;font-size:12.5px;font-weight:700;font-family:var(--font);border:none;border-radius:var(--r-sm);cursor:pointer;white-space:nowrap;transition:opacity .15s;letter-spacing:-.1px}
+.btn-primary:hover{opacity:.88}
+.btn-ghost{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;background:transparent;color:var(--ink-2);font-size:12.5px;font-weight:500;font-family:var(--font);border:1px solid var(--line);border-radius:var(--r-sm);cursor:pointer;white-space:nowrap;transition:background .12s}
+.btn-ghost:hover{background:var(--paper)}
+.btn-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:transparent;border:1px solid var(--line);border-radius:var(--r-sm);cursor:pointer;color:var(--ink-2);transition:background .12s}
+.btn-icon:hover{background:var(--paper)}
+
+/* Clinical metrics strip */
+.cm-strip{display:flex;align-items:stretch;border-bottom:1px solid var(--line);background:var(--surf)}
+.cm-item{flex:1;padding:14px 20px;display:flex;flex-direction:column;gap:3px;cursor:pointer;transition:background .12s;position:relative}
+.cm-item:hover{background:#fafaf9}
+.cm-item+.cm-item::before{content:'';position:absolute;left:0;top:12px;bottom:12px;width:1px;background:var(--line)}
+.cm-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.cm-value{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.3px;font-family:var(--mono)}
+.cm-value.red{color:var(--red)}
+.cm-sub{font-size:11px;color:var(--ink-3);margin-top:1px}
+
+/* Two-column layout */
+.pd-cols{display:grid;grid-template-columns:1fr 320px;gap:0;min-height:0}
+.pd-main{border-right:1px solid var(--line);padding:24px 28px;display:flex;flex-direction:column;gap:32px;overflow-y:auto}
+.pd-main::-webkit-scrollbar{width:4px}
+.pd-main::-webkit-scrollbar-thumb{background:var(--ink-4);border-radius:2px}
+.pd-rail{padding:20px 20px;display:flex;flex-direction:column;gap:24px;overflow-y:auto}
+.pd-rail::-webkit-scrollbar{width:4px}
+.pd-rail::-webkit-scrollbar-thumb{background:var(--ink-4);border-radius:2px}
+
+/* Section headers */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sec-label{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.sec-action{font-size:12px;color:var(--green);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;border:none;background:none;font-family:var(--font);padding:0}
+.sec-action:hover{opacity:.75}
+
+/* Timeline */
+.tl{display:flex;flex-direction:column;gap:0}
+.tl-item{display:grid;grid-template-columns:64px 1fr;gap:16px;position:relative;padding-bottom:24px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{content:'';position:absolute;left:71px;top:20px;bottom:0;width:1px;background:var(--line)}
+.tl-item:last-child::before{display:none}
+.tl-date{display:flex;flex-direction:column;align-items:flex-end;padding-top:1px;flex-shrink:0}
+.tl-day{font-size:11px;font-weight:600;font-family:var(--mono);color:var(--ink-2)}
+.tl-month{font-size:10px;color:var(--ink-3);font-family:var(--mono)}
+.tl-dot{position:absolute;left:66px;top:6px;width:11px;height:11px;border-radius:50%;background:var(--surf);border:2px solid var(--ink-4);z-index:1}
+.tl-dot.active{border-color:var(--green);background:var(--green-dim)}
+.tl-dot.alert{border-color:var(--amber);background:var(--amber-dim)}
+.tl-body{padding-top:0}
+.tl-title{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.1px;cursor:pointer;line-height:1.3}
+.tl-title:hover{color:var(--green)}
+.tl-summary{font-size:12.5px;color:var(--ink-2);line-height:1.55;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tl-badges{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.tl-badge{font-size:10.5px;font-weight:500;padding:2px 8px;border-radius:3px;border:1px solid var(--line)}
+.tl-badge.green{border-color:rgba(0,196,122,.25);color:var(--green);background:var(--green-dim)}
+.tl-badge.amber{border-color:rgba(217,119,6,.25);color:var(--amber);background:var(--amber-dim)}
+.tl-badge.red{border-color:rgba(239,68,68,.25);color:var(--red);background:var(--red-dim)}
+.tl-badge.gray{border-color:var(--line);color:var(--ink-3);background:rgba(0,0,0,.02)}
+
+/* Timeline empty */
+.tl-empty{padding:32px 0;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.tl-empty-title{font-size:13.5px;font-weight:600;color:var(--ink-2)}
+.tl-empty-sub{font-size:12.5px;color:var(--ink-3);line-height:1.55;max-width:400px}
+.tl-empty-cta{margin-top:4px;font-size:12.5px;font-weight:600;color:var(--green);cursor:pointer;display:flex;align-items:center;gap:5px;border:none;background:none;font-family:var(--font);padding:0}
+.tl-empty-cta:hover{opacity:.75}
+
+/* Insights */
+.ins-card{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.ins-head{padding:12px 16px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--line-2)}
+.ins-head-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--cyan);flex-shrink:0}
+.ins-head-label{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);flex:1}
+.ins-head-tag{font-size:10px;font-weight:500;padding:2px 7px;border-radius:10px;background:rgba(0,180,216,.08);color:var(--cyan);border:1px solid rgba(0,180,216,.2)}
+.ins-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.ins-line{display:flex;align-items:flex-start;gap:10px}
+.ins-line-dot{width:4px;height:4px;border-radius:50%;background:var(--ink-3);margin-top:7px;flex-shrink:0}
+.ins-line-text{font-size:12.5px;color:var(--ink-2);line-height:1.55}
+.ins-line-text strong{color:var(--ink);font-weight:600}
+.ins-foot{padding:10px 16px;border-top:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between}
+.ins-foot-label{font-size:10.5px;color:var(--ink-3)}
+.ins-foot-link{font-size:12px;font-weight:600;color:var(--cyan);cursor:pointer;display:flex;align-items:center;gap:3px}
+
+/* Rail sections */
+/* Return */
+.ret-block{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.ret-head{padding:12px 14px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between}
+.ret-label{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.ret-body{padding:14px}
+.ret-date{font-size:19px;font-weight:700;letter-spacing:-.6px;color:var(--ink);font-family:var(--mono)}
+.ret-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;margin-top:6px;padding:3px 9px;border-radius:20px;background:var(--amber-dim);color:var(--amber);border:1px solid rgba(217,119,6,.2)}
+.ret-status .dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.ret-actions{display:flex;gap:6px;margin-top:12px}
+.ret-btn{flex:1;padding:7px 0;font-size:11.5px;font-weight:600;font-family:var(--font);border-radius:var(--r-sm);cursor:pointer;text-align:center;transition:background .12s;border:1px solid var(--line);background:transparent;color:var(--ink-2)}
+.ret-btn:hover{background:var(--paper)}
+.ret-btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ret-btn.primary:hover{background:#333}
+.ret-empty{padding:16px 14px;text-align:center}
+.ret-empty-text{font-size:12.5px;color:var(--ink-3);margin-bottom:10px}
+.ret-empty-cta{width:100%;padding:8px;font-size:12.5px;font-weight:600;font-family:var(--font);border-radius:var(--r-sm);cursor:pointer;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,196,122,.25)}
+.ret-empty-cta:hover{background:rgba(0,196,122,.15)}
+
+/* Documents */
+.doc-block{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.doc-head{padding:10px 14px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between}
+.doc-add{font-size:12px;font-weight:600;color:var(--green);cursor:pointer;display:flex;align-items:center;gap:4px;border:none;background:none;font-family:var(--font);padding:0}
+.doc-add:hover{opacity:.75}
+.doc-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line-2);cursor:pointer;transition:background .1s;position:relative}
+.doc-row:last-child{border-bottom:none}
+.doc-row:hover{background:#fafaf9}
+.doc-row:hover .doc-actions{opacity:1}
+.doc-type{width:32px;height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;font-family:var(--mono);letter-spacing:.04em;flex-shrink:0}
+.doc-type.pdf{background:#fff0ee;color:#e53e3e;border:1px solid #fdd}
+.doc-type.img{background:#f0fdf4;color:#16a34a;border:1px solid #d1fae5}
+.doc-type.doc{background:#eff6ff;color:#2563eb;border:1px solid #dbeafe}
+.doc-info{flex:1;min-width:0}
+.doc-name{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-meta{font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.doc-status{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.doc-status.seen{background:var(--green)}
+.doc-status.new{background:var(--amber)}
+.doc-actions{display:flex;gap:4px;opacity:0;transition:opacity .1s}
+.doc-act-btn{width:26px;height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--surf);cursor:pointer;color:var(--ink-3)}
+.doc-act-btn:hover{background:var(--paper);color:var(--ink-2)}
+.doc-empty{padding:20px 14px;text-align:center}
+.doc-empty-text{font-size:12px;color:var(--ink-3);line-height:1.5}
+
+/* ── SVG ICONS (inline) ──────────────────────── */
+.ico{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* ── ANIMATION ───────────────────────────────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.pd-wrap{animation:fadeUp .2s ease}
+.list-wrap{animation:fadeUp .18s ease}
+
+/* ── SCROLLBAR ───────────────────────────────── */
+.content::-webkit-scrollbar{width:0}
+
+/* full height for columns */
+.pd-detail-inner{height:calc(100vh - 48px - 70px - 53px);display:flex;flex-direction:column;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sb">
+    <div class="sb-logo">
+      <div class="sb-logo-mark">v</div>
+      <span class="sb-logo-text">vita id</span>
+      <span class="sb-logo-badge">PRO</span>
+    </div>
+    <div class="sb-nav" style="padding-top:12px">
+      <div class="sb-section">Núcleo</div>
+      <a class="sb-item" href="#" onclick="showView('hoje');return false">
+        <svg class="sb-ico ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2.5"/><path d="M5 8h6M5 5.5h3"/></svg>
+        Hoje
+      </a>
+      <a class="sb-item" href="#" onclick="showView('pcs');return false">
+        <svg class="sb-ico ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M3 8h10M3 12h6"/></svg>
+        Pré-Consultas
+        <span class="sb-badge">9</span>
+      </a>
+      <a class="sb-item active" id="nav-pac" href="#" onclick="showView('pacientes');return false">
+        <svg class="sb-ico ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="5.5" r="2.5"/><path d="M2 13c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4"/><circle cx="12" cy="5.5" r="1.5"/><path d="M14 11c0-1.5-1-2.5-2-2.5"/></svg>
+        Pacientes
+        <span class="sb-badge">3</span>
+      </a>
+      <div class="sb-section" style="margin-top:8px">Workspace</div>
+      <a class="sb-item" href="#" onclick="return false">
+        <svg class="sb-ico ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+        Templates
+      </a>
+      <a class="sb-item" href="#" onclick="return false">
+        <svg class="sb-ico ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="2.5"/><path d="M4 13c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5"/></svg>
+        Meu Perfil
+      </a>
+    </div>
+    <div class="sb-foot">
+      <div class="sb-user">
+        <div class="sb-av">HS</div>
+        <div>
+          <div class="sb-uname">Dra. Helena Souza</div>
+          <div class="sb-ucrm">CRM/SP 123456</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-crumb" id="topbar-crumb">
+        <span class="tb-crumb-cur">Pacientes</span>
+      </div>
+      <span class="tb-time" id="clock"></span>
+    </div>
+    <div class="content" id="main-content">
+      <!-- Rendered by JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+// ── MOCK DATA ─────────────────────────────────────────────────────────────────
+var PATIENTS = [
+  {
+    id:'p1', name:'Álvaro Schocair', age:46, sex:'Masculino', blood:'A+',
+    photo:null, lastVisit:'29 abr', status:'active', returnDate:'15 jul 2026', returnStatus:'awaiting',
+    tags:[{label:'Hipertensão',type:'cond'},{label:'Alérgico: Dipirona',type:'alert'},{label:'Alérgico: Penicilina',type:'alert'}],
+    exams:{count:3,sub:'últimos 3 meses'}, allergies:{count:2,sub:'1 grave'}, meds:{count:4,sub:'em uso agora'}, conds:{count:1,sub:'hipertensão'},
+    anamneses:[
+      {date:'29',month:'ABR',active:true,title:'Cefaleia recorrente e dor abdominal',summary:'Paciente relata dor de cabeça intensa há 3 dias, intensidade 8/10. Associada a náuseas e sensibilidade à luz. Dor abdominal pontual na região epigástrica, sem irradiação.',badges:[{label:'Alerta farmacológico',type:'red'},{label:'3 exames solicitados',type:'gray'},{label:'Retorno marcado',type:'green'}]},
+      {date:'15',month:'ABR',active:false,title:'Controle de hipertensão arterial',summary:'Pressão aferida: 148/92 mmHg. Paciente relata boa adesão à Losartana 50mg. Episódios de tontura matinal. Solicita ajuste de dose.',badges:[{label:'PA elevada',type:'amber'},{label:'Medicamento ajustado',type:'gray'}]},
+      {date:'02',month:'MAR',active:false,title:'Consulta de rotina — check-up anual',summary:'Paciente sem queixas ativas. Exames de rotina dentro dos parâmetros normais. Recomendada manutenção do tratamento atual.',badges:[{label:'Sem alertas',type:'green'},{label:'Exames OK',type:'gray'}]}
+    ],
+    documents:[
+      {name:'Hemograma completo',type:'pdf',size:'128 KB',date:'29 abr',status:'seen',origin:'Laboratório Fleury'},
+      {name:'ECG de repouso',type:'img',size:'2.1 MB',date:'15 abr',status:'seen',origin:'Cardioclínica SP'},
+      {name:'Receita — Losartana 50mg',type:'pdf',size:'38 KB',date:'02 mar',status:'seen',origin:'Dra. Helena Souza'}
+    ],
+    insights:[
+      {text:'<strong>3 consultas</strong> nos últimos 90 dias — frequência acima da média para hipertensos controlados.'},
+      {text:'Padrão de <strong>cefaleia recorrente</strong> detectado nas últimas 2 anamneses. Considerar avaliação neurológica.'},
+      {text:'Dipirona prescrita em 02/mar. <strong>Alergia registrada</strong> — conflito detectado. Revisar prontuário.'},
+    ]
+  },
+  {
+    id:'p2', name:'Maria Silva', age:47, sex:'Feminino', blood:'O+',
+    photo:null, lastVisit:'10 mai', status:'active', returnDate:null, returnStatus:null,
+    tags:[{label:'Diabetes tipo 2',type:'cond'},{label:'Hipotireoidismo',type:'cond'}],
+    exams:{count:5,sub:'últimos 6 meses'}, allergies:{count:1,sub:'sem graves'}, meds:{count:3,sub:'em uso agora'}, conds:{count:2,sub:'2 crônicas'},
+    anamneses:[
+      {date:'10',month:'MAI',active:true,title:'Controle glicêmico — revisão trimestral',summary:'HbA1c: 7.2% — levemente acima da meta. Paciente relata dificuldade em manter dieta. Proposto ajuste na dose de Metformina.',badges:[{label:'Glicemia elevada',type:'amber'},{label:'Ajuste medicamentoso',type:'gray'}]},
+    ],
+    documents:[
+      {name:'HbA1c — resultado',type:'pdf',size:'89 KB',date:'10 mai',status:'new',origin:'Laboratório Sabin'},
+    ],
+    insights:[
+      {text:'HbA1c <strong>7.2%</strong> — acima da meta de 7.0% para diabéticos tipo 2. Monitorar tendência no próximo trimestre.'},
+      {text:'Levotiroxina sem ajuste há <strong>8 meses</strong>. Considerar revisão de TSH na próxima consulta.'},
+    ]
+  },
+  {
+    id:'p3', name:'Daniel Fernandes', age:17, sex:'Masculino', blood:'B+',
+    photo:null, lastVisit:'05 mai', status:'alert', returnDate:'20 mai 2026', returnStatus:'confirmed',
+    tags:[{label:'Asma leve',type:'cond'},{label:'Rinite alérgica',type:'cond'}],
+    exams:{count:1,sub:'último mês'}, allergies:{count:3,sub:'2 graves'}, meds:{count:2,sub:'em uso'}, conds:{count:2,sub:'respiratórias'},
+    anamneses:[
+      {date:'05',month:'MAI',active:true,title:'Crise de broncoespasmo noturna',summary:'Paciente relata 3 episódios de broncoespasmo na última semana, principalmente após 22h. Acordou 2 vezes com sensação de aperto no peito.',badges:[{label:'Urgência respiratória',type:'red'},{label:'Retorno em 15 dias',type:'amber'}]},
+    ],
+    documents:[],
+    insights:[
+      {text:'<strong>3 crises noturnas</strong> em 7 dias — padrão compatível com asma não controlada. Revisar protocolo.'},
+      {text:'Sem uso de corticoide inalatório nos últimos 30 dias segundo anamnese. <strong>Adesão comprometida.</strong>'},
+    ]
+  }
+];
+
+var currentView = 'pacientes';
+var currentPatient = null;
+var clockEl = document.getElementById('clock');
+function updateClock(){
+  var n=new Date();
+  clockEl.textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0')+':'+n.getSeconds().toString().padStart(2,'0');
+}
+setInterval(updateClock,1000); updateClock();
+
+function svgIcon(name,size){
+  size=size||14;
+  var icons={
+    send:'<svg width="'+size+'" height="'+size+'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2L9 14L7 9L2 7L14 2Z"/></svg>',
+    wapp:'<svg width="'+size+'" height="'+size+'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2a6 6 0 0 1 5.196 9L14 14l-3-.804A6 6 0 1 1 8 2Z"/><path d="M6 7.5c.5 1 1.5 2 2.5 2.5"/></svg>',
+    more:'<svg width="'+size+'" height="'+size+'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="4" cy="8" r=".8" fill="currentColor"/><circle cx="8" cy="8" r=".8" fill="currentColor"/><circle cx="12" cy="8" r=".8" fill="currentColor"/></svg>',
+    plus:'<svg width="'+size+'" height="'+size+'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>',
+    eye:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 8C3.5 5 5.5 3.5 8 3.5s4.5 1.5 6 4.5c-1.5 3-3.5 4.5-6 4.5S3.5 11 2 8Z"/><circle cx="8" cy="8" r="1.5"/></svg>',
+    trash:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5h10M6 5V3.5h4V5M6 8v4M10 8v4M4 5l.8 8h6.4L12 5"/></svg>',
+    back:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg>',
+    spark:'<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v2M8 12v2M2 8h2M12 8h2M4.1 4.1l1.4 1.4M10.5 10.5l1.4 1.4M4.1 11.9l1.4-1.4M10.5 5.5l1.4-1.4"/><circle cx="8" cy="8" r="2"/></svg>',
+    arrow:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>',
+    doc:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2h6l3 3v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M10 2v3h3M6 7h4M6 9.5h4M6 12h2"/></svg>',
+    dl:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3M3 13h10"/></svg>',
+    clock:'<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5L10.5 10"/></svg>',
+  };
+  return icons[name]||'';
+}
+
+function showView(v){
+  currentView=v;
+  document.querySelectorAll('.sb-item').forEach(function(el){el.classList.remove('active')});
+  var map={hoje:0,pcs:1,pacientes:2};
+  document.querySelectorAll('.sb-item')[map[v]||2].classList.add('active');
+  render();
+}
+
+function openPatient(id){
+  currentPatient=PATIENTS.find(function(p){return p.id===id;});
+  currentView='detail';
+  render();
+}
+
+function backToList(){
+  currentPatient=null;
+  currentView='pacientes';
+  render();
+}
+
+function render(){
+  var el=document.getElementById('main-content');
+  var crumb=document.getElementById('topbar-crumb');
+  if(currentView==='detail'&&currentPatient){
+    crumb.innerHTML='<span class="tb-crumb-root" onclick="backToList()">Pacientes</span><span class="tb-sep">›</span><span class="tb-crumb-cur">'+currentPatient.name+'</span>';
+    el.innerHTML=renderDetail(currentPatient);
+    setupDetailHeight();
+  } else {
+    crumb.innerHTML='<span class="tb-crumb-cur">Pacientes</span>';
+    el.innerHTML=renderList();
+  }
+}
+
+function setupDetailHeight(){
+  var cols=document.querySelector('.pd-detail-inner');
+  if(cols){
+    var tb=document.querySelector('.topbar');
+    var ph=document.querySelector('.ph');
+    var cm=document.querySelector('.cm-strip');
+    if(tb&&ph&&cm){
+      var h=window.innerHeight-tb.offsetHeight-ph.offsetHeight-cm.offsetHeight;
+      cols.style.height=h+'px';
+    }
+  }
+}
+window.addEventListener('resize',function(){if(currentView==='detail')setupDetailHeight();});
+
+function renderList(){
+  var rows=PATIENTS.map(function(p){
+    var initials=p.name.split(' ').slice(0,2).map(function(s){return s[0];}).join('').toUpperCase();
+    var st=p.status==='alert'?'<span class="status-badge s-alert"><span class="dot"></span>Alerta</span>':'<span class="status-badge s-active"><span class="dot"></span>Ativa</span>';
+    var ret=p.returnDate?'<span class="return-date">'+p.returnDate.replace(' 2026','')+'</span>':'<span style="color:var(--ink-4)">—</span>';
+    return '<div class="ptbl-row" onclick="openPatient(\''+p.id+'\')">'
+      +'<div class="pat-cell"><div class="pat-av">'+initials+'</div><div><div class="pat-name">'+p.name+'</div><div class="pat-meta">'+p.age+' anos · '+p.sex+' · Sangue '+p.blood+'</div></div></div>'
+      +'<div class="ptbl-cell">'+p.lastVisit+'</div>'
+      +'<div>'+st+'</div>'
+      +'<div>'+ret+'</div>'
+      +'<div class="ptbl-open">Abrir →</div>'
+    +'</div>';
+  }).join('');
+  return '<div class="list-wrap"><div class="list-header"><div class="list-title">Pacientes</div><div class="list-count">'+PATIENTS.length+' pacientes</div><div class="list-search"><div class="search-wrap"><svg class="search-ico" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="7" cy="7" r="4.5"/><path d="M11 11l2.5 2.5"/></svg><input class="search-input" placeholder="Buscar paciente..." oninput="filterList(this.value)"/></div></div></div>'
+    +'<div class="ptbl" id="ptbl"><div class="ptbl-head"><div class="ptbl-hcell">Paciente</div><div class="ptbl-hcell">Última consulta</div><div class="ptbl-hcell">Status</div><div class="ptbl-hcell">Próximo retorno</div><div class="ptbl-hcell"></div></div>'+rows+'</div></div>';
+}
+
+function filterList(q){
+  document.querySelectorAll('.ptbl-row').forEach(function(r,i){
+    var name=PATIENTS[i].name.toLowerCase();
+    r.style.display=name.includes(q.toLowerCase())?'':'none';
+  });
+}
+
+function renderDetail(p){
+  var initials=p.name.split(' ').slice(0,2).map(function(s){return s[0];}).join('').toUpperCase();
+  var tagsHtml=p.tags.map(function(t){
+    return '<span class="ph-tag '+t.type+'">'+t.label+'</span>';
+  }).join('');
+
+  var metricsHtml='<div class="cm-item"><div class="cm-label">Exames</div><div class="cm-value">'+p.exams.count+'</div><div class="cm-sub">'+p.exams.sub+'</div></div>'
+    +'<div class="cm-item"><div class="cm-label">Alergias</div><div class="cm-value '+(p.allergies.count>1?'red':'')+'">'+p.allergies.count+'</div><div class="cm-sub">'+p.allergies.sub+'</div></div>'
+    +'<div class="cm-item"><div class="cm-label">Medicamentos</div><div class="cm-value">'+p.meds.count+'</div><div class="cm-sub">'+p.meds.sub+'</div></div>'
+    +'<div class="cm-item"><div class="cm-label">Condições</div><div class="cm-value">'+p.conds.count+'</div><div class="cm-sub">'+p.conds.sub+'</div></div>';
+
+  var tlHtml;
+  if(p.anamneses.length>0){
+    tlHtml=p.anamneses.map(function(a){
+      var badges=a.badges.map(function(b){return '<span class="tl-badge '+b.type+'">'+b.label+'</span>';}).join('');
+      return '<div class="tl-item"><div class="tl-date"><span class="tl-day">'+a.date+'</span><span class="tl-month">'+a.month+'</span></div><div class="tl-dot '+(a.active?'active':'')+'"></div><div class="tl-body"><div class="tl-title">'+a.title+'</div><div class="tl-summary">'+a.summary+'</div><div class="tl-badges">'+badges+'</div></div></div>';
+    }).join('');
+  } else {
+    tlHtml='<div class="tl-empty"><div class="tl-empty-title">Sem histórico ainda</div><div class="tl-empty-sub">Quando este paciente concluir sua primeira pré-consulta, a evolução clínica aparecerá aqui automaticamente.</div><button class="tl-empty-cta">'+svgIcon('send')+'Enviar pré-consulta agora</button></div>';
+  }
+
+  var insHtml=p.insights.map(function(ins){
+    return '<div class="ins-line"><div class="ins-line-dot"></div><div class="ins-line-text">'+ins.text+'</div></div>';
+  }).join('');
+
+  // Return block
+  var retHtml;
+  if(p.returnDate){
+    var retSt=p.returnStatus==='confirmed'
+      ?'<div class="ret-status"><span class="dot"></span>Confirmado pelo paciente</div>'
+      :'<div class="ret-status"><span class="dot"></span>Aguardando confirmação</div>';
+    retHtml='<div class="ret-body"><div class="ret-date">'+p.returnDate+'</div>'+retSt+'<div class="ret-actions"><button class="ret-btn primary" onclick="alert(\'Retorno confirmado!\')">Confirmar</button><button class="ret-btn" onclick="alert(\'Reagendar...\')">Reagendar</button><button class="ret-btn" onclick="alert(\'Cancelado\')">Cancelar</button></div></div>';
+  } else {
+    retHtml='<div class="ret-empty"><div class="ret-empty-text">Nenhum retorno agendado para este paciente.</div><button class="ret-empty-cta" onclick="alert(\'Marcar retorno...\')">+ Marcar retorno</button></div>';
+  }
+
+  // Documents
+  var docsHtml;
+  if(p.documents.length>0){
+    docsHtml=p.documents.map(function(d){
+      var ext=d.type.toUpperCase();
+      return '<div class="doc-row"><div class="doc-type '+d.type+'">'+ext+'</div><div class="doc-info"><div class="doc-name">'+d.name+'</div><div class="doc-meta">'+d.size+' · '+d.date+' · '+d.origin+'</div></div><div class="doc-status '+(d.status==='new'?'new':'seen')+'"></div><div class="doc-actions"><div class="doc-act-btn" title="Ver">'+svgIcon('eye')+'</div><div class="doc-act-btn" title="Baixar">'+svgIcon('dl')+'</div><div class="doc-act-btn" title="Excluir">'+svgIcon('trash')+'</div></div></div>';
+    }).join('');
+  } else {
+    docsHtml='<div class="doc-empty"><div class="doc-empty-text">Nenhum documento ainda.<br>Clique em + Anexar para adicionar um laudo, receita ou exame.</div></div>';
+  }
+
+  return '<div class="pd-wrap">'
+    // Header
+    +'<div class="ph">'
+      +'<div class="ph-av">'+initials+'</div>'
+      +'<div class="ph-info">'
+        +'<div class="ph-name">'+p.name+'</div>'
+        +'<div class="ph-meta"><span class="ph-meta-item">'+p.age+' anos</span><span class="ph-dot">·</span><span class="ph-meta-item">'+p.sex+'</span><span class="ph-dot">·</span><span class="ph-meta-item">Sangue '+p.blood+'</span></div>'
+        +'<div class="ph-tags">'+tagsHtml+'</div>'
+      +'</div>'
+      +'<div class="ph-actions">'
+        +'<button class="btn-primary">'+svgIcon('send')+'Enviar pré-consulta</button>'
+        +'<button class="btn-ghost">'+svgIcon('wapp')+' WhatsApp ↗</button>'
+        +'<button class="btn-icon" title="Mais ações">'+svgIcon('more')+'</button>'
+      +'</div>'
+    +'</div>'
+    // Metrics
+    +'<div class="cm-strip">'+metricsHtml+'</div>'
+    // Two columns
+    +'<div class="pd-detail-inner">'
+      +'<div class="pd-cols">'
+        // Main: timeline + insights
+        +'<div class="pd-main">'
+          +'<div>'
+            +'<div class="sec-head"><span class="sec-label">Histórico Clínico</span>'+(p.anamneses.length>0?'<button class="sec-action">Ver tudo '+svgIcon('arrow')+'</button>':'')+'</div>'
+            +'<div class="tl">'+tlHtml+'</div>'
+          +'</div>'
+          +(p.insights.length>0
+            ?'<div><div class="sec-head"><span class="sec-label">Insights</span><span class="ins-head-tag" style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(0,180,216,.08);color:var(--cyan);border:1px solid rgba(0,180,216,.2)">Gerado automaticamente</span></div>'
+              +'<div class="ins-card"><div class="ins-head"><div class="ins-head-icon">'+svgIcon('spark',14)+'</div><div class="ins-head-label">Análise clínica</div></div><div class="ins-body">'+insHtml+'</div><div class="ins-foot"><span class="ins-foot-label">Baseado nas últimas '+p.anamneses.length+' consultas</span><button class="ins-foot-link">Ver completo '+svgIcon('arrow',11)+'</button></div></div></div>'
+            :'')
+        +'</div>'
+        // Rail: return + documents
+        +'<div class="pd-rail">'
+          +'<div class="ret-block"><div class="ret-head"><span class="ret-label">Próximo retorno</span>'+svgIcon('clock',11)+'</div>'+retHtml+'</div>'
+          +'<div class="doc-block"><div class="doc-head"><span class="ret-label">Documentos</span><button class="doc-add">'+svgIcon('plus',11)+' Anexar</button></div>'+docsHtml+'</div>'
+        +'</div>'
+      +'</div>'
+    +'</div>'
+  +'</div>';
+}
+
+// Init
+render();
+</script>
+</body>
+</html>
