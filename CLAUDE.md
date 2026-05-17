@@ -576,6 +576,58 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 24 — 16/05/2026 — 3 features VITAE em prod autonomas (Retorno + Documentos + WhatsApp)
+
+**Contexto:** Lucas autorizou execucao autonoma multi-fase ("vai"). Em uma sessao entreguei as 3 features completas medico↔paciente sincronizadas, validadas por Playwright que logou nas contas reais (`valveeumudei1107@gmail.com` medico + `lucasborelli096@gmail.com` paciente).
+
+**Estado final em prod (3 features funcionando, 10 commits na main do `134cccb` ao `816697b`):**
+- Fase 1 — Proximo Retorno: medico propoe data → paciente confirma/recusa/remarca → sincroniza dos 2 lados. Schema com 6 campos novos em Agendamento, 12 rotas em routes/agendamento.js.
+- Fase 2 — Documentos: medico anexa receita/laudo/encam → paciente baixa via URL Supabase 1h. Model DocumentoMedico, 8 rotas em routes/documentos.js, multer 10MB + 6 mime types.
+- Fase 3 — Contato Direto WhatsApp: medico ativa toggle (modal LGPD obrigatorio 1a ativacao CFM 2.314/2022 + LGPD Art. 18) + permissao granular por paciente (Decisao 7). Paciente ve botao "Tirar duvida" dentro do horario. 2 models novos (ConfigContatoMedico + PermissaoContatoPaciente), 7 rotas em routes/contato.js, timezone Sao Paulo, validacao E.164 BR.
+
+**Numeros:**
+- ~2300 linhas adicionadas / 10 commits / 3 migrations Prisma (todas ADD COLUMN/CREATE TABLE)
+- 27 rotas backend novas (12 + 8 + 7) / api.js raiz +12 funcoes / app-v3/api.js +9 funcoes
+- 4 baterias Playwright (e2e-fase1/2/3-completo + e2e-master)
+- 12 entradas auditoria CFM registradas no Master E2E
+
+**Plano + Relatorio:**
+- `PLANO-AUTONOMO-3-FEATURES.md` (1458 linhas, mestre) — feito ANTES de qualquer codigo. Estudo de 3 agentes paralelos (app-v3 + Obsidian Vault + backend real).
+- `RELATORIO-3-FEATURES-16-MAI-2026.md` — handoff 1 pagina com TL;DR, commits, bugs descobertos, gaps, proximos passos.
+
+**2 bugs criticos descobertos pelo Playwright (corrigidos antes de mergear):**
+1. `window.BACKEND.api()` nao serializa body objeto — fetch recebia `[object Object]` e backend rejeitava 400 "Required". Helper `_prApiJson` no app-v2.html: stringify + Content-Type + parse JSON. Commit `e8102ed`.
+2. `whatsappNumero` formato invalido — `DR.telefone` bruto rejeitado por regex E.164 BR. Helper `_pdNormalizaE164`. Commit `3b8615e`.
+
+**Compliance entregue:**
+- CFM 2.314/2022: termo consent telemedicina no modal LGPD com texto literal
+- CFM 2.454/2026: disclaimer "Conversas WhatsApp informativas, nao substituem consulta presencial"
+- LGPD Art. 18: consentLgpdEm timestamp + revogacao via toggle OFF preserva historico
+- Retencao 20a: soft-delete em DocumentoMedico via deletadoEm
+- Auditoria CFM: 12+ acoes registradas em auditoria_acesso
+
+**Validacao final do banco apos Master E2E:**
+- Fase 1: retorno `26be34dc` statusProposta=CONFIRMADO + confirmadoEm populado
+- Fase 2: documento `258bd6c4` LAUDO visualizadoEm + baixadoEm populados
+- Fase 3: ConfigContatoMedico whatsappHabilitado=true, consentLgpdAceito=true, dias=[seg-sex], 08:00-18:00
+- Fase 3: PermissaoContatoPaciente habilitada com timestamp
+- 0 erros HTTP nas chamadas API durante Master E2E
+
+**Sub-frentes paralelas dessa sessao (antes das 3 fases):**
+- Refatoracao Central Clinica: aba Pacientes virou TABELA (igual Pre-Consultas), click leva pra view `pacientes-detail` com layout 2 colunas (1.6fr 1fr) igual preview-central-clinica.html aprovado. 3 iteracoes ate Lucas aprovar visualmente.
+- Componente Documentos Apple-style monocromatico (sem pills coloridas, dot azul Apple `#007AFF` so pra "nao visto", icone outline cinza `#8E8E93`).
+
+**Pegadinhas pra proximas sessoes:**
+- `window.BACKEND.api` continua nao auto-stringify body — usar `_prApiJson` (definido em app-v2.html proximo as funcoes pr*) OU `JSON.stringify(body)` + Content-Type manual nas proximas features
+- Railway CLI as vezes desconecta — `railway link --project 1e55e29a-52fd-431c-8da6-238e8b39fbdd --environment e6f73c0d-a348-4ccb-9537-27fb57329bce --service 348c2ef2-0f86-4c59-87b1-0d57b729684c`
+- App paciente login passa por `26-cadastro.html` com flag `sessionStorage.vitae_prefer_login=1` (`addInitScript` no Playwright antes do navigate)
+- Tabela de pacientes mostra "daniel aaaa" primeiro (5 pacientes vinculados ao medico teste) — usar `STATE.selectedPaciente=ID + goto('pacientes-detail')` programaticamente pra abrir paciente especifico no Playwright
+- Bug `vitaeAPI.jaTemRG is not a function` aparece como warn JS no app-v3 — pre-existente, fora do escopo das 3 features. Lucas precisa decidir prioridade.
+
+**Lucas correcao em meio da sessao:** apos Fase 2 entregue eu reportei "teste agora 3 min" pedindo validacao visual. Lucas respondeu "EU N TINAH FALDO Q EU N QEURIA ESSASA PAUSASAS" — autorizou autonomo total desde o "vai" inicial. Memoria salva em `feedback_no_pausa_pra_testar.md`: nunca pausar entre fases multi-fase pra pedir validacao humana, Playwright real e suficiente.
+
+**Proximo passo critico (so Lucas pode):** recrutar 5-10 medicos beta. Sistema tecnico esta pronto.
+
 ### Sessao 23 — 10/05/2026 — Remocao disparo em massa + bateria E2E + 2 fixes UX criticos
 
 **Contexto:** Lucas questionou se precisava do sistema de disparo SMS/WhatsApp em massa (Fase 10b) ja que o fluxo virou clique-do-medico abrindo wa.me direto. Estudo profundo confirmou: 3 fluxos paralelos no app, 2 funcionais e 1 legado em modo simulacao desde Fase 10b que nunca virou real. Apos remocao, Lucas pediu varredura de testes pra ver se tinha bug — bateria E2E descobriu 2 bugs reais, corrigi no mesmo dia.
