@@ -151,11 +151,17 @@ router.get('/proximo', async (req, res, next) => {
 
 router.get('/retornos-pendentes', async (req, res, next) => {
   try {
+    const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const retornos = await prisma.agendamento.findMany({
       where: {
         usuarioId: req.usuario.id,
         tipo: 'RETORNO',
-        statusProposta: { in: ['AGUARDANDO_PACIENTE', 'AGUARDANDO_MEDICO', 'CONFIRMADO'] },
+        OR: [
+          // Estados ativos sempre aparecem
+          { statusProposta: { in: ['AGUARDANDO_PACIENTE', 'AGUARDANDO_MEDICO', 'CONFIRMADO'] } },
+          // Cancelados pelo medico aparecem por 7 dias (transparencia)
+          { statusProposta: 'CANCELADO', atualizadoEm: { gte: seteDiasAtras }, propostoPor: 'MEDICO' },
+        ],
       },
       orderBy: { dataHora: 'asc' },
     });

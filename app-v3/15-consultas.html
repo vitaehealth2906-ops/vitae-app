@@ -281,6 +281,8 @@
   .ret-card.aguardando { border-left: 4px solid var(--warn); }
   .ret-card.confirmado { border-left: 4px solid var(--green2); }
   .ret-card.aguardando-medico { border-left: 4px solid #00B4D8; }
+  .ret-card.cancelado { border-left: 4px solid #EF4444; background: rgba(239,68,68,0.02); }
+  .ret-data-canc { text-decoration: line-through; color: var(--ink3) !important; }
   .ret-medico { font-size: 12px; color: var(--ink3); margin-bottom: 6px; font-weight: 600; }
   .ret-data { font-size: 22px; font-weight: 900; color: var(--ink); letter-spacing: -.5px; line-height: 1; margin-bottom: 6px; }
   .ret-data-anterior { font-size: 11.5px; color: var(--ink5); text-decoration: line-through; margin-bottom: 8px; }
@@ -518,6 +520,7 @@
       AGUARDANDO_PACIENTE: { cls:'aguardando', cor:'#F59E0B', txt:'Aguarda sua resposta' },
       AGUARDANDO_MEDICO:   { cls:'aguardando-medico', cor:'#00B4D8', txt:'Aguardando seu médico' },
       CONFIRMADO:          { cls:'confirmado', cor:'#00C47A', txt:'Confirmado' },
+      CANCELADO:           { cls:'cancelado', cor:'#EF4444', txt:'Cancelado pelo seu médico' },
     };
     const c = cfgs[st] || cfgs.AGUARDANDO_PACIENTE;
 
@@ -531,16 +534,21 @@
       actions = `<button class="ret-btn-s" onclick="abrirRemarca('${r.id}')">Preciso remarcar</button>`;
     } else if (st === 'AGUARDANDO_MEDICO') {
       actions = `<div style="font-size:12px;color:var(--ink3);padding:6px 0">Seu médico ainda não respondeu.</div>`;
+    } else if (st === 'CANCELADO') {
+      actions = `<div style="font-size:12px;color:var(--ink3);padding:6px 0;line-height:1.5">Se quiser remarcar, fale com seu médico. Esse aviso some em 7 dias.</div>`;
     }
 
-    const obsHtml = r.observacoes ? `<div class="ret-obs">"${escapeHtml(r.observacoes)}"</div>` : '';
+    const obsHtml = r.motivoStatus
+      ? `<div class="ret-obs">"${escapeHtml(r.motivoStatus)}"</div>`
+      : (r.observacoes ? `<div class="ret-obs">"${escapeHtml(r.observacoes)}"</div>` : '');
     const dataAntHtml = r.dataAnterior ? `<div class="ret-data-anterior">Era ${_fmtRetData(r.dataAnterior)}</div>` : '';
     const localHtml = r.local ? `<div class="ret-meta">${escapeHtml(r.local)}</div>` : '';
+    const dataCls = st === 'CANCELADO' ? 'ret-data ret-data-canc' : 'ret-data';
 
     return `
       <div class="ret-card ${c.cls}">
         <div class="ret-medico">${escapeHtml(r.medico || 'Seu médico')}</div>
-        <div class="ret-data">${_fmtRetData(r.dataHora)}</div>
+        <div class="${dataCls}">${_fmtRetData(r.dataHora)}</div>
         ${dataAntHtml}
         <div class="ret-status-row"><div class="ret-status-dot" style="background:${c.cor}"></div><div class="ret-status-txt" style="color:${c.cor}">${c.txt}</div></div>
         ${localHtml}
