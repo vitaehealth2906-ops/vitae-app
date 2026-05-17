@@ -2028,59 +2028,45 @@ function renderPacienteDetailInline(){
   /* 3 COLUNAS (igual Central Clínica) */
   html+='<div class="pac-det-grid">';
 
-  /* ─── COL 1: Timeline + IA Collab ────────────────────────── */
+  /* ─── COL 1: Historico Clinico (analise comparativa, auto-gerada + cache) ──── */
   html+='<div>';
-  html+='<div class="pdc" data-acc-id="hist">';
-  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Histórico Clínico</span>'+PDC_CHEVRON_SVG+'</div>';
-  html+='<div class="pdc-b">';
-  if(!eventos.length){
-    if(!loaded){
-      // Skeleton enquanto carrega do servidor
-      html+='<div style="display:flex;flex-direction:column;gap:10px;padding:6px 0">';
-      for (var __i = 0; __i < 3; __i++) {
-        html+='<div class="pat-skel" style="display:flex;align-items:center;gap:12px"><div style="width:50px;height:34px;background:var(--bg);border-radius:6px;animation:patSkelPulse 1.4s ease-in-out infinite"></div><div style="flex:1"><div style="height:10px;width:60%;background:var(--bg);border-radius:4px;margin-bottom:6px;animation:patSkelPulse 1.4s ease-in-out infinite"></div><div style="height:8px;width:40%;background:var(--bg);border-radius:4px;animation:patSkelPulse 1.4s ease-in-out infinite"></div></div></div>';
-      }
-      html+='</div>';
-    }else{
-      html+='<div style="padding:20px 0;text-align:center"><div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:6px">Sem pré-consultas ainda</div><div style="font-size:12px;color:var(--t3);line-height:1.55;max-width:300px;margin:0 auto 10px">Envie a primeira pré-consulta. Quando o paciente responder, a evolução aparece aqui.</div><button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')">Enviar pré-consulta</button></div>';
-    }
-  }else{
-    html+='<div class="tl-strip" style="border:none;padding:0 0 0 22px;background:transparent;border-radius:0;margin-bottom:0">';
-    eventos.forEach(function(e){
-      var click=e.pc?'onclick="openSummary(\''+e.pc+'\')"':'';
-      html+='<div class="tl-evt'+(e.warn?' warn':'')+'"><div class="tl-evt-d">'+e.d+'</div><div class="tl-evt-t" '+click+'>'+e.t+'</div><div class="tl-evt-b">'+e.b+'</div></div>';
-    });
-    html+='</div>';
-  }
-
-  // IA Collab — dentro da box Historico Clinico (decisao do Lucas)
-  // Se < 2 PCs respondidas, NAO mostra IA Collab (sem placeholder)
+  if (typeof _histClinHydrate === 'function') _histClinHydrate(p.id);
   var pcsRespondidasReais = Object.values(PCS||{}).filter(function(pc){
     if (pc.pacienteId !== p.id) return false;
     return (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA' || pc.cobertura === 'pronta' || pc.cobertura === 'parcial');
   }).length;
-  if(STATE.comparativoLoading || STATE.comparativoLigado || pcsRespondidasReais>=2){
-    html+='<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">';
-    if(STATE.comparativoLoading){
-      html+='<div class="ia-load"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage" id="iaStage">Lendo anamneses anteriores<span class="ia-dots"><span></span><span></span><span></span></span><small>Analisando padrões da fala, vocabulário e queixa</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
-    }else if(STATE.comparativoLigado){
-      (function(){
-        var err = (window.COMPARE_ERR && window.COMPARE_ERR[p.id]) || null;
-        var txt = COMPARE_MOCK[p.id] || '—';
-        var retryEnabled = err && ['UNKNOWN','NETWORK','BILLING'].indexOf(err.tipo) > -1;
-        var iconColor = err ? 'var(--warn)' : '#00C47A';
-        var hintHtml = err && err.tipo === 'BILLING' ? '<div style="font-size:11px;color:var(--t3);margin-top:8px;font-style:italic">Não é problema seu — recarga automática em até 1h.</div>' : '';
-        html+='<div class="compare-card" style="border:none;padding:0;background:transparent;'+(err?'border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04)':'')+'">'
-          +'<div class="compare-t" style="color:'+iconColor+'">⊕ IA Collab'+(err?' · não conseguiu':'')+'</div>'
-          +'<div class="compare-b" style="white-space:pre-wrap">'+escHtml(txt)+'</div>'
-          +hintHtml
-          +(retryEnabled?'<div style="margin-top:10px"><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">↻ Tentar de novo</button></div>':'')
-        +'</div>';
-      })();
-    }else{
-      html+='<div class="compare-cta" style="border:none;padding:0;background:transparent"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente esta anamnese com as anteriores deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="this.disabled=true;this.style.opacity=0.5;this.textContent=\'Comparando…\';iniciarComparativo();">⊕ Comparar anamneses anteriores</button></div>';
+  html+='<div class="pdc" data-acc-id="hist">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Histórico Clínico</span>'+PDC_CHEVRON_SVG+'</div>';
+  html+='<div class="pdc-b">';
+  if (!loaded) {
+    // Skeleton enquanto carrega do servidor
+    html+='<div style="display:flex;flex-direction:column;gap:10px;padding:6px 0">';
+    for (var __i = 0; __i < 3; __i++) {
+      html+='<div class="pat-skel" style="display:flex;align-items:center;gap:12px"><div style="width:50px;height:34px;background:var(--bg);border-radius:6px;animation:patSkelPulse 1.4s ease-in-out infinite"></div><div style="flex:1"><div style="height:10px;width:60%;background:var(--bg);border-radius:4px;margin-bottom:6px;animation:patSkelPulse 1.4s ease-in-out infinite"></div><div style="height:8px;width:40%;background:var(--bg);border-radius:4px;animation:patSkelPulse 1.4s ease-in-out infinite"></div></div></div>';
     }
     html+='</div>';
+  } else if (pcsRespondidasReais === 0) {
+    html+='<div style="padding:20px 0;text-align:center"><div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:6px">Sem pré-consultas ainda</div><div style="font-size:12px;color:var(--t3);line-height:1.55;max-width:300px;margin:0 auto 10px">O histórico clínico aparece automaticamente quando este paciente concluir pelo menos 2 pré-consultas.</div><button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')">Enviar pré-consulta</button></div>';
+  } else if (pcsRespondidasReais === 1) {
+    html+='<div style="padding:20px 0;text-align:center"><div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:6px">Aguardando segunda pré-consulta</div><div style="font-size:12px;color:var(--t3);line-height:1.55;max-width:300px;margin:0 auto 10px">Esse paciente tem 1 pré-consulta respondida. O histórico comparativo aparece a partir de 2.</div><button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')">Enviar nova pré-consulta</button></div>';
+  } else if (STATE.comparativoLoading) {
+    html+='<div class="ia-load" style="padding:8px 0"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage" id="iaStage">Lendo pré-consultas anteriores<span class="ia-dots"><span></span><span></span><span></span></span><small>Analisando padrões da fala, vocabulário e queixa</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
+  } else if (STATE.comparativoLigado) {
+    (function(){
+      var err = (window.COMPARE_ERR && window.COMPARE_ERR[p.id]) || null;
+      var txt = COMPARE_MOCK[p.id] || '—';
+      var retryEnabled = err && ['UNKNOWN','NETWORK','BILLING'].indexOf(err.tipo) > -1;
+      var hintHtml = err && err.tipo === 'BILLING' ? '<div style="font-size:11px;color:var(--t3);margin-top:10px;font-style:italic">Recarga automática em até 1h.</div>' : '';
+      if (err) {
+        html+='<div style="padding:14px 16px;background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.18);border-radius:10px"><div style="font-size:13px;font-weight:600;color:var(--warn);margin-bottom:6px">Não conseguimos gerar agora</div><div style="font-size:12.5px;color:var(--t2);line-height:1.55;white-space:pre-wrap">'+escHtml(txt)+'</div>'+hintHtml+(retryEnabled?'<div style="margin-top:12px"><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">↻ Tentar de novo</button></div>':'')+'</div>';
+      } else {
+        html+='<div style="white-space:pre-wrap;font-size:13.5px;color:var(--t1);line-height:1.65;letter-spacing:-.05px">'+escHtml(txt)+'</div>';
+      }
+    })();
+  } else {
+    // 2+ PCs, sem cache, sem loading: dispara auto-trigger e mostra loading imediato
+    if (typeof _histClinAutoTriggerIfNeeded === 'function') _histClinAutoTriggerIfNeeded(p.id, pcsRespondidasReais);
+    html+='<div class="ia-load" style="padding:8px 0"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage">Preparando análise<span class="ia-dots"><span></span><span></span><span></span></span><small>Cruzando '+pcsRespondidasReais+' pré-consultas deste paciente</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
   }
   html+='</div></div>';
   html+='</div>'; // fim col 1
@@ -2323,46 +2309,33 @@ function renderPacienteDetail(){
   // ═══ COLUNA ESQUERDA (1.6fr) ═══════════════════════════════
   html+='<div>';
 
-  // Histórico Clínico (timeline)
+  // Historico Clinico — analise comparativa das pre-consultas (auto-gerado + cache)
+  if (typeof _histClinHydrate === 'function') _histClinHydrate(p.id);
   html+='<div class="pdc" data-acc-id="hist">';
-  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Histórico Clínico</span><span class="pdc-h-right">';
-  if(eventos.length>2)html+='<button class="btn btn-ghost btn-sm" onclick="">Ver tudo</button>';
-  html+=PDC_CHEVRON_SVG+'</span>';
-  html+='</div>';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Histórico Clínico</span>'+PDC_CHEVRON_SVG+'</div>';
   html+='<div class="pdc-b">';
-  if(!eventos.length){
-    html+='<div style="padding:24px 0;text-align:center"><div style="font-size:13.5px;font-weight:700;color:var(--t2);margin-bottom:6px">Sem pré-consultas ainda</div><div style="font-size:12.5px;color:var(--t3);line-height:1.6;max-width:320px;margin:0 auto 12px">Quando este paciente concluir a primeira pré-consulta, a evolução clínica aparece aqui.</div><button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')">Enviar pré-consulta</button></div>';
-  }else{
-    html+='<div class="tl-strip" style="border:none;padding:0 0 0 22px;background:transparent;border-radius:0;margin-bottom:0">';
-    eventos.forEach(function(e){
-      var click=e.pc?'onclick="openSummary(\''+e.pc+'\')"':'';
-      html+='<div class="tl-evt'+(e.warn?' warn':'')+'"><div class="tl-evt-d">'+e.d+'</div><div class="tl-evt-t" '+click+'>'+e.t+'</div><div class="tl-evt-b">'+e.b+'</div></div>';
-    });
-    html+='</div>';
-  }
-
-  // IA Collab — dentro da box Historico Clinico (decisao do Lucas)
-  // Se < 2 PCs respondidas, NAO mostra IA Collab (sem placeholder)
-  if(eventos.length>=2){
-    html+='<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">';
-    if(STATE.comparativoLigado){
-      (function(){
+  if (eventos.length === 0) {
+    html+='<div style="padding:24px 0;text-align:center"><div style="font-size:13.5px;font-weight:700;color:var(--t2);margin-bottom:6px">Sem pré-consultas ainda</div><div style="font-size:12.5px;color:var(--t3);line-height:1.6;max-width:340px;margin:0 auto 12px">O histórico clínico aparece automaticamente quando este paciente concluir pelo menos 2 pré-consultas.</div><button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')">Enviar pré-consulta</button></div>';
+  } else if (eventos.length === 1) {
+    html+='<div style="padding:24px 0;text-align:center"><div style="font-size:13.5px;font-weight:700;color:var(--t2);margin-bottom:6px">Aguardando segunda pré-consulta</div><div style="font-size:12.5px;color:var(--t3);line-height:1.6;max-width:340px;margin:0 auto 12px">Esse paciente tem 1 pré-consulta respondida. O histórico clínico comparativo aparece a partir de 2.</div><button class="btn btn-p btn-sm" onclick="modalCriarPC(\''+p.id+'\')">Enviar nova pré-consulta</button></div>';
+  } else if (STATE.comparativoLoading) {
+    html+='<div class="ia-load" style="padding:8px 0"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage" id="iaStage">Lendo pré-consultas anteriores<span class="ia-dots"><span></span><span></span><span></span></span><small>Analisando padrões da fala, vocabulário e queixa</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
+  } else if (STATE.comparativoLigado) {
+    (function(){
       var err = (window.COMPARE_ERR && window.COMPARE_ERR[p.id]) || null;
       var txt = COMPARE_MOCK[p.id] || '—';
       var retryEnabled = err && ['UNKNOWN','NETWORK','BILLING'].indexOf(err.tipo) > -1;
-      var iconColor = err ? 'var(--warn)' : '#00C47A';
-      var hintHtml = err && err.tipo === 'BILLING' ? '<div style="font-size:11px;color:var(--t3);margin-top:8px;font-style:italic">Não é problema seu — recarga automática em até 1h.</div>' : '';
-      html+='<div class="compare-card" style="border:none;padding:0;background:transparent;'+(err?'border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04)':'')+'">'
-        +'<div class="compare-t" style="color:'+iconColor+'">⊕ IA Collab'+(err?' · não conseguiu':'')+'</div>'
-        +'<div class="compare-b" style="white-space:pre-wrap">'+escHtml(txt)+'</div>'
-        +hintHtml
-        +(retryEnabled?'<div style="margin-top:10px"><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">↻ Tentar de novo</button></div>':'')
-      +'</div>';
+      var hintHtml = err && err.tipo === 'BILLING' ? '<div style="font-size:11px;color:var(--t3);margin-top:10px;font-style:italic">Recarga automática em até 1h.</div>' : '';
+      if (err) {
+        html+='<div style="padding:14px 16px;background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.18);border-radius:10px"><div style="font-size:13px;font-weight:600;color:var(--warn);margin-bottom:6px">Não conseguimos gerar agora</div><div style="font-size:12.5px;color:var(--t2);line-height:1.55;white-space:pre-wrap">'+escHtml(txt)+'</div>'+hintHtml+(retryEnabled?'<div style="margin-top:12px"><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">↻ Tentar de novo</button></div>':'')+'</div>';
+      } else {
+        html+='<div style="white-space:pre-wrap;font-size:13.5px;color:var(--t1);line-height:1.65;letter-spacing:-.05px">'+escHtml(txt)+'</div>';
+      }
     })();
-    }else{
-      html+='<div class="compare-cta" style="border:none;padding:0;background:transparent"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente as anamneses deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="this.disabled=true;this.style.opacity=0.5;this.textContent=\'Comparando…\';iniciarComparativo();">⊕ Comparar anamneses</button></div>';
-    }
-    html+='</div>';
+  } else {
+    // 2+ PCs, sem cache, sem loading: dispara auto-trigger e mostra loading imediato
+    if (typeof _histClinAutoTriggerIfNeeded === 'function') _histClinAutoTriggerIfNeeded(p.id, eventos.length);
+    html+='<div class="ia-load" style="padding:8px 0"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage">Preparando análise<span class="ia-dots"><span></span><span></span><span></span></span><small>Cruzando '+eventos.length+' pré-consultas deste paciente</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
   }
   html+='</div></div>';
 
@@ -7549,6 +7522,55 @@ function _iaTraduzErro(rawMsg){
   return { tipo:'UNKNOWN', txt:'Não foi possível gerar a análise agora. Tenta de novo em alguns segundos.' };
 }
 
+// === Cache local do Historico Clinico (persiste entre sessoes) ===
+// Hash composto pelos IDs das PCs respondidas. Se aparece nova PC, hash muda e
+// o cache invalida automaticamente, forcando regeneracao.
+function _histClinHash(pid){
+  if (!pid || typeof PCS === 'undefined') return '';
+  var ids = Object.values(PCS||{}).filter(function(pc){
+    if (pc.pacienteId !== pid) return false;
+    return (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA' || pc.cobertura === 'pronta' || pc.cobertura === 'parcial');
+  }).map(function(pc){ return pc.id; }).sort();
+  return ids.join(',');
+}
+function _histClinKey(pid){ return 'vitae_histclin_v1_'+pid; }
+function _histClinSaveCache(pid, txt){
+  try {
+    localStorage.setItem(_histClinKey(pid), JSON.stringify({ hash: _histClinHash(pid), txt: txt, t: Date.now() }));
+  } catch(_){}
+}
+function _histClinLoadCache(pid){
+  try {
+    var raw = localStorage.getItem(_histClinKey(pid));
+    if (!raw) return null;
+    var data = JSON.parse(raw);
+    if (data.hash !== _histClinHash(pid)) return null;
+    return data.txt || null;
+  } catch(_) { return null; }
+}
+// Hidrata COMPARE_MOCK + STATE.comparativoLigado a partir do cache, se houver
+function _histClinHydrate(pid){
+  if (!pid) return false;
+  if (typeof COMPARE_MOCK !== 'undefined' && COMPARE_MOCK[pid]) { STATE.comparativoLigado = true; return true; }
+  var cached = _histClinLoadCache(pid);
+  if (!cached) return false;
+  if (typeof COMPARE_MOCK !== 'undefined') COMPARE_MOCK[pid] = cached;
+  STATE.comparativoLigado = true;
+  return true;
+}
+// Auto-dispara iniciarComparativo se: 2+ PCs respondidas, sem cache valido, sem loading.
+// setTimeout escapa do call stack do render pra evitar recursao.
+function _histClinAutoTriggerIfNeeded(pid, pcsCount){
+  if (!pid || pcsCount < 2) return;
+  if (STATE.comparativoLoading) return;
+  if (_histClinHydrate(pid)) return;
+  setTimeout(function(){
+    if (STATE.selectedPaciente === pid && !STATE.comparativoLigado && !STATE.comparativoLoading) {
+      if (typeof window.iniciarComparativo === 'function') window.iniciarComparativo();
+    }
+  }, 80);
+}
+
 var _origIniciarComparativo = window.iniciarComparativo;
 window.iniciarComparativo = async function(){
   // FIX 1 — Anti-double-click: ignora cliques repetidos durante request em voo
@@ -7576,6 +7598,7 @@ window.iniciarComparativo = async function(){
     if (sucessoTexto) {
       COMPARE_MOCK[pid] = sucessoTexto;
       delete COMPARE_ERR[pid];
+      if (typeof _histClinSaveCache === 'function') _histClinSaveCache(pid, sucessoTexto);
     } else if (erroInfo) {
       COMPARE_MOCK[pid] = erroInfo.txt;
       COMPARE_ERR[pid] = erroInfo;
