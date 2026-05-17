@@ -568,6 +568,29 @@ const vitaeAPI = {
     return apiRequest(`/documentos/${id}`, { method: 'DELETE' });
   },
 
+  // Contato Direto WhatsApp (Fase 3)
+  async getConfigContato() {
+    return apiRequest('/contato/config');
+  },
+  async atualizarConfigContato(dados) {
+    return apiRequest('/contato/config', { method: 'PUT', body: dados });
+  },
+  async listarPermissoesContato() {
+    return apiRequest('/contato/permissoes');
+  },
+  async habilitarContatoPaciente(pacienteId, habilitado) {
+    return apiRequest(`/contato/permissoes/${pacienteId}`, { method: 'PUT', body: { habilitado } });
+  },
+  async getMedicoDoPaciente() {
+    return apiRequest('/contato/medico-do-paciente');
+  },
+  async medicoDisponivelAgora(medicoId) {
+    return apiRequest(`/contato/disponivel-agora/${medicoId}`);
+  },
+  async registrarCliqueContato(medicoId) {
+    return apiRequest('/contato/registrar-clique', { method: 'POST', body: { medicoId } });
+  },
+
   // ===== Modulo Agenda v1 (sessao 26-abr-2026) =====
   async agendaConfig() { return apiRequest('/agenda/config'); },
   async agendaConfigSalvar(dados) { return apiRequest('/agenda/config', { method: 'PUT', body: dados }); },

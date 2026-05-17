@@ -24,6 +24,7 @@ const templatesRoutes = require('./routes/templates');
 const adminRoutes = require('./routes/admin');
 const agendaRoutes = require('./routes/agenda');
 const documentosRoutes = require('./routes/documentos');
+const contatoRoutes = require('./routes/contato');
 
 // Observabilidade — inicializa Sentry se SENTRY_DSN setado
 require('./services/observability');
@@ -153,6 +154,7 @@ app.use('/pdf', limiterGeral, pdfRoutes);
 app.use('/medico', limiterGeral, medicoRoutes);
 app.use('/agendamento', limiterGeral, agendamentoRoutes);
 app.use('/documentos', limiterGeral, documentosRoutes);
+app.use('/contato', limiterGeral, contatoRoutes);
 app.use('/consentimento', limiterGeral, consentimentoRoutes);
 app.use('/templates', limiterGeral, templatesRoutes);
 app.use('/timeline', limiterGeral, timelineRoutes);
