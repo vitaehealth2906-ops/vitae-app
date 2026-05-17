@@ -200,10 +200,24 @@
 .doc-empty-cta svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
 .pdc{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px}
 .pdc:last-child{margin-bottom:0}
-.pdc-h{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--bg)}
+.pdc-h{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--surface);cursor:pointer;user-select:none;transition:background .12s}
+.pdc-h:hover{background:var(--s2)}
 .pdc-hl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3)}
-.pdc-b{padding:16px 18px}
+.pdc-h-right{display:flex;align-items:center;gap:8px}
+.pdc-chevron{width:18px;height:18px;flex-shrink:0;color:var(--t3);transition:transform .2s ease;display:inline-flex;align-items:center;justify-content:center}
+.pdc-chevron svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.pdc.collapsed .pdc-chevron{transform:rotate(-90deg)}
+.pdc.collapsed .pdc-h{border-bottom:none}
+.pdc-b{padding:16px 18px;max-height:4000px;overflow:hidden;transition:max-height .22s ease,padding-top .22s ease,padding-bottom .22s ease,opacity .18s ease;opacity:1}
+.pdc.collapsed .pdc-b{max-height:0;padding-top:0;padding-bottom:0;opacity:0}
 .pdc-b .section-lbl{margin-top:0;margin-bottom:10px}
+/* Documentos (doc-card) usa o mesmo padrao */
+.doc-card-h{cursor:pointer;user-select:none;transition:background .12s;background:var(--surface)}
+.doc-card-h:hover{background:var(--s2)}
+.doc-card.collapsed .pdc-chevron{transform:rotate(-90deg)}
+.doc-card.collapsed .doc-card-h{border-bottom:none}
+.doc-card .doc-card-body{max-height:4000px;overflow:hidden;transition:max-height .22s ease,padding-top .22s ease,padding-bottom .22s ease,opacity .18s ease;opacity:1}
+.doc-card.collapsed .doc-card-body{max-height:0;padding-top:0;padding-bottom:0;opacity:0}
 /* Med rows no detalhe */
 .pac-med-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
 .pac-med-row:last-child{border-bottom:none}
@@ -1156,6 +1170,48 @@ function _onSearch(e, key, renderFn, id){
   renderFn();
   _keepFocus(id, caret);
 }
+/* ============================================
+   ACCORDION (boxes no perfil do paciente) — 2026-05-17
+   Cada box .pdc/.doc-card tem data-acc-id. Toggle salva em localStorage
+   por medico (chave: vitae_pac_acc_v1). Default: tudo aberto.
+   Click em botoes internos do header NAO toggla (event delegation).
+============================================ */
+function togglePdc(headerEl, ev){
+  if (ev) {
+    var t = ev.target;
+    if (t && t.closest && t.closest('button,input,select,.toggle-sw,a[href]')) return;
+  }
+  var card = headerEl.closest('.pdc,.doc-card');
+  if (!card) return;
+  var id = card.getAttribute('data-acc-id');
+  card.classList.toggle('collapsed');
+  if (!id) return;
+  try {
+    var key = 'vitae_pac_acc_v1';
+    var st = JSON.parse(localStorage.getItem(key) || '{}');
+    st[id] = card.classList.contains('collapsed');
+    localStorage.setItem(key, JSON.stringify(st));
+  } catch(_e) {}
+}
+window.togglePdc = togglePdc;
+
+function restaurarAccordionState(rootSelector){
+  try {
+    var raiz = rootSelector ? document.querySelector(rootSelector) : document;
+    if (!raiz) return;
+    var st = JSON.parse(localStorage.getItem('vitae_pac_acc_v1') || '{}');
+    raiz.querySelectorAll('.pdc[data-acc-id],.doc-card[data-acc-id]').forEach(function(card){
+      var id = card.getAttribute('data-acc-id');
+      if (st[id] === true) card.classList.add('collapsed');
+      else card.classList.remove('collapsed');
+    });
+  } catch(_e) {}
+}
+window.restaurarAccordionState = restaurarAccordionState;
+
+/* SVG do chevron usado no header de cada box */
+var PDC_CHEVRON_SVG = '<span class="pdc-chevron"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></span>';
+
 function fmtBRL(n){return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});}
 function fmtMin(min){var h=Math.floor(min/60),m=min%60;return h>0?(h+'h'+(m?(m+'min'):'')):(m+'min');}
 function toast(msg){if(!msg)return;$('toastMsg').textContent=msg;var t=$('toast');t.classList.add('show');clearTimeout(window._toastT);window._toastT=setTimeout(function(){t.classList.remove('show');},2400);}
@@ -1965,8 +2021,8 @@ function renderPacienteDetailInline(){
 
   /* ─── COL 1: Timeline + IA Collab ────────────────────────── */
   html+='<div>';
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Histórico Clínico</span></div>';
+  html+='<div class="pdc" data-acc-id="hist">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Histórico Clínico</span>'+PDC_CHEVRON_SVG+'</div>';
   html+='<div class="pdc-b">';
   if(!eventos.length){
     if(!loaded){
@@ -2021,9 +2077,10 @@ function renderPacienteDetailInline(){
   html+='<div>';
 
   // Medicamentos
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Medicamentos em uso</span>';
+  html+='<div class="pdc" data-acc-id="meds">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Medicamentos em uso</span><span class="pdc-h-right">';
   if(p.meds>0)html+='<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--ok-bg);color:var(--ok)">'+p.meds+' ativos</span>';
+  html+=PDC_CHEVRON_SVG+'</span>';
   html+='</div><div class="pdc-b" style="padding:8px 18px">';
   if(meds.length){
     meds.forEach(function(m){
@@ -2035,9 +2092,10 @@ function renderPacienteDetailInline(){
   html+='</div></div>';
 
   // Alergias
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Alergias</span>';
+  html+='<div class="pdc" data-acc-id="alergias">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Alergias</span><span class="pdc-h-right">';
   if(p.alergias>0)html+='<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--bad-bg);color:var(--bad)">'+p.alergias+' registradas</span>';
+  html+=PDC_CHEVRON_SVG+'</span>';
   html+='</div><div class="pdc-b" style="padding:10px 18px">';
   if(alergias.length){
     alergias.forEach(function(a){
@@ -2050,8 +2108,8 @@ function renderPacienteDetailInline(){
   html+='</div></div>';
 
   // Exames
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Exames de '+escHtml(p.nome.split(' ')[0])+'</span></div>';
+  html+='<div class="pdc" data-acc-id="exames">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Exames de '+escHtml(p.nome.split(' ')[0])+'</span>'+PDC_CHEVRON_SVG+'</div>';
   html+='<div class="pdc-b" style="padding:12px 18px">';
   html+='<div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Buscar exame..." oninput="pdFilterExames(this.value,\''+p.id+'\')" style="width:100%;padding:9px 12px 9px 32px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px;color:var(--t1);outline:none"/></div>';
   html+='<div id="pd-exames-list-'+p.id+'">';
@@ -2071,8 +2129,8 @@ function renderPacienteDetailInline(){
   // Próximo Retorno
   var agend=(pd.proximoAgendamento)||null;
   var pacId=pd.id||p.id||'';
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Próximo Retorno</span></div>';
+  html+='<div class="pdc" data-acc-id="retorno">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Próximo Retorno</span>'+PDC_CHEVRON_SVG+'</div>';
   if(agend&&agend.dataHora){
     var dA=new Date(agend.dataHora);
     var dAStr=dA.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
@@ -2105,8 +2163,8 @@ function renderPacienteDetailInline(){
   html+='</div>';
 
   // Contato Direto
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Contato Direto</span></div>';
+  html+='<div class="pdc" data-acc-id="contato">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Contato Direto</span>'+PDC_CHEVRON_SVG+'</div>';
   html+='<div class="pdc-b"><div class="wa-toggle-row">';
   html+='<span class="wa-desc" id="wa-det-desc">'+(waOn?'Seu número visível para o paciente.':'Paciente não pode iniciar contato.')+'</span>';
   html+='<div class="toggle-sw'+(waOn?' on':'')+'" onclick="pdToggleWa()" style="flex-shrink:0;margin-top:2px"></div>';
@@ -2115,8 +2173,8 @@ function renderPacienteDetailInline(){
   html+='</div></div>';
 
   // Configurações de Contato
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Configurações de contato</span><button class="btn btn-ghost btn-sm" onclick="pdSaveWaConfig()">Salvar</button></div>';
+  html+='<div class="pdc" data-acc-id="contatocfg">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Configurações de contato</span><span class="pdc-h-right"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();pdSaveWaConfig()">Salvar</button>'+PDC_CHEVRON_SVG+'</span></div>';
   html+='<div class="pdc-b">';
   html+='<div style="font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Dias disponíveis</div>';
   html+='<div class="wa-days" id="wa-det-days">';
@@ -2128,8 +2186,8 @@ function renderPacienteDetailInline(){
   html+='</div></div>';
 
   // Dados do Paciente
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Dados do Paciente</span></div>';
+  html+='<div class="pdc" data-acc-id="dados">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Dados do Paciente</span>'+PDC_CHEVRON_SVG+'</div>';
   html+='<div class="pdc-b" style="padding:4px 18px">';
   var detRows=[
     ['CPF',ps.cpf||(pd.cpf)||'—'],
@@ -2151,6 +2209,7 @@ function renderPacienteDetailInline(){
 
   $('patDetailInline').innerHTML=html;
   if(typeof pdProcessarPdfThumbs==='function') setTimeout(pdProcessarPdfThumbs,50);
+  if(typeof restaurarAccordionState==='function') restaurarAccordionState('#patDetailInline');
 }
 
 function iniciarComparativo(){
@@ -2253,9 +2312,10 @@ function renderPacienteDetail(){
   html+='<div>';
 
   // Histórico Clínico (timeline)
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Histórico Clínico</span>';
+  html+='<div class="pdc" data-acc-id="hist">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Histórico Clínico</span><span class="pdc-h-right">';
   if(eventos.length>2)html+='<button class="btn btn-ghost btn-sm" onclick="">Ver tudo</button>';
+  html+=PDC_CHEVRON_SVG+'</span>';
   html+='</div>';
   html+='<div class="pdc-b">';
   if(!eventos.length){
@@ -2296,8 +2356,8 @@ function renderPacienteDetail(){
   // Próximo Retorno
   var agend=(pd.proximoAgendamento)||null;
   var pacId=pd.id||p.id||'';
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Próximo Retorno</span></div>';
+  html+='<div class="pdc" data-acc-id="retorno">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Próximo Retorno</span>'+PDC_CHEVRON_SVG+'</div>';
   if(agend&&agend.dataHora){
     var dA=new Date(agend.dataHora);
     var dAStr=dA.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
@@ -2332,8 +2392,8 @@ function renderPacienteDetail(){
   html+='</div>';
 
   // Contato Direto (WhatsApp toggle)
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Contato Direto</span></div>';
+  html+='<div class="pdc" data-acc-id="contato">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Contato Direto</span>'+PDC_CHEVRON_SVG+'</div>';
   html+='<div class="pdc-b">';
   html+='<div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:12px">';
   html+='<div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px">Contato por WhatsApp</div><div class="wa-desc" id="wa-det-desc" style="font-size:12px;color:var(--t2);line-height:1.5">'+(waOn?'Seu número aparece para o paciente no app dele. Ele pode iniciar contato dentro dos seus horários.':'O paciente não consegue iniciar contato. Habilite para aparecer no app dele.')+'</div></div>';
@@ -2345,8 +2405,8 @@ function renderPacienteDetail(){
   html+='</div></div>';
 
   // Configurações de Contato
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Configurações de contato</span><button class="btn btn-ghost btn-sm" onclick="pdSaveWaConfig()">Salvar</button></div>';
+  html+='<div class="pdc" data-acc-id="contatocfg">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Configurações de contato</span><span class="pdc-h-right"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();pdSaveWaConfig()">Salvar</button>'+PDC_CHEVRON_SVG+'</span></div>';
   html+='<div class="pdc-b">';
   html+='<div style="font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Disponibilidade</div>';
   html+='<div class="wa-days" id="wa-det-days">';
@@ -2359,10 +2419,11 @@ function renderPacienteDetail(){
 
   // Documentos (Fase 2 — implementação real)
   var docs = (pd.documentos)||[];
-  html+='<div class="doc-card">';
-  html+='<div class="doc-card-h"><span class="doc-card-hl">Documentos</span>'
+  html+='<div class="doc-card" data-acc-id="docs">';
+  html+='<div class="doc-card-h" onclick="togglePdc(this,event)"><span class="doc-card-hl">Documentos</span><span class="pdc-h-right">'
     +(docs.length?'<span class="doc-count">'+docs.length+' arquivo'+(docs.length!==1?'s':'')+'</span>':'')
-  +'</div>';
+  +PDC_CHEVRON_SVG+'</span></div>';
+  html+='<div class="doc-card-body">';
   if(!docs.length){
     html+='<div class="doc-empty">';
     html+='<div class="doc-empty-ico"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/></svg></div>';
@@ -2390,7 +2451,8 @@ function renderPacienteDetail(){
     html+='</div>';
     html+='<button class="doc-add" onclick="pdAnexarDocumento(\''+escHtml(pacId)+'\')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Anexar documento</button>';
   }
-  html+='</div>';
+  html+='</div>'; // fecha .doc-card-body
+  html+='</div>'; // fecha .doc-card
 
   html+='</div>'; // fim col esquerda
 
@@ -2398,9 +2460,10 @@ function renderPacienteDetail(){
   html+='<div>';
 
   // Medicamentos em uso
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Medicamentos em uso</span>';
+  html+='<div class="pdc" data-acc-id="meds">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Medicamentos em uso</span><span class="pdc-h-right">';
   if(p.meds>0)html+='<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--ok-bg);color:var(--ok)">'+p.meds+' ativos</span>';
+  html+=PDC_CHEVRON_SVG+'</span>';
   html+='</div><div class="pdc-b" style="padding:8px 18px">';
   if(meds.length){
     meds.forEach(function(m){
@@ -2412,9 +2475,10 @@ function renderPacienteDetail(){
   html+='</div></div>';
 
   // Alergias
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Alergias</span>';
+  html+='<div class="pdc" data-acc-id="alergias">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Alergias</span><span class="pdc-h-right">';
   if(p.alergias>0)html+='<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--bad-bg);color:var(--bad)">'+p.alergias+' registradas</span>';
+  html+=PDC_CHEVRON_SVG+'</span>';
   html+='</div><div class="pdc-b" style="padding:10px 18px">';
   if(alergias.length){
     alergias.forEach(function(a){
@@ -2427,8 +2491,8 @@ function renderPacienteDetail(){
   html+='</div></div>';
 
   // Exames
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Exames de '+escHtml(p.nome.split(' ')[0])+'</span></div>';
+  html+='<div class="pdc" data-acc-id="exames">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Exames de '+escHtml(p.nome.split(' ')[0])+'</span>'+PDC_CHEVRON_SVG+'</div>';
   html+='<div class="pdc-b" style="padding:12px 18px">';
   html+='<div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Buscar exame..." oninput="pdFilterExames(this.value,\''+p.id+'\')" style="width:100%;padding:9px 12px 9px 32px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px;color:var(--t1);outline:none"/></div>';
   html+='<div id="pd-exames-list-'+p.id+'">';
@@ -2442,8 +2506,8 @@ function renderPacienteDetail(){
   html+='</div></div></div>';
 
   // Dados do Paciente
-  html+='<div class="pdc">';
-  html+='<div class="pdc-h"><span class="pdc-hl">Dados do Paciente</span></div>';
+  html+='<div class="pdc" data-acc-id="dados">';
+  html+='<div class="pdc-h" onclick="togglePdc(this,event)"><span class="pdc-hl">Dados do Paciente</span>'+PDC_CHEVRON_SVG+'</div>';
   html+='<div class="pdc-b" style="padding:4px 18px">';
   var detRows=[
     ['CPF',ps.cpf||(pd.cpf)||'—'],
@@ -2466,6 +2530,7 @@ function renderPacienteDetail(){
   html+='</div>'; // pac-det-wrap
   $('v-pacientes-detail').innerHTML=html;
   if(typeof pdProcessarPdfThumbs==='function') setTimeout(pdProcessarPdfThumbs,50);
+  if(typeof restaurarAccordionState==='function') restaurarAccordionState('#v-pacientes-detail');
 }
 
 function pdFilterExames(q,pid){
