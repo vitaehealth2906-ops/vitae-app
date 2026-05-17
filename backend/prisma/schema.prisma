@@ -50,6 +50,9 @@ model Usuario {
   // ---- Fase 2: Documentos Medicos ----
   documentosRecebidos DocumentoMedico[]   @relation("paciente_documentos")
 
+  // ---- Fase 3: Contato Direto WhatsApp ----
+  permissoesContatoMedicos PermissaoContatoPaciente[] @relation("paciente_permissao_contato")
+
   @@map("usuarios")
 }
 
@@ -297,6 +300,10 @@ model Medico {
 
   // ---- Fase 2: Documentos Medicos ----
   documentosAnexados DocumentoMedico[]   @relation("medico_documentos")
+
+  // ---- Fase 3: Contato Direto WhatsApp ----
+  configContato      ConfigContatoMedico?
+  permissoesContato  PermissaoContatoPaciente[] @relation("medico_permissao_contato")
 
   // Google Calendar OAuth (read-only). AES-256-GCM.
   googleTokenEnc    String?   @map("google_token_enc") @db.Text
@@ -787,4 +794,43 @@ model DocumentoMedico {
   @@index([medicoId, anexadoEm])
   @@index([agendamentoId])
   @@map("documentos_medicos")
+}
+
+// ---- CONTATO DIRETO WHATSAPP (Fase 3: medico habilita disponibilidade) ----
+model ConfigContatoMedico {
+  id                    String    @id @default(uuid())
+  medicoId              String    @unique @map("medico_id")
+  whatsappHabilitado    Boolean   @default(false) @map("whatsapp_habilitado")
+  whatsappNumero        String?   @map("whatsapp_numero") // E.164: +5511999999999
+  diasDisponiveis       Int[]     @default([1,2,3,4,5]) @map("dias_disponiveis") // 0=dom .. 6=sab
+  horaInicio            String    @default("08:00") @map("hora_inicio") // HH:mm
+  horaFim               String    @default("18:00") @map("hora_fim")
+  mensagemPreFormatada  String?   @map("mensagem_pre_formatada") @db.Text
+  consentLgpdAceito     Boolean   @default(false) @map("consent_lgpd_aceito")
+  consentLgpdEm         DateTime? @map("consent_lgpd_em")
+  criadoEm              DateTime  @default(now()) @map("criado_em")
+  atualizadoEm          DateTime  @updatedAt @map("atualizado_em")
+
+  medico Medico @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+
+  @@map("config_contato_medico")
+}
+
+// ---- PERMISSAO POR PACIENTE (Decisao 7 do handoff design 13-mai: granular) ----
+model PermissaoContatoPaciente {
+  id           String    @id @default(uuid())
+  medicoId     String    @map("medico_id")
+  pacienteId   String    @map("paciente_id")
+  habilitado   Boolean   @default(false)
+  habilitadoEm DateTime? @map("habilitado_em")
+  revogadoEm   DateTime? @map("revogado_em")
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+
+  medico   Medico  @relation("medico_permissao_contato", fields: [medicoId], references: [id], onDelete: Cascade)
+  paciente Usuario @relation("paciente_permissao_contato", fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@unique([medicoId, pacienteId])
+  @@index([medicoId, habilitado])
+  @@map("permissao_contato_paciente")
 }
