@@ -2043,33 +2043,37 @@ function renderPacienteDetailInline(){
     });
     html+='</div>';
   }
-  html+='</div></div>';
 
-  // IA Collab
+  // IA Collab — dentro da box Historico Clinico (decisao do Lucas)
+  // Se < 2 PCs respondidas, NAO mostra IA Collab (sem placeholder)
   var pcsRespondidasReais = Object.values(PCS||{}).filter(function(pc){
     if (pc.pacienteId !== p.id) return false;
     return (pc.status === 'RESPONDIDA' || pc.status === 'FINALIZADA' || pc.cobertura === 'pronta' || pc.cobertura === 'parcial');
   }).length;
-  if(STATE.comparativoLoading){
-    html+='<div class="ia-load"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage" id="iaStage">Lendo anamneses anteriores<span class="ia-dots"><span></span><span></span><span></span></span><small>Analisando padrões da fala, vocabulário e queixa</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
-  }else if(STATE.comparativoLigado){
-    (function(){
-      var err = (window.COMPARE_ERR && window.COMPARE_ERR[p.id]) || null;
-      var txt = COMPARE_MOCK[p.id] || '—';
-      var retryEnabled = err && ['UNKNOWN','NETWORK','BILLING'].indexOf(err.tipo) > -1;
-      var iconColor = err ? 'var(--warn)' : '#00C47A';
-      var hintHtml = err && err.tipo === 'BILLING' ? '<div style="font-size:11px;color:var(--t3);margin-top:8px;font-style:italic">Não é problema seu — recarga automática em até 1h.</div>' : '';
-      html+='<div class="compare-card" style="'+(err?'border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04)':'')+'">'
-        +'<div class="compare-t" style="color:'+iconColor+'">⊕ IA Collab'+(err?' · não conseguiu':'')+'</div>'
-        +'<div class="compare-b" style="white-space:pre-wrap">'+escHtml(txt)+'</div>'
-        +hintHtml
-        +(retryEnabled?'<div style="margin-top:10px"><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">↻ Tentar de novo</button></div>':'')
-      +'</div>';
-    })();
-  }else if(pcsRespondidasReais>=2){
-    html+='<div class="compare-cta"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente esta anamnese com as anteriores deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="this.disabled=true;this.style.opacity=0.5;this.textContent=\'Comparando…\';iniciarComparativo();">⊕ Comparar anamneses anteriores</button></div>';
+  if(STATE.comparativoLoading || STATE.comparativoLigado || pcsRespondidasReais>=2){
+    html+='<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">';
+    if(STATE.comparativoLoading){
+      html+='<div class="ia-load"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage" id="iaStage">Lendo anamneses anteriores<span class="ia-dots"><span></span><span></span><span></span></span><small>Analisando padrões da fala, vocabulário e queixa</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
+    }else if(STATE.comparativoLigado){
+      (function(){
+        var err = (window.COMPARE_ERR && window.COMPARE_ERR[p.id]) || null;
+        var txt = COMPARE_MOCK[p.id] || '—';
+        var retryEnabled = err && ['UNKNOWN','NETWORK','BILLING'].indexOf(err.tipo) > -1;
+        var iconColor = err ? 'var(--warn)' : '#00C47A';
+        var hintHtml = err && err.tipo === 'BILLING' ? '<div style="font-size:11px;color:var(--t3);margin-top:8px;font-style:italic">Não é problema seu — recarga automática em até 1h.</div>' : '';
+        html+='<div class="compare-card" style="border:none;padding:0;background:transparent;'+(err?'border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04)':'')+'">'
+          +'<div class="compare-t" style="color:'+iconColor+'">⊕ IA Collab'+(err?' · não conseguiu':'')+'</div>'
+          +'<div class="compare-b" style="white-space:pre-wrap">'+escHtml(txt)+'</div>'
+          +hintHtml
+          +(retryEnabled?'<div style="margin-top:10px"><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">↻ Tentar de novo</button></div>':'')
+        +'</div>';
+      })();
+    }else{
+      html+='<div class="compare-cta" style="border:none;padding:0;background:transparent"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente esta anamnese com as anteriores deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="this.disabled=true;this.style.opacity=0.5;this.textContent=\'Comparando…\';iniciarComparativo();">⊕ Comparar anamneses anteriores</button></div>';
+    }
+    html+='</div>';
   }
-  // Se < 2 PCs respondidas, NAO mostra IA Collab (decisao do Lucas — sem placeholder)
+  html+='</div></div>';
   html+='</div>'; // fim col 1
 
   /* ─── COL 2: Meds + Alergias + Exames ─────────────────────── */
@@ -2327,10 +2331,11 @@ function renderPacienteDetail(){
     });
     html+='</div>';
   }
-  html+='</div></div>';
 
-  // IA Collab
+  // IA Collab — dentro da box Historico Clinico (decisao do Lucas)
+  // Se < 2 PCs respondidas, NAO mostra IA Collab (sem placeholder)
   if(eventos.length>=2){
+    html+='<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">';
     if(STATE.comparativoLigado){
       (function(){
       var err = (window.COMPARE_ERR && window.COMPARE_ERR[p.id]) || null;
@@ -2338,7 +2343,7 @@ function renderPacienteDetail(){
       var retryEnabled = err && ['UNKNOWN','NETWORK','BILLING'].indexOf(err.tipo) > -1;
       var iconColor = err ? 'var(--warn)' : '#00C47A';
       var hintHtml = err && err.tipo === 'BILLING' ? '<div style="font-size:11px;color:var(--t3);margin-top:8px;font-style:italic">Não é problema seu — recarga automática em até 1h.</div>' : '';
-      html+='<div class="compare-card" style="'+(err?'border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04)':'')+'">'
+      html+='<div class="compare-card" style="border:none;padding:0;background:transparent;'+(err?'border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04)':'')+'">'
         +'<div class="compare-t" style="color:'+iconColor+'">⊕ IA Collab'+(err?' · não conseguiu':'')+'</div>'
         +'<div class="compare-b" style="white-space:pre-wrap">'+escHtml(txt)+'</div>'
         +hintHtml
@@ -2346,10 +2351,11 @@ function renderPacienteDetail(){
       +'</div>';
     })();
     }else{
-      html+='<div class="compare-cta"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente as anamneses deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="this.disabled=true;this.style.opacity=0.5;this.textContent=\'Comparando…\';iniciarComparativo();">⊕ Comparar anamneses</button></div>';
+      html+='<div class="compare-cta" style="border:none;padding:0;background:transparent"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente as anamneses deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="this.disabled=true;this.style.opacity=0.5;this.textContent=\'Comparando…\';iniciarComparativo();">⊕ Comparar anamneses</button></div>';
     }
+    html+='</div>';
   }
-  // Se < 2 PCs respondidas, NAO mostra IA Collab (decisao do Lucas — sem placeholder)
+  html+='</div></div>';
 
   // Próximo Retorno
   var agend=(pd.proximoAgendamento)||null;
