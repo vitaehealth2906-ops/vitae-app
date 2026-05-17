@@ -1657,9 +1657,9 @@ router.post('/:id/ia-collab', verificarAuth, async (req, res, next) => {
     const { id } = req.params;
     const { outrosPCs = [] } = req.body || {};
 
-    // Carrega PC base
+    // Carrega PC base — usa NOT: pra compatibilidade Prisma 5+
     const pcBase = await prisma.preConsulta.findFirst({
-      where: { id, medicoId: { not: null } },
+      where: { id, NOT: { medicoId: null } },
       include: { medico: { select: { id: true, usuarioId: true, iaCollabAtivado: true } } },
     });
     if (!pcBase) return res.status(404).json({ erro: 'Pré-consulta não encontrada' });
