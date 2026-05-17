@@ -2185,6 +2185,24 @@ function renderPacienteDetail(){
       if(STATE.selectedPaciente===p.id) renderPacienteDetail();
     })();
   }
+  // Carrega config contato (1x na sessao) — Fase 3
+  if(typeof DR._configContatoCarregada==='undefined'){
+    DR._configContatoCarregada=true;
+    (async function(){
+      await pdCarregarConfigContato();
+      if(STATE.selectedPaciente===p.id&&STATE.view==='pacientes-detail') renderPacienteDetail();
+    })();
+  }
+  // Carrega permissao contato por paciente — Fase 3
+  if(pd&&pd.id&&typeof pd._permissaoContato==='undefined'&&!pd._permLoading){
+    pd._permLoading=true;
+    (async function(){
+      var ok = await pdCarregarPermissaoContato(pd.id);
+      pd._permissaoContato = ok;
+      pd._permLoading=false;
+      if(STATE.selectedPaciente===p.id) renderPacienteDetail();
+    })();
+  }
   var ps=pd.perfilSaude||{};
   var loaded=!!pd.id;
   var waOn=!!(DR.config&&DR.config.whatsappHabilitado);
@@ -2306,6 +2324,14 @@ function renderPacienteDetail(){
   html+='</div>';
   if(waOn&&(DR.telefone||(DR.config&&DR.config.whatsappNumero))){
     html+='<div style="display:flex;align-items:center;gap:8px;padding:9px 13px;background:var(--s2);border-radius:10px;margin-top:2px"><svg width="14" height="14" viewBox="0 0 24 24" fill="var(--ok)" stroke="none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span style="font-size:13.5px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums">'+escHtml(DR.config&&DR.config.whatsappNumero||DR.telefone||'')+'</span></div>';
+  }
+  // Toggle permissao por paciente (decisao 7 do handoff 13-mai: granular)
+  if(waOn){
+    var permOn = !!(pd && pd._permissaoContato);
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0 2px;margin-top:12px;border-top:1px solid var(--border)">';
+    html+='<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;color:var(--t1)">Habilitar contato com este paciente</div><div style="font-size:11px;color:var(--t3);margin-top:2px;line-height:1.4">Só este paciente verá o botão "Tirar dúvida" no app dele.</div></div>';
+    html+='<div class="toggle-sw'+(permOn?' on':'')+'" onclick="pdToggleContatoPaciente(\''+escHtml(pacId)+'\','+(!permOn)+')" style="flex-shrink:0;margin-top:2px"></div>';
+    html+='</div>';
   }
   html+='</div></div>';
 
@@ -2438,27 +2464,136 @@ function pdFilterExames(q,pid){
   if(!el)return;
   el.querySelectorAll('.exame-item').forEach(function(c){c.style.display=c.getAttribute('data-nome').includes(q)?'':'none';});
 }
-function pdToggleWa(){
-  if(!DR.config)DR.config={};
-  DR.config.whatsappHabilitado=!DR.config.whatsappHabilitado;
-  var el=document.querySelector('.toggle-sw[onclick="pdToggleWa()"]');
-  var desc=document.getElementById('wa-det-desc');
-  if(el)el.classList.toggle('on',DR.config.whatsappHabilitado);
-  if(desc)desc.textContent=DR.config.whatsappHabilitado?'Seu número visível para o paciente.':'Paciente não pode iniciar contato.';
+// Modal LGPD obrigatorio na 1a ativacao (CFM 2.314/2022 + LGPD Art. 18)
+function _pdAbrirModalLgpd(){
+  var html=''
+    +'<div class="modal-h"><div style="font-size:18px;font-weight:900;letter-spacing:-.4px">Habilitar contato direto via WhatsApp</div>'
+      +'<button class="btn btn-ghost btn-sm" onclick="closeModal()">Fechar</button></div>'
+    +'<div class="modal-b" style="max-height:60vh;overflow-y:auto">'
+      +'<div style="font-size:13px;color:var(--t1);line-height:1.6;margin-bottom:14px;font-weight:600">Ao habilitar, voce concorda que:</div>'
+      +'<ul style="font-size:12.5px;color:var(--t2);line-height:1.65;padding-left:18px;margin-bottom:14px">'
+        +'<li>Seu numero WhatsApp aparece para os pacientes que voce selecionar.</li>'
+        +'<li>Apenas dentro dos dias e horarios que voce definir.</li>'
+        +'<li>Voce pode revogar a qualquer momento (LGPD Art. 18).</li>'
+        +'<li>Conversas no WhatsApp sao fora do app vita id — siga as boas praticas do CFM 2.314/2022 (telemedicina).</li>'
+        +'<li>O vita id nao armazena conteudo das mensagens trocadas.</li>'
+      +'</ul>'
+      +'<div style="font-size:11.5px;color:var(--t3);background:var(--s2);border-radius:8px;padding:10px 12px;line-height:1.5">Esta ativacao fica registrada para auditoria (CFM 5 anos).</div>'
+    +'</div>'
+    +'<div class="modal-f"><button class="btn btn-s" onclick="closeModal()">Cancelar</button>'
+      +'<button class="btn btn-p" id="pdLgpdAccept" onclick="_pdConfirmarLgpd()">Aceito e habilito</button></div>';
+  openModal(html);
 }
+
+async function _pdConfirmarLgpd(){
+  var btn=document.getElementById('pdLgpdAccept');
+  if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
+  await _pdEnviarConfig({ whatsappHabilitado:true, consentLgpdAceito:true });
+  closeModal();
+}
+
+async function pdToggleWa(){
+  if(!DR.config) DR.config={};
+  // 1a ativacao: abre modal LGPD
+  if(!DR.config.whatsappHabilitado && !DR.config.consentLgpdAceito){
+    _pdAbrirModalLgpd();
+    return;
+  }
+  // Toggle normal
+  var novoValor = !DR.config.whatsappHabilitado;
+  await _pdEnviarConfig({ whatsappHabilitado: novoValor });
+}
+
 function pdToggleWaDia(i){
-  if(!DR.config)DR.config={};
-  if(!DR.config.whatsappDias)DR.config.whatsappDias=[1,2,3,4,5];
+  if(!DR.config) DR.config={};
+  if(!DR.config.whatsappDias) DR.config.whatsappDias=[1,2,3,4,5];
   var idx=DR.config.whatsappDias.indexOf(i);
   if(idx>-1)DR.config.whatsappDias.splice(idx,1);else DR.config.whatsappDias.push(i);
   document.querySelectorAll('#wa-det-days .wa-day').forEach(function(b,j){b.classList.toggle('on',DR.config.whatsappDias.indexOf(j)>-1);});
 }
-function pdSaveWaConfig(){
-  if(!DR.config)DR.config={};
-  var h0=document.getElementById('wa-h0'),h1=document.getElementById('wa-h1');
-  if(h0)DR.config.whatsappHoraInicio=h0.value;
-  if(h1)DR.config.whatsappHoraFim=h1.value;
-  showToast('Configurações salvas.','ok');
+
+async function pdSaveWaConfig(){
+  if(!DR.config) DR.config={};
+  var h0=document.getElementById('wa-h0'), h1=document.getElementById('wa-h1');
+  var horaInicio = h0 ? h0.value : DR.config.whatsappHoraInicio;
+  var horaFim = h1 ? h1.value : DR.config.whatsappHoraFim;
+  await _pdEnviarConfig({
+    whatsappHabilitado: !!DR.config.whatsappHabilitado,
+    diasDisponiveis: DR.config.whatsappDias || [1,2,3,4,5],
+    horaInicio: horaInicio || '08:00',
+    horaFim: horaFim || '18:00',
+    whatsappNumero: DR.config.whatsappNumero || DR.telefone || null,
+  });
+}
+
+async function _pdEnviarConfig(payload){
+  try{
+    var res = await _prApiJson('/contato/config', { method:'PUT', body: payload });
+    if(res && res.config){
+      DR.config = DR.config || {};
+      DR.config.whatsappHabilitado = res.config.whatsappHabilitado;
+      DR.config.whatsappNumero = res.config.whatsappNumero;
+      DR.config.whatsappDias = res.config.diasDisponiveis;
+      DR.config.whatsappHoraInicio = res.config.horaInicio;
+      DR.config.whatsappHoraFim = res.config.horaFim;
+      DR.config.whatsappMensagem = res.config.mensagemPreFormatada;
+      DR.config.consentLgpdAceito = res.config.consentLgpdAceito;
+      toast('Configurações salvas.');
+      if(typeof renderPacienteDetail==='function') renderPacienteDetail();
+    }
+  }catch(err){
+    toast(err.message || 'Não consegui salvar. Tenta de novo.');
+  }
+}
+
+// Carrega config de contato uma vez (chamado por renderPacienteDetail)
+async function pdCarregarConfigContato(){
+  if(!window.BACKEND||!window.BACKEND.api) return;
+  try{
+    var res = await _prApiJson('/contato/config');
+    if(res && res.config){
+      DR.config = DR.config || {};
+      DR.config.whatsappHabilitado = res.config.whatsappHabilitado;
+      DR.config.whatsappNumero = res.config.whatsappNumero;
+      DR.config.whatsappDias = res.config.diasDisponiveis;
+      DR.config.whatsappHoraInicio = res.config.horaInicio;
+      DR.config.whatsappHoraFim = res.config.horaFim;
+      DR.config.whatsappMensagem = res.config.mensagemPreFormatada;
+      DR.config.consentLgpdAceito = res.config.consentLgpdAceito;
+    }
+  }catch(_e){}
+}
+
+// Toggle permissao por paciente
+async function pdToggleContatoPaciente(pacienteId, habilitar){
+  try{
+    var res = await _prApiJson('/contato/permissoes/'+encodeURIComponent(pacienteId), {
+      method:'PUT',
+      body: { habilitado: !!habilitar }
+    });
+    if(res && res.permissao){
+      try{
+        var pcCache = (pcState&&pcState.currentPacienteData)||{};
+        if(pcCache.id===pacienteId){
+          pcCache._permissaoContato = res.permissao.habilitado;
+        }
+      }catch(_e){}
+      toast(res.permissao.habilitado ? 'Contato habilitado pro paciente' : 'Contato desabilitado');
+      if(typeof renderPacienteDetail==='function') renderPacienteDetail();
+    }
+  }catch(err){ toast(err.message || 'Erro ao salvar'); }
+}
+
+async function pdCarregarPermissaoContato(pacienteId){
+  if(!pacienteId) return false;
+  try{
+    var res = await _prApiJson('/contato/permissoes');
+    if(res && Array.isArray(res.permissoes)){
+      var p = res.permissoes.find(function(x){ return x.pacienteId === pacienteId; });
+      return p ? !!p.habilitado : false;
+    }
+  }catch(_e){}
+  return false;
 }
 
 /* ============================================================
