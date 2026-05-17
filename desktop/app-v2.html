@@ -1997,7 +1997,19 @@ function renderPacienteDetailInline(){
   if(STATE.comparativoLoading){
     html+='<div class="ia-load"><div class="ia-orb"></div><div class="ia-stages"><div class="ia-stage" id="iaStage">Lendo anamneses anteriores<span class="ia-dots"><span></span><span></span><span></span></span><small>Analisando padrões da fala, vocabulário e queixa</small></div></div><div class="ia-bar"><div class="ia-bar-fill"></div></div></div>';
   }else if(STATE.comparativoLigado){
-    html+='<div class="compare-card"><div class="compare-t">⊕ IA Collab</div><div class="compare-b">'+(COMPARE_MOCK[p.id]||'—')+'</div></div>';
+    (function(){
+      var err = (window.COMPARE_ERR && window.COMPARE_ERR[p.id]) || null;
+      var txt = COMPARE_MOCK[p.id] || '—';
+      var retryEnabled = err && ['UNKNOWN','NETWORK','BILLING'].indexOf(err.tipo) > -1;
+      var iconColor = err ? 'var(--warn)' : '#00C47A';
+      var hintHtml = err && err.tipo === 'BILLING' ? '<div style="font-size:11px;color:var(--t3);margin-top:8px;font-style:italic">Não é problema seu — recarga automática em até 1h.</div>' : '';
+      html+='<div class="compare-card" style="'+(err?'border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04)':'')+'">'
+        +'<div class="compare-t" style="color:'+iconColor+'">⊕ IA Collab'+(err?' · não conseguiu':'')+'</div>'
+        +'<div class="compare-b" style="white-space:pre-wrap">'+escHtml(txt)+'</div>'
+        +hintHtml
+        +(retryEnabled?'<div style="margin-top:10px"><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">↻ Tentar de novo</button></div>':'')
+      +'</div>';
+    })();
   }else if(pcsRespondidasReais>=2){
     html+='<div class="compare-cta"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente esta anamnese com as anteriores deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">⊕ Comparar anamneses anteriores</button></div>';
   }else{
@@ -2261,7 +2273,19 @@ function renderPacienteDetail(){
   // IA Collab
   if(eventos.length>=2){
     if(STATE.comparativoLigado){
-      html+='<div class="compare-card"><div class="compare-t">⊕ IA Collab</div><div class="compare-b">'+(COMPARE_MOCK[p.id]||'—')+'</div></div>';
+      (function(){
+      var err = (window.COMPARE_ERR && window.COMPARE_ERR[p.id]) || null;
+      var txt = COMPARE_MOCK[p.id] || '—';
+      var retryEnabled = err && ['UNKNOWN','NETWORK','BILLING'].indexOf(err.tipo) > -1;
+      var iconColor = err ? 'var(--warn)' : '#00C47A';
+      var hintHtml = err && err.tipo === 'BILLING' ? '<div style="font-size:11px;color:var(--t3);margin-top:8px;font-style:italic">Não é problema seu — recarga automática em até 1h.</div>' : '';
+      html+='<div class="compare-card" style="'+(err?'border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04)':'')+'">'
+        +'<div class="compare-t" style="color:'+iconColor+'">⊕ IA Collab'+(err?' · não conseguiu':'')+'</div>'
+        +'<div class="compare-b" style="white-space:pre-wrap">'+escHtml(txt)+'</div>'
+        +hintHtml
+        +(retryEnabled?'<div style="margin-top:10px"><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">↻ Tentar de novo</button></div>':'')
+      +'</div>';
+    })();
     }else{
       html+='<div class="compare-cta"><div class="compare-cta-t">IA Collab</div><div class="compare-cta-d">Compara automaticamente as anamneses deste paciente. Mostra evolução de queixa, vocabulário e intensidade.</div><button class="btn btn-s btn-sm" onclick="iniciarComparativo()">⊕ Comparar anamneses</button></div>';
     }
@@ -7403,52 +7427,105 @@ function _iaCollabRerender(){
   }
 }
 
+// COMPARE_ERR — guarda se ultima tentativa falhou (chave: pacienteId).
+// Sem isso, render nao sabe se o texto e sucesso ou erro pra mostrar retry.
+window.COMPARE_ERR = window.COMPARE_ERR || {};
+
+function _iaTraduzErro(rawMsg){
+  var m = String(rawMsg || '').toLowerCase();
+  if (/credit\s*balance|too\s*low|billing|insufficient/.test(m))
+    return { tipo:'BILLING', txt:'A recarga da IA Collab esgotou. Avisei o suporte e isso vai voltar em breve.' };
+  if (/sem paciente vinculado/.test(m))
+    return { tipo:'NO_PATIENT', txt:'Esta pré-consulta não tem paciente vinculado — não dá pra comparar.' };
+  if (/mínimo 2|minimo 2/.test(m))
+    return { tipo:'FEW_PCS', txt:'Esse paciente só tem 1 pré-consulta. Crie outra pra comparar a evolução.' };
+  if (/desativada|disabled/.test(m))
+    return { tipo:'DISABLED', txt:'IA Collab está desativada. Ative em Meu Perfil → Voz & IA.' };
+  if (/dados inválidos|invalido|invalid/.test(m))
+    return { tipo:'BAD_DATA', txt:'A IA não conseguiu ler essas anamneses. Crie uma pré-consulta nova pra comparar.' };
+  if (/sem conexão|network|fetch/.test(m))
+    return { tipo:'NETWORK', txt:'Sem conexão com o servidor. Verifica sua internet.' };
+  return { tipo:'UNKNOWN', txt:'Não foi possível gerar a análise agora. Tenta de novo em alguns segundos.' };
+}
+
 var _origIniciarComparativo = window.iniciarComparativo;
 window.iniciarComparativo = async function(){
-  STATE.comparativoLoading = true; STATE.comparativoLigado = false;
+  // FIX 1 — Anti-double-click: ignora cliques repetidos durante request em voo
+  if (STATE.comparativoLoading) return;
+
+  var pid = STATE && STATE.selectedPaciente;
+  STATE.comparativoLoading = true;
+  STATE.comparativoLigado = false;
+  if (pid) { delete COMPARE_MOCK[pid]; delete COMPARE_ERR[pid]; }
+
+  // FIX 2 — Render IMEDIATO síncrono pra loading aparecer em <50ms
   _iaCollabRerender();
+  // Forçar reflow + render uma segunda vez (alguns layouts custom só assumem após 1 tick)
+  await new Promise(function(r){ requestAnimationFrame(function(){ requestAnimationFrame(r); }); });
+
+  // Animações textuais sequenciais
   setTimeout(function(){var el=document.getElementById('iaStage');if(el)el.innerHTML='Comparando vocabulário e queixas<span class="ia-dots"><span></span><span></span><span></span></span><small>Cruzando termos técnicos vs leigos</small>';},850);
   setTimeout(function(){var el=document.getElementById('iaStage');if(el)el.innerHTML='Cruzando linha do tempo e padrões<span class="ia-dots"><span></span><span></span><span></span></span><small>Detectando evolução do quadro</small>';},1700);
 
-  var pid = STATE && STATE.selectedPaciente;
+  // FIX 3 — Função única de "finalizar" com erro/sucesso
+  function _finalizar(sucessoTexto, erroInfo){
+    STATE.comparativoLoading = false;
+    STATE.comparativoLigado = true;
+    if (!pid) { _iaCollabRerender(); return; }
+    if (sucessoTexto) {
+      COMPARE_MOCK[pid] = sucessoTexto;
+      delete COMPARE_ERR[pid];
+    } else if (erroInfo) {
+      COMPARE_MOCK[pid] = erroInfo.txt;
+      COMPARE_ERR[pid] = erroInfo;
+    }
+    _iaCollabRerender();
+  }
+
   var pcsDoPaciente = Object.values(PCS||{}).filter(function(p){ return p.pacienteId === pid; });
   if (pcsDoPaciente.length < 2) {
     setTimeout(function(){
-      STATE.comparativoLoading = false; STATE.comparativoLigado = true;
-      if (typeof COMPARE_MOCK !== 'undefined' && pid) COMPARE_MOCK[pid] = 'Esse paciente só tem ' + pcsDoPaciente.length + ' pré-consulta. Crie outra pra comparar a evolução.';
-      _iaCollabRerender();
-    }, 2700);
+      _finalizar(null, { tipo:'FEW_PCS', txt:'Esse paciente só tem ' + pcsDoPaciente.length + ' pré-consulta. Crie outra pra comparar a evolução.' });
+    }, 1600);
     return;
   }
+
   var ids = pcsDoPaciente.map(function(p){return p.id;});
   try {
     var resultado = await window.BACKEND.gerarIaCollab(ids[0], ids.slice(1));
+    // Mantém loading mínimo de 1.6s pra não piscar bruscamente
     setTimeout(function(){
-      STATE.comparativoLoading = false; STATE.comparativoLigado = true;
-      if (typeof COMPARE_MOCK !== 'undefined' && pid) {
-        if (resultado && resultado.narrativa) {
-          COMPARE_MOCK[pid] = resultado.narrativa + (resultado.alertas && resultado.alertas.length ? '\n\n⚠ ' + resultado.alertas.join(' · ') : '');
-        } else if (resultado && resultado.erro) {
-          var msg = resultado.erro;
-          if (/sem paciente vinculado/i.test(msg)) msg = 'Pré-consulta sem paciente vinculado — não dá pra comparar.';
-          else if (/Mínimo 2|minimo 2/i.test(msg)) msg = 'Esse paciente só tem 1 pré-consulta. Crie outra pra comparar a evolução.';
-          else if (/desativada/i.test(msg)) msg = 'IA Collab está desativada. Ative em Meu Perfil → Voz & IA.';
-          else if (/Dados inválidos|invalido|invalid/i.test(msg)) msg = 'A IA não conseguiu ler os dados dessa pré-consulta. Pode ser PC antiga sem anamnese estruturada. Crie uma nova pra comparar.';
-          COMPARE_MOCK[pid] = msg;
-        } else {
-          COMPARE_MOCK[pid] = 'Não foi possível gerar a análise comparativa agora. Tente em alguns segundos.';
-        }
+      if (resultado && resultado.narrativa && resultado.narrativa.length > 30 && !/indisponível|não foi possível/i.test(resultado.narrativa)) {
+        _finalizar(resultado.narrativa + (resultado.alertas && resultado.alertas.length ? '\n\n⚠ ' + resultado.alertas.join(' · ') : ''), null);
+      } else if (resultado && resultado.erro) {
+        _finalizar(null, _iaTraduzErro(resultado.erro));
+      } else if (resultado && /indisponível/i.test(resultado.narrativa || '')) {
+        _finalizar(null, { tipo:'BILLING', txt:'A recarga da IA Collab esgotou. Avisei o suporte e isso vai voltar em breve.' });
+      } else {
+        _finalizar(null, { tipo:'UNKNOWN', txt:'Não foi possível gerar a análise agora. Tenta de novo em alguns segundos.' });
       }
-      _iaCollabRerender();
-    }, 2700);
+    }, 1600);
   } catch(e) {
     setTimeout(function(){
-      STATE.comparativoLoading = false; STATE.comparativoLigado = true;
-      if (typeof COMPARE_MOCK !== 'undefined' && pid) COMPARE_MOCK[pid] = 'Sem conexão com o servidor. Verifique sua internet e tente de novo.';
-      _iaCollabRerender();
-    }, 2700);
+      _finalizar(null, _iaTraduzErro(e.message || 'network'));
+    }, 1600);
   }
 };
+
+// FIX 4 — Reset ao trocar de paciente (sem isso, card de erro do paciente A
+// fica visivel no paciente B)
+(function(){
+  var _origGoto = window.goto;
+  if (typeof _origGoto === 'function') {
+    window.goto = function(v){
+      if (v && v !== STATE.view) {
+        STATE.comparativoLoading = false;
+        STATE.comparativoLigado = false;
+      }
+      return _origGoto.apply(this, arguments);
+    };
+  }
+})();
 
 // --- LGPD / iClinic / Excluir conta (Fase 11) ---
 window.exportarDadosLGPD = async function(formato){
