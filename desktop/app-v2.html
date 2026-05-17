@@ -2175,6 +2175,16 @@ function renderPacienteDetail(){
       if(STATE.selectedPaciente===p.id) renderPacienteDetail();
     })();
   }
+  // Carrega documentos async (Fase 2)
+  if(pd&&pd.id&&typeof pd.documentos==='undefined'&&!pd._docsCarregando){
+    pd._docsCarregando=true;
+    (async function(){
+      var ds=await pdCarregarDocumentos(pd.id);
+      pd.documentos=ds||[];
+      pd._docsCarregando=false;
+      if(STATE.selectedPaciente===p.id) renderPacienteDetail();
+    })();
+  }
   var ps=pd.perfilSaude||{};
   var loaded=!!pd.id;
   var waOn=!!(DR.config&&DR.config.whatsappHabilitado);
@@ -2312,15 +2322,40 @@ function renderPacienteDetail(){
   html+='<div class="wa-cfg-note">Fora deste horário, o paciente vê quando você estará disponível novamente — sem interrupções.</div>';
   html+='</div></div>';
 
-  // Documentos (placeholder com empty state — Fase 2 implementa backend)
+  // Documentos (Fase 2 — implementação real)
+  var docs = (pd.documentos)||[];
   html+='<div class="doc-card">';
-  html+='<div class="doc-card-h"><span class="doc-card-hl">Documentos</span></div>';
-  html+='<div class="doc-empty">';
-  html+='<div class="doc-empty-ico"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/></svg></div>';
-  html+='<div class="doc-empty-t">Nenhum documento</div>';
-  html+='<div class="doc-empty-d">Compartilhe receitas, laudos e encaminhamentos. O paciente recebe um aviso quando você anexa um novo arquivo.</div>';
-  html+='<button class="doc-empty-cta" onclick="modalEmBreve(\'Anexar documento\',\'Em desenvolvimento (Fase 2). Logo você poderá compartilhar receitas, laudos e encaminhamentos diretamente com o paciente.\')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Anexar documento</button>';
-  html+='</div></div>';
+  html+='<div class="doc-card-h"><span class="doc-card-hl">Documentos</span>'
+    +(docs.length?'<span class="doc-count">'+docs.length+' arquivo'+(docs.length!==1?'s':'')+'</span>':'')
+  +'</div>';
+  if(!docs.length){
+    html+='<div class="doc-empty">';
+    html+='<div class="doc-empty-ico"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/></svg></div>';
+    html+='<div class="doc-empty-t">Nenhum documento</div>';
+    html+='<div class="doc-empty-d">Compartilhe receitas, laudos e encaminhamentos. O paciente recebe um aviso quando você anexa um novo arquivo.</div>';
+    html+='<button class="doc-empty-cta" onclick="pdAnexarDocumento(\''+escHtml(pacId)+'\')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Anexar primeiro documento</button>';
+    html+='</div>';
+  }else{
+    function _docNomeTipo(t){return {RECEITA:'Receita',LAUDO:'Laudo',ENCAMINHAMENTO:'Encaminhamento',EXAME_PEDIDO:'Pedido de Exame',OUTRO:'Documento'}[t]||'Documento';}
+    function _docTam(b){if(b<1024)return b+' B';if(b<1024*1024)return Math.round(b/1024)+' KB';return (b/1024/1024).toFixed(1)+' MB';}
+    function _docFmt(d){try{return new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});}catch(_e){return '';}}
+    html+='<div class="doc-list">';
+    docs.forEach(function(d,i){
+      var nomeLimpo = (d.nomeArquivo||'').replace(/\.[^.]+$/,'').replace(/_/g,' ');
+      var dot = d.visualizadoEm ? '' : '<span class="doc-dot" title="Não visto pelo paciente"></span>';
+      html+='<div class="doc-row" onclick="pdAbrirDocumento(\''+escHtml(d.id)+'\')">'
+        +'<div class="doc-ico"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></div>'
+        +'<div class="doc-mid">'
+          +'<div class="doc-nm-row"><div class="doc-nm">'+escHtml(nomeLimpo)+'</div>'+dot+'</div>'
+          +'<div class="doc-sub">'+escHtml(_docNomeTipo(d.tipo))+' · '+escHtml(_docFmt(d.anexadoEm))+'</div>'
+        +'</div>'
+        +'<div class="doc-size">'+escHtml(_docTam(d.tamanhoBytes||0))+'</div>'
+      +'</div>';
+    });
+    html+='</div>';
+    html+='<button class="doc-add" onclick="pdAnexarDocumento(\''+escHtml(pacId)+'\')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Anexar documento</button>';
+  }
+  html+='</div>';
 
   html+='</div>'; // fim col esquerda
 
@@ -2637,6 +2672,114 @@ async function prCarregarRetornos(pacienteId){
     }
   }catch(_e){}
   return null;
+}
+
+/* ============================================================
+   DOCUMENTOS — Feature 2 (Fase 2)
+   Rotas: POST /documentos/upload, GET /paciente/:id, GET /:id/baixar, DELETE /:id
+   ============================================================ */
+
+async function pdCarregarDocumentos(pacienteId){
+  if(!pacienteId||!window.BACKEND||!window.BACKEND.api) return [];
+  try{
+    var res = await _prApiJson('/documentos/paciente/'+encodeURIComponent(pacienteId));
+    return (res && res.documentos) || [];
+  }catch(_e){ return []; }
+}
+
+function pdAnexarDocumento(pacienteId){
+  if(!pacienteId){ toast('Paciente sem ID — recarregue a tela'); return; }
+  var html=''
+    +'<div class="modal-h"><div style="font-size:18px;font-weight:900;letter-spacing:-.4px">Anexar documento</div>'
+      +'<button class="btn btn-ghost btn-sm" onclick="closeModal()">Fechar</button></div>'
+    +'<div class="modal-b">'
+      +'<div style="font-size:12.5px;color:var(--t3);line-height:1.55;margin-bottom:16px">O paciente recebe um aviso e pode baixar o arquivo direto no app dele. Limite: 10 MB. Aceita PDF, JPG, PNG ou HEIC.</div>'
+      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Tipo</label>'
+      +'<select id="pdTipoSel" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;font-weight:600">'
+        +'<option value="RECEITA">Receita</option>'
+        +'<option value="LAUDO">Laudo</option>'
+        +'<option value="ENCAMINHAMENTO">Encaminhamento</option>'
+        +'<option value="EXAME_PEDIDO">Pedido de Exame</option>'
+        +'<option value="OUTRO">Outro</option>'
+      +'</select>'
+      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Arquivo (PDF, JPG, PNG ou HEIC, máx 10 MB)</label>'
+      +'<input id="pdArquivoInp" type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none"/>'
+      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Observação (opcional)</label>'
+      +'<textarea id="pdObsInp" rows="3" placeholder="Ex: levar pra farmácia, válido por 30 dias" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;resize:vertical"></textarea>'
+    +'</div>'
+    +'<div class="modal-f"><button class="btn btn-s" onclick="closeModal()">Cancelar</button>'
+      +'<button class="btn btn-p" id="pdSubmitBtn" onclick="pdUploadDocumento(\''+pacienteId+'\')">Anexar e enviar pro paciente</button></div>';
+  openModal(html);
+}
+
+async function pdUploadDocumento(pacienteId){
+  if(!window.BACKEND||!window.BACKEND.api){ toast('Sistema indisponível'); return; }
+  var tipoSel = document.getElementById('pdTipoSel');
+  var arqInp = document.getElementById('pdArquivoInp');
+  var obsInp = document.getElementById('pdObsInp');
+  var btn = document.getElementById('pdSubmitBtn');
+  if(!arqInp || !arqInp.files || !arqInp.files[0]){ toast('Escolha um arquivo'); return; }
+  var arquivo = arqInp.files[0];
+  if(arquivo.size > 10*1024*1024){ toast('Arquivo grande demais. Limite: 10 MB.'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='Enviando…'; }
+  try{
+    var formData = new FormData();
+    formData.append('arquivo', arquivo);
+    formData.append('pacienteId', pacienteId);
+    formData.append('tipo', tipoSel.value);
+    if(obsInp && obsInp.value) formData.append('observacao', obsInp.value);
+    // BACKEND.api retorna Response. FormData não pode ter Content-Type setado (boundary)
+    var res = await window.BACKEND.api('/documentos/upload', { method:'POST', body: formData });
+    var data = null;
+    try{ data = await res.json(); }catch(_e){}
+    if(!res.ok){
+      var erro = (data && data.erro) || 'Erro ao anexar (status '+res.status+')';
+      toast(erro);
+      if(btn){ btn.disabled=false; btn.textContent='Anexar e enviar pro paciente'; }
+      return;
+    }
+    closeModal();
+    toast('Documento anexado. Paciente foi avisado.');
+    // Limpa cache pra recarregar do backend
+    try{
+      var pcCache = (pcState&&pcState.currentPacienteData)||{};
+      if(pcCache.id===pacienteId){
+        delete pcCache.documentos;
+        delete pcCache._docsCarregando;
+      }
+    }catch(_e){}
+    if(typeof renderPacienteDetail==='function') renderPacienteDetail();
+  }catch(err){
+    toast('Falha de rede — tente novamente');
+    if(btn){ btn.disabled=false; btn.textContent='Anexar e enviar pro paciente'; }
+  }
+}
+
+async function pdAbrirDocumento(docId){
+  if(!docId)return;
+  try{
+    var res = await _prApiJson('/documentos/'+encodeURIComponent(docId)+'/baixar');
+    if(res && res.url){
+      window.open(res.url, '_blank', 'noopener');
+    }else{
+      toast('Não consegui abrir o documento');
+    }
+  }catch(err){ toast(err.message || 'Erro ao abrir'); }
+}
+
+async function pdDeletarDocumento(docId){
+  if(!docId)return;
+  if(!confirm('Remover este documento? O paciente perde acesso.'))return;
+  try{
+    await _prApiJson('/documentos/'+encodeURIComponent(docId), { method:'DELETE' });
+    toast('Documento removido');
+    try{
+      var pcCache = (pcState&&pcState.currentPacienteData)||{};
+      delete pcCache.documentos;
+      delete pcCache._docsCarregando;
+    }catch(_e){}
+    if(typeof renderPacienteDetail==='function') renderPacienteDetail();
+  }catch(err){ toast(err.message || 'Erro ao remover'); }
 }
 
 /* ============================================================

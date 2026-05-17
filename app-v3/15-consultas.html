@@ -309,6 +309,20 @@
   .ret-modal-btn-p { width: 100%; padding: 14px; background: linear-gradient(120deg, #00E5A0, #00B4D8); border: none; border-radius: 14px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; margin-top: 8px; }
   .ret-modal-btn-p:disabled { opacity: 0.5; cursor: wait; }
   .ret-modal-btn-s { width: 100%; padding: 12px; background: transparent; border: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink3); cursor: pointer; margin-top: 4px; }
+
+  /* Documentos (Feature 2 — Apple-style mobile) */
+  .doc-card { background: var(--surface); border: 1px solid rgba(0,0,0,0.07); border-radius: 18px; padding: 4px 0; margin-bottom: 12px; box-shadow: 0 1px 12px rgba(0,0,0,0.07); overflow: hidden; }
+  .doc-row { display: grid; grid-template-columns: 38px 1fr auto; gap: 14px; align-items: center; padding: 14px 18px; cursor: pointer; position: relative; transition: background .12s; }
+  .doc-row+.doc-row::before { content: ''; position: absolute; top: 0; left: 70px; right: 18px; height: 1px; background: rgba(0,0,0,0.06); }
+  .doc-row:active { background: rgba(0,0,0,0.03); }
+  .doc-ico { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; color: #8E8E93; flex-shrink: 0; }
+  .doc-ico svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  .doc-mid { min-width: 0; }
+  .doc-nm-row { display: flex; align-items: center; gap: 7px; }
+  .doc-nm { font-size: 14.5px; font-weight: 600; color: var(--ink); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.1px; }
+  .doc-dot-mob { width: 8px; height: 8px; border-radius: 50%; background: #007AFF; flex-shrink: 0; }
+  .doc-sub { font-size: 12px; color: var(--ink3); margin-top: 3px; line-height: 1.3; font-weight: 400; }
+  .doc-size { font-size: 12px; color: var(--ink3); font-variant-numeric: tabular-nums; font-weight: 500; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -330,6 +344,12 @@
     <div id="retornosPropostosSection" class="anim anim-d2" style="display:none">
       <div class="section-lbl">Propostos pelo seu médico</div>
       <div id="retornosPropostosList"></div>
+    </div>
+
+    <!-- Documentos do médico (Feature 2 — Fase 2) -->
+    <div id="documentosSection" class="anim anim-d2" style="display:none;margin-bottom:22px">
+      <div class="section-lbl">Documentos do seu médico</div>
+      <div id="documentosList"></div>
     </div>
 
     <div id="proximaSection" style="display:none">
@@ -613,6 +633,57 @@
   }
 
   loadRetornosPendentes();
+
+  /* ========================================================
+     DOCUMENTOS DO MEDICO (Feature 2)
+     Rotas: GET /documentos/meus, GET /documentos/:id/baixar
+     ======================================================== */
+
+  function _docNomeTipo(t){ return {RECEITA:'Receita',LAUDO:'Laudo',ENCAMINHAMENTO:'Encaminhamento',EXAME_PEDIDO:'Pedido de Exame',OUTRO:'Documento'}[t] || 'Documento'; }
+  function _docTam(b){ if(b<1024) return b+' B'; if(b<1024*1024) return Math.round(b/1024)+' KB'; return (b/1024/1024).toFixed(1)+' MB'; }
+  function _docFmtData(d){ try{ return new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}); }catch(_e){return '';} }
+
+  function renderDocCard(d){
+    var nomeLimpo = (d.nomeArquivo||'').replace(/\.[^.]+$/,'').replace(/_/g,' ');
+    var dot = d.visualizadoEm ? '' : '<span class="doc-dot-mob"></span>';
+    return '<div class="doc-row" onclick="baixarDoc(\''+d.id+'\')">'
+      +'<div class="doc-ico"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></div>'
+      +'<div class="doc-mid">'
+        +'<div class="doc-nm-row"><div class="doc-nm">'+escapeHtml(nomeLimpo)+'</div>'+dot+'</div>'
+        +'<div class="doc-sub">'+escapeHtml(_docNomeTipo(d.tipo))+' · '+escapeHtml(_docFmtData(d.anexadoEm))+'</div>'
+      +'</div>'
+      +'<div class="doc-size">'+escapeHtml(_docTam(d.tamanhoBytes||0))+'</div>'
+    +'</div>';
+  }
+
+  async function loadDocumentos(){
+    if (typeof vitaeAPI.listarMeusDocumentos !== 'function') return;
+    try {
+      var data = await vitaeAPI.listarMeusDocumentos();
+      var docs = (data && data.documentos) || [];
+      if (!docs.length) return;
+      var card = '<div class="doc-card">' + docs.map(renderDocCard).join('') + '</div>';
+      document.getElementById('documentosList').innerHTML = card;
+      document.getElementById('documentosSection').style.display = '';
+    } catch(_e) { /* silencioso */ }
+  }
+
+  async function baixarDoc(id){
+    try {
+      var res = await vitaeAPI.baixarDocumento(id);
+      if (res && res.url) {
+        window.open(res.url, '_blank', 'noopener');
+        // Recarrega lista pra atualizar visualizadoEm
+        setTimeout(loadDocumentos, 1500);
+      } else {
+        alert('Não consegui abrir o documento. Tenta de novo.');
+      }
+    } catch(e) {
+      alert(e.message || 'Erro ao abrir documento');
+    }
+  }
+
+  loadDocumentos();
 </script>
 
   <!-- Modal: Recusar retorno -->
