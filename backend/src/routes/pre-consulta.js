@@ -1691,7 +1691,7 @@ router.post('/:id/ia-collab', verificarAuth, async (req, res, next) => {
 
     const resultado = await compararAnamneses(lista);
 
-    try { await auditar({ usuarioId: req.usuario.id, acao: 'IA_COLLAB_GERADA', meta: { preConsultaId: id, comparadas: lista.length } }); } catch(e){}
+    try { await auditar(req, { acao: 'IA_COLLAB_GERADA', atorTipo: 'MEDICO', recursoTipo: 'PRE_CONSULTA', recursoId: id, metadata: { comparadas: lista.length } }); } catch(e){}
 
     return res.status(200).json(resultado);
   } catch (err) { next(err); }
