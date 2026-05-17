@@ -2512,18 +2512,29 @@ function pdToggleWaDia(i){
   document.querySelectorAll('#wa-det-days .wa-day').forEach(function(b,j){b.classList.toggle('on',DR.config.whatsappDias.indexOf(j)>-1);});
 }
 
+function _pdNormalizaE164(num){
+  if(!num) return null;
+  var d = String(num).replace(/\D/g,'');
+  if(!d) return null;
+  if(d.length === 11 || d.length === 10) d = '55' + d;
+  if(d.length < 12 || d.length > 13) return null;
+  return '+' + d;
+}
+
 async function pdSaveWaConfig(){
   if(!DR.config) DR.config={};
   var h0=document.getElementById('wa-h0'), h1=document.getElementById('wa-h1');
   var horaInicio = h0 ? h0.value : DR.config.whatsappHoraInicio;
   var horaFim = h1 ? h1.value : DR.config.whatsappHoraFim;
-  await _pdEnviarConfig({
+  var numero = _pdNormalizaE164(DR.config.whatsappNumero || DR.telefone);
+  var payload = {
     whatsappHabilitado: !!DR.config.whatsappHabilitado,
     diasDisponiveis: DR.config.whatsappDias || [1,2,3,4,5],
     horaInicio: horaInicio || '08:00',
     horaFim: horaFim || '18:00',
-    whatsappNumero: DR.config.whatsappNumero || DR.telefone || null,
-  });
+  };
+  if(numero) payload.whatsappNumero = numero;
+  await _pdEnviarConfig(payload);
 }
 
 async function _pdEnviarConfig(payload){
