@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vitaid — Preview Passo 4b (Métricas no cadastro)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="desktop-core.css" rel="stylesheet">
+<style>
+html,body{overflow:auto !important;height:auto !important;min-height:100%}
+body{background:#F4F6FA}
+.login-page{padding:32px 16px;box-sizing:border-box;min-height:100vh}
+.login-card{width:640px;padding:36px 44px;max-width:calc(100vw - 32px);margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 1px 12px rgba(0,0,0,0.07)}
+.login-logo{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:900;color:#0D0F14;margin-bottom:16px;letter-spacing:-0.8px}
+.login-logo .ib{display:inline-block;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#fff;padding:1px 8px;border-radius:6px;margin-left:2px}
+.title{font-size:24px;font-weight:900;letter-spacing:-0.5px;color:#0D0F14;margin-bottom:4px;font-family:'Plus Jakarta Sans',sans-serif}
+.title em{font-style:italic;background:linear-gradient(120deg,#00E5A0,#00B4D8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:13px;color:#6B7280;margin-bottom:24px;font-family:'Plus Jakarta Sans',sans-serif;line-height:1.5}
+
+.steps{display:flex;align-items:center;gap:6px;margin-bottom:24px}
+.step{flex:1;height:4px;border-radius:100px;background:#E2E5EA;transition:background .3s}
+.step.done{background:linear-gradient(120deg,#00E5A0,#00B4D8)}
+.step-label{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6B7280;margin-bottom:14px;font-family:'Plus Jakarta Sans',sans-serif}
+.step-label .num{display:inline-block;width:22px;height:22px;border-radius:50%;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#0D0F14;font-size:11px;line-height:22px;text-align:center;margin-right:8px;font-weight:800}
+
+/* ===== Cards de slider ===== */
+.metric-card{
+  background:#FBFDFE;
+  border:1.5px solid #E2E5EA;
+  border-radius:12px;
+  padding:18px 20px;
+  margin-bottom:14px;
+  transition:border-color .2s, box-shadow .2s;
+}
+.metric-card:hover{border-color:rgba(0,180,216,0.3)}
+.metric-card.touched{border-color:rgba(0,180,216,0.45);box-shadow:0 0 0 3px rgba(0,180,216,0.06)}
+.metric-card .mc-q{font-size:14px;font-weight:700;color:#0D0F14;margin-bottom:3px;font-family:'Plus Jakarta Sans',sans-serif}
+.metric-card .mc-sub{font-size:12px;color:#6B7280;margin-bottom:14px;font-family:'Plus Jakarta Sans',sans-serif;line-height:1.5}
+.metric-card .mc-value-row{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.metric-card .mc-value{font-size:28px;font-weight:900;color:#0D0F14;letter-spacing:-0.5px;font-family:'Plus Jakarta Sans',sans-serif;line-height:1}
+.metric-card .mc-unit{font-size:14px;color:#6B7280;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif}
+.metric-card .mc-default-tag{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#00B4D8;background:rgba(0,180,216,0.08);padding:4px 9px;border-radius:100px}
+.metric-card .mc-default-tag.hidden{display:none}
+
+/* Slider custom */
+.slider-wrap{padding:6px 4px 0}
+.slider-track{
+  position:relative;
+  height:6px;
+  background:#E8EBF0;
+  border-radius:100px;
+  cursor:pointer;
+}
+.slider-fill{
+  position:absolute;
+  height:100%;
+  left:0;
+  background:linear-gradient(120deg,#00E5A0,#00B4D8);
+  border-radius:100px;
+  pointer-events:none;
+  transition:width .12s ease-out;
+}
+.slider-input{
+  width:100%;
+  -webkit-appearance:none;
+  appearance:none;
+  background:transparent;
+  position:absolute;
+  top:-9px;
+  left:0;
+  height:24px;
+  margin:0;
+  cursor:pointer;
+}
+.slider-input::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  appearance:none;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  background:#fff;
+  border:3px solid #00B4D8;
+  box-shadow:0 2px 8px rgba(0,180,216,0.35);
+  cursor:grab;
+  transition:transform .15s, box-shadow .15s;
+}
+.slider-input::-webkit-slider-thumb:hover{transform:scale(1.12)}
+.slider-input::-webkit-slider-thumb:active{cursor:grabbing;box-shadow:0 0 0 6px rgba(0,180,216,0.18)}
+.slider-input::-moz-range-thumb{
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  background:#fff;
+  border:3px solid #00B4D8;
+  box-shadow:0 2px 8px rgba(0,180,216,0.35);
+  cursor:grab;
+}
+.slider-bounds{display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#9CA3AF;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif}
+.mc-hint{margin-top:12px;padding:9px 12px;background:rgba(0,229,160,0.06);border-left:2.5px solid rgba(0,229,160,0.45);border-radius:0 8px 8px 0;font-size:11.5px;color:#0D0F14;font-family:'Plus Jakarta Sans',sans-serif;line-height:1.5}
+.mc-hint b{font-weight:700}
+
+/* ===== Botões e ações ===== */
+.actions{display:flex;justify-content:space-between;align-items:center;margin-top:24px;gap:10px}
+.actions-right{display:flex;gap:10px;align-items:center}
+.btn-back{background:transparent;border:1.5px solid #E2E5EA;color:#4B5563;height:44px;padding:0 18px;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+.btn-back:hover{background:#F2F4F7}
+.btn-skip{background:transparent;border:0;color:#6B7280;font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;padding:8px 12px;text-decoration:underline;text-decoration-color:#C9CDD4;text-underline-offset:3px}
+.btn-skip:hover{color:#0D0F14}
+.btn-suggest{background:#fff;border:1.5px solid rgba(0,180,216,0.5);color:#00B4D8;height:44px;padding:0 18px;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:7px}
+.btn-suggest:hover{background:rgba(0,180,216,0.06)}
+.btn-suggest svg{width:14px;height:14px;stroke:#00B4D8}
+.btn-next{background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#0D0F14;border:0;height:44px;padding:0 26px;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;box-shadow:0 4px 14px rgba(0,229,160,0.25)}
+.btn-next:hover{opacity:.92}
+
+/* Banner explicativo no topo */
+.intro{
+  background:linear-gradient(135deg, rgba(0,229,160,0.07), rgba(0,180,216,0.07));
+  border:1.5px solid rgba(0,180,216,0.18);
+  border-radius:12px;
+  padding:14px 16px;
+  margin-bottom:20px;
+  font-size:12.5px;
+  color:#0D0F14;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  line-height:1.55;
+}
+.intro b{font-weight:700;color:#0D0F14}
+.intro-emoji{display:inline-block;width:24px;height:24px;border-radius:6px;background:linear-gradient(120deg,#00E5A0,#00B4D8);color:#0D0F14;font-weight:900;text-align:center;line-height:24px;margin-right:8px;vertical-align:-5px;font-size:13px}
+
+.preview-tag{
+  position:fixed;
+  top:12px;
+  right:12px;
+  background:#0D0F14;
+  color:#00E5A0;
+  padding:7px 13px;
+  border-radius:100px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+  z-index:100;
+  box-shadow:0 4px 14px rgba(0,0,0,0.15);
+}
+</style>
+</head>
+<body>
+<div class="preview-tag">Preview · Passo 4b</div>
+
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">vita<span class="ib">id</span></div>
+    <div class="title">Vamos calcular seu <em>impacto</em></div>
+    <div class="lede">Esses 3 números mostram quanto tempo você economiza e a receita possível com pré-consulta pronta. Sugestões já preenchidas — ajuste se quiser.</div>
+
+    <div class="steps">
+      <div class="step done"></div>
+      <div class="step done"></div>
+      <div class="step done"></div>
+      <div class="step done"></div>
+      <div class="step done"></div>
+      <div class="step"></div>
+    </div>
+
+    <div class="step-label"><span class="num">4b</span>Sua estimativa de impacto</div>
+
+    <div class="intro">
+      <span class="intro-emoji">i</span>
+      <b>Tudo aqui já está preenchido com a média dos médicos brasileiros.</b> Se isso bate com sua realidade, é só avançar — você pode refinar depois.
+    </div>
+
+    <!-- ===== Card 1: Tempo da anamnese ===== -->
+    <div class="metric-card" id="card-anamnese">
+      <div class="mc-q">Quanto tempo dura sua anamnese hoje?</div>
+      <div class="mc-sub">Aquela conversa inicial perguntando queixa, sintomas, histórico — antes de usar VITAE.</div>
+      <div class="mc-value-row">
+        <span class="mc-value" id="val-anamnese">12</span>
+        <span class="mc-unit">minutos</span>
+        <span class="mc-default-tag" id="tag-anamnese">Sugestão</span>
+      </div>
+      <div class="slider-wrap">
+        <div class="slider-track">
+          <div class="slider-fill" id="fill-anamnese"></div>
+          <input type="range" class="slider-input" id="slider-anamnese" min="1" max="60" value="12" step="1">
+        </div>
+        <div class="slider-bounds">
+          <span>1 min</span>
+          <span>60 min</span>
+        </div>
+      </div>
+      <div class="mc-hint">A maioria dos clínicos brasileiros leva entre <b>8 e 15 minutos</b>. Pediatras tendem a ficar acima, plantonistas abaixo.</div>
+    </div>
+
+    <!-- ===== Card 2: % de economia ===== -->
+    <div class="metric-card" id="card-economia">
+      <div class="mc-q">Quanto desse tempo você economiza com a anamnese já pronta?</div>
+      <div class="mc-sub">Se a queixa, histórico e sintomas chegassem na sua frente antes da consulta, quanto você pularia da etapa inicial?</div>
+      <div class="mc-value-row">
+        <span class="mc-value" id="val-economia">70</span>
+        <span class="mc-unit">%</span>
+        <span class="mc-default-tag" id="tag-economia">Sugestão</span>
+      </div>
+      <div class="slider-wrap">
+        <div class="slider-track">
+          <div class="slider-fill" id="fill-economia"></div>
+          <input type="range" class="slider-input" id="slider-economia" min="10" max="95" value="70" step="5">
+        </div>
+        <div class="slider-bounds">
+          <span>10%</span>
+          <span>95%</span>
+        </div>
+      </div>
+      <div class="mc-hint">Médicos que já usam pré-consulta relatam economia entre <b>60% e 80%</b> da etapa de anamnese.</div>
+    </div>
+
+    <!-- ===== Card 3: Taxa de no-show ===== -->
+    <div class="metric-card" id="card-noshow">
+      <div class="mc-q">De cada 10 pacientes agendados, quantos costumam faltar?</div>
+      <div class="mc-sub">Usamos isso pra calcular receita possível de forma realista — descontando as faltas.</div>
+      <div class="mc-value-row">
+        <span class="mc-value" id="val-noshow">2</span>
+        <span class="mc-unit">de 10 (20%)</span>
+        <span class="mc-default-tag" id="tag-noshow">Sugestão</span>
+      </div>
+      <div class="slider-wrap">
+        <div class="slider-track">
+          <div class="slider-fill" id="fill-noshow"></div>
+          <input type="range" class="slider-input" id="slider-noshow" min="0" max="5" value="2" step="1">
+        </div>
+        <div class="slider-bounds">
+          <span>0 (todos vêm)</span>
+          <span>5 (50% faltam)</span>
+        </div>
+      </div>
+      <div class="mc-hint">Média dos consultórios brasileiros: <b>2 de 10 pacientes faltam</b>. Telemedicina costuma ser menor (1-2), SUS pode chegar a 3-4.</div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn-back">Voltar</button>
+      <div class="actions-right">
+        <button type="button" class="btn-skip" onclick="alert('Em produção: pula 4b e usa defaults silenciosamente.')">Pular</button>
+        <button type="button" class="btn-suggest" id="btnSuggest" onclick="aplicarSugestoes()">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+          Usar as sugestões
+        </button>
+        <button type="button" class="btn-next" onclick="avancar()">Avançar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULTS = { anamnese: 12, economia: 70, noshow: 2 };
+const state = { anamnese: 12, economia: 70, noshow: 2, touched: { anamnese: false, economia: false, noshow: false } };
+
+function updateCard(key) {
+  const val = state[key];
+  const min = +document.getElementById('slider-' + key).min;
+  const max = +document.getElementById('slider-' + key).max;
+  const pct = ((val - min) / (max - min)) * 100;
+  document.getElementById('fill-' + key).style.width = pct + '%';
+  document.getElementById('val-' + key).textContent = val;
+  const card = document.getElementById('card-' + key);
+  const tag = document.getElementById('tag-' + key);
+  if (state.touched[key] || val !== DEFAULTS[key]) {
+    card.classList.add('touched');
+    tag.classList.add('hidden');
+  } else {
+    card.classList.remove('touched');
+    tag.classList.remove('hidden');
+  }
+}
+
+['anamnese', 'economia', 'noshow'].forEach((key) => {
+  const slider = document.getElementById('slider-' + key);
+  slider.addEventListener('input', (e) => {
+    state[key] = +e.target.value;
+    state.touched[key] = true;
+    updateCard(key);
+  });
+  updateCard(key);
+});
+
+function aplicarSugestoes() {
+  state.anamnese = DEFAULTS.anamnese;
+  state.economia = DEFAULTS.economia;
+  state.noshow = DEFAULTS.noshow;
+  state.touched = { anamnese: false, economia: false, noshow: false };
+  ['anamnese', 'economia', 'noshow'].forEach((key) => {
+    document.getElementById('slider-' + key).value = DEFAULTS[key];
+    updateCard(key);
+  });
+  setTimeout(() => avancar(), 200);
+}
+
+function avancar() {
+  alert(
+    'Em produção: salva e vai pro Passo 5 (foto + WhatsApp).\n\n' +
+    'Valores que serão salvos em Medico.metricasConfig:\n' +
+    '  tempoAnamneseSemVitae: ' + state.anamnese + ' min\n' +
+    '  percentualEconomiaAnamnese: ' + state.economia + '%\n' +
+    '  taxaNoShow: ' + (state.noshow * 10) + '%'
+  );
+}
+</script>
+</body>
+</html>
