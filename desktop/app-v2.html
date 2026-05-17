@@ -958,6 +958,8 @@
 .pc-icl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 </head>
 <body>
 
@@ -2042,8 +2044,8 @@ function renderPacienteDetailInline(){
   html+='<div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Buscar exame..." oninput="pdFilterExames(this.value,\''+p.id+'\')" style="width:100%;padding:9px 12px 9px 32px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px;color:var(--t1);outline:none"/></div>';
   html+='<div id="pd-exames-list-'+p.id+'">';
   if(exames.length){
-    exames.forEach(function(e){
-      html+='<div class="exame-item" data-nome="'+escHtml(e.nome||'').toLowerCase()+'" style="border-radius:12px;background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);padding:10px;margin-bottom:10px;cursor:pointer" onclick="'+(e.url?'window.open(\''+escHtml(e.url)+'\',\'_blank\',\'noopener\')':'')+'"><div style="display:flex;gap:12px;align-items:stretch"><div style="width:72px;min-height:80px;border-radius:8px;background:var(--s2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,.14)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0"><div style="font-size:11px;color:var(--t2);font-weight:600;text-transform:capitalize">'+escHtml(e.tipo||e.nome||'')+'</div><div style="font-size:14px;font-weight:700;color:var(--green)">'+escHtml(e.nome||'')+'</div><div style="font-size:11px;color:var(--t3)">'+escHtml(e.data||'')+'</div></div></div></div>';
+    exames.forEach(function(e,i){
+      html+=pdRenderExameCard(e,i);
     });
   }else{
     html+='<div style="text-align:center;padding:20px 8px;color:var(--t3);font-size:13px">'+(loaded?'Nenhum exame registrado':'Carregando...')+'</div>';
@@ -2137,6 +2139,7 @@ function renderPacienteDetailInline(){
   html+='</div>'; // fim pac-det-grid
 
   $('patDetailInline').innerHTML=html;
+  if(typeof pdProcessarPdfThumbs==='function') setTimeout(pdProcessarPdfThumbs,50);
 }
 
 function iniciarComparativo(){
@@ -2193,16 +2196,8 @@ function renderPacienteDetail(){
       if(STATE.selectedPaciente===p.id&&STATE.view==='pacientes-detail') renderPacienteDetail();
     })();
   }
-  // Carrega permissao contato por paciente — Fase 3
-  if(pd&&pd.id&&typeof pd._permissaoContato==='undefined'&&!pd._permLoading){
-    pd._permLoading=true;
-    (async function(){
-      var ok = await pdCarregarPermissaoContato(pd.id);
-      pd._permissaoContato = ok;
-      pd._permLoading=false;
-      if(STATE.selectedPaciente===p.id) renderPacienteDetail();
-    })();
-  }
+  // (Permissao granular por paciente removida — Lucas decidiu simplificar.
+  // Agora todo paciente com vinculo ativo + medico com whatsappHabilitado ve o botao.)
   var ps=pd.perfilSaude||{};
   var loaded=!!pd.id;
   var waOn=!!(DR.config&&DR.config.whatsappHabilitado);
@@ -2325,14 +2320,6 @@ function renderPacienteDetail(){
   if(waOn&&(DR.telefone||(DR.config&&DR.config.whatsappNumero))){
     html+='<div style="display:flex;align-items:center;gap:8px;padding:9px 13px;background:var(--s2);border-radius:10px;margin-top:2px"><svg width="14" height="14" viewBox="0 0 24 24" fill="var(--ok)" stroke="none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span style="font-size:13.5px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums">'+escHtml(DR.config&&DR.config.whatsappNumero||DR.telefone||'')+'</span></div>';
   }
-  // Toggle permissao por paciente (decisao 7 do handoff 13-mai: granular)
-  if(waOn){
-    var permOn = !!(pd && pd._permissaoContato);
-    html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0 2px;margin-top:12px;border-top:1px solid var(--border)">';
-    html+='<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;color:var(--t1)">Habilitar contato com este paciente</div><div style="font-size:11px;color:var(--t3);margin-top:2px;line-height:1.4">Só este paciente verá o botão "Tirar dúvida" no app dele.</div></div>';
-    html+='<div class="toggle-sw'+(permOn?' on':'')+'" onclick="pdToggleContatoPaciente(\''+escHtml(pacId)+'\','+(!permOn)+')" style="flex-shrink:0;margin-top:2px"></div>';
-    html+='</div>';
-  }
   html+='</div></div>';
 
   // Configurações de Contato
@@ -2424,8 +2411,8 @@ function renderPacienteDetail(){
   html+='<div style="position:relative;margin-bottom:12px"><svg viewBox="0 0 24 24" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Buscar exame..." oninput="pdFilterExames(this.value,\''+p.id+'\')" style="width:100%;padding:9px 12px 9px 32px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px;color:var(--t1);outline:none"/></div>';
   html+='<div id="pd-exames-list-'+p.id+'">';
   if(exames.length){
-    exames.forEach(function(e){
-      html+='<div class="exame-item" data-nome="'+escHtml(e.nome||'').toLowerCase()+'" style="border-radius:12px;background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);padding:10px;margin-bottom:10px;cursor:pointer" onclick="'+(e.url?'window.open(\''+escHtml(e.url)+'\',\'_blank\',\'noopener\')':'')+'"><div style="display:flex;gap:12px;align-items:stretch"><div style="width:72px;min-height:80px;border-radius:8px;background:var(--s2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,.14)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0"><div style="font-size:11px;color:var(--t2);font-weight:600;text-transform:capitalize">'+escHtml(e.tipo||e.nome||'')+'</div><div style="font-size:14px;font-weight:700;color:var(--green)">'+escHtml(e.nome||'')+'</div><div style="font-size:11px;color:var(--t3)">'+escHtml(e.data||'')+'</div></div></div></div>';
+    exames.forEach(function(e,i){
+      html+=pdRenderExameCard(e,i);
     });
   }else{
     html+='<div style="text-align:center;padding:20px 8px;color:var(--t3);font-size:13px">'+(loaded?'Nenhum exame registrado':'Carregando...')+'</div>';
@@ -2456,6 +2443,7 @@ function renderPacienteDetail(){
   html+='</div>'; // pac-det-grid
   html+='</div>'; // pac-det-wrap
   $('v-pacientes-detail').innerHTML=html;
+  if(typeof pdProcessarPdfThumbs==='function') setTimeout(pdProcessarPdfThumbs,50);
 }
 
 function pdFilterExames(q,pid){
@@ -2831,6 +2819,59 @@ async function pdCarregarDocumentos(pacienteId){
     var res = await _prApiJson('/documentos/paciente/'+encodeURIComponent(pacienteId));
     return (res && res.documentos) || [];
   }catch(_e){ return []; }
+}
+
+// ============================================================
+// EXAMES — preview PDF (1a pagina) via pdf.js + click abre aba
+// ============================================================
+window._pdPendingPdfs = [];
+
+async function pdRenderPdfThumb(url, canvasId){
+  try{
+    if(!window.pdfjsLib) return;
+    var pdf = await pdfjsLib.getDocument(url).promise;
+    var page = await pdf.getPage(1);
+    var canvas = document.getElementById(canvasId);
+    if(!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var viewport = page.getViewport({ scale: 0.5 });
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+  }catch(_e){ /* mantem icone como fallback */ }
+}
+
+function pdRenderExameCard(e, i){
+  var url = e.arquivoUrl || e.url || '';
+  var isImg = url && /\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i.test(url);
+  var isPdf = url && /\.pdf(\?|$)/i.test(url);
+  var canvasId = 'pd-pdf-thumb-' + i + '-' + Date.now();
+  var thumb;
+  if(isImg){
+    thumb = '<img src="'+escHtml(url)+'" style="width:100%;height:100%;object-fit:cover" loading="lazy"/>';
+  }else if(isPdf){
+    thumb = '<canvas id="'+canvasId+'" style="width:100%;height:100%;object-fit:cover;background:#f5f6f8"></canvas>';
+    window._pdPendingPdfs.push({ url: url, canvasId: canvasId });
+  }else{
+    thumb = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,.14)" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+  }
+  var click = url ? 'onclick="window.open(\''+escHtml(url)+'\',\'_blank\',\'noopener\')"' : '';
+  return '<div class="exame-item" data-nome="'+escHtml((e.nome||'')+' '+(e.tipo||'')).toLowerCase()+'" style="border-radius:12px;background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);padding:10px;margin-bottom:10px;'+(url?'cursor:pointer':'')+'" '+click+'>'
+    +'<div style="display:flex;gap:12px;align-items:stretch">'
+      +'<div style="width:72px;min-height:96px;border-radius:8px;background:var(--s2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">'+thumb+'</div>'
+      +'<div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0">'
+        +'<div style="font-size:11px;color:var(--t2);font-weight:600;text-transform:capitalize">'+escHtml(e.tipo||e.nome||'')+'</div>'
+        +'<div style="font-size:14px;font-weight:700;color:var(--green)">'+escHtml(e.nome||'')+'</div>'
+        +'<div style="font-size:11px;color:var(--t3)">'+escHtml(e.data||'')+'</div>'
+      +'</div>'
+    +'</div></div>';
+}
+
+function pdProcessarPdfThumbs(){
+  if(!window._pdPendingPdfs||!window._pdPendingPdfs.length||!window.pdfjsLib) return;
+  var thumbs = window._pdPendingPdfs.slice();
+  window._pdPendingPdfs = [];
+  thumbs.forEach(function(t){ pdRenderPdfThumb(t.url, t.canvasId); });
 }
 
 function pdAnexarDocumento(pacienteId){
@@ -6840,7 +6881,18 @@ window.BACKEND = (function(){
       // Popula EXAMES/MEDS/ALERG/COND
       try {
         if (typeof EXAMES_MOCK !== 'undefined') EXAMES_MOCK[pid] = (p.exames||[]).map(function(e){
-          return { nome: e.tipoExame||'Exame', data: e.dataExame ? new Date(e.dataExame).toLocaleDateString('pt-BR') : '—', resultado: (e.resumoIA||'—').slice(0,120), ok: !(String(e.statusGeral||'').toLowerCase().includes('crit') || String(e.statusGeral||'').toLowerCase().includes('aten')) };
+          return {
+            id: e.id,
+            nome: e.tipoExame||'Exame',
+            tipo: e.tipoExame||'Exame',
+            data: e.dataExame ? new Date(e.dataExame).toLocaleDateString('pt-BR') : '—',
+            resultado: (e.resumoIA||'—').slice(0,120),
+            ok: !(String(e.statusGeral||'').toLowerCase().includes('crit') || String(e.statusGeral||'').toLowerCase().includes('aten')),
+            arquivoUrl: e.arquivoUrl||null,
+            tipoArquivo: e.tipoArquivo||null,
+            nomeArquivo: e.nomeArquivo||null,
+            url: e.arquivoUrl||null
+          };
         });
         if (typeof MEDS_MOCK !== 'undefined') MEDS_MOCK[pid] = (p.medicamentos||[]).filter(function(m){ return m.ativo!==false; }).map(function(m){
           return { nome: (m.nome||'') + (m.dosagem?' '+m.dosagem:''), freq: m.frequencia||'—', motivo: m.motivo||'—', inicio: m.dataInicio ? 'desde '+new Date(m.dataInicio).toLocaleDateString('pt-BR') : '—' };
@@ -7335,24 +7387,30 @@ window.confirmarCriarPC = async function(){
   else { toast('Pré-consulta criada. Link: ' + (resp.link||'')); try { renderPCs(); }catch(e){} }
 };
 
-// --- IA Collab: pluga no rota real (Fase 9) ---
+// --- IA Collab: pluga no rota real (Fase 9, corrigido sessao 16-mai noite) ---
+function _iaCollabRerender(){
+  // View atual decide qual render chamar — pacientes-detail OU pacientes inline
+  if (STATE && STATE.view === 'pacientes-detail' && typeof renderPacienteDetail === 'function') {
+    renderPacienteDetail();
+  } else if (typeof renderPacienteDetailInline === 'function') {
+    renderPacienteDetailInline();
+  }
+}
+
 var _origIniciarComparativo = window.iniciarComparativo;
 window.iniciarComparativo = async function(){
-  // mantém animação visual do preview
   STATE.comparativoLoading = true; STATE.comparativoLigado = false;
-  if (typeof renderPacienteDetailInline === 'function') renderPacienteDetailInline();
+  _iaCollabRerender();
   setTimeout(function(){var el=document.getElementById('iaStage');if(el)el.innerHTML='Comparando vocabulário e queixas<span class="ia-dots"><span></span><span></span><span></span></span><small>Cruzando termos técnicos vs leigos</small>';},850);
   setTimeout(function(){var el=document.getElementById('iaStage');if(el)el.innerHTML='Cruzando linha do tempo e padrões<span class="ia-dots"><span></span><span></span><span></span></span><small>Detectando evolução do quadro</small>';},1700);
 
-  // chama backend real em paralelo
   var pid = STATE && STATE.selectedPaciente;
-  // pega PCs reais do paciente em PCS map
   var pcsDoPaciente = Object.values(PCS||{}).filter(function(p){ return p.pacienteId === pid; });
   if (pcsDoPaciente.length < 2) {
     setTimeout(function(){
       STATE.comparativoLoading = false; STATE.comparativoLigado = true;
       if (typeof COMPARE_MOCK !== 'undefined' && pid) COMPARE_MOCK[pid] = 'Esse paciente só tem ' + pcsDoPaciente.length + ' pré-consulta. Crie outra pra comparar a evolução.';
-      if (typeof renderPacienteDetailInline === 'function') renderPacienteDetailInline();
+      _iaCollabRerender();
     }, 2700);
     return;
   }
@@ -7363,11 +7421,10 @@ window.iniciarComparativo = async function(){
       STATE.comparativoLoading = false; STATE.comparativoLigado = true;
       if (typeof COMPARE_MOCK !== 'undefined' && pid) {
         if (resultado && resultado.narrativa) {
-          COMPARE_MOCK[pid] = resultado.narrativa + (resultado.alertas && resultado.alertas.length ? '\n\n⚠️ ' + resultado.alertas.join(' · ') : '');
+          COMPARE_MOCK[pid] = resultado.narrativa + (resultado.alertas && resultado.alertas.length ? '\n\n⚠ ' + resultado.alertas.join(' · ') : '');
         } else if (resultado && resultado.erro) {
-          // Traduz erros tecnicos do backend pra mensagens humanas
           var msg = resultado.erro;
-          if (/sem paciente vinculado/i.test(msg)) msg = 'Pré-consulta sem paciente vinculado — não dá pra comparar. Esse caso precisa de ajuste no banco.';
+          if (/sem paciente vinculado/i.test(msg)) msg = 'Pré-consulta sem paciente vinculado — não dá pra comparar.';
           else if (/Mínimo 2|minimo 2/i.test(msg)) msg = 'Esse paciente só tem 1 pré-consulta. Crie outra pra comparar a evolução.';
           else if (/desativada/i.test(msg)) msg = 'IA Collab está desativada. Ative em Meu Perfil → Voz & IA.';
           else if (/Dados inválidos|invalido|invalid/i.test(msg)) msg = 'A IA não conseguiu ler os dados dessa pré-consulta. Pode ser PC antiga sem anamnese estruturada. Crie uma nova pra comparar.';
@@ -7376,13 +7433,13 @@ window.iniciarComparativo = async function(){
           COMPARE_MOCK[pid] = 'Não foi possível gerar a análise comparativa agora. Tente em alguns segundos.';
         }
       }
-      if (typeof renderPacienteDetailInline === 'function') renderPacienteDetailInline();
+      _iaCollabRerender();
     }, 2700);
   } catch(e) {
     setTimeout(function(){
       STATE.comparativoLoading = false; STATE.comparativoLigado = true;
       if (typeof COMPARE_MOCK !== 'undefined' && pid) COMPARE_MOCK[pid] = 'Sem conexão com o servidor. Verifique sua internet e tente de novo.';
-      if (typeof renderPacienteDetailInline === 'function') renderPacienteDetailInline();
+      _iaCollabRerender();
     }, 2700);
   }
 };

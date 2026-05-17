@@ -243,32 +243,51 @@ router.put('/permissoes/:pacienteId', validate(permissaoSchema), async (req, res
 
 router.get('/medico-do-paciente', async (req, res, next) => {
   try {
-    const perms = await prisma.permissaoContatoPaciente.findMany({
-      where: { pacienteId: req.usuario.id, habilitado: true },
+    // Busca medicos com vinculo ativo (PreConsulta OU AutorizacaoAcesso)
+    const pacienteId = req.usuario.id;
+    const pcs = await prisma.preConsulta.findMany({
+      where: { pacienteId, deletadoEm: null },
+      select: { medicoId: true },
+      distinct: ['medicoId'],
+    });
+    const autorizacoes = await prisma.autorizacaoAcesso.findMany({
+      where: {
+        pacienteId,
+        ativo: true,
+        OR: [{ expiraEm: null }, { expiraEm: { gt: new Date() } }],
+      },
+      select: { medicoId: true },
+      distinct: ['medicoId'],
+    });
+    const medicoIds = Array.from(new Set([
+      ...pcs.map(x => x.medicoId).filter(Boolean),
+      ...autorizacoes.map(x => x.medicoId).filter(Boolean),
+    ]));
+
+    if (!medicoIds.length) return res.status(200).json({ medicos: [] });
+
+    const medicosRaw = await prisma.medico.findMany({
+      where: { id: { in: medicoIds } },
       include: {
-        medico: {
-          include: {
-            usuario: { select: { id: true, nome: true } },
-            configContato: true,
-          },
-        },
+        usuario: { select: { id: true, nome: true } },
+        configContato: true,
       },
     });
 
     const agora = new Date();
-    const medicos = perms
-      .filter(p => p.medico && p.medico.configContato && p.medico.configContato.whatsappHabilitado)
-      .map(p => {
-        const cfg = p.medico.configContato;
+    const medicos = medicosRaw
+      .filter(m => m.configContato && m.configContato.whatsappHabilitado)
+      .map(m => {
+        const cfg = m.configContato;
         return {
-          medicoId: p.medico.id,
-          nome: p.medico.usuario?.nome || 'Seu medico',
-          especialidade: p.medico.especialidade,
+          medicoId: m.id,
+          nome: m.usuario?.nome || 'Seu medico',
+          especialidade: m.especialidade,
           numero: cfg.whatsappNumero,
           diasDisponiveis: cfg.diasDisponiveis,
           horaInicio: cfg.horaInicio,
           horaFim: cfg.horaFim,
-          mensagemPreFormatada: cfg.mensagemPreFormatada || `Olá, Dr(a). ${p.medico.usuario?.nome || ''}.`,
+          mensagemPreFormatada: cfg.mensagemPreFormatada || `Olá, Dr(a). ${m.usuario?.nome || ''}.`,
           disponivelAgora: disponivelAgora(cfg, agora),
           janelaResumo: rotularDias(cfg.diasDisponiveis) + ' ' + cfg.horaInicio + '-' + cfg.horaFim,
         };
