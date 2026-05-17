@@ -10,7 +10,9 @@
  */
 const Anthropic = require('@anthropic-ai/sdk');
 
-const claude = process.env.CLAUDE_API_KEY ? new Anthropic({ apiKey: process.env.CLAUDE_API_KEY }) : null;
+// Aceita CLAUDE_API_KEY (legado) ou ANTHROPIC_API_KEY (oficial SDK)
+const _apiKey = process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
+const claude = _apiKey ? new Anthropic({ apiKey: _apiKey }) : null;
 
 const SYSTEM_PROMPT = `Você é um médico clínico experiente analisando a EVOLUÇÃO CLÍNICA de um mesmo paciente entre pré-consultas distintas.
 
