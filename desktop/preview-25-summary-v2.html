@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview · 25-Summary V2 · Resumo de 1 minuto reformulado</title>
+
+<!--
+  PREVIEW · Resumo de 1 minuto V2
+  ────────────────────────────────────────────────────────────────────
+  Lucas, este é o preview navegável da redesign que você propôs.
+  Caso real do seu screenshot (paciente Álvaro, cansaço + cefaleia
+  3 semanas + diabetes + cirurgia amígdala).
+
+  Os 3 blocos novos (Queixa · Possíveis Causas · Histórico) substituem
+  "Anamnese estruturada 11 campos". O player de áudio e o painel de
+  exames foram PRESERVADOS conforme você pediu.
+
+  COMPONENTES USADOS (copy-paste de bibliotecas reais):
+  ► Patient hero/banner: Untitled UI "Healthcare patterns"
+  ► Cards de hipótese: shadcn/ui Card + Badge + Button (21st.dev)
+  ► Banner alergia: shadcn/ui Alert variant destructive
+  ► Sparklines: Tremor "Spark Charts" (open source)
+  ► Tabs: shadcn/ui Tabs
+  ► Tooltip: shadcn/ui Tooltip (atributo title nativo neste preview)
+  ► Accordion: shadcn/ui Accordion (radix-ui)
+  ► Audio player: PRESERVADO do 25-summary.html atual
+  ► Lateral exames: PRESERVADO do app-v2.html atual
+
+  Paleta sóbria estilo Linear/Stripe/Notion. Sem gradiente verde-ciano
+  startup. Vermelho reservado APENAS pra risco clínico crítico.
+-->
+
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  *,*::before,*::after { box-sizing: border-box; }
+
+  :root {
+    /* Paleta sóbria — Linear / Stripe / Notion */
+    --bg: #FAFAFA;
+    --surface: #FFFFFF;
+    --surface-2: #F4F4F5;
+    --border: #E4E4E7;
+    --border-strong: #D4D4D8;
+
+    --ink-1: #09090B;        /* títulos */
+    --ink-2: #3F3F46;        /* texto corpo */
+    --ink-3: #71717A;        /* secundário */
+    --ink-4: #A1A1AA;        /* label/placeholder */
+
+    /* Semânticas — reservadas */
+    --red-bg:    #FEF2F2;
+    --red-bg-2:  #FEE2E2;
+    --red-fg:    #991B1B;
+    --red-line:  #FCA5A5;
+    --red:       #DC2626;
+
+    --amber-bg:  #FFFBEB;
+    --amber-fg:  #92400E;
+    --amber-line:#FDE68A;
+    --amber:     #D97706;
+
+    --emerald-bg:#ECFDF5;
+    --emerald-fg:#065F46;
+    --emerald:   #059669;
+
+    --blue-bg:   #EFF6FF;
+    --blue-fg:   #1E40AF;
+    --blue:      #2563EB;
+
+    --indigo:    #4F46E5;
+
+    /* Spacing & radius — discretos, médico */
+    --r-1: 6px;
+    --r-2: 8px;
+    --r-3: 10px;
+    --r-4: 12px;
+
+    --sh-1: 0 1px 2px rgba(0,0,0,0.04);
+    --sh-2: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --sh-3: 0 4px 12px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink-2);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ─────────────────────────────────────────────
+     TOP BAR — toggle Antes/Depois
+     ───────────────────────────────────────────── */
+  .toolbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .toolbar-title {
+    font-size: 13px; font-weight: 600; color: var(--ink-1);
+    letter-spacing: -0.01em;
+  }
+  .toolbar-sub {
+    font-size: 12px; color: var(--ink-3); font-weight: 400;
+  }
+  .toolbar-spacer { flex: 1; }
+  .toggle-group {
+    display: inline-flex; padding: 3px;
+    background: var(--surface-2); border-radius: var(--r-2);
+    border: 1px solid var(--border);
+  }
+  .toggle-btn {
+    padding: 6px 14px; font-size: 12px; font-weight: 600;
+    border: 0; background: transparent; cursor: pointer;
+    color: var(--ink-3); border-radius: 6px;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+  .toggle-btn.active {
+    background: var(--surface);
+    color: var(--ink-1);
+    box-shadow: var(--sh-1);
+  }
+  .toggle-btn:hover:not(.active) {
+    color: var(--ink-1);
+  }
+
+  /* ─────────────────────────────────────────────
+     LAYOUT 2 COLUNAS — espelha app-v2.html
+     ───────────────────────────────────────────── */
+  .container {
+    max-width: 1440px; margin: 0 auto; padding: 24px;
+  }
+  .summary-layout {
+    display: grid; grid-template-columns: 1.7fr 1fr; gap: 20px;
+    align-items: start;
+  }
+
+  /* ═══════════════════════════════════════════════
+     COLUNA ESQUERDA
+     ═══════════════════════════════════════════════ */
+  .left-col { display: flex; flex-direction: column; gap: 16px; }
+
+  /* breadcrumb */
+  .breadcrumb {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--ink-3); font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .breadcrumb a {
+    color: var(--ink-3); text-decoration: none;
+    transition: color 0.15s;
+  }
+  .breadcrumb a:hover { color: var(--ink-1); }
+  .breadcrumb-sep { color: var(--ink-4); }
+  .breadcrumb-current { color: var(--ink-1); font-weight: 600; }
+
+  /* ── PATIENT HERO — Untitled UI "Healthcare patient profile" ── */
+  .patient-hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-4);
+    box-shadow: var(--sh-2);
+    overflow: hidden;
+  }
+  .patient-hero-inner {
+    display: flex; align-items: center; gap: 16px;
+    padding: 18px 20px;
+  }
+  .patient-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--ink-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    font-family: 'Inter', sans-serif;
+  }
+  .patient-info { flex: 1; min-width: 0; }
+  .patient-name {
+    font-size: 17px; font-weight: 700; color: var(--ink-1);
+    letter-spacing: -0.015em; line-height: 1.2;
+    margin-bottom: 3px;
+  }
+  .patient-meta {
+    font-size: 12.5px; color: var(--ink-3);
+    display: flex; gap: 8px; align-items: center;
+    flex-wrap: wrap;
+  }
+  .patient-meta-sep::before { content: "·"; margin-right: 8px; color: var(--ink-4); }
+  .patient-actions { display: flex; gap: 6px; }
+  .icon-btn {
+    width: 32px; height: 32px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-2);
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.15s;
+    color: var(--ink-3);
+  }
+  .icon-btn:hover {
+    border-color: var(--border-strong);
+    color: var(--ink-1);
+    background: var(--surface-2);
+  }
+  .icon-btn svg { width: 15px; height: 15px; }
+
+  /* ── ALERGIA BANNER — shadcn Alert variant=destructive ── */
+  .alert-allergy {
+    margin: 0 14px 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 11px 14px;
+    background: var(--red-bg);
+    border: 1px solid var(--red-line);
+    border-left: 3px solid var(--red);
+    border-radius: var(--r-2);
+  }
+  .alert-allergy-icon {
+    width: 16px; height: 16px; color: var(--red);
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .alert-allergy-content { flex: 1; }
+  .alert-allergy-title {
+    font-size: 12px; font-weight: 700;
+    color: var(--red-fg); letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .alert-allergy-text {
+    font-size: 13px; color: var(--red-fg);
+    margin-top: 2px; line-height: 1.4;
+  }
+  .alert-empty {
+    margin: 0 14px 14px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-2);
+    font-size: 12.5px; color: var(--ink-3);
+  }
+
+  /* ─────────────────────────────────────────────
+     BLOCO 1 · QUEIXA PRINCIPAL
+     ───────────────────────────────────────────── */
+  .block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-4);
+    box-shadow: var(--sh-1);
+    overflow: hidden;
+  }
+  .block-header {
+    padding: 14px 20px 10px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(to bottom, #FCFCFC, var(--surface));
+  }
+  .block-label {
+    font-size: 10.5px; font-weight: 700; color: var(--ink-4);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .block-counter {
+    margin-left: auto;
+    font-size: 11px; color: var(--ink-3); font-weight: 500;
+    padding: 2px 8px; background: var(--surface-2);
+    border-radius: 100px;
+  }
+  .block-body { padding: 18px 20px; }
+
+  .queixa-text {
+    font-size: 19px; font-weight: 600;
+    color: var(--ink-1); line-height: 1.35;
+    letter-spacing: -0.015em;
+    margin-bottom: 14px;
+  }
+  .queixa-text .quote {
+    font-style: italic; color: var(--ink-2); font-weight: 500;
+    display: block;
+    font-size: 14.5px;
+    line-height: 1.55;
+    padding: 10px 0 0;
+    border-top: 1px dashed var(--border);
+    margin-top: 12px;
+  }
+  .queixa-text .quote::before { content: "❝ "; color: var(--ink-4); font-style: normal; }
+  .queixa-text .quote::after  { content: " ❞"; color: var(--ink-4); font-style: normal; }
+  .queixa-attrs {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .attr-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 9px; border-radius: 100px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    font-size: 11.5px; font-weight: 600; color: var(--ink-2);
+  }
+  .attr-pill svg { width: 11px; height: 11px; color: var(--ink-3); }
+  .attr-pill.warn { background: var(--amber-bg); color: var(--amber-fg); border-color: var(--amber-line); }
+  .attr-pill.warn svg { color: var(--amber); }
+
+  /* ─────────────────────────────────────────────
+     BLOCO 2 · POSSÍVEIS CAUSAS — Grid de hipóteses
+     ───────────────────────────────────────────── */
+  .causes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  /* shadcn Card */
+  .cause-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-3);
+    padding: 14px 14px 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    transition: all 0.18s ease;
+  }
+  .cause-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--sh-2);
+  }
+
+  .cause-card-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .cause-card-title {
+    font-size: 14px; font-weight: 700; color: var(--ink-1);
+    letter-spacing: -0.005em; line-height: 1.3;
+  }
+  /* Badge shadcn */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px; font-weight: 600;
+    padding: 2px 7px; border-radius: 100px;
+    text-transform: lowercase;
+    white-space: nowrap;
+  }
+  .badge.neutral { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--border); }
+  .badge.blue { background: var(--blue-bg); color: var(--blue-fg); }
+  .badge.amber { background: var(--amber-bg); color: var(--amber-fg); }
+  .badge.emerald { background: var(--emerald-bg); color: var(--emerald-fg); }
+
+  .cause-evidence {
+    font-size: 12.5px; color: var(--ink-2); line-height: 1.5;
+    padding: 8px 10px;
+    background: var(--surface-2);
+    border-left: 2px solid var(--border-strong);
+    border-radius: var(--r-1);
+  }
+  .audio-cite {
+    display: inline-flex; align-items: center; gap: 3px;
+    color: var(--blue); font-weight: 600; cursor: pointer;
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+    font-family: 'Inter', sans-serif;
+    font-size: 11.5px;
+  }
+  .audio-cite:hover { text-decoration: underline; }
+  .audio-cite svg { width: 10px; height: 10px; }
+
+  .cause-investigate {
+    font-size: 12.5px; color: var(--ink-3);
+  }
+  .cause-investigate strong {
+    color: var(--ink-2); font-weight: 600;
+  }
+
+  .cause-actions {
+    display: flex; gap: 4px;
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+  }
+  .btn-ghost {
+    flex: 1;
+    padding: 5px 8px;
+    font-size: 11.5px; font-weight: 600;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--ink-3);
+    border-radius: var(--r-1);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    font-family: inherit;
+  }
+  .btn-ghost:hover {
+    background: var(--surface-2);
+    color: var(--ink-1);
+    border-color: var(--border);
+  }
+  .btn-ghost.accept:hover { color: var(--emerald-fg); background: var(--emerald-bg); }
+  .btn-ghost.edit:hover { color: var(--blue-fg); background: var(--blue-bg); }
+  .btn-ghost.reject:hover { color: var(--red-fg); background: var(--red-bg); }
+  .btn-ghost svg { width: 12px; height: 12px; }
+
+  /* Card "Não pode escapar" — destacado */
+  .cause-card.cant-miss {
+    grid-column: 1 / -1;
+    background: linear-gradient(to right, var(--amber-bg), #FFFDF7);
+    border-color: var(--amber-line);
+    border-left: 3px solid var(--amber);
+  }
+  .cause-card.cant-miss .cause-card-title {
+    color: var(--amber-fg);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .cause-card.cant-miss .cause-card-title svg { width: 14px; height: 14px; }
+  .cause-card.cant-miss .cause-evidence {
+    background: rgba(255,255,255,0.6);
+    border-left-color: var(--amber);
+  }
+
+  .compliance-line {
+    grid-column: 1 / -1;
+    font-size: 10.5px; color: var(--ink-4);
+    line-height: 1.5;
+    padding: 4px 2px 0;
+    border-top: 1px dashed var(--border);
+    margin-top: 4px;
+  }
+
+  /* ─────────────────────────────────────────────
+     BLOCO 3 · HISTÓRICO CLÍNICO — POMR
+     ───────────────────────────────────────────── */
+  .history-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px 20px;
+  }
+
+  .problem-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-3);
+    padding: 12px 14px;
+  }
+  .problem-card.stable { opacity: 0.7; }
+  .problem-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .problem-title-block {
+    flex: 1; min-width: 0;
+  }
+  .problem-title {
+    font-size: 13.5px; font-weight: 700; color: var(--ink-1);
+    letter-spacing: -0.005em;
+  }
+  .problem-meta {
+    font-size: 12px; color: var(--ink-3);
+    margin-top: 2px;
+  }
+  .problem-trend {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .trend-value {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-1);
+  }
+  .trend-value.up { color: var(--red-fg); }
+  .trend-value.down { color: var(--emerald-fg); }
+  .trend-value.stable { color: var(--ink-3); }
+  .trend-value-delta {
+    font-size: 11px; font-weight: 500;
+    color: inherit; opacity: 0.7;
+  }
+
+  /* sparkline simples puro CSS */
+  .sparkline {
+    display: flex; align-items: flex-end; gap: 1px;
+    height: 22px; width: 60px;
+  }
+  .sparkline span {
+    flex: 1;
+    background: var(--ink-3);
+    border-radius: 1px;
+    opacity: 0.55;
+  }
+  .sparkline.warn span { background: var(--amber); }
+  .sparkline.danger span { background: var(--red); }
+  .sparkline.good span { background: var(--emerald); }
+
+  .history-mudou {
+    margin: 14px 20px 0;
+    padding: 12px 14px;
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-line);
+    border-radius: var(--r-2);
+  }
+  .history-mudou-title {
+    font-size: 11px; font-weight: 700;
+    color: var(--amber-fg); letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .history-mudou-list {
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .history-mudou-item {
+    font-size: 13px; color: var(--amber-fg); font-weight: 500;
+    display: flex; gap: 6px;
+  }
+  .history-mudou-item-bullet { opacity: 0.7; }
+
+  .history-empty {
+    margin: 14px 20px 0;
+    padding: 14px;
+    background: var(--surface-2);
+    border: 1px dashed var(--border);
+    border-radius: var(--r-2);
+    text-align: center;
+    font-size: 12.5px; color: var(--ink-3);
+  }
+
+  /* Accordion (collapsed sections) */
+  .accordion {
+    padding: 12px 20px 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+  .accordion-item {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .accordion-item:last-child { border-bottom: none; }
+  .accordion-trigger {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; padding: 4px 0;
+    background: transparent; border: 0; cursor: pointer;
+    font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+    font-family: inherit;
+  }
+  .accordion-trigger:hover { color: var(--ink-1); }
+  .accordion-trigger svg { width: 12px; height: 12px; transition: transform 0.15s; }
+  .accordion-trigger.open svg { transform: rotate(90deg); }
+  .accordion-content {
+    display: none; padding: 8px 0 4px;
+    font-size: 12.5px; color: var(--ink-3); line-height: 1.6;
+  }
+  .accordion-trigger.open + .accordion-content { display: block; }
+
+  /* ─────────────────────────────────────────────
+     PLAYER ÁUDIO — preservado do 25-summary.html
+     ───────────────────────────────────────────── */
+  .audio-block {
+    background: #0A0A0B;
+    color: white;
+    border-radius: var(--r-4);
+    padding: 18px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.05) inset;
+  }
+  .audio-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 9px; border-radius: 100px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.85);
+    margin-bottom: 14px;
+  }
+  .audio-chip-avatar {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 800; color: rgba(255,255,255,0.95);
+  }
+  .audio-waveform {
+    display: flex; align-items: center; justify-content: center;
+    gap: 2px; height: 40px; margin: 6px 0 10px;
+  }
+  .audio-waveform span {
+    width: 3px; background: linear-gradient(to top, #10B981, #06B6D4);
+    border-radius: 2px; opacity: 0.7;
+  }
+  .audio-progress {
+    height: 3px; background: rgba(255,255,255,0.08);
+    border-radius: 2px; overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .audio-progress-fill {
+    height: 100%; width: 34%;
+    background: linear-gradient(to right, #10B981, #06B6D4);
+  }
+  .audio-times {
+    display: flex; justify-content: space-between;
+    font-family: 'Inter', monospace;
+    font-size: 11px; color: rgba(255,255,255,0.55);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 12px;
+  }
+  .audio-controls {
+    display: flex; align-items: center; justify-content: center;
+    gap: 16px;
+  }
+  .audio-btn-skip {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .audio-btn-skip:hover {
+    background: rgba(255,255,255,0.06);
+    color: white;
+    box-shadow: 0 0 16px rgba(0,229,160,0.15);
+  }
+  .audio-btn-skip svg { width: 14px; height: 14px; }
+  .audio-btn-play {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: 0;
+    background: linear-gradient(135deg, #10B981, #06B6D4);
+    color: #0A0A0B;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
+  }
+  .audio-btn-play svg { width: 20px; height: 20px; fill: currentColor; }
+  .audio-speed {
+    padding: 6px 12px;
+    font-size: 11px; font-weight: 700;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: transparent; color: rgba(255,255,255,0.7);
+    border-radius: 100px; cursor: pointer;
+    font-family: 'Inter', monospace;
+  }
+  .audio-speed:hover { background: rgba(255,255,255,0.06); color: white; }
+
+  .transcricao-toggle {
+    text-align: center; margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .transcricao-toggle button {
+    background: transparent; border: 0;
+    font-size: 12px; font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: inherit;
+  }
+  .transcricao-toggle button:hover { color: white; }
+
+  /* ─────────────────────────────────────────────
+     OBSERVAÇÕES ACÚSTICAS — bloco novo
+     ───────────────────────────────────────────── */
+  .acoustic {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-4);
+    padding: 14px 18px;
+  }
+  .acoustic-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px;
+  }
+  .acoustic-icon {
+    width: 26px; height: 26px;
+    background: var(--blue-bg);
+    color: var(--blue-fg);
+    border-radius: var(--r-1);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .acoustic-icon svg { width: 14px; height: 14px; }
+  .acoustic-title {
+    font-size: 12.5px; font-weight: 700; color: var(--ink-1);
+  }
+  .acoustic-sub {
+    font-size: 11px; color: var(--ink-3); font-weight: 500;
+  }
+  .acoustic-list {
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 13px; color: var(--ink-2);
+  }
+  .acoustic-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 8px 10px;
+    background: var(--surface-2);
+    border-radius: var(--r-2);
+    border-left: 2px solid var(--blue);
+  }
+  .acoustic-item-bullet {
+    color: var(--blue); font-weight: 700;
+    margin-top: 1px;
+  }
+  .acoustic-item-text { flex: 1; line-height: 1.45; }
+  .acoustic-item-text .audio-cite { font-size: 12px; }
+
+  .acoustic-baseline-note {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: var(--amber-bg);
+    border-radius: var(--r-2);
+    font-size: 11.5px; color: var(--amber-fg);
+    display: flex; gap: 6px;
+    border-left: 2px solid var(--amber);
+  }
+
+  /* ─────────────────────────────────────────────
+     DISCLAIMER
+     ───────────────────────────────────────────── */
+  .disclaimer {
+    padding: 10px 16px;
+    background: var(--blue-bg);
+    border: 1px solid #DBEAFE;
+    border-radius: var(--r-2);
+    font-size: 11.5px; color: var(--blue-fg);
+    line-height: 1.55;
+    display: flex; gap: 8px;
+  }
+  .disclaimer-icon { flex-shrink: 0; color: var(--blue); }
+  .disclaimer-icon svg { width: 14px; height: 14px; }
+  .disclaimer strong { font-weight: 700; }
+
+  /* ═══════════════════════════════════════════════
+     COLUNA DIREITA — Exames (preservado de app-v2)
+     ═══════════════════════════════════════════════ */
+  .right-col {
+    position: sticky; top: 72px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  .right-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-4);
+    box-shadow: var(--sh-1);
+  }
+  .right-block-title {
+    padding: 14px 18px 10px;
+    font-size: 16px; font-weight: 800;
+    color: var(--ink-1);
+    letter-spacing: -0.015em;
+    border-bottom: 1px solid var(--border);
+  }
+  .right-block-title em {
+    color: var(--emerald);
+    font-style: normal;
+    font-weight: 800;
+  }
+
+  .search-input {
+    margin: 10px 14px 12px;
+    padding: 8px 12px 8px 32px;
+    width: calc(100% - 28px);
+    border: 1px solid var(--border);
+    border-radius: var(--r-2);
+    font-size: 12.5px;
+    background: var(--surface-2) url("data:image/svg+xml;charset=utf-8,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E") no-repeat 12px center;
+    color: var(--ink-2);
+    font-family: inherit;
+  }
+  .search-input::placeholder { color: var(--ink-4); }
+  .search-input:focus {
+    outline: none;
+    background-color: var(--surface);
+    border-color: var(--ink-4);
+  }
+
+  .exam-card {
+    display: flex; gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+  .exam-card:hover { background: var(--surface-2); }
+  .exam-card:last-child { border-bottom: none; }
+  .exam-icon {
+    width: 36px; height: 44px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-1);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-4);
+    flex-shrink: 0;
+  }
+  .exam-icon svg { width: 16px; height: 16px; }
+  .exam-info { flex: 1; min-width: 0; }
+  .exam-name {
+    font-size: 12px; font-weight: 600;
+    color: var(--ink-2); line-height: 1.3;
+  }
+  .exam-file {
+    font-size: 12.5px; font-weight: 700;
+    color: var(--emerald); line-height: 1.3;
+    margin-top: 2px;
+    word-break: break-all;
+  }
+  .exam-meta {
+    font-size: 11px; color: var(--ink-3);
+    margin-top: 4px;
+  }
+  .exam-meta-sep { color: var(--ink-4); }
+
+  /* ═══════════════════════════════════════════════
+     ANTES — espelho da tela atual pra comparação
+     ═══════════════════════════════════════════════ */
+  .antes-view {
+    display: none;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-4);
+    margin: 24px auto;
+    max-width: 800px;
+  }
+  .antes-view.active { display: block; }
+  .antes-view img {
+    width: 100%; height: auto;
+    border-radius: var(--r-2);
+    border: 1px solid var(--border);
+  }
+  .antes-fallback {
+    padding: 40px;
+    background: var(--surface-2);
+    border-radius: var(--r-2);
+    color: var(--ink-3);
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .antes-fallback strong { color: var(--ink-1); display: block; margin-bottom: 8px; font-size: 14px; }
+
+  /* ═══════════════════════════════════════════════
+     RODAPÉ — componentes utilizados
+     ═══════════════════════════════════════════════ */
+  .credits {
+    max-width: 1440px; margin: 40px auto 24px;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-4);
+    box-shadow: var(--sh-1);
+  }
+  .credits h3 {
+    margin: 0 0 12px;
+    font-size: 13px; font-weight: 700;
+    color: var(--ink-1); letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .credits-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 8px 24px;
+    font-size: 12.5px; color: var(--ink-3);
+  }
+  .credits-grid strong { color: var(--ink-1); font-weight: 600; }
+  .credits-note {
+    margin-top: 16px; padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 11.5px; color: var(--ink-4);
+    line-height: 1.6;
+  }
+
+  /* small responsive guard */
+  @media (max-width: 1100px) {
+    .summary-layout { grid-template-columns: 1fr; }
+    .right-col { position: static; }
+    .causes-grid { grid-template-columns: 1fr; }
+  }
+
+  /* hide depois quando antes ativo */
+  body.show-antes .container { display: none; }
+  body:not(.show-antes) .antes-view { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TOOLBAR — toggle Antes/Depois
+     ════════════════════════════════════════════════════════════════ -->
+<div class="toolbar">
+  <div>
+    <div class="toolbar-title">Resumo de 1 minuto · Preview V2</div>
+    <div class="toolbar-sub">Caso real do screenshot — paciente Álvaro · cansaço + cefaleia 3 semanas</div>
+  </div>
+  <div class="toolbar-spacer"></div>
+  <div class="toggle-group">
+    <button class="toggle-btn" data-view="antes">Antes (atual)</button>
+    <button class="toggle-btn active" data-view="depois">Depois (V2)</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     ANTES — referência da tela atual
+     ════════════════════════════════════════════════════════════════ -->
+<div class="antes-view">
+  <div class="antes-fallback">
+    <strong>Tela atual (referência)</strong>
+    Esta é a versão que está em produção hoje no app-v2.html<br>
+    com "Anamnese estruturada 11 campos" + Padrões Observados.<br><br>
+    Confira o screenshot original que você mandou — é exatamente isso.<br>
+    O preview "Depois" é a redesign que substitui essa parte.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     DEPOIS — preview V2
+     ════════════════════════════════════════════════════════════════ -->
+<div class="container">
+  <div class="summary-layout">
+
+    <!-- ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ COLUNA ESQUERDA ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ -->
+    <div class="left-col">
+
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb">
+        <a href="#">Pré-consulta</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current">Resumo de 1 minuto</span>
+      </nav>
+
+      <!-- ═══ PATIENT HERO + ALERGIA BANNER ═══ -->
+      <!-- Componente: Untitled UI "Healthcare patient profile card" -->
+      <section class="patient-hero">
+        <div class="patient-hero-inner">
+          <div class="patient-avatar">AB</div>
+          <div class="patient-info">
+            <div class="patient-name">Álvaro Botaro</div>
+            <div class="patient-meta">
+              <span>24a · M</span>
+              <span class="patient-meta-sep">SulAmérica</span>
+              <span class="patient-meta-sep">primeira consulta no VITAE</span>
+              <span class="patient-meta-sep">respondido em 17/mai 14h32</span>
+            </div>
+          </div>
+          <div class="patient-actions">
+            <button class="icon-btn" title="Exportar para iClinic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            </button>
+            <button class="icon-btn" title="Regenerar resumo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M3 16h5v5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M21 8V3"/></svg>
+            </button>
+            <button class="icon-btn" title="Modo privado (esconde dados sensíveis)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Alergia: shadcn Alert variant=destructive -->
+        <div class="alert-empty">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          Sem alergias conhecidas (declaradas pelo paciente em 17/mai/2026)
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           BLOCO 1 — QUEIXA PRINCIPAL
+           ═══════════════════════════════════════════════════════════ -->
+      <section class="block">
+        <div class="block-header">
+          <span class="block-label">Queixa Principal</span>
+          <span class="block-counter">há 3 semanas</span>
+        </div>
+        <div class="block-body">
+          <div class="queixa-text">
+            Cansaço generalizado e cefaleia.
+            <span class="quote">Dor de cabeça na parte de trás que desce para a frente; não tem febre. Tomei dipirona, alivia, mas não melhora.</span>
+          </div>
+          <div class="queixa-attrs">
+            <span class="attr-pill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              3 semanas
+            </span>
+            <span class="attr-pill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              persistente
+            </span>
+            <span class="attr-pill warn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              não cede com analgésico
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           BLOCO 2 — POSSÍVEIS CAUSAS (substitui "Padrões Observados")
+           ═══════════════════════════════════════════════════════════ -->
+      <section class="block">
+        <div class="block-header">
+          <span class="block-label">Possíveis Causas a Considerar</span>
+          <span class="block-counter">apoio à decisão clínica</span>
+        </div>
+        <div class="causes-grid">
+
+          <!-- Hipótese A — shadcn Card -->
+          <div class="cause-card">
+            <div class="cause-card-header">
+              <div class="cause-card-title">Descompensação glicêmica</div>
+              <span class="badge emerald">comum neste perfil</span>
+            </div>
+            <div class="cause-evidence">
+              <strong>Bate:</strong> diabetes prévio (autodeclarado) + cansaço persistente +
+              cefaleia + 3 semanas — padrão clássico de controle glicêmico inadequado.
+              <a class="audio-cite" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+                00:42 — 00:58
+              </a>
+            </div>
+            <div class="cause-investigate">
+              <strong>Falta confirmar:</strong> HbA1c, glicemia em jejum, sintomas osmóticos
+              (polidipsia/poliúria), aderência à medicação se prescrita.
+            </div>
+            <div class="cause-actions">
+              <button class="btn-ghost accept" title="Médico considera plausível">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Aceitar
+              </button>
+              <button class="btn-ghost edit" title="Editar antes de registrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Editar
+              </button>
+              <button class="btn-ghost reject" title="Descartar com justificativa">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                Rejeitar
+              </button>
+            </div>
+          </div>
+
+          <!-- Hipótese B -->
+          <div class="cause-card">
+            <div class="cause-card-header">
+              <div class="cause-card-title">Anemia (a investigar)</div>
+              <span class="badge blue">a investigar em paralelo</span>
+            </div>
+            <div class="cause-evidence">
+              <strong>Bate:</strong> tríade clássica cefaleia + cansaço persistente +
+              3 semanas. Diabetes é fator de risco indireto.
+              <a class="audio-cite" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+                01:12 — 01:28
+              </a>
+            </div>
+            <div class="cause-investigate">
+              <strong>Falta confirmar:</strong> hemograma completo, ferritina, B12, folato.
+              Considerar perdas (sangramento oculto, dieta).
+            </div>
+            <div class="cause-actions">
+              <button class="btn-ghost accept" title="Aceitar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Aceitar</button>
+              <button class="btn-ghost edit" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Editar</button>
+              <button class="btn-ghost reject" title="Rejeitar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>Rejeitar</button>
+            </div>
+          </div>
+
+          <!-- Hipótese C -->
+          <div class="cause-card">
+            <div class="cause-card-header">
+              <div class="cause-card-title">Hipertensão não controlada</div>
+              <span class="badge blue">merece descartar</span>
+            </div>
+            <div class="cause-evidence">
+              <strong>Bate:</strong> cefaleia + diabetes prévio é fator de risco
+              cardiovascular forte. Cefaleia nucal que irradia frontalmente é compatível.
+              <a class="audio-cite" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+                00:14 — 00:25
+              </a>
+            </div>
+            <div class="cause-investigate">
+              <strong>Falta confirmar:</strong> aferição de PA em consultório, MAPA
+              ambulatorial se variável, fundo de olho.
+            </div>
+            <div class="cause-actions">
+              <button class="btn-ghost accept" title="Aceitar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Aceitar</button>
+              <button class="btn-ghost edit" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Editar</button>
+              <button class="btn-ghost reject" title="Rejeitar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>Rejeitar</button>
+            </div>
+          </div>
+
+          <!-- Hipótese D -->
+          <div class="cause-card">
+            <div class="cause-card-header">
+              <div class="cause-card-title">Cefaleia tensional</div>
+              <span class="badge neutral">diagnóstico de exclusão</span>
+            </div>
+            <div class="cause-evidence">
+              <strong>Bate:</strong> padrão "nuca → frente" + uso de analgésico simples
+              com alívio parcial é compatível. Geralmente diagnóstico final após exclusão.
+              <a class="audio-cite" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+                02:30 — 02:48
+              </a>
+            </div>
+            <div class="cause-investigate">
+              <strong>Falta confirmar:</strong> padrão de sono, stress, postura no trabalho.
+              Reavaliar após exclusão das hipóteses acima.
+            </div>
+            <div class="cause-actions">
+              <button class="btn-ghost accept" title="Aceitar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Aceitar</button>
+              <button class="btn-ghost edit" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Editar</button>
+              <button class="btn-ghost reject" title="Rejeitar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>Rejeitar</button>
+            </div>
+          </div>
+
+          <!-- "Não pode escapar" — Glass Health Can't Miss pattern -->
+          <div class="cause-card cant-miss">
+            <div class="cause-card-header">
+              <div class="cause-card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Não pode escapar — Hipertensão intracraniana
+              </div>
+              <span class="badge amber">raro mas grave</span>
+            </div>
+            <div class="cause-evidence">
+              <strong>Por que considerar:</strong> cefaleia <em>nova</em> com mais de 3 semanas em paciente
+              jovem com fatores vasculares merece ao menos uma checagem ativa antes de fechar
+              em causa benigna.
+            </div>
+            <div class="cause-investigate">
+              <strong>Checar na consulta:</strong> cefaleia piora pela manhã? acorda com dor?
+              piora ao deitar/tossir/Valsalva? vômito em jato? alterações visuais? exame de
+              fundo de olho (papiledema) é obrigatório.
+            </div>
+          </div>
+
+          <!-- Disclaimer regulatório CFM 2.454/2026 -->
+          <div class="compliance-line">
+            Hipóteses geradas a partir das falas do paciente como apoio à sua decisão clínica.
+            <strong>Não constituem diagnóstico.</strong> Cabe ao médico a avaliação e a conduta final.
+            Cada ação (Aceitar / Editar / Rejeitar) é registrada de forma imutável conforme
+            Resolução CFM 2.454/2026.
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           BLOCO 3 — HISTÓRICO CLÍNICO (POMR)
+           ═══════════════════════════════════════════════════════════ -->
+      <section class="block">
+        <div class="block-header">
+          <span class="block-label">Histórico Clínico</span>
+          <span class="block-counter">dados declarados pelo paciente · vita id</span>
+        </div>
+
+        <div class="history-grid">
+          <!-- Diabetes -->
+          <div class="problem-card">
+            <div class="problem-row">
+              <div class="problem-title-block">
+                <div class="problem-title">Diabetes</div>
+                <div class="problem-meta">condição autodeclarada · sem medicação registrada · sem HbA1c recente</div>
+              </div>
+              <div class="problem-trend">
+                <span class="badge amber">a investigar</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cirurgia amígdala -->
+          <div class="problem-card stable">
+            <div class="problem-row">
+              <div class="problem-title-block">
+                <div class="problem-title">Cirurgia de amígdala</div>
+                <div class="problem-meta">antecedente cirúrgico · sem complicações relatadas</div>
+              </div>
+              <div class="problem-trend">
+                <span class="badge neutral">passado</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mudou desde última -->
+        <div class="history-empty">
+          Primeira consulta no VITAE — sem baseline anterior pra comparar.
+          A partir da segunda consulta, o sistema mostrará automaticamente o
+          que mudou desde a última visita.
+        </div>
+
+        <!-- Accordion: família, hábitos, vacinas -->
+        <div class="accordion">
+          <div class="accordion-item">
+            <button class="accordion-trigger" onclick="this.classList.toggle('open')">
+              Antecedentes familiares
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <div class="accordion-content">
+              Não informado pelo paciente. Considerar coletar na consulta —
+              especialmente diabetes na família, doenças cardiovasculares precoces.
+            </div>
+          </div>
+          <div class="accordion-item">
+            <button class="accordion-trigger" onclick="this.classList.toggle('open')">
+              Hábitos (tabaco, álcool, atividade física, sono)
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <div class="accordion-content">
+              Não relatado.
+            </div>
+          </div>
+          <div class="accordion-item">
+            <button class="accordion-trigger" onclick="this.classList.toggle('open')">
+              Vacinação
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <div class="accordion-content">
+              Não declarado pelo paciente. ConectaSUS não consultado.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           PLAYER ÁUDIO — preservado do 25-summary.html atual
+           ═══════════════════════════════════════════════════════════ -->
+      <section class="audio-block">
+        <div class="audio-chip">
+          <span class="audio-chip-avatar">AB</span>
+          Álvaro Botaro · 1:02 de áudio
+        </div>
+        <div class="audio-waveform">
+          <!-- 40 barras geradas estaticamente -->
+          <span style="height: 30%"></span><span style="height: 50%"></span>
+          <span style="height: 70%"></span><span style="height: 90%"></span>
+          <span style="height: 60%"></span><span style="height: 40%"></span>
+          <span style="height: 80%"></span><span style="height: 60%"></span>
+          <span style="height: 50%"></span><span style="height: 90%"></span>
+          <span style="height: 70%"></span><span style="height: 30%"></span>
+          <span style="height: 60%"></span><span style="height: 80%"></span>
+          <span style="height: 50%"></span><span style="height: 70%"></span>
+          <span style="height: 40%"></span><span style="height: 60%"></span>
+          <span style="height: 90%"></span><span style="height: 70%"></span>
+          <span style="height: 50%"></span><span style="height: 80%"></span>
+          <span style="height: 60%"></span><span style="height: 40%"></span>
+          <span style="height: 70%"></span><span style="height: 90%"></span>
+          <span style="height: 60%"></span><span style="height: 30%"></span>
+          <span style="height: 50%"></span><span style="height: 70%"></span>
+          <span style="height: 40%"></span><span style="height: 60%"></span>
+          <span style="height: 80%"></span><span style="height: 50%"></span>
+          <span style="height: 70%"></span><span style="height: 60%"></span>
+          <span style="height: 40%"></span><span style="height: 30%"></span>
+          <span style="height: 20%"></span><span style="height: 10%"></span>
+        </div>
+        <div class="audio-progress"><div class="audio-progress-fill"></div></div>
+        <div class="audio-times">
+          <span>0:21</span>
+          <span>-0:41</span>
+        </div>
+        <div class="audio-controls">
+          <button class="audio-btn-skip" title="Voltar 5 segundos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9"/><polyline points="3 4 3 12 11 12"/></svg>
+          </button>
+          <button class="audio-btn-play" title="Pausar">
+            <svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          </button>
+          <button class="audio-btn-skip" title="Avançar 5 segundos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9"/><polyline points="21 4 21 12 13 12"/></svg>
+          </button>
+          <button class="audio-speed">1×</button>
+        </div>
+        <div class="transcricao-toggle">
+          <button>
+            Ver transcrição
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           OBSERVAÇÕES ACÚSTICAS — camada prosódica nova
+           ═══════════════════════════════════════════════════════════ -->
+      <section class="acoustic">
+        <div class="acoustic-header">
+          <div class="acoustic-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+          </div>
+          <div>
+            <div class="acoustic-title">Observações acústicas</div>
+            <div class="acoustic-sub">apoio à escuta médica · não constitui diagnóstico</div>
+          </div>
+        </div>
+        <div class="acoustic-list">
+          <div class="acoustic-item">
+            <span class="acoustic-item-bullet">▸</span>
+            <span class="acoustic-item-text">
+              <strong>Velocidade de fala</strong> dentro do esperado para gênero/idade.
+            </span>
+          </div>
+          <div class="acoustic-item">
+            <span class="acoustic-item-bullet">▸</span>
+            <span class="acoustic-item-text">
+              <strong>Trecho marcado para escuta:</strong> latência de resposta aumentada
+              ao descrever sintomas associados.
+              <a class="audio-cite" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+                00:48 — 01:04
+              </a>
+            </span>
+          </div>
+          <div class="acoustic-item">
+            <span class="acoustic-item-bullet">▸</span>
+            <span class="acoustic-item-text">
+              <strong>Variação tonal</strong> abaixo do esperado nos últimos 20 segundos
+              do áudio — pode indicar fadiga vocal ou cansaço, vale acompanhar.
+              <a class="audio-cite" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+                00:42 — 01:02
+              </a>
+            </span>
+          </div>
+        </div>
+        <div class="acoustic-baseline-note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          Comparação populacional. A partir da 2ª consulta deste paciente, comparações
+          intra-sujeito (vs ele mesmo) serão mais robustas e substituirão a populacional.
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           DISCLAIMER GERAL (CFM 2.299/2021 + CFM 2.454/2026)
+           ═══════════════════════════════════════════════════════════ -->
+      <div class="disclaimer">
+        <span class="disclaimer-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        </span>
+        <span>
+          <strong>Suporte à decisão clínica.</strong> Este resumo é gerado automaticamente
+          a partir das respostas do paciente. Não substitui anamnese, exame físico ou
+          julgamento clínico. Conforme Resolução CFM 2.454/2026 (vigência ago/2026),
+          cada hipótese gerada por IA tem registro auditável da decisão do médico
+          (Aceitar / Editar / Rejeitar).
+        </span>
+      </div>
+
+    </div>
+
+    <!-- ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ COLUNA DIREITA ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ -->
+    <!-- PRESERVADO INTACTO do app-v2.html atual -->
+    <aside class="right-col">
+
+      <div class="right-block">
+        <h3 class="right-block-title">Exames de <em>Álvaro</em></h3>
+        <input class="search-input" type="text" placeholder="Buscar exame...">
+
+        <div class="exam-card">
+          <div class="exam-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="exam-info">
+            <div class="exam-name">Check-Up Completo De Saúde</div>
+            <div class="exam-file">C9317273-E632-4C93-B91D-0715444AA521.pdf</div>
+            <div class="exam-meta">04/02/2026, 21:00 <span class="exam-meta-sep">--</span> Fleury Medicina e Saúde</div>
+          </div>
+        </div>
+
+        <div class="exam-card">
+          <div class="exam-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="exam-info">
+            <div class="exam-name">Painel_completo</div>
+            <div class="exam-file">LaudoSabin-BettinaFallgatter-17-07-24.pdf</div>
+            <div class="exam-meta">16/07/2024, 21:00 <span class="exam-meta-sep">--</span> Hemos Laboratório Médico</div>
+          </div>
+        </div>
+
+        <div class="exam-card">
+          <div class="exam-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="exam-info">
+            <div class="exam-name">Painel_completo</div>
+            <div class="exam-file">LaudoSabin-BettinaFallgatter-17-07-24.pdf</div>
+            <div class="exam-meta">16/07/2024, 21:00 <span class="exam-meta-sep">--</span> Hemos Laboratório Médico</div>
+          </div>
+        </div>
+
+        <div class="exam-card">
+          <div class="exam-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="exam-info">
+            <div class="exam-name">Painel_completo</div>
+            <div class="exam-file">LaudoSabin-BettinaFallgatter-17-07-24.pdf</div>
+            <div class="exam-meta">16/07/2024, 21:00 <span class="exam-meta-sep">--</span> Laboratório Hemos</div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     CRÉDITOS / BIBLIOTECAS USADAS
+     ════════════════════════════════════════════════════════════════ -->
+<div class="credits">
+  <h3>Componentes — origens copy-paste (sem recriar)</h3>
+  <div class="credits-grid">
+    <div><strong>Patient hero card</strong> · Untitled UI Healthcare patterns</div>
+    <div><strong>Alergia banner</strong> · shadcn/ui Alert (variant destructive)</div>
+    <div><strong>Card hipótese</strong> · shadcn/ui Card (21st.dev)</div>
+    <div><strong>Badges</strong> · shadcn/ui Badge (variants tailored)</div>
+    <div><strong>Botões Aceitar/Editar/Rejeitar</strong> · shadcn/ui Button ghost</div>
+    <div><strong>Sparkline tendência</strong> · Tremor Spark Charts (open source)</div>
+    <div><strong>Accordion família/hábitos/vacinas</strong> · shadcn/ui Accordion (radix-ui)</div>
+    <div><strong>Audio player dark</strong> · preservado de 25-summary.html atual</div>
+    <div><strong>Painel direito exames</strong> · preservado de app-v2.html atual</div>
+    <div><strong>Toggle Antes/Depois (top)</strong> · shadcn/ui Toggle group</div>
+    <div><strong>Cor + tipografia</strong> · Linear / Stripe Dashboard / Notion</div>
+    <div><strong>Tipografia</strong> · Plus Jakarta Sans (consistência com VITAE) + Inter (números/timestamps)</div>
+  </div>
+  <div class="credits-note">
+    Nenhum componente foi inventado do zero. Cada peça é versão adaptada de
+    pattern já validado em produção por Linear, Stripe, Notion ou padrões
+    abertos de healthcare UX (Untitled UI, Tremor, shadcn/radix-ui). A paleta
+    é sóbria — vermelho saturado é recurso escasso, reservado apenas para
+    risco clínico crítico (alergia, red flag). Sem gradiente verde-ciano
+    decorativo competindo por atenção do médico.
+  </div>
+</div>
+
+<script>
+  // Toggle Antes/Depois
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const view = btn.dataset.view;
+      const antes = document.querySelector('.antes-view');
+      if (view === 'antes') {
+        antes.classList.add('active');
+        document.body.classList.add('show-antes');
+      } else {
+        antes.classList.remove('active');
+        document.body.classList.remove('show-antes');
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
