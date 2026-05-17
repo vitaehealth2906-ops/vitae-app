@@ -896,6 +896,31 @@
 .anamnese-empty-block strong{color:#4B5563;font-style:normal;font-weight:700}
 @media (max-width:880px){.anamnese-grid{grid-template-columns:1fr}}
 
+/* ═══ Queixa Principal V2 (substitui anamnese 11 campos no summary) ═══ */
+.q-card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:18px 20px 16px;margin:16px 0 12px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03)}
+.q-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.q-label{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#6B7280}
+.q-pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.04);color:#6B7280}
+.q-frase{font-size:20px;font-weight:700;color:#0D0F14;letter-spacing:-.3px;line-height:1.3;margin-bottom:10px}
+.q-quote{font-size:14px;color:#4B5563;line-height:1.6;font-style:italic;padding:12px 14px;background:rgba(0,0,0,.025);border-radius:10px;border-left:3px solid rgba(0,0,0,.10)}
+.q-quote::before{content:"\201C ";color:#9CA3AF;font-style:normal;font-weight:800}
+.q-quote::after{content:"\201D";color:#9CA3AF;font-style:normal;font-weight:800}
+
+/* ═══ Histórico Clínico colapsado (igual aba Pacientes) ═══ */
+.summary-pdc{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;overflow:hidden;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03)}
+.summary-pdc-h{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;background:#fff;cursor:pointer;user-select:none;transition:background .12s}
+.summary-pdc-h:hover{background:#F4F6FA}
+.summary-pdc-hl{font-size:15px;font-weight:700;color:#0D0F14;letter-spacing:-.2px}
+.summary-pdc-chevron{width:18px;height:18px;color:#6B7280;transition:transform .2s ease;display:inline-flex;align-items:center;justify-content:center}
+.summary-pdc-chevron svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.summary-pdc.expanded .summary-pdc-chevron{transform:rotate(180deg)}
+.summary-pdc-b{padding:0 20px;max-height:0;overflow:hidden;transition:max-height .25s ease,padding .25s ease;opacity:0}
+.summary-pdc.expanded .summary-pdc-b{max-height:2000px;padding:8px 20px 20px;opacity:1;border-top:1px solid rgba(0,0,0,.05)}
+.hist-texto{white-space:pre-wrap;font-size:13.5px;color:#0D0F14;line-height:1.65;letter-spacing:-.05px}
+.hist-empty{padding:16px 0;text-align:center}
+.hist-empty-t{font-size:13.5px;font-weight:700;color:#4B5563;margin-bottom:6px}
+.hist-empty-s{font-size:12.5px;color:#6B7280;line-height:1.55;max-width:340px;margin:0 auto}
+
 /* Padroes observados V2 */
 .section-lbl{font-size:13px;font-weight:800;color:#0D0F14;margin-bottom:10px;letter-spacing:-.2px}
 .padroes-sec-lbl{display:flex;flex-direction:column;gap:2px}
@@ -3974,40 +3999,48 @@ async function openSummary(pcId){
       if(sonoArr.length === 0 && (v = pickFirst('sono','padraoSono'))) sonoArr.push(v);
       if(sonoArr.length > 0) anamnese.sono = { valor: sonoArr.join(' · '), fonte: 'formulario' };
     }
-    var camposPreenchidos = 0;
-    ANAMNESE_FIELDS.forEach(function(f){ var d = getAnamneseField(f.key); if(d.valor) camposPreenchidos++; });
-    html += '<div class="anamnese-card">';
-    html += '<div class="anamnese-head">';
-    html += '<div class="anamnese-head-icon"><svg viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"/></svg></div>';
-    html += '<div class="anamnese-head-title"><h3>Anamnese estruturada</h3><p>Extraída do áudio e formulário · cada campo tem fonte rastreável</p></div>';
-    html += '<div class="anamnese-head-pill">' + camposPreenchidos + '/11 campos</div>';
-    html += '</div>';
-    if(camposPreenchidos === 0){
-      html += '<div class="anamnese-empty-block"><strong>Anamnese ainda não estruturada</strong> — pré-consulta antiga ou sem dados suficientes. Colher em consulta.</div>';
+    // ═══ BLOCO 1: QUEIXA PRINCIPAL (substitui anamnese 11 campos) ═══
+    var qpData = getAnamneseField('queixaPrincipal');
+    var queixaFrase = qpData.valor || summary.queixaPrincipal || summary.descricaoBreve || r.queixaPrincipal || null;
+    // Fala literal: pega trecho da transcrição (frase mais longa, max ~200 chars)
+    var falaLiteral = null;
+    if(summaryText && summaryText.trim()){
+      var frases = summaryText.split(/[.!?]+/).map(function(s){return s.trim();}).filter(function(s){return s.length >= 30 && s.length <= 220;});
+      falaLiteral = frases.length > 0 ? frases[0] : (summaryText.length <= 240 ? summaryText.trim() : null);
     } else {
-      var qp = getAnamneseField('queixaPrincipal');
-      html += '<div class="anamnese-grid full"><div class="anamnese-field">';
-      html += '<div class="anamnese-field-lbl"><span class="anamnese-field-lbl-text">Queixa Principal</span>';
-      if(qp.fonte) html += '<span class="anamnese-field-src ' + qp.fonte + '">' + fonteLabel(qp.fonte) + '</span>';
-      html += '</div>';
-      if(qp.valor) html += '<div class="anamnese-field-val">' + escHtml(qp.valor) + '</div>';
-      else html += '<div class="anamnese-field-val empty">Não relatado</div>';
-      html += '</div></div>';
-      html += '<div class="anamnese-grid" style="margin-top:10px">';
-      ANAMNESE_FIELDS.forEach(function(f){
-        if(f.key === 'queixaPrincipal') return;
-        var d = getAnamneseField(f.key);
-        html += '<div class="anamnese-field">';
-        html += '<div class="anamnese-field-lbl"><span class="anamnese-field-lbl-text">' + escHtml(f.label) + '</span>';
-        if(d.fonte) html += '<span class="anamnese-field-src ' + d.fonte + '">' + fonteLabel(d.fonte) + '</span>';
-        html += '</div>';
-        if(d.valor) html += '<div class="anamnese-field-val">' + escHtml(d.valor) + '</div>';
-        else html += '<div class="anamnese-field-val empty">Não relatado</div>';
-        html += '</div>';
-      });
-      html += '</div>';
+      // sem áudio: usa descrição breve ou primeira resposta de formulário
+      falaLiteral = r.descricaoBreve || r.queixaDetalhe || null;
     }
-    html += '</div>';
+    // tempo de evolução pra pill
+    var tempoEvol = getAnamneseField('tempoEvolucao').valor || r.duracao || r.duracaoSintomas || null;
+
+    if(queixaFrase || falaLiteral){
+      html += '<div class="q-card">';
+      html += '<div class="q-head"><span class="q-label">Queixa Principal</span>';
+      if(tempoEvol) html += '<span class="q-pill">' + escHtml(tempoEvol) + '</span>';
+      html += '</div>';
+      if(queixaFrase) html += '<div class="q-frase">' + escHtml(queixaFrase) + '</div>';
+      if(falaLiteral && falaLiteral !== queixaFrase) html += '<div class="q-quote">' + escHtml(falaLiteral) + '</div>';
+      html += '</div>';
+    } else {
+      html += '<div class="q-card"><div class="q-head"><span class="q-label">Queixa Principal</span></div><div class="anamnese-empty-block" style="margin:0"><strong>Sem queixa registrada</strong> — pré-consulta sem dados suficientes. Colher em consulta.</div></div>';
+    }
+
+    // ═══ BLOCO 2: HISTÓRICO CLÍNICO (colapsado, igual aba Pacientes) ═══
+    var histPid = pc.pacienteId || (pc.paciente && pc.paciente.id) || null;
+    var histText = (histPid && window.COMPARE_MOCK && window.COMPARE_MOCK[histPid]) ? window.COMPARE_MOCK[histPid] : null;
+    html += '<div class="summary-pdc" id="summaryHistPdc" onclick="(function(){var p=document.getElementById(\'summaryHistPdc\');if(p)p.classList.toggle(\'expanded\');})()">';
+    html += '<div class="summary-pdc-h"><span class="summary-pdc-hl">Histórico Clínico</span>';
+    html += '<span class="summary-pdc-chevron"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span></div>';
+    html += '<div class="summary-pdc-b">';
+    if(histText){
+      html += '<div class="hist-texto">' + escHtml(histText) + '</div>';
+    } else if(histPid){
+      html += '<div class="hist-empty"><div class="hist-empty-t">Análise comparativa disponível na aba Pacientes</div><div class="hist-empty-s">Quando este paciente tiver 2+ pré-consultas respondidas, o histórico comparativo aparecerá aqui automaticamente.</div></div>';
+    } else {
+      html += '<div class="hist-empty"><div class="hist-empty-t">Paciente sem vínculo</div><div class="hist-empty-s">Histórico clínico precisa de paciente vinculado ao VITAE.</div></div>';
+    }
+    html += '</div></div>';
 
     // PADROES OBSERVADOS V2
     var cardsV2 = summary.padroesObservados_v2 || null;
