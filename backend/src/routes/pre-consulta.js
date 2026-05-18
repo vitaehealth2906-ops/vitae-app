@@ -474,6 +474,9 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
       console.error('[PRE-CONSULTA] Erro ao gerar summary IA:', aiErr.message);
     }
 
+    // Capturado aqui (antes do pipeline v2) pra perfil clinico funcionar no caso fundador
+    const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
+
     // ═══════════════════════════════════════════════════════════
     // PADROES OBSERVADOS v2 — pipeline multi-agente (flag-gated)
     // Roda em paralelo sem atrapalhar o summary antigo.
@@ -535,7 +538,7 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
     }
 
     // Capturar pacienteId logado E tentar auto-link se nao tem (cria AutorizacaoAcesso + Consentimento)
-    const pacienteIdLogado = req.usuario && req.usuario.id ? req.usuario.id : null;
+    // pacienteIdLogado ja foi declarado antes do bloco padroes v2
     const pacienteIdFinal = await vincularPaciente({ preConsulta, pacienteIdLogado, req });
 
     // FASE E — garante que attemptId fica persistido no JSON respostas pra dedupe futuro
