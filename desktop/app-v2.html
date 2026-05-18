@@ -928,6 +928,18 @@
 .hist-row-lbl{flex-shrink:0;width:155px;font-size:11px;font-weight:700;color:#6B7280;letter-spacing:.06em;text-transform:uppercase;padding-top:2px}
 .hist-row-val{flex:1;font-size:13px;color:#0D0F14;line-height:1.5;font-weight:500}
 
+/* ═══ Relato do paciente — texto narrativo da fala (substitui histórico clínico no summary) ═══ */
+.relato-card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:20px 22px 18px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03)}
+.relato-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(0,0,0,.05)}
+.relato-label{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#6B7280}
+.relato-pill{font-size:11px;font-weight:600;color:#9CA3AF;font-style:italic}
+.relato-texto{font-size:14.5px;color:#0D0F14;line-height:1.75;letter-spacing:-.05px;white-space:pre-wrap;font-weight:400}
+.relato-texto p{margin:0 0 14px}
+.relato-texto p:last-child{margin-bottom:0}
+.relato-texto strong{color:#0D0F14;font-weight:700}
+.relato-texto em{font-style:italic;color:#4B5563}
+.relato-empty{padding:20px 0;text-align:center;color:#9CA3AF;font-size:13px;font-style:italic;line-height:1.5}
+
 /* Padroes observados V2 */
 .section-lbl{font-size:13px;font-weight:800;color:#0D0F14;margin-bottom:10px;letter-spacing:-.2px}
 .padroes-sec-lbl{display:flex;flex-direction:column;gap:2px}
@@ -4031,45 +4043,42 @@ async function openSummary(pcId){
       html += '<div class="q-card"><div class="q-head"><span class="q-label">Queixa Principal</span></div><div class="anamnese-empty-block" style="margin:0"><strong>Sem queixa registrada</strong> — pré-consulta sem dados suficientes. Colher em consulta.</div></div>';
     }
 
-    // ═══ BLOCO 2: HISTÓRICO CLÍNICO (colapsado, igual aba Pacientes) ═══
-    var histPid = pc.pacienteId || (pc.paciente && pc.paciente.id) || null;
-    var histText = (histPid && window.COMPARE_MOCK && window.COMPARE_MOCK[histPid]) ? window.COMPARE_MOCK[histPid] : null;
-    html += '<div class="summary-pdc" id="summaryHistPdc" onclick="(function(){var p=document.getElementById(\'summaryHistPdc\');if(p)p.classList.toggle(\'expanded\');})()">';
-    html += '<div class="summary-pdc-h"><span class="summary-pdc-hl">Histórico Clínico</span>';
-    html += '<span class="summary-pdc-chevron"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span></div>';
-    html += '<div class="summary-pdc-b">';
-    if(histText){
-      html += '<div class="hist-texto">' + escHtml(histText) + '</div>';
-    } else {
-      // Sem comparativo: mostrar ANTECEDENTES DECLARADOS pelo paciente
-      var antPessoais = getAnamneseField('antecedentesPessoais').valor || r.condicoes || r.antecedentesPessoais || r.doencasAtuais || null;
-      var antFamiliares = getAnamneseField('antecedentesFamiliares').valor || r.historicoFamiliar || r.antecedentesFamiliares || null;
-      var antHabitos = getAnamneseField('habitos').valor || null;
-      var antSono = getAnamneseField('sono').valor || null;
-      var antCirurgias = r.cirurgias || r.cirurgiasPrevias || null;
-      var antAlergias = pacAlergias && pacAlergias.length ? pacAlergias.map(function(a){return a.nome + (a.gravidade && a.gravidade !== 'MODERADA' ? ' (' + a.gravidade.toLowerCase() + ')' : '');}).join(', ') : null;
-      var antMeds = medsAtivos && medsAtivos.length ? medsAtivos.map(function(m){return m.nome + (m.dosagem ? ' ' + m.dosagem : '');}).join(', ') : null;
-
-      var temAlgo = antPessoais || antFamiliares || antHabitos || antSono || antCirurgias || antAlergias || antMeds;
-
-      if(temAlgo){
-        html += '<div class="hist-antec">';
-        html += '<div class="hist-antec-intro">Dados declarados pelo paciente no vita id. Comparativo entre consultas aparece após a 2ª anamnese.</div>';
-        if(antPessoais) html += '<div class="hist-row"><span class="hist-row-lbl">Condições</span><span class="hist-row-val">' + escHtml(antPessoais) + '</span></div>';
-        if(antMeds) html += '<div class="hist-row"><span class="hist-row-lbl">Medicações em uso</span><span class="hist-row-val">' + escHtml(antMeds) + '</span></div>';
-        if(antAlergias) html += '<div class="hist-row"><span class="hist-row-lbl">Alergias</span><span class="hist-row-val">' + escHtml(antAlergias) + '</span></div>';
-        if(antCirurgias) html += '<div class="hist-row"><span class="hist-row-lbl">Cirurgias prévias</span><span class="hist-row-val">' + escHtml(antCirurgias) + '</span></div>';
-        if(antFamiliares) html += '<div class="hist-row"><span class="hist-row-lbl">Histórico familiar</span><span class="hist-row-val">' + escHtml(antFamiliares) + '</span></div>';
-        if(antHabitos) html += '<div class="hist-row"><span class="hist-row-lbl">Hábitos</span><span class="hist-row-val">' + escHtml(antHabitos) + '</span></div>';
-        if(antSono) html += '<div class="hist-row"><span class="hist-row-lbl">Sono</span><span class="hist-row-val">' + escHtml(antSono) + '</span></div>';
-        html += '</div>';
-      } else if(histPid){
-        html += '<div class="hist-empty"><div class="hist-empty-t">Primeira consulta — sem antecedentes declarados</div><div class="hist-empty-s">O paciente ainda não preencheu condições, alergias ou hábitos no vita id. Colha em consulta.</div></div>';
-      } else {
-        html += '<div class="hist-empty"><div class="hist-empty-t">Paciente sem vínculo</div><div class="hist-empty-s">Histórico clínico precisa de paciente vinculado ao VITAE.</div></div>';
-      }
+    // ═══ BLOCO 2: RELATO DO PACIENTE (texto narrativo da fala, sem perder contexto) ═══
+    // Prioridade: textoVoz (narrativa estruturada pelo Gemini) > transcrição bruta > descrição breve
+    var relatoTexto = null;
+    var relatoFonte = null;
+    if(summary.textoVoz && summary.textoVoz.trim().length >= 40){
+      relatoTexto = summary.textoVoz.trim();
+      relatoFonte = 'estruturado';
+    } else if(summaryText && summaryText.trim().length >= 40){
+      relatoTexto = summaryText.trim();
+      relatoFonte = 'transcrição direta';
+    } else if(r.descricaoBreve || r.queixaDetalhe || summary.descricaoBreve){
+      relatoTexto = (r.descricaoBreve || r.queixaDetalhe || summary.descricaoBreve).trim();
+      relatoFonte = 'formulário';
     }
-    html += '</div></div>';
+
+    html += '<div class="relato-card">';
+    html += '<div class="relato-head"><span class="relato-label">Relato do paciente</span>';
+    if(relatoFonte) html += '<span class="relato-pill">' + escHtml(relatoFonte) + '</span>';
+    html += '</div>';
+    if(relatoTexto){
+      // Quebra em parágrafos quando tem . ! ? seguido de espaço duplo ou \n
+      var paragrafos = relatoTexto.split(/\n\s*\n|(?<=[.!?])\s{2,}/).map(function(p){return p.trim();}).filter(function(p){return p.length > 0;});
+      if(paragrafos.length <= 1){
+        // Sem quebras naturais — exibe direto
+        html += '<div class="relato-texto">' + escHtml(relatoTexto) + '</div>';
+      } else {
+        html += '<div class="relato-texto">';
+        paragrafos.forEach(function(p){
+          html += '<p>' + escHtml(p) + '</p>';
+        });
+        html += '</div>';
+      }
+    } else {
+      html += '<div class="relato-empty">Paciente respondeu sem detalhar o quadro. Colher na consulta.</div>';
+    }
+    html += '</div>';
 
     // PADROES OBSERVADOS V2
     var cardsV2 = summary.padroesObservados_v2 || null;
