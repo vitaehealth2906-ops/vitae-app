@@ -1031,7 +1031,14 @@ router.post('/t/:token/responder-pergunta', v4ChunkUpload.single('audioChunk'), 
     }
 
     // ────────────────────────────────────────────────────────────────
-    // MODO TEXTO — só Gemini, pula Whisper
+    // MODO TEXTO — CAMINHO A aplicado (Sessao 26, 18/05/2026)
+    // Paciente digitou conscientemente. Salva direto sem julgar com IA.
+    // Antes: Gemini classificava e rejeitava respostas curtas tipo "Bebo"
+    // pra perguntas com 3 partes (fuma/bebe/exercicio), retornando
+    // respondeu=false e NUNCA salvando no banco. Resultado: cobertura
+    // sempre 10/11 e endpoint /finalizar travava em loop "Tentar de novo".
+    // Decisao espelha modo audio (linhas 1020-1030): se paciente entregou
+    // conteudo, e resposta valida. Medico recebe texto bruto pra avaliar.
     // ────────────────────────────────────────────────────────────────
     else if (modo === 'texto') {
       const txtSanitizado = v4.sanitizar(valorTexto);
@@ -1039,7 +1046,12 @@ router.post('/t/:token/responder-pergunta', v4ChunkUpload.single('audioChunk'), 
         return res.status(400).json({ erro: 'Texto vazio' });
       }
       transcricao = txtSanitizado;
-      resultadoClassificador = await classificarRespostaIndividual(perguntaTemplate, txtSanitizado);
+      resultadoClassificador = {
+        respondeu: true,
+        valor: txtSanitizado.slice(0, 500),
+        confianca: 1,
+        motivo: 'texto_direto',
+      };
     }
 
     // ────────────────────────────────────────────────────────────────
