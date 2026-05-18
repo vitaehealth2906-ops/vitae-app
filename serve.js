@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DIR = __dirname;
-const PORT = 3000;
+const PORT = parseInt(process.env.PORT, 10) || 3000;
 
 const MIMES = {
   '.html': 'text/html; charset=utf-8',

@@ -345,6 +345,25 @@ body{display:flex;justify-content:center;align-items:center;min-height:100vh;min
 .qz-review__send{margin-top:auto;padding:12px 16px 18px;background:rgba(255,255,255,0.6);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border-top:1px solid var(--hairline);position:sticky;bottom:0}
 .qz-review__send-hint{text-align:center;margin-top:8px;font-size:11px;color:var(--ink-4);font-weight:500;letter-spacing:-0.005em}
 
+/* ERRO INLINE no rodape sticky — fica sempre visível mesmo com scroll embaixo */
+.qz-review__erro{margin-bottom:12px;padding:14px 16px;border-radius:14px;display:flex;gap:12px;align-items:flex-start;animation:erroPop 280ms var(--ease-spring);box-shadow:0 4px 16px rgba(0,0,0,0.06)}
+.qz-review__erro--vermelho{background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.20)}
+.qz-review__erro--laranja{background:rgba(245,158,11,0.10);border:1.5px solid rgba(245,158,11,0.25)}
+.qz-review__erro--verde{background:rgba(0,196,122,0.10);border:1.5px solid rgba(0,196,122,0.25)}
+.qz-review__erro-icon{width:32px;height:32px;flex-shrink:0;display:grid;place-items:center}
+.qz-review__erro--vermelho .qz-review__erro-icon{color:#EF4444}
+.qz-review__erro--laranja .qz-review__erro-icon{color:#F59E0B}
+.qz-review__erro--verde .qz-review__erro-icon{color:#00C47A}
+.qz-review__erro-icon svg{width:26px;height:26px}
+.qz-review__erro-body{flex:1;min-width:0}
+.qz-review__erro-titulo{font-size:15px;font-weight:800;letter-spacing:-0.02em;color:var(--ink-1);line-height:1.2;margin-bottom:4px}
+.qz-review__erro-msg{font-size:13px;color:var(--ink-2);line-height:1.45;font-weight:500}
+.qz-review__erro-body .qz-cta{margin-top:10px;width:100%}
+.qz-review__erro-debug{margin-top:8px;padding:8px;background:rgba(0,0,0,0.05);border-radius:8px}
+.qz-review__erro-debug summary{font-size:11px;font-weight:700;color:var(--ink-3);cursor:pointer}
+.qz-review__erro-debug pre{margin-top:6px;font-size:10px;font-family:monospace;color:var(--ink-2);white-space:pre-wrap;word-break:break-all;max-height:200px;overflow:auto;background:#FFF;padding:6px;border-radius:6px;border:1px solid var(--hairline)}
+@keyframes erroPop{0%{transform:translateY(10px);opacity:0}100%{transform:translateY(0);opacity:1}}
+
 /* ENVIADO */
 .qz-sent{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 32px 64px;text-align:center;gap:18px;position:relative}
 .qz-sent__check{width:112px;height:112px;border-radius:50%;background:var(--gradient);display:grid;place-items:center;color:#FFF;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,0.30),0 1px 2px rgba(0,229,160,0.30),0 16px 48px rgba(0,229,160,0.32);animation:sentBounce 800ms var(--ease-spring)}
@@ -2253,22 +2272,153 @@ async function finalizarPreConsulta() {
   const send = el('revSend');
   const btn = send.querySelector('button');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+  limparErroInline();
+
+  const debug = location.search.includes('debug=1') || localStorage.getItem('vitae_debug') === '1';
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  let respStatus = 0;
+  let respBody = null;
+  const inicio = Date.now();
 
   try {
     const resp = await fetch(API_BASE + '/pre-consulta/t/' + ESTADO.token + '/finalizar', {
-      method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: '{}'
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: '{}',
+      signal: controller.signal,
     });
-    if (!resp.ok && resp.status !== 200) {
-      const data = await resp.json().catch(() => ({}));
-      throw new Error(data.erro || 'HTTP ' + resp.status);
+    clearTimeout(timeoutId);
+    respStatus = resp.status;
+    respBody = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) {
+      const e = new Error(respBody.erro || 'HTTP ' + resp.status);
+      e.status = resp.status;
+      e.body = respBody;
+      throw e;
     }
+
     await IDB.limpar(ESTADO.token);
     iniciarOnboardingPosEnvio();
   } catch (err) {
-    console.error('finalizar:', err);
-    if (btn) { btn.disabled = false; btn.textContent = 'Tentar enviar de novo'; }
-    const msgAmigavel = traduzirErro(err);
-    mostrarBanner('crit', '<strong>Não conseguimos enviar.</strong> ' + escapeHtml(msgAmigavel));
+    clearTimeout(timeoutId);
+    console.error('[FINALIZAR] erro:', err, 'status:', respStatus, 'body:', respBody);
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Tentar enviar de novo'; }
+
+    const classificado = classificarErroFinalizar(err);
+    const debugInfo = debug ? {
+      status: respStatus,
+      body: respBody,
+      err_msg: String(err && err.message || err),
+      err_name: String(err && err.name || ''),
+      duracao_ms: Date.now() - inicio,
+      token: ESTADO.token ? ESTADO.token.slice(0, 8) + '...' : null,
+      ua: navigator.userAgent,
+      online: navigator.onLine,
+    } : null;
+    mostrarErroInline(classificado, debugInfo);
+  }
+}
+
+function classificarErroFinalizar(err) {
+  const status = (err && err.status) || 0;
+  const msg = String((err && err.message) || err || '');
+  const body = (err && err.body) || {};
+  const name = String((err && err.name) || '');
+
+  if (name === 'AbortError' || /aborted/i.test(msg)) {
+    return { tipo: 'timeout', titulo: 'Servidor lento', msg: 'O envio demorou mais que o normal. Suas respostas estão salvas. Tenta de novo em alguns segundos.', acao: 'retry', cor: 'laranja' };
+  }
+  if (status === 400 && /cobertura|insuficient|faltam/i.test(body.erro || body.detalhe || '')) {
+    const respondidas = body.respondidas != null ? body.respondidas : '?';
+    const total = body.total || 11;
+    const faltam = (typeof body.respondidas === 'number') ? (total - body.respondidas) : '?';
+    return { tipo: 'cobertura', titulo: 'Faltam ' + faltam + ' respostas', msg: 'Você respondeu ' + respondidas + ' de ' + total + '. Volta na lista e completa as que faltam — pode dizer "Não sei" se não souber.', acao: 'voltar_revisao', cor: 'laranja' };
+  }
+  if (status === 404) {
+    return { tipo: 'nao_encontrada', titulo: 'Link não encontrado', msg: 'Esse link parece estar errado ou não existe. Confere o link que seu médico mandou no WhatsApp.', acao: 'nenhuma', cor: 'vermelho' };
+  }
+  if (status === 410) {
+    return { tipo: 'expirado', titulo: 'Link expirou', msg: 'Esse link já passou da validade. Pede um novo pro seu médico pelo WhatsApp.', acao: 'nenhuma', cor: 'vermelho' };
+  }
+  if (status === 409) {
+    return { tipo: 'concorrencia', titulo: 'Já foi enviado!', msg: 'Suas respostas já chegaram pro seu médico. Tudo certo, pode continuar.', acao: 'continuar', cor: 'verde' };
+  }
+  if (status === 401 || status === 403) {
+    return { tipo: 'auth', titulo: 'Sessão expirou', msg: 'Você precisa fazer login de novo. Recarrega a página e entra com sua conta.', acao: 'recarregar', cor: 'laranja' };
+  }
+  if (status >= 500) {
+    return { tipo: 'servidor', titulo: 'Servidor com problema', msg: 'Nosso servidor está fora do ar agora. Suas respostas estão salvas no seu celular. Tenta de novo em 1-2 minutos.', acao: 'retry', cor: 'vermelho' };
+  }
+  if (/network|fetch|failed to fetch|load failed/i.test(msg) || !navigator.onLine) {
+    return { tipo: 'rede', titulo: 'Sem conexão', msg: 'Verifica se você tá com internet (WiFi ou 4G/5G). Suas respostas estão salvas e vão ser enviadas quando voltar.', acao: 'retry', cor: 'laranja' };
+  }
+  return { tipo: 'desconhecido', titulo: 'Algo deu errado', msg: 'Não conseguimos enviar agora. Tenta de novo em alguns segundos. Se continuar, manda print pro seu médico.', acao: 'retry', cor: 'vermelho' };
+}
+
+function mostrarErroInline(classificado, debug) {
+  const send = el('revSend');
+  if (!send) return;
+  const antigo = send.querySelector('.qz-review__erro');
+  if (antigo) antigo.remove();
+
+  const cor = classificado.cor || 'vermelho';
+  const icone = cor === 'verde'
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+
+  let acaoHtml = '';
+  if (classificado.acao === 'voltar_revisao') {
+    acaoHtml = '<button class="qz-cta qz-cta--primary" onclick="voltarParaPrimeiraVazia()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Ir para o que falta</button>';
+  } else if (classificado.acao === 'continuar') {
+    acaoHtml = '<button class="qz-cta qz-cta--primary" onclick="(function(){limparErroInline();iniciarOnboardingPosEnvio();})()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>Continuar</button>';
+  } else if (classificado.acao === 'recarregar') {
+    acaoHtml = '<button class="qz-cta qz-cta--primary" onclick="location.reload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Recarregar página</button>';
+  }
+
+  let debugHtml = '';
+  if (debug) {
+    debugHtml = '<details class="qz-review__erro-debug" open><summary>Detalhes técnicos (manda print pro Lucas)</summary><pre>' +
+      escapeHtml(JSON.stringify(debug, null, 2)) + '</pre></details>';
+  }
+
+  const erroDiv = document.createElement('div');
+  erroDiv.className = 'qz-review__erro qz-review__erro--' + cor;
+  erroDiv.innerHTML = '<div class="qz-review__erro-icon">' + icone + '</div>' +
+    '<div class="qz-review__erro-body">' +
+    '<div class="qz-review__erro-titulo">' + escapeHtml(classificado.titulo) + '</div>' +
+    '<div class="qz-review__erro-msg">' + escapeHtml(classificado.msg) + '</div>' +
+    acaoHtml + debugHtml +
+    '</div>';
+
+  send.insertBefore(erroDiv, send.firstChild);
+
+  setTimeout(() => {
+    try { erroDiv.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e){}
+  }, 100);
+}
+
+function limparErroInline() {
+  const send = el('revSend');
+  if (!send) return;
+  const antigo = send.querySelector('.qz-review__erro');
+  if (antigo) antigo.remove();
+}
+
+function voltarParaPrimeiraVazia() {
+  if (!ESTADO.perguntas || !ESTADO.perguntas.length) { limparErroInline(); return; }
+  const vaziaIdx = ESTADO.perguntas.findIndex((p) => {
+    const r = ESTADO.respostas && ESTADO.respostas[p.id];
+    if (!r) return true;
+    const semValor = !r.valor && !r.transcricaoBruta;
+    const semStatus = r.status !== 'pulado' && r.status !== 'desconhecer';
+    return semValor && semStatus;
+  });
+  limparErroInline();
+  if (vaziaIdx >= 0) {
+    editarResposta(vaziaIdx);
   }
 }
 
@@ -2368,6 +2518,8 @@ window.acaoNaoSei = acaoNaoSei;
 window.enviarTexto = enviarTexto;
 window.editarResposta = editarResposta;
 window.finalizarPreConsulta = finalizarPreConsulta;
+window.limparErroInline = limparErroInline;
+window.voltarParaPrimeiraVazia = voltarParaPrimeiraVazia;
 
 // ════════════════════════════════════════════════════════════════
 // ONBOARDING POS-ENVIO (5 telas) — após paciente finalizar
@@ -2496,13 +2648,13 @@ async function iniciarOnboardingPosEnvio(){
 
 function verMeuVitaId(){
   _pobTimers.forEach(t=>clearTimeout(t)); _pobTimers = [];
-  location.href = '08-perfil.html';
+  location.href = 'app-v3/index.html';
 }
 
 function receberPorWhatsApp(){
   // Por enquanto apenas redireciona pro perfil — futuro: notificação WhatsApp agendada
   _pobTimers.forEach(t=>clearTimeout(t)); _pobTimers = [];
-  location.href = '08-perfil.html';
+  location.href = 'app-v3/index.html';
 }
 
 window.iniciarOnboardingPosEnvio = iniciarOnboardingPosEnvio;
