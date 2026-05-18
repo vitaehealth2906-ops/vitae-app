@@ -576,6 +576,64 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 25 — 17-18/05/2026 — Resumo de 1 minuto V2 (Queixa + Relato + Padroes) + handoff faculdade
+
+**Contexto:** Sessao maratona em 2 dias. 17/mai foi 100% pesquisa estrategica (sem codigo) — analise em 14 atos + 10 perspectivas + regulatorio CFM 2.454/2026 + filosofia clinica + casos historicos de erro. 18/mai foi execucao: reformulacao da tela 25-summary do desktop medico no `app-v2.html`.
+
+**Mudancas em producao (commits na main do `c4c9c7f` ao `8f2145d`):**
+
+- REMOVIDO: bloco "Anamnese estruturada 11 campos" (tabela label/valor que era o coracao da tela)
+- REMOVIDO: bloco "Historico Clinico" do summary (continua na aba Pacientes, onde sempre esteve)
+- ADICIONADO: **Queixa Principal** — frase clinica + fala literal do paciente entre aspas + pill de tempo
+- ADICIONADO: **Relato do paciente** — texto narrativo grande do que o paciente falou, sempre visivel, vem de `summary.textoVoz`, fallback pra transcricao bruta ou descricao breve
+- MANTIDO: **Padroes Observados** — 3 cards lavanda com icone lampada (formato simples ja existente)
+- REFEITO: **Player audio** — era preto/verde estilo Spotify, virou branco institucional estilo Apple Notes/Linear/Stripe (waveform cinza-grafite parado, verde discreto tocando)
+
+**Preview navegavel paralelo:**
+- `desktop/preview-25-summary-v2.html` — versao standalone com toggle Antes/Depois pra comparacao visual
+
+**Commits relevantes:**
+- `c4c9c7f` (preview redesign V2)
+- `b237a16` (preview historico colapsado + causas card unico)
+- `c5f732c` (preview remove possiveis causas)
+- `ab22b5c` (preview padroes observados igual ao app real)
+- `107329d` (app real: Queixa + Historico substituem anamnese)
+- `615d5c5` (antecedentes declarados + player clean)
+- `6fbd63a` (Relato do paciente substitui Historico Clinico)
+- `8f2145d` (chore: fixes pendentes pre-handoff faculdade)
+
+**Pesquisa entregue (17/mai, sem codigo):**
+- Analise em 14 atos: filosofia (Ricoeur/Foucault/Cassell/Mishler/Kleinman), neurociencia medica (cortisol/HRV/Klein RPD/Cowan 4±1), antropologia BR (Madel Luz/Bonet/INAF), casos historicos (Libby Zion/Lewis Blackman/Mary McClinton/Therac-25), regulatorio (CFM 2.454/ANVISA 657/LGPD/CDC 14), mercado healthtech BR, IA frontier
+- 10 perspectivas diferentes atacando a tela atual
+- Plano de execucao priorizado: 7 acoes concretas em ordem ROI/esforco
+
+**Deadline critico identificado:** CFM 2.454/2026 entra em vigor **10/AGOSTO/2026** (~12 semanas). Implementacoes obrigatorias antes dessa data NAO foram feitas ainda:
+- Botoes Aceitar/Editar/Rejeitar por hipotese IA + log imutavel
+- Disclaimer por card (nao so rodape)
+- Indicador "Paciente consentiu uso de IA em DD/MM"
+- Linguagem 100% descritiva auditada por whitelist (proibir "diagnostico"/"prognostico"/"trata-se de")
+
+**Handoff faculdade criado:**
+- Pasta `C:\Users\win11\OneDrive\Documentos\Obsidian Vault\HANDOFF-FACULDADE-18-MAI-2026\`
+- 4 arquivos: README.md, O-QUE-FOI-FEITO.md, PESQUISAS-PROFUNDAS.md, COMO-CONTINUAR.md, MEGA-PROMPT-PC-FACULDADE.md
+- Mega-prompt pronto pra colar no Claude do PC da faculdade
+
+**Pendente proxima sessao (PC faculdade):**
+- Sprint 1 (1.5 dias): doorknob no quiz V4 + alergia banner vermelho gigante + detector inconsistencia fala vs perfil (killer feature unico VITAE)
+- Sprint 2 (3-5 dias): compliance CFM 2.454/2026
+- Sprint 3 (semanas): linked evidence + decomposicao do prompt
+- Validar M2 (medico paga R$99-149/mes?) com 20 entrevistas
+- Cofundador tecnico em 30-90 dias (PIVOT V3)
+
+**Arquivos modificados desta sessao:**
+- `desktop/app-v2.html` (CSS + render do summary)
+- `desktop/preview-25-summary-v2.html` (preview standalone)
+- 4 arquivos novos em `Obsidian Vault/HANDOFF-FACULDADE-18-MAI-2026/`
+
+**Skills usadas:** WebSearch + WebFetch (11+ pesquisas profundas), Explore agents paralelos, TodoWrite intensivo, Edit/Write cirurgico em 3 arquivos principais.
+
+---
+
 ### Sessao 24 — 16/05/2026 — 3 features VITAE em prod autonomas (Retorno + Documentos + WhatsApp)
 
 **Contexto:** Lucas autorizou execucao autonoma multi-fase ("vai"). Em uma sessao entreguei as 3 features completas medico↔paciente sincronizadas, validadas por Playwright que logou nas contas reais (`valveeumudei1107@gmail.com` medico + `lucasborelli096@gmail.com` paciente).
