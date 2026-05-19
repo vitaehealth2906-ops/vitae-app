@@ -58,6 +58,39 @@ Lucas Borelli (fundador, 18 anos, Americana-SP) foi internado por crise alergica
 
 ## 3. REGRAS ABSOLUTAS (nunca quebrar)
 
+### 🧠 LEITURA ATIVA DO VAULT OBSIDIAN (regra adicionada 19/05/2026)
+
+> Lucas reclamou: "nosso vault Obsidian nao parece inteligente comparado a um vault de engenheiro pro de IA. ela aprende com erros, principios, etc". Resposta direta: o Claude NAO percorre o vault automaticamente. So lia CLAUDE.md + MEMORY.md. Esta regra muda isso.
+
+**ANTES de qualquer das situacoes abaixo, o Claude DEVE ler 3 arquivos do vault:**
+
+Situacoes que disparam a leitura:
+- Decisao estrategica (modo Protetor/Mentalista/Construtor da Mentalidade CEO)
+- Design de feature nova
+- Refactor que mexe em mais de 1 arquivo
+- Reformulacao de UX/UI
+- Mudanca de fluxo do paciente ou do medico
+- Mudanca de schema do banco
+- Qualquer pesquisa profunda solicitada pelo Lucas
+- Inicio de qualquer sessao apos um handoff
+
+Arquivos a ler (NESSA ORDEM):
+1. `C:/Users/valve/OneDrive/Documentos/Obsidian Vault/_LLM/CONTEXTO-ATUAL.md` — estado vivo do projeto
+2. `C:/Users/valve/OneDrive/Documentos/Obsidian Vault/14 — RETROSPECTIVAS/ERROS-IA-APRENDIDOS.md` — erros do Claude
+3. `C:/Users/valve/OneDrive/Documentos/Obsidian Vault/14 — RETROSPECTIVAS/PADROES-VENCEDORES.md` — o que funcionou
+
+**NAO disparar a leitura em:**
+- Correcao de typo, fix de bug pontual, commit simples
+- Pergunta puramente informativa ("o que faz X?")
+- Continuacao direta de tarefa ja em andamento na mesma sessao
+
+**Se algum dos arquivos estiver desatualizado (>14 dias sem mexer), AVISAR o Lucas no inicio da resposta:**
+> "Aviso: CONTEXTO-ATUAL.md ultima atualizacao XX/XX/2026. Vou ler mas pode estar velho. Sugestao: atualizar antes de decisao critica."
+
+**Pos-sessao, se aprendeu algo importante (erro novo, padrao vencedor novo, principio destilado):**
+- Adicionar entrada em RETROSPECTIVAS apropriada (ERROS-IA-APRENDIDOS / PADROES-VENCEDORES / REGRAS-EMERGENTES)
+- Atualizar CONTEXTO-ATUAL.md se o estado do projeto mudou
+
 ### 🚨 BANCO DE DADOS — REGRA DE OURO (LER ANTES DE TUDO)
 
 > **EM 17/04/2026, UM CLAUDE PARALELO DESTRUIU OS DADOS DE PRODUCAO DO LUCAS** (paciente Daniel + AutorizacaoAcessos + outros) ao adicionar `--accept-data-loss` no script de build do Railway. Cada deploy aplicava o schema novo apagando dados conflitantes. **NUNCA repetir isso.**
