@@ -3706,43 +3706,144 @@ function pcAtualizarKaraoke(currentTime){
 }
 
 // MODAL EXPORTAR ICLINIC
+// Helper: pega valor de campo da anamnese estruturada (string ou {valor,fonte})
+function _iclCampo(anamnese, key){
+  if(!anamnese || !anamnese[key]) return null;
+  var f = anamnese[key];
+  if(typeof f === 'string') return f.trim() || null;
+  if(typeof f === 'object'){
+    var v = (f.valor != null && f.valor !== '') ? String(f.valor).trim() : null;
+    return v && f.fonte !== 'pulado' && f.fonte !== 'desconhecer' ? v : null;
+  }
+  return null;
+}
+
+// Helper: monta HMA em 3a pessoa, presente, paragrafo corrido (padrao semiologia BR)
+function _iclMontarHMA(anamnese, r){
+  var partes = [];
+  var queixa = _iclCampo(anamnese,'queixaPrincipal') || r.queixaPrincipal || r.queixa || null;
+  var tempo = _iclCampo(anamnese,'tempoEvolucao') || r.duracao || r.duracaoSintomas || null;
+  var intensidade = _iclCampo(anamnese,'intensidade') || r.intensidade || null;
+  var agravantes = _iclCampo(anamnese,'fatoresAgravantes') || r.fatoresAgravantes || null;
+  var atenuantes = _iclCampo(anamnese,'fatoresAtenuantes') || r.fatoresAtenuantes || null;
+  var assoc = _iclCampo(anamnese,'sintomasAssociados') || r.sintomasAssociados || r.sintomas || null;
+  var tratPrev = _iclCampo(anamnese,'tratamentoPrevio') || r.tratamentoPrevio || r.tratamentos || null;
+
+  // Frase 1: queixa + tempo
+  if(queixa){
+    var qpLower = queixa.replace(/^paciente\s+(refere|relata|apresenta|queixa-se de)\s+/i,'').trim();
+    qpLower = qpLower.charAt(0).toLowerCase() + qpLower.slice(1);
+    var f1 = 'Paciente refere ' + qpLower;
+    if(tempo) f1 += ' ha ' + tempo.replace(/^h[áa]\s+/i,'').trim();
+    if(!/[.!?]$/.test(f1)) f1 += '.';
+    partes.push(f1);
+  }
+  // Frase 2: intensidade + agravantes/atenuantes
+  var f2 = [];
+  if(intensidade) f2.push('Intensidade: ' + intensidade);
+  if(agravantes) f2.push('Piora com ' + agravantes.replace(/^piora\s+(com|ao)\s+/i,'').trim());
+  if(atenuantes) f2.push('Melhora com ' + atenuantes.replace(/^melhora\s+(com|ao)\s+/i,'').trim());
+  if(f2.length) partes.push(f2.join('. ') + '.');
+  // Frase 3: sintomas associados
+  if(assoc) partes.push('Sintomas associados: ' + assoc.replace(/^sintomas\s+associados:?\s*/i,'').trim() + (/[.!?]$/.test(assoc) ? '' : '.'));
+  // Frase 4: tratamento previo
+  if(tratPrev){
+    var t = tratPrev.replace(/^(usei|tomei|tomou)\s+/i,'Fez uso de ').replace(/\balivia\b/i,'com alivio').replace(/\bnao melhora\b/i,'sem resolucao do quadro');
+    if(!/[.!?]$/.test(t)) t += '.';
+    partes.push(t.charAt(0).toUpperCase() + t.slice(1));
+  }
+  return partes.join(' ');
+}
+
 function pcOpenIclModal(){
   if(!pcState.currentPC) return;
   var pc = pcState.currentPC;
   var summary = pc.summaryJson || {};
   var r = pc.respostas || {};
-  var summaryText = summary.textoVoz || summary.summaryTexto || pc.summaryIA || '';
-  var alertas = summary.alertas || [];
+  var anamnese = summary.anamneseEstruturada || null;
+  var pacData = pcState.currentPacienteData || {};
+  var pacMeds = (pacData.medicamentos || []).filter(function(m){return m.ativo;});
+  var pacAlergias = pacData.alergias || [];
   var now = new Date();
   var dateStr = now.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
-  var timeStr = now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  var urgStr = 'ROTINA';
-  if(alertas.some(function(a){ return (a.tipo || '').toLowerCase() === 'urgente'; })) urgStr = 'URGENTE -- Investigacao prioritaria';
-  else if(alertas.some(function(a){ return (a.tipo || '').toLowerCase() === 'atencao'; })) urgStr = 'ATENCAO -- Monitoramento necessario';
-  var queixa = r.queixaPrincipal || r.queixa || '';
-  var meds = r.medicamentosEmUso || '';
-  var alergias = r.alergias || '';
-  var historico = [r.doencasAtuais, r.cirurgias, r.historicoInternacoes].filter(Boolean).join('. ') || '';
-  var note = '======================================\n' +
-    '   RESUMO PRE-CONSULTA -- vitaid\n' +
-    '   ' + (pc.pacienteNome || 'Paciente') + '\n' +
-    '   ' + dateStr + ' as ' + timeStr + '\n' +
-    '   ' + urgStr + '\n' +
-    '======================================\n\n';
-  if(summaryText) note += '> RESUMO CLINICO\n' + summaryText + '\n\n';
-  if(queixa) note += '> QUEIXA PRINCIPAL\n' + queixa + '\n\n';
-  if(historico) note += '> HISTORICO\n' + historico + '\n\n';
-  if(meds) note += '> MEDICAMENTOS EM USO\n' + meds + '\n\n';
-  if(alergias) note += '> ALERGIAS\n' + alergias + '\n\n';
-  if(alertas.length){
-    note += '> PONTOS DE ATENCAO\n';
-    alertas.forEach(function(a){ note += '- ' + (a.titulo || '') + ': ' + (a.mensagem || '') + '\n'; });
-    note += '\n';
+
+  // QP — 1 linha curta
+  var qp = _iclCampo(anamnese,'queixaPrincipal') || summary.queixaPrincipal || summary.descricaoBreve || r.queixaPrincipal || null;
+  // HMA — paragrafo clinico
+  var hma = _iclMontarHMA(anamnese, r);
+
+  // AP — condicoes + cirurgias + alergias
+  var apPartes = [];
+  var antPessoais = _iclCampo(anamnese,'antecedentesPessoais') || r.condicoes || r.antecedentesPessoais || r.doencasAtuais || null;
+  if(antPessoais){
+    var ap = antPessoais.replace(/[;,]\s*$/,'').trim();
+    if(!/[.!?]$/.test(ap)) ap += '.';
+    apPartes.push(ap);
   }
-  note += '-----------------------------------------\n' +
-    'Resumo gerado pelo vitaid.\n' +
-    'Este resumo nao substitui a avaliacao clinica.\n' +
-    '-----------------------------------------';
+  var antCirurgias = r.cirurgias || r.cirurgiasPrevias || null;
+  if(antCirurgias){
+    var ac = antCirurgias.trim();
+    if(!/[.!?]$/.test(ac)) ac += '.';
+    apPartes.push(ac);
+  }
+  if(pacAlergias.length){
+    var alergSeen = {};
+    var alergStr = pacAlergias.map(function(a){
+      var k = (a.nome||'').toLowerCase().trim();
+      if(!k || alergSeen[k]) return null;
+      alergSeen[k] = true;
+      var grav = (a.gravidade||'').toUpperCase();
+      var gravTxt = (grav === 'GRAVE' || grav === 'ANAFILAXIA') ? ' (' + (grav === 'ANAFILAXIA' ? 'anafilaxia' : 'grave') + ')' : '';
+      return a.nome + gravTxt;
+    }).filter(Boolean).join(', ');
+    if(alergStr) apPartes.push('Alergia documentada a ' + alergStr + '.');
+  } else {
+    apPartes.push('Nega alergias medicamentosas conhecidas.');
+  }
+
+  // AF
+  var af = _iclCampo(anamnese,'antecedentesFamiliares') || r.historicoFamiliar || r.antecedentesFamiliares || null;
+
+  // Medicacoes em uso
+  var medsStr = null;
+  if(pacMeds.length){
+    var medsSeen = {};
+    medsStr = pacMeds.map(function(m){
+      var k = ((m.nome||'') + (m.dosagem||'')).toLowerCase().trim();
+      if(!k || medsSeen[k]) return null;
+      medsSeen[k] = true;
+      var parts = [m.nome];
+      if(m.dosagem) parts.push(m.dosagem);
+      if(m.frequencia) parts.push(m.frequencia);
+      return parts.join(' ');
+    }).filter(Boolean).join('; ');
+  }
+
+  // Habitos
+  var habitosArr = [];
+  if(r.tabagismo) habitosArr.push('Tabagismo: ' + r.tabagismo);
+  if(r.alcool) habitosArr.push('Etilismo: ' + r.alcool);
+  if(r.atividadeFisica || r.exercicio) habitosArr.push('Atividade fisica: ' + (r.atividadeFisica || r.exercicio));
+  var habFromAnam = _iclCampo(anamnese,'habitos');
+  if(habitosArr.length === 0 && habFromAnam) habitosArr.push(habFromAnam);
+  var sonoFromAnam = _iclCampo(anamnese,'sono');
+  if(sonoFromAnam) habitosArr.push('Sono: ' + sonoFromAnam);
+
+  // Montagem do texto final — formato semiologia BR padrao
+  var blocos = [];
+  if(qp){
+    var qpClean = qp.replace(/^paciente\s+(refere|relata|queixa-se de)\s+/i,'').trim();
+    qpClean = qpClean.charAt(0).toUpperCase() + qpClean.slice(1);
+    if(!/[.!?]$/.test(qpClean)) qpClean += '.';
+    blocos.push('QP: ' + qpClean);
+  }
+  if(hma) blocos.push('HMA: ' + hma);
+  if(apPartes.length) blocos.push('AP: ' + apPartes.join(' '));
+  blocos.push('AF: ' + (af || 'Nao relatado.'));
+  blocos.push('Medicacoes em uso: ' + (medsStr || 'Nega medicacoes em uso continuo.'));
+  blocos.push('Habitos: ' + (habitosArr.length ? habitosArr.join('. ') + '.' : 'Nao relatado.'));
+
+  var note = blocos.join('\n\n') + '\n\n---\nAnamnese coletada via vita id em ' + dateStr + '.\nConteudo a confirmar com o paciente na consulta.';
   // Cria modal dinamicamente se nao existir
   var modal = document.getElementById('pc-modalIcl');
   if(!modal){
