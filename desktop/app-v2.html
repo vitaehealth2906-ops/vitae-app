@@ -1019,10 +1019,32 @@
 .right-cards{display:flex;flex-direction:column;gap:10px;min-height:0}
 
 /* Modal Exportar iClinic */
-.pc-icl-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:1500;display:none;align-items:center;justify-content:center;padding:20px}
+.pc-icl-overlay{position:fixed;inset:0;background:rgba(13,15,20,.55);backdrop-filter:blur(8px) saturate(120%);-webkit-backdrop-filter:blur(8px) saturate(120%);z-index:1500;display:none;align-items:center;justify-content:center;padding:32px;animation:iclFadeIn .2s ease}
 .pc-icl-overlay.show{display:flex}
-.pc-icl-body{background:#fff;border-radius:16px;padding:22px;width:560px;max-width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
-.pc-icl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+@keyframes iclFadeIn{from{opacity:0}to{opacity:1}}
+.pc-icl-body{background:#fff;border-radius:20px;padding:0;width:760px;max-width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.28),0 8px 24px rgba(0,0,0,.12);animation:iclSlideUp .25s cubic-bezier(.16,1,.3,1)}
+@keyframes iclSlideUp{from{opacity:0;transform:translateY(20px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.pc-icl-head{display:flex;align-items:flex-start;justify-content:space-between;padding:24px 28px 20px;border-bottom:1px solid #EAECF0;gap:16px}
+.pc-icl-head-l{flex:1;min-width:0}
+.pc-icl-title{font-size:20px;font-weight:800;color:#0D0F14;letter-spacing:-.3px;line-height:1.2;margin:0}
+.pc-icl-subtitle{font-size:13px;color:#6B7280;margin-top:4px;line-height:1.4}
+.pc-icl-help{font-size:12px;color:#9CA3AF;margin-top:10px;font-style:italic;line-height:1.45;padding:8px 12px;background:#F4F6FA;border-radius:8px;border-left:3px solid #00C47A}
+.pc-icl-close{width:34px;height:34px;border-radius:10px;border:1px solid transparent;background:transparent;font-size:20px;cursor:pointer;color:#6B7280;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-family:var(--font);line-height:1;padding:0}
+.pc-icl-close:hover{background:#F4F6FA;color:#0D0F14;border-color:#EAECF0}
+.pc-icl-content{padding:18px 28px;overflow-y:auto;flex:1;min-height:0}
+.pc-icl-note{background:#FAFBFC;border:1px solid #EAECF0;padding:22px 24px;border-radius:12px;font-size:13.5px;line-height:1.75;color:#0D0F14;font-family:'Plus Jakarta Sans',-apple-system,sans-serif;white-space:pre-wrap;margin:0;letter-spacing:-.02px;font-weight:400;max-height:420px;overflow-y:auto;-webkit-font-smoothing:antialiased}
+.pc-icl-note::-webkit-scrollbar{width:8px}
+.pc-icl-note::-webkit-scrollbar-track{background:transparent}
+.pc-icl-note::-webkit-scrollbar-thumb{background:#D4D7DC;border-radius:4px}
+.pc-icl-note::-webkit-scrollbar-thumb:hover{background:#9CA3AF}
+.pc-icl-foot{display:flex;gap:10px;padding:18px 28px 22px;border-top:1px solid #EAECF0;background:#FAFBFC}
+.pc-icl-btn-primary{flex:1;padding:13px 20px;font-size:14px;font-weight:700;border:0;border-radius:11px;cursor:pointer;font-family:var(--font);color:#0D0F14;background:linear-gradient(120deg,#00E5A0,#00B4D8);box-shadow:0 4px 14px rgba(0,229,160,.32);transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:8px;letter-spacing:-.1px}
+.pc-icl-btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,229,160,.42)}
+.pc-icl-btn-primary:active{transform:translateY(0)}
+.pc-icl-btn-primary svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.pc-icl-btn-secondary{padding:13px 20px;font-size:14px;font-weight:700;border:1px solid #EAECF0;border-radius:11px;cursor:pointer;font-family:var(--font);color:#4B5563;background:#fff;transition:all .15s;display:inline-flex;align-items:center;gap:8px;letter-spacing:-.1px}
+.pc-icl-btn-secondary:hover{background:#F4F6FA;border-color:#D4D7DC;color:#0D0F14}
+.pc-icl-btn-secondary svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -3850,12 +3872,45 @@ function pcOpenIclModal(){
     modal = document.createElement('div');
     modal.id = 'pc-modalIcl';
     modal.className = 'pc-icl-overlay';
-    modal.innerHTML = '<div class="pc-icl-body"><div class="pc-icl-head"><div><div style="font-size:16px;font-weight:800">Exportar para iClinic</div><div id="pc-iclSubtitle" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div><button onclick="pcCloseIclModal()" style="background:transparent;border:0;font-size:20px;cursor:pointer;color:#6B7280">×</button></div><pre id="pc-iclNote" style="background:#F4F6FA;padding:14px;border-radius:8px;font-size:11.5px;line-height:1.5;max-height:340px;overflow-y:auto;font-family:ui-monospace,monospace;white-space:pre-wrap;margin:14px 0"></pre><div style="display:flex;gap:8px"><button id="pc-iclCopyBtn" class="btn btn-p" onclick="pcCopyIclinic()" style="flex:1"><span id="pc-iclCopyTxt">Copiar texto</span></button><button class="btn btn-s" onclick="pcDownloadIclinic()">Baixar .txt</button></div></div>';
+    modal.onclick = function(e){ if(e.target === modal) pcCloseIclModal(); };
+    modal.innerHTML =
+      '<div class="pc-icl-body" onclick="event.stopPropagation()">' +
+        '<div class="pc-icl-head">' +
+          '<div class="pc-icl-head-l">' +
+            '<h2 class="pc-icl-title">Exportar para iClinic</h2>' +
+            '<div class="pc-icl-subtitle" id="pc-iclSubtitle"></div>' +
+            '<div class="pc-icl-help">' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>' +
+              'Pronto para colar direto no campo <strong>Anamnese</strong> do iClinic. ' +
+              'Formato semiologia BR padrão (QP / HMA / AP / AF / Medicações / Hábitos).' +
+            '</div>' +
+          '</div>' +
+          '<button class="pc-icl-close" onclick="pcCloseIclModal()" aria-label="Fechar">×</button>' +
+        '</div>' +
+        '<div class="pc-icl-content">' +
+          '<div class="pc-icl-note" id="pc-iclNote"></div>' +
+        '</div>' +
+        '<div class="pc-icl-foot">' +
+          '<button class="pc-icl-btn-primary" id="pc-iclCopyBtn" onclick="pcCopyIclinic()">' +
+            '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+            '<span id="pc-iclCopyTxt">Copiar para colar no iClinic</span>' +
+          '</button>' +
+          '<button class="pc-icl-btn-secondary" onclick="pcDownloadIclinic()">' +
+            '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+            'Baixar .txt' +
+          '</button>' +
+        '</div>' +
+      '</div>';
     document.body.appendChild(modal);
+    // ESC fecha
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && modal.classList.contains('show')) pcCloseIclModal();
+    });
   }
-  document.getElementById('pc-iclSubtitle').textContent = (pc.pacienteNome || 'Paciente');
+  var nomeP = (pc.pacienteNome || 'Paciente');
+  document.getElementById('pc-iclSubtitle').textContent = nomeP + ' · ' + dateStr;
   document.getElementById('pc-iclNote').textContent = note;
-  document.getElementById('pc-iclCopyTxt').textContent = 'Copiar texto';
+  document.getElementById('pc-iclCopyTxt').textContent = 'Copiar para colar no iClinic';
   modal.classList.add('show');
 }
 function pcCloseIclModal(){ var m = document.getElementById('pc-modalIcl'); if(m) m.classList.remove('show'); }
