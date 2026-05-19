@@ -4225,15 +4225,29 @@ async function openSummary(pcId){
     html += '<div style="position:relative;margin-bottom:12px;flex-shrink:0"><svg viewBox="0 0 24 24" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--t3);fill:none;stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Buscar exame..." style="width:100%;padding:10px 12px 10px 36px;background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:12px;font-family:var(--font);font-size:13px;color:var(--t1);outline:none" oninput="pcFilterExames(this.value)"></div>';
     html += '<div id="pc-examesList" style="flex:1;min-height:0;overflow-y:auto">';
     if(pacExames.length){
-      pacExames.forEach(function(e){
+      pacExames.forEach(function(e, idx){
         var tipo = escHtml(e.tipoExame || 'Exame');
         var nome = escHtml(e.nomeArquivo || tipo);
         var meta = pcFmtDateLong(e.dataExame) + (e.laboratorio ? ' -- ' + escHtml(e.laboratorio) : '');
-        var examUrl = e.arquivoUrl ? String(e.arquivoUrl).replace(/'/g,"\\'") : '';
-        var examClick = examUrl ? 'onclick="window.open(\''+examUrl+'\',\'_blank\',\'noopener\')" style="cursor:pointer;' : 'style="';
+        var examUrl = e.arquivoUrl || e.url || '';
+        // Thumb: imagem direta OU canvas PDF.js OU SVG fallback
+        var isImg = examUrl && /\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i.test(examUrl);
+        var isPdf = examUrl && /\.pdf(\?|$)/i.test(examUrl);
+        var canvasId = 'pc-pdf-thumb-' + idx + '-' + Date.now();
+        var thumbHtml;
+        if(isImg){
+          thumbHtml = '<img src="'+escHtml(examUrl)+'" style="width:100%;height:100%;object-fit:cover" loading="lazy"/>';
+        }else if(isPdf){
+          thumbHtml = '<canvas id="'+canvasId+'" style="width:100%;height:100%;object-fit:cover;background:#f5f6f8"></canvas>';
+          if(window._pdPendingPdfs){ window._pdPendingPdfs.push({ url: examUrl, canvasId: canvasId }); }
+        }else{
+          thumbHtml = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,.12)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+        }
+        var examUrlSafe = examUrl ? String(examUrl).replace(/'/g,"\\'") : '';
+        var examClick = examUrlSafe ? 'onclick="window.open(\''+examUrlSafe+'\',\'_blank\',\'noopener\')" style="cursor:pointer;' : 'style="';
         html += '<div class="exame-item" data-nome="' + (tipo+' '+nome).toLowerCase() + '" '+examClick+'border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);padding:10px;margin-bottom:10px;transition:box-shadow .15s">';
         html += '<div style="display:flex;gap:14px;align-items:stretch">';
-        html += '<div style="width:90px;min-height:100px;border-radius:8px;background:#f0f2f5;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,.12)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>';
+        html += '<div style="width:90px;min-height:100px;border-radius:8px;background:#f0f2f5;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">'+thumbHtml+'</div>';
         html += '<div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0">';
         html += '<div style="font-size:11px;color:#5A6070;text-transform:capitalize;line-height:1.3;font-weight:600">' + tipo + '</div>';
         html += '<div style="font-size:14px;font-weight:700;color:var(--green);line-height:1.35">' + nome + '</div>';
@@ -4251,6 +4265,8 @@ async function openSummary(pcId){
     detailEl.innerHTML = html;
     pcRenderStickies();
     pcAplicarDismissed();
+    // Renderiza thumbnail da 1a pagina dos PDFs anexados via pdf.js
+    if(typeof pdProcessarPdfThumbs === 'function') setTimeout(pdProcessarPdfThumbs, 50);
 
     // Init canvas waveform
     requestAnimationFrame(function(){
