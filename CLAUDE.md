@@ -576,6 +576,57 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 27 — 18-19/05/2026 (noite-madrugada) — Bateria 10 cenarios automatizados pre-consulta
+
+**Contexto:** Lucas voltou da faculdade ~22h de 18/mai, decidiu validar que o bug do botao Enviar (que travou seu iPhone ao vivo) realmente foi corrigido. Pediu pra rodar robos automatizados navegando pela pre-consulta em multiplos perfis diferentes (so audio, so texto, mix, replica do seu cenario, clique-multiplo, rede-lenta).
+
+**Decisao chave:** rodar em produ��cao usando contas reais (valveeumudei1107@gmail.com medico + lucasborelli096@gmail.com paciente). Lucas autorizou criar lixo no banco — "depois e so apagar".
+
+**O que foi entregue:**
+
+**Bateria 1 — TEXTO** (`tests/bateria-6-cenarios.js`):
+- 6 cenarios: texto-completo, texto-curto, pulador, bebo-bug (replica iPhone), clique-multiplo, rede-lenta
+- 3 iteracoes ate funcionar (v1 login falhou, v2 onboarding 2 travou, v3 ✅)
+- Aprendizados: chamar `window.lgSubmit()` / `window.onb2Ir()` direto e mais robusto que clicar texto (ambiguidade de elementos)
+
+**Bateria 2 — AUDIO** (`tests/bateria-audio-4-cenarios.js`):
+- 4 cenarios: audio-tudo, audio-misto, audio-bebo (10 audio + "Bebo" texto na #10), audio-cancela
+- Audio fake via Chrome flags `--use-fake-device-for-media-stream` + `--use-file-for-fake-audio-capture=resposta-robo.wav`
+- WAV gerado por TTS SAPI Microsoft (PCM 16-bit 22kHz, ~600KB)
+- Whisper transcreveu o audio sintetico com sucesso em todos os cenarios
+
+**Resultado: 10/10 cenarios verdes. ZERO bugs reais.**
+
+Cada cenario: `POST /finalizar 200 + cobertura:{respondidas:12, cobertura:1, faltam:0}`.
+
+**Sujeira no banco (Lucas precisa limpar):**
+- 22 PCs `ROBO-*` e `AUDIO-*` criadas durante a bateria (12 vazias das tentativas fracassadas + 10 finalizadas)
+- SQL pra apagar tudo: `DELETE FROM "PreConsulta" WHERE "pacienteNome" LIKE 'ROBO-%' OR "pacienteNome" LIKE 'AUDIO-%';`
+
+**Commit:** `427e563` — test(e2e): bateria 10 cenarios pre-consulta (texto + audio)
+
+**Arquivos novos:**
+- `tests/bateria-6-cenarios.js`
+- `tests/bateria-audio-4-cenarios.js`
+- `tests/fixtures/audio/resposta-robo.wav`
+- `.gitignore` (adicionado `tests/videos/`)
+
+**Limitacoes conhecidas:**
+- Audio sintetico ≠ voz humana real (sotaque, ruido)
+- Clique-multiplo so registrou 1 clique (botao transiciona depressa demais — sinal positivo de debounce)
+- iPhone Safari real tem manias (Wake Lock, in-app browser) que Edge no PC nao reproduz
+- Detector de tela final marcou "falha" em todos (falso negativo do regex)
+
+**Pendente proxima sessao (notebook faculdade):**
+- Apagar as 22 ROBO-*/AUDIO-* do banco
+- Resolver PC travada do Lucas no iPhone (10/11 cobertura) — opcao A reabrir+editar ou B token+patch admin
+- Sprint 1 do handoff 18/mai (doorknob V4 + alergia banner + detector inconsistencia)
+- Sprint 2 (Compliance CFM 2.454/2026 antes de 10/AGO/2026)
+
+**Handoff:** `Obsidian Vault/HANDOFF-FACULDADE-19-MAI-2026/{README.md, MEGA-PROMPT.md}`
+
+---
+
 ### Sessao 25 — 17-18/05/2026 — Resumo de 1 minuto V2 (Queixa + Relato + Padroes) + handoff faculdade
 
 **Contexto:** Sessao maratona em 2 dias. 17/mai foi 100% pesquisa estrategica (sem codigo) — analise em 14 atos + 10 perspectivas + regulatorio CFM 2.454/2026 + filosofia clinica + casos historicos de erro. 18/mai foi execucao: reformulacao da tela 25-summary do desktop medico no `app-v2.html`.
