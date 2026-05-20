@@ -1,7 +1,7 @@
 // Service Worker do vita id (push notifications + cache offline basico).
 // Registrado em 08-perfil.html quando paciente clica "Receber lembretes".
 
-const CACHE = 'vita-id-v1';
+const CACHE = 'vita-id-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
