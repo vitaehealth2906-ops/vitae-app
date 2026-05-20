@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview — Consulta detalhe (Antes vs Depois)</title>
+<link rel="stylesheet" href="_core.css">
+<style>
+  body {
+    background: #E6E9EF;
+    padding: 24px 16px 80px;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  }
+  .pv-header {
+    max-width: 880px;
+    margin: 0 auto 24px;
+    text-align: center;
+  }
+  .pv-title {
+    font-size: 28px;
+    font-weight: 900;
+    color: #0D0F14;
+    letter-spacing: -0.6px;
+    margin-bottom: 6px;
+  }
+  .pv-title em {
+    font-style: italic;
+    background: linear-gradient(120deg, #00E5A0, #00B4D8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding-right: 0.08em;
+  }
+  .pv-sub {
+    font-size: 14px;
+    color: #6B7280;
+    font-weight: 500;
+    margin-bottom: 18px;
+  }
+  .pv-toggle {
+    display: inline-flex;
+    background: #FFFFFF;
+    border: 1px solid rgba(0,0,0,0.07);
+    border-radius: 100px;
+    padding: 4px;
+    gap: 2px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  }
+  .pv-toggle button {
+    background: transparent;
+    border: none;
+    padding: 9px 22px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    color: #6B7280;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: -0.1px;
+  }
+  .pv-toggle button.on {
+    background: #0D0F14;
+    color: #FFFFFF;
+  }
+  .pv-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .pv-grid.solo { grid-template-columns: 1fr; max-width: 480px; }
+  .pv-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .pv-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #6B7280;
+    margin-bottom: 14px;
+  }
+  .pv-label.bad { color: #EF4444; }
+  .pv-label.ok { color: #00C47A; }
+
+  /* Phone frame */
+  .phone {
+    width: 393px;
+    height: 760px;
+    background: #F4F6FA;
+    border-radius: 44px;
+    border: 8px solid #0D0F14;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 24px 60px rgba(13,15,20,0.25), 0 6px 18px rgba(13,15,20,0.12);
+    display: flex;
+    flex-direction: column;
+  }
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0D0F14;
+  }
+  .notch {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 30px;
+    background: #0D0F14;
+    border-radius: 100px;
+    z-index: 10;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    padding: 6px 20px 12px;
+    gap: 14px;
+    background: #F4F6FA;
+  }
+  .header-back {
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.07);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .header-back svg {
+    width: 18px; height: 18px;
+    stroke: #0D0F14;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0D0F14;
+    letter-spacing: -0.2px;
+  }
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 24px;
+  }
+  .content::-webkit-scrollbar { width: 0; }
+
+  /* Doctor block */
+  .doctor-block {
+    padding: 8px 20px 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .doctor-avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(120deg, #00E5A0, #00B4D8);
+    color: #0D0F14;
+    font-size: 19px;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: -0.5px;
+    box-shadow: 0 4px 16px rgba(0,229,160,0.22);
+  }
+  .doctor-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0D0F14;
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+    margin-bottom: 3px;
+  }
+  .doctor-spec {
+    font-size: 13px;
+    color: #6B7280;
+    font-weight: 500;
+  }
+
+  /* Topics */
+  .topics {
+    padding: 0 20px;
+    margin-bottom: 26px;
+  }
+  .topic {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+  }
+  .topic:not(:last-child) {
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .topic-ic {
+    width: 30px;
+    flex-shrink: 0;
+    padding-top: 3px;
+  }
+  .topic-ic svg {
+    width: 16px; height: 16px;
+    stroke: #00C47A;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .topic-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #9CA3AF;
+    margin-bottom: 3px;
+  }
+  .topic-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0D0F14;
+    line-height: 1.35;
+    letter-spacing: -0.1px;
+  }
+
+  /* Section label */
+  .section-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #6B7280;
+    margin: 0 20px 10px;
+  }
+
+  /* Retorno proposto */
+  .retorno-card {
+    margin: 0 20px 28px;
+    background: #FFFFFF;
+    border: 1px solid rgba(0,0,0,0.07);
+    border-left: 4px solid #F59E0B;
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 12px rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
+  }
+  .retorno-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1.5px;
+    background: linear-gradient(90deg, #F59E0B, rgba(245,158,11,0.3), transparent);
+  }
+  .retorno-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #F59E0B;
+    margin-bottom: 6px;
+  }
+  .retorno-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0D0F14;
+    line-height: 1.25;
+    letter-spacing: -0.1px;
+    margin-bottom: 4px;
+  }
+  .retorno-sub {
+    font-size: 12.5px;
+    color: #6B7280;
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+  .retorno-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  .btn-primary, .btn-secondary {
+    flex: 1;
+    padding: 11px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: linear-gradient(120deg, #00E5A0, #00B4D8);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0,229,160,0.28);
+  }
+  .btn-secondary {
+    background: #fff;
+    color: #0D0F14;
+    border: 1px solid rgba(0,0,0,0.10);
+  }
+
+  /* Documentos */
+  .doc {
+    margin: 0 20px 8px;
+    background: #FFFFFF;
+    border: 1px solid rgba(0,0,0,0.07);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+    transition: all 0.18s;
+  }
+  .doc:active { transform: scale(0.99); border-color: rgba(0,0,0,0.14); }
+  .doc-ic {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: rgba(239,68,68,0.08);
+    color: #EF4444;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .doc-ic svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .doc-ic.green { background: rgba(0,229,160,0.08); color: #00C47A; }
+  .doc-ic.blue { background: rgba(59,130,246,0.08); color: #3B82F6; }
+  .doc-body { flex: 1; min-width: 0; }
+  .doc-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 2px;
+  }
+  .doc-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0D0F14;
+    line-height: 1.2;
+    margin-bottom: 2px;
+    letter-spacing: -0.1px;
+  }
+  .doc-meta {
+    font-size: 11px;
+    color: #6B7280;
+    font-weight: 500;
+  }
+  .doc-dl {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(0,229,160,0.08);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .doc-dl svg { width: 16px; height: 16px; stroke: #00C47A; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Conversar / WhatsApp */
+  .talk-card {
+    margin: 22px 20px 0;
+    background: #FFFFFF;
+    border: 1px solid rgba(0,229,160,0.18);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 12px rgba(0,229,160,0.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .talk-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1.5px;
+    background: linear-gradient(90deg, #00E5A0, #00B4D8, transparent);
+  }
+  .talk-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .talk-header svg { width: 18px; height: 18px; stroke: #00C47A; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .talk-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0D0F14;
+    letter-spacing: -0.1px;
+  }
+  .talk-desc {
+    font-size: 12px;
+    color: #6B7280;
+    line-height: 1.45;
+    margin-bottom: 14px;
+  }
+  .btn-wa {
+    width: 100%;
+    padding: 13px;
+    border-radius: 12px;
+    background: linear-gradient(120deg, #00E5A0, #00B4D8);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(0,229,160,0.28);
+  }
+  .btn-wa svg { width: 17px; height: 17px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* States */
+  .view { display: none; }
+  .view.on { display: block; }
+
+  .pv-foot {
+    max-width: 880px;
+    margin: 32px auto 0;
+    font-size: 12px;
+    color: #6B7280;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .pv-foot strong { color: #0D0F14; }
+
+  @media (max-width: 900px) {
+    .pv-grid { grid-template-columns: 1fr; gap: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="pv-header">
+  <div class="pv-title">Consulta detalhe — <em>preview</em></div>
+  <div class="pv-sub">16-consulta-detalhe.html · antes (vazio) vs depois (completo)</div>
+  <div class="pv-toggle">
+    <button id="tgAntes" class="on" onclick="show('antes')">Antes</button>
+    <button id="tgDepois" onclick="show('depois')">Depois</button>
+    <button id="tgLado" onclick="show('lado')">Lado a lado</button>
+  </div>
+</div>
+
+<!-- LADO A LADO -->
+<div id="vLado" class="view">
+  <div class="pv-grid">
+    <div class="pv-col">
+      <div class="pv-label bad">ANTES — só data, nada mais</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="header">
+          <div class="header-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+          <div class="header-title">Consulta</div>
+        </div>
+        <div class="content">
+          <div class="doctor-block">
+            <div class="doctor-avatar">LB</div>
+            <div>
+              <div class="doctor-name">lucas borelli</div>
+              <div class="doctor-spec">RETORNO</div>
+            </div>
+          </div>
+          <div class="topics">
+            <div class="topic">
+              <div class="topic-ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <div>
+                <div class="topic-label">Data</div>
+                <div class="topic-value">Sexta, 29 de maio · 11h49</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pv-col">
+      <div class="pv-label ok">DEPOIS — 3 blocos plugados</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="header">
+          <div class="header-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+          <div class="header-title">Consulta</div>
+        </div>
+        <div class="content" id="contentDepoisLado"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ANTES SOLO -->
+<div id="vAntes" class="view on">
+  <div class="pv-grid solo">
+    <div class="pv-col">
+      <div class="pv-label bad">HOJE — tela como está em produção</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="header">
+          <div class="header-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+          <div class="header-title">Consulta</div>
+        </div>
+        <div class="content">
+          <div class="doctor-block">
+            <div class="doctor-avatar">LB</div>
+            <div>
+              <div class="doctor-name">lucas borelli</div>
+              <div class="doctor-spec">RETORNO</div>
+            </div>
+          </div>
+          <div class="topics">
+            <div class="topic">
+              <div class="topic-ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <div>
+                <div class="topic-label">Data</div>
+                <div class="topic-value">Sexta, 29 de maio · 11h49</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DEPOIS SOLO -->
+<div id="vDepois" class="view">
+  <div class="pv-grid solo">
+    <div class="pv-col">
+      <div class="pv-label ok">DEPOIS — proposta de redesign</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="header">
+          <div class="header-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+          <div class="header-title">Consulta</div>
+        </div>
+        <div class="content" id="contentDepoisSolo"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pv-foot">
+  <strong>O que muda:</strong> a tela ganha 3 blocos novos só quando o médico propõe retorno, anexa documentos, ou ativa contato direto. Se nada disso existir, fica só doctor + data + local (estado atual).<br>
+  <strong>Backend já pronto:</strong> <code>listarRetornosPendentes()</code>, <code>listarDocumentosConsulta(id)</code>, <code>getMedicoDoPaciente()</code>, <code>verificarDisponibilidade()</code>. Sessão 24 (16/05/2026).
+</div>
+
+<template id="depoisTemplate">
+  <div class="doctor-block">
+    <div class="doctor-avatar">FC</div>
+    <div>
+      <div class="doctor-name">dra. fernanda costa</div>
+      <div class="doctor-spec">RETORNO · CARDIOLOGIA</div>
+    </div>
+  </div>
+
+  <div class="topics">
+    <div class="topic">
+      <div class="topic-ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div>
+        <div class="topic-label">Data</div>
+        <div class="topic-value">Sexta, 29 de maio · 11h49</div>
+      </div>
+    </div>
+    <div class="topic">
+      <div class="topic-ic"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+      <div>
+        <div class="topic-label">Local</div>
+        <div class="topic-value">Clínica Vida · Sala 312</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-lbl">Proposta da médica</div>
+  <div class="retorno-card">
+    <div class="retorno-label">Retorno proposto</div>
+    <div class="retorno-title">A médica sugeriu um retorno em 7 dias</div>
+    <div class="retorno-sub">Sexta, 29 de maio às 11h49. Confirme se a data funciona pra você ou peça pra remarcar.</div>
+    <div class="retorno-buttons">
+      <button class="btn-secondary">Remarcar</button>
+      <button class="btn-primary">Confirmar</button>
+    </div>
+  </div>
+
+  <div class="section-lbl">Documentos da consulta</div>
+  <div class="doc">
+    <div class="doc-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></div>
+    <div class="doc-body">
+      <div class="doc-label">Receita</div>
+      <div class="doc-name">Losartana 50mg + Atorvastatina 20mg</div>
+      <div class="doc-meta">3 itens · válida até 22 de junho</div>
+    </div>
+    <div class="doc-dl"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+  </div>
+  <div class="doc">
+    <div class="doc-ic blue"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="12" cy="14" r="3"/></svg></div>
+    <div class="doc-body">
+      <div class="doc-label">Laudo</div>
+      <div class="doc-name">Ecocardiograma — 22 de maio</div>
+      <div class="doc-meta">PDF · 1.2 MB</div>
+    </div>
+    <div class="doc-dl"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+  </div>
+  <div class="doc">
+    <div class="doc-ic green"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+    <div class="doc-body">
+      <div class="doc-label">Encaminhamento</div>
+      <div class="doc-name">Nutricionista</div>
+      <div class="doc-meta">PDF · 340 KB</div>
+    </div>
+    <div class="doc-dl"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+  </div>
+
+  <div class="talk-card">
+    <div class="talk-header">
+      <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <div class="talk-title">Conversar com sua médica</div>
+    </div>
+    <div class="talk-desc">Dúvida sobre o tratamento? Você pode falar direto no WhatsApp. Disponível seg–sex, 8h–18h.</div>
+    <button class="btn-wa">
+      <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Tirar dúvida no WhatsApp
+    </button>
+  </div>
+
+  <div style="height: 24px"></div>
+</template>
+
+<script>
+  function hydrate() {
+    const tpl = document.getElementById('depoisTemplate').innerHTML;
+    document.getElementById('contentDepoisLado').innerHTML = tpl;
+    document.getElementById('contentDepoisSolo').innerHTML = tpl;
+  }
+  function show(v) {
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('on'));
+    document.querySelectorAll('.pv-toggle button').forEach(b => b.classList.remove('on'));
+    if (v === 'antes') { document.getElementById('vAntes').classList.add('on'); document.getElementById('tgAntes').classList.add('on'); }
+    if (v === 'depois') { document.getElementById('vDepois').classList.add('on'); document.getElementById('tgDepois').classList.add('on'); }
+    if (v === 'lado') { document.getElementById('vLado').classList.add('on'); document.getElementById('tgLado').classList.add('on'); }
+  }
+  hydrate();
+</script>
+
+</body>
+</html>
