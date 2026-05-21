@@ -548,6 +548,67 @@ model TarefaPendente {
   @@map("tarefas_pendentes")
 }
 
+// ---- CACHE IA COLLAB (Fase 2 perf — "caso Daniel") ----
+// Persiste comparação entre 2+ pré-consultas do mesmo paciente
+// para que abrir perfil seja instantâneo se nada mudou.
+// Hash dos IDs ordenados das PCs comparadas + versão do prompt
+// determina se o cache continua válido.
+model IaCollabCache {
+  id           String   @id @default(uuid())
+  pacienteId   String   @map("paciente_id")
+  medicoId     String   @map("medico_id")
+  pcsHash      String   @map("pcs_hash")
+  versaoPrompt String   @default("v1") @map("versao_prompt")
+  payload      Json
+  geradoEm     DateTime @default(now()) @map("gerado_em")
+
+  @@unique([pacienteId, medicoId])
+  @@index([pacienteId])
+  @@map("ia_collab_cache")
+}
+
+// ---- CACHE INFO IA — MEDICAMENTO (Fase 3 perf) ----
+model CacheInfoMedicamento {
+  id              String   @id @default(uuid())
+  nomeNormalizado String   @map("nome_normalizado")
+  versaoPrompt    String   @map("versao_prompt")
+  payload         Json
+  hits            Int      @default(0)
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+
+  @@unique([nomeNormalizado, versaoPrompt])
+  @@map("cache_info_medicamento")
+}
+
+// ---- CACHE INFO IA — ALERGIA (Fase 3 perf) ----
+model CacheInfoAlergia {
+  id              String   @id @default(uuid())
+  nomeNormalizado String   @map("nome_normalizado")
+  versaoPrompt    String   @map("versao_prompt")
+  payload         Json
+  hits            Int      @default(0)
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+
+  @@unique([nomeNormalizado, versaoPrompt])
+  @@map("cache_info_alergia")
+}
+
+// ---- CACHE MELHORIAS SCORE (Fase 3 perf) ----
+model CacheMelhoriasScore {
+  id           String   @id @default(uuid())
+  usuarioId    String   @map("usuario_id")
+  versaoPrompt String   @map("versao_prompt")
+  scoreHash    String   @map("score_hash")
+  payload      Json
+  criadoEm     DateTime @default(now()) @map("criado_em")
+
+  @@unique([usuarioId, versaoPrompt, scoreHash])
+  @@index([usuarioId, criadoEm])
+  @@map("cache_melhorias_score")
+}
+
 // ---- CONSENTIMENTOS (LGPD) ----
 model Consentimento {
   id         String    @id @default(uuid())

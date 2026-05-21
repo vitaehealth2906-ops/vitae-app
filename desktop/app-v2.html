@@ -7282,6 +7282,40 @@ window.BACKEND = (function(){
         }
       } catch(e){}
 
+      // ====================================================================
+      // FASE 2 perf (caso Daniel): hidratar IA Collab do backend ANTES do
+      // render. Se backend tem cache válido (hash das PCs respondidas igual
+      // ao último visto), popula COMPARE_MOCK na hora e marca comparativoLigado.
+      // Resultado: abrir perfil é instantâneo, sem pisca de "Preparando análise…"
+      // quando nada mudou no paciente.
+      // ====================================================================
+      try {
+        var resCache = await api('/pre-consulta/paciente/'+encodeURIComponent(pid)+'/ia-collab-cache');
+        if (resCache && resCache.ok) {
+          var cacheData = await resCache.json();
+          // Texto narrativo: o frontend espera string ou string-com-html no COMPARE_MOCK
+          var narrativa = (cacheData && (cacheData.narrativa || cacheData.texto || cacheData.evolucao_temporal)) || '';
+          if (narrativa && typeof COMPARE_MOCK !== 'undefined') {
+            COMPARE_MOCK[pid] = narrativa;
+            // Salva também no localStorage com hash do backend pra ofuscar próxima abertura
+            try {
+              if (typeof _histClinSaveCache === 'function' && cacheData._pcsHash) {
+                localStorage.setItem('vitae_histclin_v1_'+pid, JSON.stringify({ hash: cacheData._pcsHash, txt: narrativa, t: Date.now(), payload: cacheData }));
+              }
+            } catch(_e){}
+            // Marca flag pra evitar auto-trigger redundante no render
+            if (typeof STATE !== 'undefined') {
+              STATE.comparativoLigado = true;
+              STATE.comparativoLoading = false;
+              // Guarda payload completo se a UI quiser detalhes (alertas, padroes)
+              STATE._iaCollabCachePayload = STATE._iaCollabCachePayload || {};
+              STATE._iaCollabCachePayload[pid] = cacheData;
+            }
+          }
+        }
+        // 204 ou erro → cache miss; comportamento legado (auto-trigger) continua
+      } catch(_e){ /* hidratação é best-effort, nunca derruba o load */ }
+
       // Atualiza contagem de anamneses do paciente na lista lateral
       try {
         if (typeof PACIENTES !== 'undefined' && Array.isArray(PACIENTES)) {

@@ -14,6 +14,76 @@ const { transcreverAudio } = require('../services/transcription');
 const { normalizarTelefone, variantesTelefone } = require('../utils/telefone');
 const { auditar } = require('../utils/auditoria');
 
+// ============================================================
+// Helpers Fase 2 (caso Daniel) — cache IA Collab
+// ============================================================
+
+const IA_COLLAB_VERSAO_PROMPT = 'v1-2026-05';
+
+/**
+ * Hash determinístico de IDs de PCs (ordenado).
+ * Cliente e servidor devem chegar no MESMO hash dado o mesmo conjunto.
+ */
+function _calcularPcsHash(ids) {
+  const sorted = [...new Set((ids || []).filter(Boolean))].sort();
+  if (sorted.length === 0) return 'empty';
+  return crypto.createHash('sha256').update(sorted.join(',')).digest('hex').slice(0, 16);
+}
+
+/**
+ * Lista IDs de PCs "respondidas" de um paciente (critério estável: respondidaEm setado).
+ * Usado para calcular o hash atual e comparar com o cache.
+ */
+async function _listarIdsPcsRespondidas(pacienteId, medicoId) {
+  const pcs = await prisma.preConsulta.findMany({
+    where: {
+      pacienteId,
+      medicoId,
+      respondidaEm: { not: null },
+    },
+    select: { id: true },
+    orderBy: { criadoEm: 'asc' },
+  });
+  return pcs.map(p => p.id);
+}
+
+/**
+ * Helper resiliente: tenta upsert no cache; se tabela ainda não existe
+ * (migration não rodou em prod), silenciosamente ignora. Sistema continua
+ * funcionando exatamente como antes (sem cache).
+ */
+async function _iaCollabCacheUpsert({ pacienteId, medicoId, pcsHash, payload }) {
+  try {
+    await prisma.iaCollabCache.upsert({
+      where: { pacienteId_medicoId: { pacienteId, medicoId } },
+      create: { pacienteId, medicoId, pcsHash, versaoPrompt: IA_COLLAB_VERSAO_PROMPT, payload },
+      update: { pcsHash, versaoPrompt: IA_COLLAB_VERSAO_PROMPT, payload, geradoEm: new Date() },
+    });
+  } catch (err) {
+    // Tabela pode ainda não existir (pré-migration). Log discreto e segue.
+    if (err && err.code !== 'P2021') {
+      console.warn('[IA_COLLAB_CACHE] upsert falhou:', err.message);
+    }
+  }
+}
+
+async function _iaCollabCacheBuscar({ pacienteId, medicoId, pcsHash }) {
+  try {
+    const rec = await prisma.iaCollabCache.findUnique({
+      where: { pacienteId_medicoId: { pacienteId, medicoId } },
+    });
+    if (!rec) return null;
+    if (rec.pcsHash !== pcsHash) return null;
+    if (rec.versaoPrompt !== IA_COLLAB_VERSAO_PROMPT) return null;
+    return rec;
+  } catch (err) {
+    if (err && err.code !== 'P2021') {
+      console.warn('[IA_COLLAB_CACHE] busca falhou:', err.message);
+    }
+    return null;
+  }
+}
+
 // ----------------------------------------------------------------------------
 // VINCULAR PACIENTE — coracao do fix do "Daniel sumiu"
 //
@@ -1704,11 +1774,71 @@ router.post('/:id/ia-collab', verificarAuth, async (req, res, next) => {
       return res.status(400).json({ erro: 'Mínimo 2 pré-consultas do mesmo paciente para comparar.' });
     }
 
+    // Fase 2 (caso Daniel) — cache lookup ANTES de chamar IA
+    const pcsHash = _calcularPcsHash(lista.map(p => p.id));
+    const cacheHit = await _iaCollabCacheBuscar({
+      pacienteId: pcBase.pacienteId,
+      medicoId: pcBase.medicoId,
+      pcsHash,
+    });
+    if (cacheHit) {
+      try { await auditar(req, { acao: 'IA_COLLAB_CACHE_HIT', atorTipo: 'MEDICO', recursoTipo: 'PRE_CONSULTA', recursoId: id, metadata: { comparadas: lista.length, pcsHash } }); } catch(e){}
+      return res.status(200).json({ ...cacheHit.payload, _cached: true, _geradoEm: cacheHit.geradoEm });
+    }
+
     const resultado = await compararAnamneses(lista);
 
-    try { await auditar(req, { acao: 'IA_COLLAB_GERADA', atorTipo: 'MEDICO', recursoTipo: 'PRE_CONSULTA', recursoId: id, metadata: { comparadas: lista.length } }); } catch(e){}
+    // Salva no cache (resiliente — não derruba a rota se tabela não existir)
+    await _iaCollabCacheUpsert({
+      pacienteId: pcBase.pacienteId,
+      medicoId: pcBase.medicoId,
+      pcsHash,
+      payload: resultado,
+    });
+
+    try { await auditar(req, { acao: 'IA_COLLAB_GERADA', atorTipo: 'MEDICO', recursoTipo: 'PRE_CONSULTA', recursoId: id, metadata: { comparadas: lista.length, pcsHash } }); } catch(e){}
 
     return res.status(200).json(resultado);
+  } catch (err) { next(err); }
+});
+
+/**
+ * GET /pre-consulta/paciente/:pacienteId/ia-collab-cache
+ *
+ * Retorna o cache da comparação IA Collab para o par (paciente, médico atual),
+ * SE o conjunto de PCs respondidas continua o mesmo (mesmo hash).
+ *
+ * - 200 + payload: cache válido, médico pode renderizar instantâneo.
+ * - 204: sem cache válido (frontend deve chamar POST /ia-collab pra gerar).
+ *
+ * Resolve o "caso Daniel": abrir perfil sem pisca de loading quando
+ * paciente não respondeu nada novo desde a última visita.
+ */
+router.get('/paciente/:pacienteId/ia-collab-cache', verificarAuth, async (req, res, next) => {
+  try {
+    const { pacienteId } = req.params;
+    // Resolve medicoId pelo usuario logado
+    const medico = await prisma.medico.findUnique({
+      where: { usuarioId: req.usuario.id },
+      select: { id: true, iaCollabAtivado: true },
+    });
+    if (!medico) return res.status(403).json({ erro: 'Apenas médicos.' });
+    if (!medico.iaCollabAtivado) return res.status(204).end();
+
+    const ids = await _listarIdsPcsRespondidas(pacienteId, medico.id);
+    if (ids.length < 2) return res.status(204).end();
+
+    const pcsHash = _calcularPcsHash(ids);
+    const rec = await _iaCollabCacheBuscar({
+      pacienteId,
+      medicoId: medico.id,
+      pcsHash,
+    });
+    if (!rec) return res.status(204).end();
+
+    try { await auditar(req, { acao: 'IA_COLLAB_CACHE_LIDO', atorTipo: 'MEDICO', recursoTipo: 'PACIENTE', recursoId: pacienteId, metadata: { pcsHash } }); } catch(e){}
+
+    return res.status(200).json({ ...rec.payload, _cached: true, _geradoEm: rec.geradoEm, _pcsHash: pcsHash });
   } catch (err) { next(err); }
 });
 
