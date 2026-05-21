@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Perfil do médico</title>
+<script src="api.js"></script>
+<link rel="stylesheet" href="_core.css">
+<style>
+  body { background: #F4F6FA; }
+  .phone { background: #F4F6FA; }
+
+  .nav-head { padding: 14px 20px 12px; display: flex; align-items: center; gap: 12px; background: #F4F6FA; position: sticky; top: 0; z-index: 10; }
+  .nav-back { width: 36px; height: 36px; border-radius: 12px; background: #fff; border: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 1px 4px rgba(0,0,0,0.04); text-decoration: none; }
+  .nav-back svg { width: 16px; height: 16px; stroke: var(--ink); fill: none; stroke-width: 2.4; }
+  .nav-title { flex: 1; font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: -0.2px; }
+
+  .pm-hero { padding: 4px var(--s5) 18px; display: flex; align-items: center; gap: 16px; }
+  .pm-av { width: 64px; height: 64px; border-radius: 50%; background: var(--grad); color: #0D0F14; font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; letter-spacing: -0.3px; box-shadow: 0 6px 20px rgba(0,229,160,0.30); }
+  .pm-meta { flex: 1; min-width: 0; }
+  .pm-name { font-size: 22px; font-weight: 900; color: var(--ink); letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 4px; }
+  .pm-spec { font-size: 13px; color: var(--ink3); font-weight: 500; }
+
+  .pm-next-mini { margin: 0 var(--s5) 16px; background: #fff; border: 1px solid rgba(0,229,160,0.20); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,229,160,0.08); transition: transform 0.15s; text-decoration: none; }
+  .pm-next-mini:active { transform: scale(0.99); }
+  .pm-next-mini-ic { width: 38px; height: 38px; border-radius: 10px; background: rgba(0,229,160,0.10); color: var(--green2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pm-next-mini-ic svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .pm-next-mini-body { flex: 1; min-width: 0; }
+  .pm-next-mini-lbl { font-size: 10.5px; font-weight: 800; color: var(--green2); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2px; }
+  .pm-next-mini-val { font-size: 14px; font-weight: 800; color: var(--ink); letter-spacing: -0.2px; }
+  .pm-next-mini-val span { color: var(--ink3); font-weight: 600; }
+  .pm-next-mini-chev { color: var(--green2); }
+  .pm-next-mini-chev svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.4; }
+
+  .pm-section-lbl { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink3); margin: 8px var(--s5) 10px; display: flex; align-items: center; justify-content: space-between; }
+  .pm-section-lbl a { color: var(--green2); font-size: 11.5px; font-weight: 700; text-decoration: none; letter-spacing: 0.02em; text-transform: none; cursor: pointer; }
+
+  .pm-wa-card { margin: 0 var(--s5) 16px; background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 1px 8px rgba(0,0,0,0.04); text-decoration: none; }
+  .pm-wa-ic { width: 38px; height: 38px; border-radius: 10px; background: rgba(0,229,160,0.10); color: var(--green2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pm-wa-ic svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .pm-wa-body { flex: 1; min-width: 0; }
+  .pm-wa-title { font-size: 13.5px; font-weight: 800; color: var(--ink); margin-bottom: 2px; }
+  .pm-wa-sub { font-size: 11.5px; color: var(--ink3); line-height: 1.4; }
+  .pm-wa-status { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; color: var(--green2); margin-top: 4px; }
+  .pm-wa-status .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green2); animation: pulse 2s infinite; }
+  .pm-wa-status.off { color: var(--ink4); }
+  .pm-wa-status.off .dot { background: var(--ink4); animation: none; }
+
+  .pm-alert { margin: 0 var(--s5) 16px; padding: 13px 14px; background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.20); border-radius: 12px; display: flex; gap: 10px; align-items: flex-start; }
+  .pm-alert-ic { color: var(--warn); flex-shrink: 0; margin-top: 1px; }
+  .pm-alert-ic svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .pm-alert-body { flex: 1; }
+  .pm-alert-title { font-size: 12.5px; font-weight: 800; color: var(--warn); margin-bottom: 2px; }
+  .pm-alert-text { font-size: 12px; color: var(--ink2); line-height: 1.45; }
+
+  .pm-docs { margin: 0 var(--s5) 16px; background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 16px; overflow: hidden; }
+  .pm-doc-row { display: grid; grid-template-columns: 38px 1fr auto; gap: 12px; align-items: center; padding: 13px 16px; cursor: pointer; position: relative; transition: background 0.15s; }
+  .pm-doc-row:active { background: rgba(0,0,0,0.025); }
+  .pm-doc-row + .pm-doc-row::before { content: ''; position: absolute; top: 0; left: 66px; right: 16px; height: 1px; background: rgba(0,0,0,0.06); }
+  .pm-doc-ic { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; color: #8E8E93; }
+  .pm-doc-ic svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .pm-doc-mid { min-width: 0; }
+  .pm-doc-nm-row { display: flex; align-items: center; gap: 7px; }
+  .pm-doc-nm { font-size: 13.5px; font-weight: 700; color: var(--ink); line-height: 1.3; letter-spacing: -0.1px; }
+  .pm-doc-new { width: 7px; height: 7px; border-radius: 50%; background: #007AFF; flex-shrink: 0; }
+  .pm-doc-sub { font-size: 11.5px; color: var(--ink3); margin-top: 2px; }
+  .pm-doc-size { font-size: 11.5px; color: var(--ink4); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  .pm-hist { margin: 0 var(--s5) 16px; background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 16px; overflow: hidden; }
+  .pm-hist-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; cursor: pointer; position: relative; text-decoration: none; }
+  .pm-hist-row + .pm-hist-row::before { content: ''; position: absolute; top: 0; left: 16px; right: 16px; height: 1px; background: rgba(0,0,0,0.06); }
+  .pm-hist-row:active { background: rgba(0,0,0,0.025); }
+  .pm-hist-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink5); flex-shrink: 0; }
+  .pm-hist-info { flex: 1; min-width: 0; }
+  .pm-hist-date { font-size: 13.5px; font-weight: 700; color: var(--ink); letter-spacing: -0.1px; }
+  .pm-hist-tipo { font-size: 11.5px; color: var(--ink3); margin-top: 1px; }
+  .pm-hist-chev { color: var(--ink5); }
+  .pm-hist-chev svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status-bar"><span>9:41</span><span class="right"><svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="1" y="1" width="20" height="9" rx="2" stroke="currentColor" stroke-opacity=".35"/><rect x="2.5" y="2.5" width="17" height="6" rx="1" fill="currentColor"/></svg></span></div>
+
+  <div class="content" style="top: 50px; background: #F4F6FA; bottom: 0;">
+    <div class="nav-head">
+      <a class="nav-back" href="15-consultas.html"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></a>
+      <div class="nav-title">Perfil do médico</div>
+    </div>
+    <div id="pmContent" style="padding-bottom: 40px;">
+      <div style="padding:60px var(--s5);text-align:center;color:var(--ink3);font-size:13.5px">Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function escapeHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const MESES_FULL = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+function fmtData(iso){const d=new Date(iso);if(isNaN(d.getTime()))return'—';return `${d.getDate()} de ${MESES[d.getMonth()]}`;}
+function fmtHora(iso){const d=new Date(iso);if(isNaN(d.getTime()))return '';const hh=String(d.getHours()).padStart(2,'0');const mm=String(d.getMinutes()).padStart(2,'0');return mm==='00'?`${hh}h`:`${hh}h${mm}`;}
+function fmtDataLong(iso){const d=new Date(iso);if(isNaN(d.getTime()))return '—';return `${d.getDate()} de ${MESES_FULL[d.getMonth()]}, ${d.getFullYear()}`;}
+function _tam(b){if(b<1024)return b+' B';if(b<1024*1024)return Math.round(b/1024)+' KB';return (b/1024/1024).toFixed(1)+' MB';}
+function _docTipo(t){return {RECEITA:'Receita',LAUDO:'Laudo',ENCAMINHAMENTO:'Encaminhamento',EXAME_PEDIDO:'Pedido de Exame',OUTRO:'Documento'}[t]||'Documento';}
+
+const PARAMS = new URLSearchParams(location.search);
+const MEDICO_ID = PARAMS.get('medicoId');
+
+async function carregar(){
+  if (!MEDICO_ID) {
+    document.getElementById('pmContent').innerHTML = '<div style="padding:60px var(--s5);text-align:center;color:var(--ink3);font-size:13.5px">Médico não encontrado. <a href="15-consultas.html" style="color:var(--green2);font-weight:700">Voltar</a></div>';
+    return;
+  }
+  try {
+    const r = await vitaeAPI.listarMeusMedicos();
+    const m = (r.medicos || []).find(x => x.id === MEDICO_ID);
+    if (!m) {
+      document.getElementById('pmContent').innerHTML = '<div style="padding:60px var(--s5);text-align:center;color:var(--ink3);font-size:13.5px">Médico não encontrado. <a href="15-consultas.html" style="color:var(--green2);font-weight:700">Voltar</a></div>';
+      return;
+    }
+    render(m);
+  } catch (e) {
+    console.error(e);
+    document.getElementById('pmContent').innerHTML = '<div style="padding:60px var(--s5);text-align:center;color:var(--bad);font-size:13.5px">Sem conexão. <a href="javascript:location.reload()" style="color:var(--green2);font-weight:700">Tentar de novo</a></div>';
+  }
+}
+
+function render(m){
+  const html = [];
+  html.push(`
+    <div class="pm-hero">
+      <div class="pm-av">${m.avatarIniciais}</div>
+      <div class="pm-meta">
+        <div class="pm-name">${escapeHtml(m.nome)}</div>
+        <div class="pm-spec">${escapeHtml(m.especialidade || '')}</div>
+      </div>
+    </div>
+  `);
+
+  // Próxima com ele
+  const proxima = (m.agendamentos || []).filter(a => a.dataHora && new Date(a.dataHora) >= new Date()).sort((a,b) => new Date(a.dataHora) - new Date(b.dataHora))[0];
+  if (proxima) {
+    html.push(`
+      <a class="pm-next-mini" href="17-proxima-consulta.html?id=${encodeURIComponent(proxima.id)}">
+        <div class="pm-next-mini-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <div class="pm-next-mini-body">
+          <div class="pm-next-mini-lbl">Próxima consulta</div>
+          <div class="pm-next-mini-val">${fmtData(proxima.dataHora)} <span>· ${fmtHora(proxima.dataHora)}</span></div>
+        </div>
+        <div class="pm-next-mini-chev"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </a>
+    `);
+  } else {
+    // Aviso "se precisar"
+    const historicoPassado = (m.agendamentos || []).filter(a => a.dataHora && new Date(a.dataHora) < new Date());
+    const ultimaPassada = historicoPassado.sort((a,b) => new Date(b.dataHora) - new Date(a.dataHora))[0];
+    if (ultimaPassada) {
+      const diasDesde = Math.round((Date.now() - new Date(ultimaPassada.dataHora).getTime()) / (1000*60*60*24));
+      if (diasDesde > 90) {
+        html.push(`
+          <div class="pm-alert">
+            <div class="pm-alert-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            <div class="pm-alert-body">
+              <div class="pm-alert-title">Sem consulta marcada</div>
+              <div class="pm-alert-text">Faz mais de ${Math.floor(diasDesde/30)} meses sem você se consultar com ele. Se precisar, fale pelo WhatsApp.</div>
+            </div>
+          </div>
+        `);
+      }
+    }
+  }
+
+  // WhatsApp
+  if (m.contato && m.contato.numero) {
+    const ativo = m.contato.disponivelAgora;
+    const num = String(m.contato.numero).replace(/\D/g,'');
+    const msg = encodeURIComponent(m.contato.mensagemPreFormatada || `Olá Dr(a). ${m.nome.split(' ')[0]}, tudo bem?`);
+    html.push(`
+      <a class="pm-wa-card" href="https://wa.me/${num}?text=${msg}" target="_blank">
+        <div class="pm-wa-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+        <div class="pm-wa-body">
+          <div class="pm-wa-title">Falar pelo WhatsApp</div>
+          <div class="pm-wa-sub">${escapeHtml(m.contato.janela || '')}</div>
+          <div class="pm-wa-status ${ativo ? '' : 'off'}"><span class="dot"></span>${ativo ? 'Disponível agora' : 'Fora do horário'}</div>
+        </div>
+      </a>
+    `);
+  }
+
+  // Documentos
+  if (m.documentos && m.documentos.length) {
+    html.push(`<div class="pm-section-lbl"><span>Documentos</span></div>`);
+    html.push(`<div class="pm-docs">`);
+    m.documentos.forEach(d => {
+      const nomeLimpo = (d.nomeArquivo || '').replace(/\.[^.]+$/,'').replace(/_/g,' ');
+      html.push(`
+        <div class="pm-doc-row" onclick="baixarDoc('${d.id}')">
+          <div class="pm-doc-ic"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></div>
+          <div class="pm-doc-mid">
+            <div class="pm-doc-nm-row"><div class="pm-doc-nm">${escapeHtml(nomeLimpo)}</div>${!d.visualizadoEm ? '<div class="pm-doc-new"></div>' : ''}</div>
+            <div class="pm-doc-sub">${_docTipo(d.tipo)}${d.anexadoEm ? ' · ' + new Date(d.anexadoEm).toLocaleDateString('pt-BR', {day:'2-digit', month:'short'}) : ''}</div>
+          </div>
+          <div class="pm-doc-size">${_tam(d.tamanhoBytes || 0)}</div>
+        </div>
+      `);
+    });
+    html.push(`</div>`);
+  }
+
+  // Histórico (preview de 3)
+  const historico = (m.agendamentos || []).filter(a => a.dataHora && new Date(a.dataHora) < new Date()).sort((a,b) => new Date(b.dataHora) - new Date(a.dataHora));
+  if (historico.length) {
+    const preview = historico.slice(0, 3);
+    html.push(`<div class="pm-section-lbl"><span>Histórico de consultas</span>${historico.length > 3 ? `<a href="19-medico-historico.html?medicoId=${encodeURIComponent(m.id)}">Ver todos (${historico.length})</a>` : ''}</div>`);
+    html.push(`<div class="pm-hist">`);
+    preview.forEach(h => {
+      html.push(`
+        <a class="pm-hist-row" href="16-consulta-detalhe.html?id=${encodeURIComponent(h.id)}">
+          <div class="pm-hist-dot"></div>
+          <div class="pm-hist-info">
+            <div class="pm-hist-date">${fmtDataLong(h.dataHora)}</div>
+            <div class="pm-hist-tipo">${escapeHtml(h.tipo || h.titulo || 'Consulta')}</div>
+          </div>
+          <div class="pm-hist-chev"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </a>
+      `);
+    });
+    html.push(`</div>`);
+  }
+
+  document.getElementById('pmContent').innerHTML = html.join('');
+}
+
+async function baixarDoc(id){
+  try {
+    const res = await vitaeAPI.baixarDocumento(id);
+    if (res && res.url) window.open(res.url, '_blank', 'noopener');
+    else alert('Não consegui abrir o documento.');
+  } catch (e) { alert(e.message || 'Erro ao baixar'); }
+}
+
+if (window.vitaeAPI && !vitaeAPI.isLoggedIn()) {
+  window.location.replace('23-login.html');
+} else {
+  carregar();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id — Histórico</title>
+<script src="api.js"></script>
+<link rel="stylesheet" href="_core.css">
+<style>
+  body { background: #F4F6FA; }
+  .phone { background: #F4F6FA; }
+  .nav-head { padding: 14px 20px 12px; display: flex; align-items: center; gap: 12px; background: #F4F6FA; position: sticky; top: 0; z-index: 10; }
+  .nav-back { width: 36px; height: 36px; border-radius: 12px; background: #fff; border: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 1px 4px rgba(0,0,0,0.04); text-decoration: none; }
+  .nav-back svg { width: 16px; height: 16px; stroke: var(--ink); fill: none; stroke-width: 2.4; }
+  .nav-title { flex: 1; font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: -0.2px; }
+
+  .hist-h1 { padding: 0 var(--s5) 4px; font-size: 24px; font-weight: 900; color: var(--ink); letter-spacing: -0.5px; line-height: 1.1; }
+  .hist-sub { padding: 4px var(--s5) 18px; font-size: 13px; color: var(--ink3); }
+
+  .pm-hist { margin: 0 var(--s5) 16px; background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 16px; overflow: hidden; }
+  .pm-hist-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; cursor: pointer; position: relative; text-decoration: none; }
+  .pm-hist-row + .pm-hist-row::before { content: ''; position: absolute; top: 0; left: 16px; right: 16px; height: 1px; background: rgba(0,0,0,0.06); }
+  .pm-hist-row:active { background: rgba(0,0,0,0.025); }
+  .pm-hist-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink5); flex-shrink: 0; }
+  .pm-hist-info { flex: 1; min-width: 0; }
+  .pm-hist-date { font-size: 13.5px; font-weight: 700; color: var(--ink); letter-spacing: -0.1px; }
+  .pm-hist-tipo { font-size: 11.5px; color: var(--ink3); margin-top: 1px; }
+  .pm-hist-chev { color: var(--ink5); }
+  .pm-hist-chev svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status-bar"><span>9:41</span><span class="right"><svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="1" y="1" width="20" height="9" rx="2" stroke="currentColor" stroke-opacity=".35"/><rect x="2.5" y="2.5" width="17" height="6" rx="1" fill="currentColor"/></svg></span></div>
+
+  <div class="content" style="top: 50px; background: #F4F6FA; bottom: 0;">
+    <div class="nav-head">
+      <a class="nav-back" id="backBtn" href="15-consultas.html"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></a>
+      <div class="nav-title">Histórico</div>
+    </div>
+    <div id="histContent" style="padding-bottom: 40px;">
+      <div style="padding:60px var(--s5);text-align:center;color:var(--ink3);font-size:13.5px">Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function escapeHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+const MESES_FULL = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+function fmtDataLong(iso){const d=new Date(iso);if(isNaN(d.getTime()))return'—';return `${d.getDate()} de ${MESES_FULL[d.getMonth()]}, ${d.getFullYear()}`;}
+
+const PARAMS = new URLSearchParams(location.search);
+const MEDICO_ID = PARAMS.get('medicoId');
+
+document.getElementById('backBtn').href = MEDICO_ID ? '18-medico-perfil.html?medicoId=' + encodeURIComponent(MEDICO_ID) : '15-consultas.html';
+
+async function carregar(){
+  if (!MEDICO_ID) {
+    document.getElementById('histContent').innerHTML = '<div style="padding:60px var(--s5);text-align:center;color:var(--ink3);font-size:13.5px">Médico não encontrado.</div>';
+    return;
+  }
+  try {
+    const r = await vitaeAPI.listarMeusMedicos();
+    const m = (r.medicos || []).find(x => x.id === MEDICO_ID);
+    if (!m) {
+      document.getElementById('histContent').innerHTML = '<div style="padding:60px var(--s5);text-align:center;color:var(--ink3);font-size:13.5px">Médico não encontrado.</div>';
+      return;
+    }
+    render(m);
+  } catch (e) {
+    console.error(e);
+    document.getElementById('histContent').innerHTML = '<div style="padding:60px var(--s5);text-align:center;color:var(--bad);font-size:13.5px">Sem conexão.</div>';
+  }
+}
+
+function render(m){
+  const historico = (m.agendamentos || []).filter(a => a.dataHora && new Date(a.dataHora) < new Date()).sort((a,b) => new Date(b.dataHora) - new Date(a.dataHora));
+  const html = [];
+  html.push(`<h1 class="hist-h1">Histórico com ${escapeHtml(m.nome)}</h1>`);
+  html.push(`<div class="hist-sub">${historico.length} consulta${historico.length === 1 ? '' : 's'}${m.especialidade ? ' · ' + escapeHtml(m.especialidade) : ''}</div>`);
+
+  if (!historico.length) {
+    html.push(`<div style="padding:40px var(--s5);text-align:center;color:var(--ink3);font-size:13.5px">Você ainda não teve consultas com esse médico.</div>`);
+  } else {
+    html.push(`<div class="pm-hist">`);
+    historico.forEach(h => {
+      html.push(`
+        <a class="pm-hist-row" href="16-consulta-detalhe.html?id=${encodeURIComponent(h.id)}">
+          <div class="pm-hist-dot"></div>
+          <div class="pm-hist-info">
+            <div class="pm-hist-date">${fmtDataLong(h.dataHora)}</div>
+            <div class="pm-hist-tipo">${escapeHtml(h.tipo || h.titulo || 'Consulta')}</div>
+          </div>
+          <div class="pm-hist-chev"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </a>
+      `);
+    });
+    html.push(`</div>`);
+  }
+
+  document.getElementById('histContent').innerHTML = html.join('');
+}
+
+if (window.vitaeAPI && !vitaeAPI.isLoggedIn()) {
+  window.location.replace('23-login.html');
+} else {
+  carregar();
+}
+</script>
+</body>
+</html>
