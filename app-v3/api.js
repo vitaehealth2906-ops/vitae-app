@@ -729,6 +729,112 @@ const vitaeAPI = {
     return apiRequest(`/agendamento/${id}`, { method: 'DELETE' });
   },
 
+  // ===== Aba Consultas v2 (21-mai-2026) =====
+  // Lista medicos do paciente agregando 3 fontes:
+  //   /contato/medico-do-paciente (medicoId estavel)
+  //   /agendamento (consultas, com cruzamento por nome)
+  //   /documentos/meus (docs com medicoId)
+  // Devolve array de medicos com proxima consulta, docs novos, retorno pendente, etc.
+  async listarMeusMedicos() {
+    const [contatos, agendamentos, docs, retornos] = await Promise.allSettled([
+      apiRequest('/contato/medico-do-paciente'),
+      apiRequest('/agendamento'),
+      apiRequest('/documentos/meus'),
+      apiRequest('/agendamento/retornos-pendentes'),
+    ]);
+    const contatosData = contatos.status === 'fulfilled' ? (contatos.value.medicos || contatos.value || []) : [];
+    const agData = agendamentos.status === 'fulfilled' ? (agendamentos.value.agendamentos || []) : [];
+    const docData = docs.status === 'fulfilled' ? (docs.value.documentos || []) : [];
+    const retornosData = retornos.status === 'fulfilled' ? (retornos.value.retornos || []) : [];
+
+    const _ini = (n) => {
+      if (!n) return '?';
+      return n.trim().split(/\s+/).slice(0,2).map(s => s[0]).join('').toUpperCase();
+    };
+
+    const mapMedicos = new Map();
+    contatosData.forEach(c => {
+      const mid = c.medicoId || c.id;
+      if (!mid) return;
+      mapMedicos.set(mid, {
+        id: mid,
+        nome: c.nome || c.medicoNome || 'Medico',
+        especialidade: c.especialidade || '',
+        avatarIniciais: _ini(c.nome || c.medicoNome || ''),
+        contato: {
+          temWhatsApp: !!c.numero,
+          numero: c.numero || null,
+          disponivelAgora: !!c.disponivelAgora,
+          janela: c.janelaResumo || (c.horaInicio && c.horaFim ? `${c.horaInicio} as ${c.horaFim}` : ''),
+          mensagemPreFormatada: c.mensagemPreFormatada || '',
+        },
+        agendamentos: [],
+        documentos: [],
+        retornoPendente: null,
+      });
+    });
+
+    // Cruza agendamentos por primeira palavra do nome (modelo legado tem string medico)
+    agData.forEach(a => {
+      let med = null;
+      for (const m of mapMedicos.values()) {
+        if (a.medico && m.nome) {
+          const primeira = m.nome.toLowerCase().split(' ')[0];
+          if (primeira && a.medico.toLowerCase().includes(primeira)) {
+            med = m; break;
+          }
+        }
+      }
+      if (!med && a.medico) {
+        med = {
+          id: 'stub-' + a.medico,
+          nome: a.medico,
+          especialidade: a.tipo === 'RETORNO' ? 'Retorno' : (a.tipo || ''),
+          avatarIniciais: _ini(a.medico),
+          contato: { temWhatsApp: false, disponivelAgora: false, janela: '' },
+          agendamentos: [],
+          documentos: [],
+          retornoPendente: null,
+        };
+        mapMedicos.set(med.id, med);
+      }
+      if (med) med.agendamentos.push(a);
+    });
+
+    docData.forEach(d => {
+      const med = mapMedicos.get(d.medicoId);
+      if (med) med.documentos.push(d);
+    });
+
+    retornosData.forEach(r => {
+      for (const m of mapMedicos.values()) {
+        if (r.medico && m.nome) {
+          const primeira = m.nome.toLowerCase().split(' ')[0];
+          if (primeira && r.medico.toLowerCase().includes(primeira)) {
+            if (!m.retornoPendente || r.statusProposta === 'AGUARDANDO_PACIENTE') {
+              m.retornoPendente = r;
+            }
+            break;
+          }
+        }
+      }
+    });
+
+    return { medicos: Array.from(mapMedicos.values()) };
+  },
+
+  async getPreConsultaEmAndamento() {
+    return apiRequest('/pre-consulta/em-andamento');
+  },
+
+  // Substitui remarcarRetorno (legado 1 data) por proposta de ate 3 horarios
+  async propostaRemarcacao(id, slots, motivo) {
+    return apiRequest(`/agendamento/${id}/remarcar`, {
+      method: 'POST',
+      body: { propostas: slots, motivo: motivo || undefined },
+    });
+  },
+
   // Proximo Retorno (Fase 1) — paciente confirma/recusa/remarca proposta do medico
   async listarRetornosPendentes() {
     return apiRequest('/agendamento/retornos-pendentes');

@@ -7,324 +7,133 @@
 <script src="api.js"></script>
 <link rel="stylesheet" href="_core.css">
 <style>
-  /* ============================================
-     CONSULTAS — linguagem visual app médico vita id
-     Linhas gradient verde→ciano, avatares gradiente,
-     insight-cards border-left, section labels uppercase
-     ============================================ */
-
   body { background: #F4F6FA; }
   .phone { background: #F4F6FA; }
 
-  /* Header */
-  .ph {
-    padding: 22px var(--s5) 18px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .ph-greeting { font-size: 12px; color: var(--ink3); font-weight: 500; margin-bottom: 2px; }
-  .ph-title {
-    font-size: 24px;
-    font-weight: 900;
-    color: var(--ink);
-    letter-spacing: -0.6px;
-    line-height: 1.1;
-  }
-  .ph-title em { font-style: italic; color: var(--green); font-weight: 900; padding-right: 0.10em; }
-  .ph-action {
-    width: 38px; height: 38px;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,0.07);
-    border-radius: 50%;
+  .ph { padding: 22px var(--s5) 6px; position: relative; }
+  .ph-greet { font-size: 12.5px; color: var(--ink3); font-weight: 500; margin-bottom: 3px; }
+  .ph-title { font-size: 26px; font-weight: 900; color: var(--ink); letter-spacing: -0.7px; line-height: 1.05; }
+  .ph-title em { font-style: italic; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; padding-right: 0.08em; }
+  .ph-help {
+    position: absolute; top: 22px; right: var(--s5);
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #fff; border: 1px solid rgba(0,0,0,0.06);
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+    color: var(--green2); z-index: 5; transition: all 0.15s;
   }
-  .ph-action svg { width: 15px; height: 15px; stroke: var(--ink2); fill: none; stroke-width: 2; }
+  .ph-help:hover { background: rgba(0,229,160,0.06); border-color: rgba(0,229,160,0.20); }
+  .ph-help:active { transform: scale(0.92); }
+  .ph-help svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.4; }
 
-  /* Section label — padrão app médico */
-  .section-lbl {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--ink3);
-    margin: 0 var(--s5) 12px;
-  }
+  .search-block { padding: 16px var(--s5) 4px; }
+  .search { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; box-shadow: 0 1px 8px rgba(0,0,0,0.03); transition: all 0.2s var(--ease); }
+  .search:focus-within { border-color: rgba(0,229,160,0.35); box-shadow: 0 0 0 4px rgba(0,229,160,0.08); }
+  .search svg.search-ico { width: 17px; height: 17px; stroke: var(--ink4); fill: none; stroke-width: 2; flex-shrink: 0; }
+  .search input { flex: 1; border: none; outline: none; background: transparent; font-family: inherit; font-size: 14.5px; font-weight: 500; color: var(--ink); }
+  .search input::placeholder { color: var(--ink4); }
+  .search .clear { width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,0.06); display: none; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .search .clear svg { width: 10px; height: 10px; stroke: var(--ink3); stroke-width: 2.4; fill: none; }
+  .search.has-value .clear { display: flex; }
 
-  /* === Pendente — insight-card style com border-left === */
-  .insight {
-    background: #FFFFFF;
-    border: 1px solid rgba(0,0,0,0.07);
-    border-left: 4px solid var(--warn);
-    border-radius: 10px;
-    margin: 0 var(--s5) 28px;
-    padding: 14px 16px;
-    display: flex;
-    gap: 12px;
-    cursor: pointer;
-    box-shadow: 0 1px 12px rgba(0,0,0,0.05);
-    position: relative;
-    overflow: hidden;
-  }
-  .insight::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1.5px;
-    background: linear-gradient(90deg, var(--warn), rgba(245,158,11,0.3), transparent);
-  }
-  .insight-ic {
-    width: 38px; height: 38px;
-    border-radius: 10px;
-    background: rgba(245,158,11,0.10);
-    color: var(--warn);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .insight-ic svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; }
-  .insight-body { flex: 1; min-width: 0; }
-  .insight-title { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 3px; letter-spacing: -0.1px; }
-  .insight-msg { font-size: 12.5px; color: var(--ink3); line-height: 1.45; }
-  .insight-action {
-    margin-top: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--warn);
-  }
-  .insight-action svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .urgent-block { padding: 18px var(--s5) 0; }
 
-  /* === Próxima consulta — premium card com gradient strip top + dark header === */
-  .next {
-    margin: 0 var(--s5) 32px;
-    background: #FFFFFF;
-    border: 1px solid rgba(0,0,0,0.07);
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 1px 12px rgba(0,0,0,0.07);
-    cursor: pointer;
-    position: relative;
-  }
-  .next::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1.5px;
-    background: linear-gradient(90deg, var(--green), var(--cyan), transparent);
-    z-index: 5;
-  }
-  .next-top {
-    padding: 20px 20px 16px;
-    background: linear-gradient(180deg, rgba(0,229,160,0.04), transparent);
-  }
-  .next-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 100px;
-    background: rgba(0,196,122,0.1);
-    color: #00764A;
-    font-size: 11px;
-    font-weight: 700;
-    margin-bottom: 14px;
-  }
-  .next-status-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--green2);
-    box-shadow: 0 0 0 2px rgba(0,196,122,0.2);
-    animation: pulse 2s infinite;
-  }
-  .next-doctor-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 16px;
-  }
-  .next-avatar {
-    width: 48px; height: 48px;
-    border-radius: 50%;
-    background: var(--grad);
-    color: #fff;
-    font-size: 16px;
-    font-weight: 800;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    letter-spacing: -0.3px;
-    box-shadow: 0 4px 16px rgba(0,229,160,0.28);
-  }
-  .next-doctor { flex: 1; min-width: 0; }
-  .next-doctor-name {
-    font-size: 17px;
-    font-weight: 800;
-    color: var(--ink);
-    letter-spacing: -0.3px;
-    line-height: 1.2;
-    margin-bottom: 2px;
-  }
-  .next-doctor-spec { font-size: 12.5px; color: var(--ink3); font-weight: 500; }
-  .next-datebadge {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 14px;
-    background: rgba(0,196,122,0.1);
-    border-radius: 100px;
-    font-size: 12.5px;
-    font-weight: 700;
-    color: #00764A;
-  }
-  .next-datebadge svg { width: 14px; height: 14px; stroke: var(--green2); fill: none; stroke-width: 2; }
+  .preconsulta-card { background: #fff; border: 1px solid rgba(245,158,11,0.20); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; display: flex; gap: 12px; align-items: center; box-shadow: 0 1px 12px rgba(245,158,11,0.10); position: relative; overflow: hidden; cursor: pointer; }
+  .preconsulta-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #F59E0B, rgba(245,158,11,0.3), transparent); }
+  .pre-ic { width: 42px; height: 42px; border-radius: 12px; background: rgba(245,158,11,0.10); color: #F59E0B; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pre-ic svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .pre-body { flex: 1; min-width: 0; }
+  .pre-title { font-size: 13.5px; font-weight: 800; color: var(--ink); margin-bottom: 2px; letter-spacing: -0.1px; }
+  .pre-sub { font-size: 12px; color: var(--ink3); line-height: 1.45; }
+  .pre-chev { color: #F59E0B; flex-shrink: 0; }
+  .pre-chev svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.4; }
 
-  .next-bot {
-    padding: 13px 20px;
-    background: #FAFBFC;
-    border-top: 1px solid rgba(0,0,0,0.05);
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .next-loc {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 12px;
-    color: var(--ink2);
-  }
-  .next-loc svg { width: 13px; height: 13px; stroke: var(--ink3); fill: none; stroke-width: 2; flex-shrink: 0; }
-  .next-cd {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--green);
-    letter-spacing: 0.04em;
-  }
+  .hero-next { background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 18px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 4px 24px rgba(0,229,160,0.08); cursor: pointer; position: relative; transition: transform 0.15s var(--ease); }
+  .hero-next:active { transform: scale(0.99); }
+  .hero-next::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--green), var(--cyan), transparent); z-index: 3; }
+  .hero-top { padding: 18px 18px 14px; background: linear-gradient(180deg, rgba(0,229,160,0.05), transparent); }
+  .hero-eyebrow { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 100px; background: rgba(0,196,122,0.10); color: #00764A; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; }
+  .hero-eyebrow .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--green2); box-shadow: 0 0 0 3px rgba(0,196,122,0.18); animation: pulse 2s infinite; }
+  .hero-row { display: flex; align-items: center; gap: 14px; }
+  .hero-av { width: 52px; height: 52px; border-radius: 50%; background: var(--grad); color: #0D0F14; font-size: 17px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; letter-spacing: -0.3px; box-shadow: 0 6px 18px rgba(0,229,160,0.30); }
+  .hero-meta { flex: 1; min-width: 0; }
+  .hero-doc { font-size: 16px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; line-height: 1.15; margin-bottom: 3px; }
+  .hero-spec { font-size: 12px; color: var(--ink3); font-weight: 500; }
+  .hero-when { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: rgba(0,229,160,0.06); border-radius: 12px; }
+  .hero-when-left { font-size: 14px; font-weight: 800; color: var(--ink); letter-spacing: -0.2px; }
+  .hero-when-left span { font-weight: 600; color: var(--ink3); }
+  .hero-when-right { font-size: 10.5px; font-weight: 800; color: var(--green2); letter-spacing: 0.06em; text-transform: uppercase; }
 
-  /* === Histórico — cards com avatar gradiente + ações inline === */
-  .h-card {
-    background: #FFFFFF;
-    border: 1px solid rgba(0,0,0,0.07);
-    border-radius: 12px;
-    margin: 0 var(--s5) 10px;
-    padding: 14px 16px;
-    display: flex;
-    gap: 14px;
-    align-items: center;
-    cursor: pointer;
-    box-shadow: 0 1px 12px rgba(0,0,0,0.05);
-    position: relative;
-    transition: all 0.2s var(--ease);
-  }
-  .h-card:active { transform: scale(0.99); }
-  .h-card.has-retorno::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1.5px;
-    background: linear-gradient(90deg, var(--green), var(--cyan), transparent);
-    border-radius: 12px 12px 0 0;
-  }
-  .h-av {
-    width: 44px; height: 44px;
-    border-radius: 50%;
-    background: var(--grad);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 800;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    letter-spacing: -0.3px;
-  }
-  .h-body { flex: 1; min-width: 0; }
-  .h-name {
-    font-size: 14.5px;
-    font-weight: 700;
-    color: var(--ink);
-    line-height: 1.2;
-    letter-spacing: -0.1px;
-    margin-bottom: 3px;
-  }
-  .h-meta {
-    font-size: 11.5px;
-    color: var(--ink3);
-    font-weight: 500;
-  }
-  .h-tags { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .h-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 9px;
-    border-radius: 100px;
-    font-size: 10.5px;
-    font-weight: 700;
-  }
-  .h-chip.ok {
-    background: rgba(0,196,122,0.10);
-    color: #00764A;
-  }
-  .h-chip.ok .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green2); }
-  .h-chip.attach {
-    background: rgba(59,130,246,0.08);
-    color: #1E40AF;
-  }
-  .h-chip.attach svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; }
-  .h-chip.retorno {
-    background: rgba(245,158,11,0.10);
-    color: var(--warn);
-  }
-  .h-chip.retorno .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warn); animation: pulse 2s infinite; }
+  .ret-pending { background: #fff; border: 1px solid rgba(245,158,11,0.18); border-left: 4px solid var(--warn); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 12px rgba(245,158,11,0.06); cursor: pointer; }
+  .ret-pending-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 0.10em; text-transform: uppercase; color: var(--warn); margin-bottom: 6px; }
+  .ret-pending-title { font-size: 14.5px; font-weight: 800; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.1px; }
+  .ret-pending-date { font-size: 22px; font-weight: 900; color: var(--ink); letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 4px; }
+  .ret-pending-hour { font-size: 14px; font-weight: 700; color: var(--ink2); margin-bottom: 4px; }
+  .ret-pending-sub { font-size: 12px; color: var(--ink3); margin-bottom: 14px; line-height: 1.4; }
+  .ret-actions-row { display: flex; gap: 8px; }
+  .ret-btn { flex: 1; padding: 10px 12px; border-radius: 12px; font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; }
+  .ret-btn.p { background: var(--grad); color: #fff; box-shadow: 0 4px 14px rgba(0,229,160,0.24); }
+  .ret-btn.s { background: #fff; color: var(--ink2); border: 1px solid rgba(0,0,0,0.08); }
+  .ret-btn:active { transform: scale(0.97); }
 
-  .h-chev { color: var(--ink5); flex-shrink: 0; align-self: center; }
-  .h-chev svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .doctors-block { padding: 18px 0 100px; }
+  .section-lbl { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink3); margin: 0 var(--s5) 12px; display: flex; align-items: center; justify-content: space-between; }
+  .section-lbl-count { color: var(--ink4); font-weight: 600; letter-spacing: 0.02em; text-transform: none; font-size: 11.5px; }
 
-  /* Próximo Retorno proposto pelo médico (Feature 1) */
-  .ret-card { background: var(--surface); border: 1px solid rgba(0,0,0,0.07); border-radius: 18px; padding: 18px; margin-bottom: 12px; box-shadow: 0 1px 12px rgba(0,0,0,0.07); }
-  .ret-card.aguardando { border-left: 4px solid var(--warn); }
-  .ret-card.confirmado { border-left: 4px solid var(--green2); }
-  .ret-card.aguardando-medico { border-left: 4px solid #00B4D8; }
-  .ret-card.cancelado { border-left: 4px solid #EF4444; background: rgba(239,68,68,0.02); }
-  .ret-data-canc { text-decoration: line-through; color: var(--ink3) !important; }
-  .ret-medico { font-size: 12px; color: var(--ink3); margin-bottom: 6px; font-weight: 600; }
-  .ret-data { font-size: 22px; font-weight: 900; color: var(--ink); letter-spacing: -.5px; line-height: 1; margin-bottom: 6px; }
-  .ret-data-anterior { font-size: 11.5px; color: var(--ink5); text-decoration: line-through; margin-bottom: 8px; }
-  .ret-status-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-  .ret-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .ret-status-txt { font-size: 12.5px; font-weight: 600; }
-  .ret-meta { font-size: 11.5px; color: var(--ink3); margin-bottom: 14px; line-height: 1.4; }
-  .ret-obs { font-size: 12.5px; color: var(--ink2); line-height: 1.5; background: rgba(0,0,0,0.025); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-style: italic; }
-  .ret-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .ret-btn-p { flex: 1; min-width: 0; padding: 11px 14px; background: linear-gradient(120deg, #00E5A0, #00B4D8); border: none; border-radius: 12px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700; color: #fff; cursor: pointer; }
-  .ret-btn-p:disabled { opacity: 0.5; cursor: wait; }
-  .ret-btn-s { padding: 11px 14px; background: var(--surface); border: 1px solid rgba(0,0,0,0.07); border-radius: 12px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--ink2); cursor: pointer; }
-  .ret-btn-d { padding: 11px 14px; background: var(--surface); border: 1px solid rgba(239,68,68,0.18); border-radius: 12px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--bad); cursor: pointer; }
+  .doctor-row { margin: 0 var(--s5) 10px; padding: 14px 16px; background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; box-shadow: 0 1px 12px rgba(0,0,0,0.04); position: relative; transition: all 0.18s var(--ease); }
+  .doctor-row:hover { border-color: rgba(0,229,160,0.20); box-shadow: 0 4px 18px rgba(0,229,160,0.08); }
+  .doctor-row:active { transform: scale(0.99); }
+  .doctor-row.has-pending { border-color: rgba(245,158,11,0.20); background: linear-gradient(135deg, #fff 0%, rgba(245,158,11,0.02) 100%); }
+  .doc-av { width: 48px; height: 48px; border-radius: 50%; background: var(--grad); color: #0D0F14; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; letter-spacing: -0.3px; position: relative; }
+  .doc-av.muted { background: linear-gradient(120deg, #9CA3AF, #C4C9D4); color: #1F2937; }
+  .doc-av-badge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 100px; background: var(--bad); color: #fff; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+  .doc-info { flex: 1; min-width: 0; }
+  .doc-name { font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: -0.2px; line-height: 1.2; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .doc-spec { font-size: 12px; color: var(--ink3); font-weight: 500; margin-bottom: 6px; }
+  .doc-meta-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .doc-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 100px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.01em; white-space: nowrap; }
+  .doc-pill.ok { background: rgba(0,196,122,0.10); color: #00764A; }
+  .doc-pill.ok .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green2); }
+  .doc-pill.warn { background: rgba(245,158,11,0.10); color: var(--warn); }
+  .doc-pill.warn .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warn); animation: pulse 2s infinite; }
+  .doc-pill.info { background: rgba(59,130,246,0.08); color: #1E40AF; }
+  .doc-pill.muted { background: rgba(0,0,0,0.04); color: var(--ink3); }
+  .doc-chev { color: var(--ink5); flex-shrink: 0; }
+  .doc-chev svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
 
-  /* Modais Recusar / Remarcar */
-  .ret-modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.3); z-index: 50; opacity: 0; pointer-events: none; transition: opacity .3s; }
-  .ret-modal-overlay.active { opacity: 1; pointer-events: all; }
-  .ret-modal { position: absolute; bottom: 0; left: 0; right: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 24px; max-height: 80%; overflow-y: auto; transform: translateY(100%); transition: transform .35s; box-shadow: 0 -4px 24px rgba(0,0,0,0.1); }
-  .ret-modal-overlay.active .ret-modal { transform: translateY(0); }
-  .ret-modal-title { font-size: 20px; font-weight: 800; color: var(--ink); margin-bottom: 6px; letter-spacing: -.3px; }
-  .ret-modal-sub { font-size: 13px; color: var(--ink3); margin-bottom: 16px; line-height: 1.5; }
-  .ret-modal-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-  .ret-modal-label { font-size: 11px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.06em; }
-  .ret-modal-input, .ret-modal-textarea { width: 100%; padding: 12px 14px; background: var(--surface); border: 1.5px solid rgba(0,0,0,0.07); border-radius: 12px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; color: var(--ink); outline: none; }
-  .ret-modal-textarea { resize: vertical; min-height: 80px; }
-  .ret-modal-btn-p { width: 100%; padding: 14px; background: linear-gradient(120deg, #00E5A0, #00B4D8); border: none; border-radius: 14px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; margin-top: 8px; }
-  .ret-modal-btn-p:disabled { opacity: 0.5; cursor: wait; }
-  .ret-modal-btn-s { width: 100%; padding: 12px; background: transparent; border: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink3); cursor: pointer; margin-top: 4px; }
+  .skel-row { margin: 0 var(--s5) 10px; padding: 14px 16px; background: #fff; border: 1px solid rgba(0,0,0,0.05); border-radius: 16px; display: flex; align-items: center; gap: 14px; }
+  .skel-av { width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.06); }
+  .skel-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .skel-line { height: 12px; background: rgba(0,0,0,0.06); border-radius: 6px; }
+  .skel-line.short { width: 60%; } .skel-line.med { width: 40%; }
+  @keyframes shimmer-skel { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .skel-av, .skel-line { animation: shimmer-skel 1.5s ease infinite; }
 
-  /* Documentos (Feature 2 — Apple-style mobile) */
-  .doc-card { background: var(--surface); border: 1px solid rgba(0,0,0,0.07); border-radius: 18px; padding: 4px 0; margin-bottom: 12px; box-shadow: 0 1px 12px rgba(0,0,0,0.07); overflow: hidden; }
-  .doc-row { display: grid; grid-template-columns: 38px 1fr auto; gap: 14px; align-items: center; padding: 14px 18px; cursor: pointer; position: relative; transition: background .12s; }
-  .doc-row+.doc-row::before { content: ''; position: absolute; top: 0; left: 70px; right: 18px; height: 1px; background: rgba(0,0,0,0.06); }
-  .doc-row:active { background: rgba(0,0,0,0.03); }
-  .doc-ico { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; color: #8E8E93; flex-shrink: 0; }
-  .doc-ico svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-  .doc-mid { min-width: 0; }
-  .doc-nm-row { display: flex; align-items: center; gap: 7px; }
-  .doc-nm { font-size: 14.5px; font-weight: 600; color: var(--ink); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.1px; }
-  .doc-dot-mob { width: 8px; height: 8px; border-radius: 50%; background: #007AFF; flex-shrink: 0; }
-  .doc-sub { font-size: 12px; color: var(--ink3); margin-top: 3px; line-height: 1.3; font-weight: 400; }
-  .doc-size { font-size: 12px; color: var(--ink3); font-variant-numeric: tabular-nums; font-weight: 500; flex-shrink: 0; }
+  /* ONBOARDING */
+  .onb { position: absolute; inset: 0; background: #F4F6FA; z-index: 120; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.3s var(--ease); }
+  .onb.on { opacity: 1; pointer-events: all; }
+  .onb-skip { position: absolute; top: 50px; right: var(--s5); z-index: 5; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--ink3); background: none; border: none; cursor: pointer; padding: 8px 4px; }
+  .onb-slides { flex: 1; overflow: hidden; position: relative; margin-top: 40px; min-height: 0; }
+  .onb-slide { position: absolute; inset: 0; padding: 16px var(--s5) 16px; display: flex; flex-direction: column; align-items: center; text-align: center; opacity: 0; transform: translateX(40px); transition: opacity 0.35s var(--ease), transform 0.35s var(--ease); pointer-events: none; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .onb-slide::-webkit-scrollbar { display: none; }
+  .onb-slide.active { opacity: 1; transform: translateX(0); pointer-events: all; }
+  .onb-slide.prev { opacity: 0; transform: translateX(-40px); }
+  .onb-illus { width: 160px; height: 160px; margin: 8px 0 20px; position: relative; flex-shrink: 0; }
+  .onb-illus::before { content: ''; position: absolute; inset: 20px; background: var(--grad); border-radius: 50%; filter: blur(50px); opacity: 0.20; }
+  .onb-illus svg { width: 100%; height: 100%; position: relative; z-index: 2; }
+  .onb-title { font-size: 24px; font-weight: 900; color: var(--ink); letter-spacing: -0.6px; line-height: 1.15; margin-bottom: 10px; max-width: 320px; flex-shrink: 0; }
+  .onb-title em { font-style: italic; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; padding-right: 0.08em; }
+  .onb-desc { font-size: 14px; color: var(--ink3); line-height: 1.55; max-width: 320px; margin-bottom: 16px; flex-shrink: 0; }
+  .onb-desc strong { color: var(--ink2); font-weight: 700; }
+  .onb-dots { display: flex; gap: 8px; justify-content: center; align-items: center; padding: 8px 0 12px; flex-shrink: 0; }
+  .onb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink5); transition: all 0.25s var(--ease); }
+  .onb-dot.active { width: 28px; border-radius: 100px; background: var(--grad); }
+  .onb-footer { padding: 8px var(--s5) 24px; background: #F4F6FA; flex-shrink: 0; }
+  .onb-cta { width: 100%; padding: 16px; background: var(--grad); border: none; border-radius: 16px; font-family: inherit; font-size: 15px; font-weight: 800; color: #fff; cursor: pointer; box-shadow: 0 8px 24px rgba(0,229,160,0.30); letter-spacing: -0.1px; transition: transform 0.15s; }
+  .onb-cta:active { transform: scale(0.98); }
+  .onb-back { width: 100%; padding: 12px; background: transparent; border: none; color: var(--ink3); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 4px; }
+  .onb-back:hover { color: var(--ink); }
+  .hide { display: none !important; }
 </style>
 </head>
 <body>
@@ -333,396 +142,104 @@
   <div class="status-bar"><span>9:41</span><span class="right"><svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="1" y="1" width="20" height="9" rx="2" stroke="currentColor" stroke-opacity=".35"/><rect x="2.5" y="2.5" width="17" height="6" rx="1" fill="currentColor"/></svg></span></div>
 
   <div class="content" style="top: 50px; background: #F4F6FA;">
-
-    <!-- Header -->
     <div class="ph anim anim-d1">
-      <div>
-        <div class="ph-greeting" id="consultasGreeting">&nbsp;</div>
-        <div class="ph-title">Suas <em>consultas</em></div>
+      <div class="ph-greet" id="greetEl">&nbsp;</div>
+      <div class="ph-title">Suas <em>consultas</em></div>
+      <button class="ph-help" onclick="openOnboarding(true)" aria-label="Ajuda">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
+    </div>
+
+    <div class="search-block anim anim-d2" id="searchBlock">
+      <div class="search" id="searchBox">
+        <svg class="search-ico" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg>
+        <input type="text" id="searchInp" placeholder="Buscar médico..." oninput="onSearch(this.value)">
+        <div class="clear" onclick="clearSearch()"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></div>
       </div>
     </div>
 
-    <!-- Retornos propostos pelo médico (Feature 1 — Próximo Retorno) -->
-    <div id="retornosPropostosSection" class="anim anim-d2" style="display:none">
-      <div class="section-lbl">Propostos pelo seu médico</div>
-      <div id="retornosPropostosList"></div>
-    </div>
+    <div class="urgent-block" id="urgentBlock"></div>
 
-    <!-- Documentos do médico (Feature 2 — Fase 2) -->
-    <div id="documentosSection" class="anim anim-d2" style="display:none;margin-bottom:22px">
-      <div class="section-lbl">Documentos do seu médico</div>
-      <div id="documentosList"></div>
+    <div class="doctors-block" id="doctorsBlock">
+      <div class="skel-row"><div class="skel-av"></div><div class="skel-lines"><div class="skel-line short"></div><div class="skel-line med"></div></div></div>
+      <div class="skel-row"><div class="skel-av"></div><div class="skel-lines"><div class="skel-line short"></div><div class="skel-line med"></div></div></div>
     </div>
-
-    <div id="proximaSection" style="display:none">
-      <div class="section-lbl anim anim-d3">Próxima consulta</div>
-      <div id="proximaContainer" class="anim anim-d3"></div>
-    </div>
-
-    <div id="historicoSection" style="display:none">
-      <div class="section-lbl anim anim-d4">Histórico clínico</div>
-      <div id="historicoContainer"></div>
-    </div>
-
-    <div id="vazioSection" style="display:none">
-      <div style="margin:40px var(--s5); padding:32px var(--s4); text-align:center; background:var(--surface); border:var(--border); border-radius:var(--r-md);">
-        <div style="font-size:15px;font-weight:800;color:var(--ink);margin-bottom:8px">Nenhuma consulta ainda</div>
-        <div style="font-size:13px;color:var(--ink3);line-height:1.5">Quando você for atendido por um médico que usa vita id, sua consulta aparece aqui.</div>
-      </div>
-    </div>
-
-    <div style="height: 100px"></div>
   </div>
 
-<script>
-  function escapeHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-
-  const DIAS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-  const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-
-  function iniciais(nome){
-    if (!nome) return '?';
-    return nome.trim().split(/\s+/).slice(0,2).map(s => s[0]).join('').toUpperCase();
-  }
-
-  function formatDataHora(dataIso){
-    const d = new Date(dataIso);
-    if (isNaN(d.getTime())) return '—';
-    const hh = String(d.getHours()).padStart(2,'0');
-    const mm = String(d.getMinutes()).padStart(2,'0');
-    return `${DIAS[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} · ${hh}h${mm !== '00' ? mm : ''}`;
-  }
-
-  function formatDataCurta(dataIso){
-    const d = new Date(dataIso);
-    if (isNaN(d.getTime())) return '—';
-    return `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
-  }
-
-  function diasAte(dataIso){
-    const d = new Date(dataIso);
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const diff = Math.round((d - hoje) / (1000*60*60*24));
-    if (diff < 0) return 'PASSOU';
-    if (diff === 0) return 'HOJE';
-    if (diff === 1) return 'AMANHÃ';
-    if (diff < 7) return `EM ${diff} DIAS`;
-    if (diff < 30) return `EM ${Math.round(diff/7)} SEMANAS`;
-    return `EM ${Math.round(diff/30)} ${Math.round(diff/30)===1?'MÊS':'MESES'}`;
-  }
-
-  function renderProxima(ag){
-    const medicoNome = ag.medico || ag.titulo || 'Médico';
-    const spec = ag.especialidade || ag.tipo || '';
-    const local = ag.local || '';
-    const cd = ag.dataHora ? diasAte(ag.dataHora) : '';
-    return `<div class="next" onclick="window.location='16-consulta-detalhe.html?id=${encodeURIComponent(ag.id)}'">
-      <div class="next-top">
-        <div class="next-doctor-row" style="margin-top: 4px;">
-          <div class="next-avatar">${iniciais(medicoNome)}</div>
-          <div class="next-doctor">
-            <div class="next-doctor-name">${escapeHtml(medicoNome)}</div>
-            ${spec ? `<div class="next-doctor-spec">${escapeHtml(spec)}</div>` : ''}
-          </div>
+  <div class="onb" id="onb">
+    <button class="onb-skip" onclick="closeOnboarding()">Pular</button>
+    <div class="onb-slides">
+      <div class="onb-slide active" data-slide="1">
+        <div class="onb-illus">
+          <svg viewBox="0 0 200 200" fill="none">
+            <defs>
+              <linearGradient id="ill1a" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#00B4D8"/></linearGradient>
+              <linearGradient id="ill1b" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5A0" stop-opacity="0.12"/><stop offset="100%" stop-color="#00B4D8" stop-opacity="0.12"/></linearGradient>
+            </defs>
+            <rect x="40" y="58" width="120" height="40" rx="10" fill="url(#ill1b)" stroke="url(#ill1a)" stroke-width="1.5" opacity="0.6" transform="rotate(-6 100 78)"/>
+            <rect x="40" y="78" width="120" height="40" rx="10" fill="#fff" stroke="url(#ill1a)" stroke-width="1.5" opacity="0.85" transform="rotate(-2 100 98)"/>
+            <g>
+              <rect x="38" y="98" width="124" height="50" rx="12" fill="#fff" stroke="url(#ill1a)" stroke-width="2"/>
+              <circle cx="60" cy="123" r="14" fill="url(#ill1a)"/>
+              <text x="60" y="128" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="11" font-weight="800" fill="#0D0F14">LB</text>
+              <rect x="82" y="113" width="70" height="6" rx="3" fill="#0D0F14" opacity="0.85"/>
+              <rect x="82" y="125" width="50" height="5" rx="2.5" fill="#9CA3AF"/>
+              <rect x="82" y="135" width="34" height="5" rx="2.5" fill="#00C47A" opacity="0.5"/>
+              <circle cx="68" cy="111" r="6" fill="#EF4444"/>
+              <text x="68" y="114" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="8" font-weight="800" fill="#fff">2</text>
+            </g>
+          </svg>
         </div>
-        ${ag.dataHora ? `<div class="next-datebadge">
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          ${formatDataHora(ag.dataHora)}
-        </div>` : ''}
+        <div class="onb-title">Cada médico no <em>seu lugar</em></div>
+        <div class="onb-desc">Suas consultas, documentos e recados ficam organizados por médico. <strong>Receita perdida no WhatsApp</strong> nunca mais.</div>
       </div>
-      ${(local || cd) ? `<div class="next-bot">
-        ${local ? `<div class="next-loc">
-          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          ${escapeHtml(local)}
-        </div>` : '<span></span>'}
-        ${cd ? `<span class="next-cd">${cd}</span>` : ''}
-      </div>` : ''}
-    </div>`;
-  }
-
-  function renderHistoricoCard(ag, i){
-    const medicoNome = ag.medico || ag.titulo || 'Consulta';
-    const spec = ag.especialidade || ag.tipo || '';
-    const dataStr = ag.dataHora ? formatDataCurta(ag.dataHora) : '';
-    const meta = [spec, dataStr].filter(Boolean).join(' · ');
-    return `<div class="h-card anim anim-d${Math.min(6, 4+i)}" onclick="window.location='16-consulta-detalhe.html?id=${encodeURIComponent(ag.id)}'">
-      <div class="h-av">${iniciais(medicoNome)}</div>
-      <div class="h-body">
-        <div class="h-name">${escapeHtml(medicoNome)}</div>
-        ${meta ? `<div class="h-meta">${escapeHtml(meta)}</div>` : ''}
+      <div class="onb-slide" data-slide="2">
+        <div class="onb-illus">
+          <svg viewBox="0 0 200 200" fill="none">
+            <defs><linearGradient id="ill2a" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#00B4D8"/></linearGradient></defs>
+            <path d="M40 50 Q40 38 52 38 L140 38 Q152 38 152 50 L152 78 Q152 90 140 90 L70 90 L52 104 L56 90 Q40 90 40 78 Z" fill="url(#ill2a)" opacity="0.16"/>
+            <path d="M40 50 Q40 38 52 38 L140 38 Q152 38 152 50 L152 78 Q152 90 140 90 L70 90 L52 104 L56 90 Q40 90 40 78 Z" fill="none" stroke="url(#ill2a)" stroke-width="2"/>
+            <rect x="56" y="54" width="56" height="5" rx="2.5" fill="#0D0F14" opacity="0.8"/>
+            <rect x="56" y="66" width="78" height="5" rx="2.5" fill="#9CA3AF"/>
+            <rect x="56" y="78" width="44" height="5" rx="2.5" fill="#9CA3AF"/>
+            <rect x="58" y="120" width="84" height="60" rx="10" fill="#fff" stroke="url(#ill2a)" stroke-width="2"/>
+            <circle cx="100" cy="150" r="16" fill="url(#ill2a)"/>
+            <path d="M92 150 L98 156 L110 144" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <div class="onb-title">Seu médico <em>chega preparado</em></div>
+        <div class="onb-desc">Antes da consulta, ele te envia perguntas no WhatsApp. Você responde em 2 minutos e <strong>ganha tempo de qualidade</strong> com ele na hora da visita.</div>
       </div>
-      <div class="h-chev"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-    </div>`;
-  }
-
-  async function iniciar(){
-    // greeting com nome real do localStorage
-    try {
-      const u = JSON.parse(localStorage.getItem('vitae_usuario')||'{}');
-      const primeiro = (u.nome||'').split(' ')[0];
-      document.getElementById('consultasGreeting').textContent = primeiro ? `Olá, ${primeiro}` : 'Olá';
-    } catch(_){}
-
-    try {
-      const r = await vitaeAPI.listarAgendamentos();
-      const lista = r.agendamentos || r || [];
-      if (!Array.isArray(lista) || lista.length === 0) {
-        document.getElementById('vazioSection').style.display = '';
-        return;
-      }
-
-      const agora = new Date();
-      const futuros = lista.filter(a => a.dataHora && new Date(a.dataHora) >= agora).sort((a,b) => new Date(a.dataHora) - new Date(b.dataHora));
-      const passados = lista.filter(a => !a.dataHora || new Date(a.dataHora) < agora).sort((a,b) => new Date(b.dataHora||0) - new Date(a.dataHora||0));
-
-      if (futuros.length) {
-        document.getElementById('proximaSection').style.display = '';
-        document.getElementById('proximaContainer').innerHTML = renderProxima(futuros[0]);
-      }
-
-      if (passados.length) {
-        document.getElementById('historicoSection').style.display = '';
-        document.getElementById('historicoContainer').innerHTML = passados.map(renderHistoricoCard).join('');
-      }
-
-      if (futuros.length === 0 && passados.length === 0) {
-        document.getElementById('vazioSection').style.display = '';
-      }
-    } catch (e) {
-      console.error('[15-consultas] erro', e);
-      document.getElementById('vazioSection').style.display = '';
-      document.querySelector('#vazioSection div div').textContent = 'Sem conexão';
-    }
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
-  else iniciar();
-
-  /* ========================================================
-     RETORNOS PROPOSTOS PELO MÉDICO (Feature 1)
-     Rotas backend usadas:
-       GET    /agendamento/retornos-pendentes
-       POST   /agendamento/:id/confirmar
-       POST   /agendamento/:id/recusar
-       POST   /agendamento/:id/remarcar
-     ======================================================== */
-
-  let _retornoSelecionado = null;
-
-  function _fmtRetData(d){
-    try { return new Date(d).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' }); }
-    catch(_e){ return d; }
-  }
-
-  function renderRetornoCard(r){
-    const st = r.statusProposta;
-    const cfgs = {
-      AGUARDANDO_PACIENTE: { cls:'aguardando', cor:'#F59E0B', txt:'Aguarda sua resposta' },
-      AGUARDANDO_MEDICO:   { cls:'aguardando-medico', cor:'#00B4D8', txt:'Aguardando seu médico' },
-      CONFIRMADO:          { cls:'confirmado', cor:'#00C47A', txt:'Confirmado' },
-      CANCELADO:           { cls:'cancelado', cor:'#EF4444', txt:'Cancelado pelo seu médico' },
-    };
-    const c = cfgs[st] || cfgs.AGUARDANDO_PACIENTE;
-
-    let actions = '';
-    if (st === 'AGUARDANDO_PACIENTE') {
-      actions = `
-        <button class="ret-btn-p" onclick="confirmarRet('${r.id}')">Confirmar</button>
-        <button class="ret-btn-s" onclick="abrirRemarca('${r.id}')">Outra data</button>
-        <button class="ret-btn-d" onclick="abrirRecusa('${r.id}')">Recusar</button>`;
-    } else if (st === 'CONFIRMADO') {
-      actions = `<button class="ret-btn-s" onclick="abrirRemarca('${r.id}')">Preciso remarcar</button>`;
-    } else if (st === 'AGUARDANDO_MEDICO') {
-      actions = `<div style="font-size:12px;color:var(--ink3);padding:6px 0">Seu médico ainda não respondeu.</div>`;
-    } else if (st === 'CANCELADO') {
-      actions = `<div style="font-size:12px;color:var(--ink3);padding:6px 0;line-height:1.5">Se quiser remarcar, fale com seu médico. Esse aviso some em 7 dias.</div>`;
-    }
-
-    const obsHtml = r.motivoStatus
-      ? `<div class="ret-obs">"${escapeHtml(r.motivoStatus)}"</div>`
-      : (r.observacoes ? `<div class="ret-obs">"${escapeHtml(r.observacoes)}"</div>` : '');
-    const dataAntHtml = r.dataAnterior ? `<div class="ret-data-anterior">Era ${_fmtRetData(r.dataAnterior)}</div>` : '';
-    const localHtml = r.local ? `<div class="ret-meta">${escapeHtml(r.local)}</div>` : '';
-    const dataCls = st === 'CANCELADO' ? 'ret-data ret-data-canc' : 'ret-data';
-
-    return `
-      <div class="ret-card ${c.cls}">
-        <div class="ret-medico">${escapeHtml(r.medico || 'Seu médico')}</div>
-        <div class="${dataCls}">${_fmtRetData(r.dataHora)}</div>
-        ${dataAntHtml}
-        <div class="ret-status-row"><div class="ret-status-dot" style="background:${c.cor}"></div><div class="ret-status-txt" style="color:${c.cor}">${c.txt}</div></div>
-        ${localHtml}
-        ${obsHtml}
-        <div class="ret-actions">${actions}</div>
-      </div>`;
-  }
-
-  async function loadRetornosPendentes(){
-    if (typeof vitaeAPI.listarRetornosPendentes !== 'function') return;
-    try {
-      const data = await vitaeAPI.listarRetornosPendentes();
-      const retornos = (data && data.retornos) || [];
-      if (!retornos.length) return;
-      const section = document.getElementById('retornosPropostosSection');
-      const list = document.getElementById('retornosPropostosList');
-      section.style.display = '';
-      list.innerHTML = retornos.map(renderRetornoCard).join('');
-    } catch(_e) { /* silencioso */ }
-  }
-
-  async function confirmarRet(id){
-    try {
-      await vitaeAPI.confirmarRetorno(id);
-      await loadRetornosPendentes();
-      await iniciar();
-    } catch(e){
-      alert(e.message || 'Não consegui confirmar agora. Tenta de novo em alguns segundos.');
-    }
-  }
-
-  function abrirRecusa(id){
-    _retornoSelecionado = id;
-    document.getElementById('recusaMotivoInp').value = '';
-    document.getElementById('recusaOverlay').classList.add('active');
-  }
-  function closeRecusa(){
-    _retornoSelecionado = null;
-    document.getElementById('recusaOverlay').classList.remove('active');
-  }
-  async function enviarRecusa(){
-    const id = _retornoSelecionado;
-    if (!id) return;
-    const motivo = document.getElementById('recusaMotivoInp').value.trim();
-    const btn = document.getElementById('recusaSubmit');
-    btn.disabled = true; btn.textContent = 'Enviando…';
-    try {
-      await vitaeAPI.recusarRetorno(id, motivo || undefined);
-      closeRecusa();
-      await loadRetornosPendentes();
-    } catch(e){
-      alert(e.message || 'Não consegui registrar. Tenta de novo.');
-    } finally {
-      btn.disabled = false; btn.textContent = 'Recusar retorno';
-    }
-  }
-
-  function abrirRemarca(id){
-    _retornoSelecionado = id;
-    const inp = document.getElementById('remarcaDateInp');
-    const min = new Date(Date.now() + 86400000);
-    inp.min = min.toISOString().slice(0,10);
-    const def = new Date(Date.now() + 86400000 * 30);
-    inp.value = def.toISOString().slice(0,10);
-    document.getElementById('remarcaMotivoInp').value = '';
-    document.getElementById('remarcaOverlay').classList.add('active');
-  }
-  function closeRemarca(){
-    _retornoSelecionado = null;
-    document.getElementById('remarcaOverlay').classList.remove('active');
-  }
-  async function enviarRemarca(){
-    const id = _retornoSelecionado;
-    if (!id) return;
-    const date = document.getElementById('remarcaDateInp').value;
-    const motivo = document.getElementById('remarcaMotivoInp').value.trim();
-    if (!date) { alert('Escolhe uma data primeiro'); return; }
-    const novaDataHora = new Date(date + 'T09:00:00').toISOString();
-    const btn = document.getElementById('remarcaSubmit');
-    btn.disabled = true; btn.textContent = 'Enviando…';
-    try {
-      await vitaeAPI.remarcarRetorno(id, novaDataHora, motivo || undefined);
-      closeRemarca();
-      await loadRetornosPendentes();
-    } catch(e){
-      alert(e.message || 'Não consegui enviar. Tenta de novo.');
-    } finally {
-      btn.disabled = false; btn.textContent = 'Enviar nova proposta';
-    }
-  }
-
-  loadRetornosPendentes();
-
-  /* ========================================================
-     DOCUMENTOS DO MEDICO (Feature 2)
-     Rotas: GET /documentos/meus, GET /documentos/:id/baixar
-     ======================================================== */
-
-  function _docNomeTipo(t){ return {RECEITA:'Receita',LAUDO:'Laudo',ENCAMINHAMENTO:'Encaminhamento',EXAME_PEDIDO:'Pedido de Exame',OUTRO:'Documento'}[t] || 'Documento'; }
-  function _docTam(b){ if(b<1024) return b+' B'; if(b<1024*1024) return Math.round(b/1024)+' KB'; return (b/1024/1024).toFixed(1)+' MB'; }
-  function _docFmtData(d){ try{ return new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}); }catch(_e){return '';} }
-
-  function renderDocCard(d){
-    var nomeLimpo = (d.nomeArquivo||'').replace(/\.[^.]+$/,'').replace(/_/g,' ');
-    var dot = d.visualizadoEm ? '' : '<span class="doc-dot-mob"></span>';
-    return '<div class="doc-row" onclick="baixarDoc(\''+d.id+'\')">'
-      +'<div class="doc-ico"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></div>'
-      +'<div class="doc-mid">'
-        +'<div class="doc-nm-row"><div class="doc-nm">'+escapeHtml(nomeLimpo)+'</div>'+dot+'</div>'
-        +'<div class="doc-sub">'+escapeHtml(_docNomeTipo(d.tipo))+' · '+escapeHtml(_docFmtData(d.anexadoEm))+'</div>'
-      +'</div>'
-      +'<div class="doc-size">'+escapeHtml(_docTam(d.tamanhoBytes||0))+'</div>'
-    +'</div>';
-  }
-
-  async function loadDocumentos(){
-    if (typeof vitaeAPI.listarMeusDocumentos !== 'function') return;
-    try {
-      var data = await vitaeAPI.listarMeusDocumentos();
-      var docs = (data && data.documentos) || [];
-      if (!docs.length) return;
-      var card = '<div class="doc-card">' + docs.map(renderDocCard).join('') + '</div>';
-      document.getElementById('documentosList').innerHTML = card;
-      document.getElementById('documentosSection').style.display = '';
-    } catch(_e) { /* silencioso */ }
-  }
-
-  async function baixarDoc(id){
-    try {
-      var res = await vitaeAPI.baixarDocumento(id);
-      if (res && res.url) {
-        window.open(res.url, '_blank', 'noopener');
-        // Recarrega lista pra atualizar visualizadoEm
-        setTimeout(loadDocumentos, 1500);
-      } else {
-        alert('Não consegui abrir o documento. Tenta de novo.');
-      }
-    } catch(e) {
-      alert(e.message || 'Erro ao abrir documento');
-    }
-  }
-
-  loadDocumentos();
-</script>
-
-  <!-- Modal: Recusar retorno -->
-  <div class="ret-modal-overlay" id="recusaOverlay" onclick="closeRecusa()">
-    <div class="ret-modal" onclick="event.stopPropagation()">
-      <div class="ret-modal-title">Recusar retorno</div>
-      <div class="ret-modal-sub">Você pode contar pro seu médico o motivo. Fica opcional — se preferir, é só clicar em "Recusar retorno" sem escrever nada.</div>
-      <div class="ret-modal-field">
-        <div class="ret-modal-label">Motivo (opcional)</div>
-        <textarea class="ret-modal-textarea" id="recusaMotivoInp" placeholder="Ex: vou estar viajando nessa semana"></textarea>
+      <div class="onb-slide" data-slide="3">
+        <div class="onb-illus">
+          <svg viewBox="0 0 200 200" fill="none">
+            <defs>
+              <linearGradient id="ill3a" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#00B4D8"/></linearGradient>
+              <linearGradient id="ill3b" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5A0" stop-opacity="0.10"/><stop offset="100%" stop-color="#00B4D8" stop-opacity="0.10"/></linearGradient>
+            </defs>
+            <rect x="34" y="40" width="132" height="118" rx="12" fill="#fff" stroke="url(#ill3a)" stroke-width="2"/>
+            <rect x="34" y="40" width="132" height="26" rx="12 12 0 0" fill="url(#ill3b)"/>
+            <line x1="62" y1="32" x2="62" y2="50" stroke="url(#ill3a)" stroke-width="3" stroke-linecap="round"/>
+            <line x1="138" y1="32" x2="138" y2="50" stroke="url(#ill3a)" stroke-width="3" stroke-linecap="round"/>
+            <g><circle cx="80" cy="108" r="9" fill="url(#ill3a)"/><text x="80" y="112" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="10" font-weight="800" fill="#0D0F14">1</text></g>
+            <g><circle cx="102" cy="108" r="9" fill="url(#ill3a)"/><text x="102" y="112" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="10" font-weight="800" fill="#0D0F14">2</text></g>
+            <g><circle cx="80" cy="132" r="9" fill="url(#ill3a)"/><text x="80" y="136" text-anchor="middle" font-family="Plus Jakarta Sans" font-size="10" font-weight="800" fill="#0D0F14">3</text></g>
+            <circle cx="150" cy="38" r="14" fill="url(#ill3a)"/>
+            <path d="M143 38 L148 43 L157 33" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <div class="onb-title">Precisou <em>remarcar?</em></div>
+        <div class="onb-desc">Diga 3 horários que funcionam pra você. <strong>Seu médico escolhe um</strong> e pronto — sem ficar trocando mensagens o dia inteiro pra encontrar um momento.</div>
       </div>
-      <button class="ret-modal-btn-p" id="recusaSubmit" onclick="enviarRecusa()">Recusar retorno</button>
-      <button class="ret-modal-btn-s" onclick="closeRecusa()">Cancelar</button>
     </div>
-  </div>
-
-  <!-- Modal: Remarcar retorno -->
-  <div class="ret-modal-overlay" id="remarcaOverlay" onclick="closeRemarca()">
-    <div class="ret-modal" onclick="event.stopPropagation()">
-      <div class="ret-modal-title">Propor outra data</div>
-      <div class="ret-modal-sub">Seu médico recebe a nova data e decide se aceita. Você é avisado quando ele responder.</div>
-      <div class="ret-modal-field">
-        <div class="ret-modal-label">Nova data</div>
-        <input class="ret-modal-input" type="date" id="remarcaDateInp">
-      </div>
-      <div class="ret-modal-field">
-        <div class="ret-modal-label">Motivo (opcional)</div>
-        <textarea class="ret-modal-textarea" id="remarcaMotivoInp" placeholder="Ex: tenho compromisso no dia anterior"></textarea>
-      </div>
-      <button class="ret-modal-btn-p" id="remarcaSubmit" onclick="enviarRemarca()">Enviar nova proposta</button>
-      <button class="ret-modal-btn-s" onclick="closeRemarca()">Cancelar</button>
+    <div class="onb-dots" id="onbDots">
+      <div class="onb-dot active"></div>
+      <div class="onb-dot"></div>
+      <div class="onb-dot"></div>
+    </div>
+    <div class="onb-footer">
+      <button class="onb-cta" id="onbCta" onclick="nextSlide()">Próximo</button>
+      <button class="onb-back hide" id="onbBack" onclick="prevSlide()">Voltar</button>
     </div>
   </div>
 
@@ -745,5 +262,235 @@
     </div>
   </div>
 </div>
+
+<script>
+function escapeHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const DIAS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+function fmtDataCurta(iso){ const d = new Date(iso); if (isNaN(d.getTime())) return '—'; return `${d.getDate()} de ${MESES[d.getMonth()]}`; }
+function fmtHora(iso){ const d = new Date(iso); if (isNaN(d.getTime())) return ''; const hh = String(d.getHours()).padStart(2,'0'); const mm = String(d.getMinutes()).padStart(2,'0'); return mm === '00' ? `${hh}h` : `${hh}h${mm}`; }
+function diaSemana(iso){ const d = new Date(iso); if (isNaN(d.getTime())) return ''; return DIAS[d.getDay()]; }
+function diasAte(iso){
+  const d = new Date(iso); const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const diff = Math.round((d - hoje) / (1000*60*60*24));
+  if (diff < 0) return 'PASSOU'; if (diff === 0) return 'HOJE'; if (diff === 1) return 'AMANHÃ';
+  if (diff < 7) return `EM ${diff} DIAS`;
+  if (diff < 30) return `EM ${Math.round(diff/7)} SEMANA${Math.round(diff/7)>1?'S':''}`;
+  return `EM ${Math.round(diff/30)} ${Math.round(diff/30)===1?'MÊS':'MESES'}`;
+}
+
+let _onbSlide = 1;
+const ONB_TOTAL = 3;
+const ONB_FLAG_KEY = 'vita_onb_consultas_visto';
+
+function openOnboarding(){
+  _onbSlide = 1;
+  document.querySelectorAll('.onb-slide').forEach(s => {
+    s.classList.remove('active', 'prev');
+    if (parseInt(s.dataset.slide) === 1) s.classList.add('active');
+  });
+  updateOnbUI();
+  document.getElementById('onb').classList.add('on');
+}
+function closeOnboarding(){
+  document.getElementById('onb').classList.remove('on');
+  try { localStorage.setItem(ONB_FLAG_KEY, '1'); } catch(_){}
+}
+function nextSlide(){ if (_onbSlide >= ONB_TOTAL) { closeOnboarding(); return; } goToSlide(_onbSlide + 1); }
+function prevSlide(){ if (_onbSlide <= 1) return; goToSlide(_onbSlide - 1); }
+function goToSlide(n){
+  document.querySelectorAll('.onb-slide').forEach(s => {
+    const num = parseInt(s.dataset.slide);
+    s.classList.remove('active', 'prev');
+    if (num === n) s.classList.add('active');
+    else if (num < n) s.classList.add('prev');
+  });
+  _onbSlide = n; updateOnbUI();
+}
+function updateOnbUI(){
+  document.querySelectorAll('#onbDots .onb-dot').forEach((d, i) => d.classList.toggle('active', i === _onbSlide - 1));
+  document.getElementById('onbCta').textContent = _onbSlide === ONB_TOTAL ? 'Começar' : 'Próximo';
+  document.getElementById('onbBack').classList.toggle('hide', _onbSlide === 1);
+}
+function maybeAutoOpenOnboarding(){
+  let visto = false;
+  try { visto = localStorage.getItem(ONB_FLAG_KEY) === '1'; } catch(_){}
+  if (!visto) setTimeout(() => openOnboarding(), 400);
+}
+
+function abrirMedico(id){ window.location.href = '18-medico-perfil.html?medicoId=' + encodeURIComponent(id); }
+function abrirProximaConsulta(id){ window.location.href = '17-proxima-consulta.html?id=' + encodeURIComponent(id); }
+function abrirPreconsulta(token){ window.location.href = 'pre-consulta.html?t=' + encodeURIComponent(token); }
+
+async function confirmarRet(id){
+  try { await vitaeAPI.confirmarRetorno(id); await renderTela(); }
+  catch (e) { alert(e.message || 'Não consegui confirmar agora. Tenta de novo.'); }
+}
+
+async function renderTela(){
+  try {
+    const u = JSON.parse(localStorage.getItem('vitae_usuario')||'{}');
+    const primeiro = (u.nome||'').split(' ')[0];
+    document.getElementById('greetEl').textContent = primeiro ? `Olá, ${primeiro}` : 'Olá';
+  } catch(_){}
+
+  const ub = document.getElementById('urgentBlock');
+  const db = document.getElementById('doctorsBlock');
+  ub.innerHTML = '';
+
+  let medicos = []; let preconsulta = null;
+  try {
+    const [r1, r2] = await Promise.allSettled([
+      vitaeAPI.listarMeusMedicos(),
+      vitaeAPI.getPreConsultaEmAndamento(),
+    ]);
+    if (r1.status === 'fulfilled') medicos = r1.value.medicos || [];
+    if (r2.status === 'fulfilled') preconsulta = r2.value.preConsulta || null;
+  } catch (e) { console.error('[15-consultas] erro:', e); }
+
+  if (!medicos.length && !preconsulta) {
+    window.location.replace('44-consultas-vazia.html');
+    return;
+  }
+
+  const proximas = medicos
+    .map(m => {
+      const futuras = (m.agendamentos || []).filter(a => a.dataHora && new Date(a.dataHora) >= new Date());
+      futuras.sort((a,b) => new Date(a.dataHora) - new Date(b.dataHora));
+      return { medico: m, proxima: futuras[0] || null };
+    })
+    .filter(x => x.proxima)
+    .sort((a,b) => new Date(a.proxima.dataHora) - new Date(b.proxima.dataHora));
+
+  const retornosAguardando = medicos
+    .filter(m => m.retornoPendente && m.retornoPendente.statusProposta === 'AGUARDANDO_PACIENTE')
+    .map(m => ({ medico: m, retorno: m.retornoPendente }));
+
+  const urgentHTML = [];
+
+  if (preconsulta) {
+    urgentHTML.push(`
+      <div class="preconsulta-card" onclick="abrirPreconsulta('${preconsulta.token}')">
+        <div class="pre-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg></div>
+        <div class="pre-body">
+          <div class="pre-title">Termine sua pré-consulta</div>
+          <div class="pre-sub">${preconsulta.perguntasFeitas > 0 ? `Você parou em ${preconsulta.perguntasFeitas} de ${preconsulta.perguntasTotal} perguntas · ` : ''}${escapeHtml(preconsulta.medicoNome)}</div>
+        </div>
+        <div class="pre-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+    `);
+  }
+
+  if (proximas.length) {
+    const { medico: m, proxima: ag } = proximas[0];
+    urgentHTML.push(`
+      <div class="hero-next" onclick="abrirProximaConsulta('${ag.id}')">
+        <div class="hero-top">
+          <div class="hero-eyebrow"><span class="pulse"></span>${diasAte(ag.dataHora)}</div>
+          <div class="hero-row">
+            <div class="hero-av">${m.avatarIniciais}</div>
+            <div class="hero-meta">
+              <div class="hero-doc">${escapeHtml(m.nome)}</div>
+              <div class="hero-spec">${escapeHtml(m.especialidade || '')}${ag.tipo ? ' · ' + escapeHtml(ag.tipo) : ''}</div>
+            </div>
+          </div>
+          <div class="hero-when">
+            <div class="hero-when-left">${fmtDataCurta(ag.dataHora)} <span>· ${fmtHora(ag.dataHora)}</span></div>
+            <div class="hero-when-right">${diaSemana(ag.dataHora)}</div>
+          </div>
+        </div>
+      </div>
+    `);
+  }
+
+  retornosAguardando.forEach(({ medico: m, retorno: r }) => {
+    urgentHTML.push(`
+      <div class="ret-pending" onclick="abrirProximaConsulta('${r.id}')">
+        <div class="ret-pending-eyebrow">Seu médico propôs retorno</div>
+        <div class="ret-pending-title">${escapeHtml(m.nome)}${m.especialidade ? ' · ' + escapeHtml(m.especialidade) : ''}</div>
+        <div class="ret-pending-date">${fmtDataCurta(r.dataHora)}</div>
+        <div class="ret-pending-hour">${diaSemana(r.dataHora)} · ${fmtHora(r.dataHora)}</div>
+        <div class="ret-pending-sub">Confirme essa data ou sugira 3 outros horários.</div>
+        <div class="ret-actions-row">
+          <button class="ret-btn p" onclick="event.stopPropagation(); confirmarRet('${r.id}')">Confirmar</button>
+          <button class="ret-btn s" onclick="event.stopPropagation(); abrirProximaConsulta('${r.id}')">Sugerir 3 horários</button>
+        </div>
+      </div>
+    `);
+  });
+
+  ub.innerHTML = urgentHTML.join('');
+
+  // Ordena médicos
+  medicos.sort((a, b) => {
+    const scoreA = (a.retornoPendente ? 2 : 0) + ((a.agendamentos||[]).some(x => x.dataHora && new Date(x.dataHora) >= new Date()) ? 1 : 0);
+    const scoreB = (b.retornoPendente ? 2 : 0) + ((b.agendamentos||[]).some(x => x.dataHora && new Date(x.dataHora) >= new Date()) ? 1 : 0);
+    return scoreB - scoreA;
+  });
+
+  if (!medicos.length) {
+    db.innerHTML = '<div style="padding:30px var(--s5);text-align:center;color:var(--ink3);font-size:13px">Pré-consulta pendente acima. Seus médicos aparecem aqui quando você criar conta vinculada.</div>';
+    return;
+  }
+
+  const counter = medicos.length;
+  const listHTML = [`
+    <div class="section-lbl">
+      <span>Seus médicos</span>
+      <span class="section-lbl-count">${counter} ${counter === 1 ? 'médico' : 'médicos'}</span>
+    </div>
+  `];
+
+  medicos.forEach(m => {
+    const docsNovos = (m.documentos || []).filter(d => !d.visualizadoEm).length;
+    const proxFut = (m.agendamentos || []).filter(a => a.dataHora && new Date(a.dataHora) >= new Date()).sort((a,b) => new Date(a.dataHora) - new Date(b.dataHora))[0];
+    const hasPending = !!m.retornoPendente || docsNovos > 0;
+
+    let pills = [];
+    if (proxFut) pills.push(`<span class="doc-pill ok"><span class="dot"></span>Próxima ${fmtDataCurta(proxFut.dataHora)}</span>`);
+    else pills.push(`<span class="doc-pill muted">Sem próxima</span>`);
+    if (m.retornoPendente && m.retornoPendente.statusProposta === 'AGUARDANDO_PACIENTE') pills.push(`<span class="doc-pill warn"><span class="dot"></span>Retorno aguardando</span>`);
+    if (docsNovos) pills.push(`<span class="doc-pill info">${docsNovos} doc${docsNovos>1?'s':''} novo${docsNovos>1?'s':''}</span>`);
+
+    listHTML.push(`
+      <div class="doctor-row ${hasPending ? 'has-pending' : ''}" onclick="abrirMedico('${m.id}')">
+        <div class="doc-av ${proxFut ? '' : 'muted'}">${m.avatarIniciais}${docsNovos ? `<div class="doc-av-badge">${docsNovos}</div>` : ''}</div>
+        <div class="doc-info">
+          <div class="doc-name">${escapeHtml(m.nome)}</div>
+          <div class="doc-spec">${escapeHtml(m.especialidade || '')}</div>
+          <div class="doc-meta-row">${pills.join('')}</div>
+        </div>
+        <div class="doc-chev"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+    `);
+  });
+
+  db.innerHTML = listHTML.join('');
+}
+
+function onSearch(v){
+  const box = document.getElementById('searchBox');
+  if (v) box.classList.add('has-value'); else box.classList.remove('has-value');
+  const q = v.trim().toLowerCase();
+  document.querySelectorAll('.doctor-row').forEach(r => {
+    const t = r.textContent.toLowerCase();
+    r.style.display = !q || t.includes(q) ? '' : 'none';
+  });
+}
+function clearSearch(){ const inp = document.getElementById('searchInp'); inp.value = ''; onSearch(''); inp.focus(); }
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('onb').classList.contains('on')) closeOnboarding();
+  if (e.key === 'ArrowRight' && document.getElementById('onb').classList.contains('on')) nextSlide();
+  if (e.key === 'ArrowLeft' && document.getElementById('onb').classList.contains('on')) prevSlide();
+});
+
+if (window.vitaeAPI && !vitaeAPI.isLoggedIn()) {
+  window.location.replace('23-login.html');
+} else {
+  renderTela();
+  maybeAutoOpenOnboarding();
+}
+</script>
 </body>
 </html>
