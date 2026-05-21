@@ -1307,6 +1307,12 @@ async function loadExams() {
 
     renderLista(processingExams.length, errorExams);
 
+    // FASE 4: detecta "exame ficou pronto enquanto você estava fora" + marca todos como vistos
+    _detectarExamesProntosFora(raw);
+
+    // FASE 4: modal de celebração quando exame que estava aguardando fica pronto
+    _checarNovoExameConcluido(raw);
+
     // FASE 2 — CAMADA 2/3: detectar exames problemáticos do servidor
     // Caso 1: exame CONCLUIDO mas com 0 parâmetros = era capa do laudo ou não era exame
     // Caso 2: erro de OCR = arquivo ilegível
@@ -1320,6 +1326,133 @@ async function loadExams() {
   } catch (err) {
     console.log('Erro ao carregar exames:', err.message);
     renderLista(0, []);
+  }
+}
+
+// Fase 4: aguarda o exame que acabou de ser enviado ficar pronto
+// e mostra modal de celebração
+let _aguardandoCelebracao = false;
+let _examesIdsAntesDoUpload = [];
+
+function _aguardarConclusaoEMostrarCelebracao() {
+  // Captura IDs atuais pra detectar qual é o novo
+  _examesIdsAntesDoUpload = allExams.map(e => e.id);
+  _aguardandoCelebracao = true;
+  // Timeout pra não ficar esperando pra sempre
+  setTimeout(() => { _aguardandoCelebracao = false; }, 90000);
+}
+
+function _checarNovoExameConcluido(raw) {
+  if (!_aguardandoCelebracao) return;
+  if (!Array.isArray(raw)) return;
+  // Procura exame concluido cuja ID não estava na lista de antes
+  const novo = raw.find(e =>
+    e.status === 'CONCLUIDO' &&
+    !_examesIdsAntesDoUpload.includes(e.id) &&
+    (e.totalParametros || 0) > 0
+  );
+  if (!novo) return;
+
+  _aguardandoCelebracao = false;
+  _mostrarCelebracao(novo);
+}
+
+function _mostrarCelebracao(exame) {
+  const overlay = document.createElement('div');
+  overlay.id = 'celebracaoOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(13,15,20,0.45);z-index:9000;display:flex;align-items:center;justify-content:center;padding:24px;font-family:"Plus Jakarta Sans",sans-serif;';
+  const normal = exame.normalCount || 0;
+  const atencao = exame.atencaoCount || 0;
+  const critico = exame.criticoCount || 0;
+  const total = exame.totalParametros || (normal + atencao + critico);
+
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:24px;padding:30px 22px 22px;text-align:center;max-width:320px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.25);animation:popIn .35s cubic-bezier(.34,1.56,.64,1);">
+      <div style="width:100px;height:100px;border-radius:50%;background:linear-gradient(120deg,#00E5A0,#00B4D8);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 12px 32px rgba(0,229,160,0.40);position:relative;">
+        <div style="position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(0,229,160,0.40);animation:pulse1 1.8s ease-out infinite;"></div>
+        <div style="position:absolute;inset:-18px;border-radius:50%;border:2px solid rgba(0,229,160,0.20);animation:pulse2 1.8s ease-out infinite 0.3s;"></div>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div style="font-size:22px;font-weight:800;letter-spacing:-0.4px;margin-bottom:8px;color:#0D0F14;">Pronto! Seu <em style="font-style:italic;color:#00C47A;">exame</em></div>
+      <div style="font-size:13.5px;color:#6B7280;line-height:1.5;margin-bottom:18px;">Lemos ${total} valores. Tá tudo organizado.</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;">
+        ${normal > 0 ? `<div style="padding:7px 12px;border-radius:100px;font-size:11px;font-weight:700;background:rgba(0,196,122,0.13);color:#00C47A;">● ${normal} ${normal === 1 ? 'normal' : 'normais'}</div>` : ''}
+        ${atencao > 0 ? `<div style="padding:7px 12px;border-radius:100px;font-size:11px;font-weight:700;background:rgba(245,158,11,0.13);color:#F59E0B;">● ${atencao} atenção</div>` : ''}
+        ${critico > 0 ? `<div style="padding:7px 12px;border-radius:100px;font-size:11px;font-weight:700;background:rgba(239,68,68,0.13);color:#EF4444;">● ${critico} urgente</div>` : ''}
+      </div>
+      <button id="celCtaBtn" style="width:100%;padding:13px;background:linear-gradient(120deg,#00E5A0,#00B4D8);border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:800;color:#0D0F14;box-shadow:0 6px 18px rgba(0,229,160,0.30);cursor:pointer;">Ver resultado</button>
+      <button id="celCloseBtn" style="margin-top:8px;background:none;border:none;font-family:inherit;font-size:13px;color:rgba(13,15,20,0.45);cursor:pointer;padding:6px;">Depois</button>
+    </div>
+    <style>
+      @keyframes popIn{from{transform:scale(0.85);opacity:0}to{transform:scale(1);opacity:1}}
+      @keyframes pulse1{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.3);opacity:0}}
+      @keyframes pulse2{0%{transform:scale(1);opacity:.4}100%{transform:scale(1.4);opacity:0}}
+    </style>
+  `;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  document.getElementById('celCtaBtn').addEventListener('click', () => {
+    close();
+    // Abre o exame no detalhe
+    const idx = allExams.findIndex(e => e.id === exame.id);
+    if (idx !== -1) openExam(idx);
+  });
+  document.getElementById('celCloseBtn').addEventListener('click', close);
+  // Auto-fecha em 8s se nada
+  setTimeout(close, 8000);
+}
+
+function _detectarExamesProntosFora(raw) {
+  if (!Array.isArray(raw)) return;
+  const concluidos = raw.filter(e => e.status === 'CONCLUIDO').map(e => e.id);
+  if (concluidos.length === 0) return;
+
+  // Pega lista de vistos antes de atualizar
+  const vistosAntes = (function() {
+    try { return JSON.parse(localStorage.getItem('vitae_exames_vistos_ids') || '[]'); }
+    catch(_) { return []; }
+  })();
+
+  const novos = concluidos.filter(id => !vistosAntes.includes(id));
+
+  // Marca TODOS os concluidos atuais como vistos (paciente abriu a aba)
+  try {
+    const todos = Array.from(new Set([...vistosAntes, ...concluidos]));
+    localStorage.setItem('vitae_exames_vistos_ids', JSON.stringify(todos));
+  } catch(_) {}
+
+  // Se há novos exames que ele não tinha visto, mostra banner de boas-vindas
+  // (mas só se ele não acabou de subir um — pra não duplicar com o "Exame enviado!")
+  if (novos.length > 0 && !_uploadStartedAt && typeof showVitaeBanner === 'function') {
+    const quantos = novos.length;
+    const txt = quantos === 1
+      ? 'Seu exame ficou pronto enquanto você estava fora!'
+      : `${quantos} exames novos prontos!`;
+    showVitaeBanner({
+      type: 'sessao', // azul amigável
+      title: txt,
+      message: 'Toque pra ver o resultado.',
+      actionLabel: 'Ver agora',
+      actionFn: () => {
+        // já está na aba Exames — só rola pro topo
+        document.getElementById('listaContent')?.scrollIntoView({ behavior: 'smooth' });
+      },
+      closeable: true,
+      id: 'vbanner_examesnovos',
+    });
+    // Sobrescreve cor pra verde (mais alegre)
+    setTimeout(() => {
+      const el = document.getElementById('vbanner_examesnovos');
+      if (el) {
+        el.style.background = '#ECFDF5';
+        el.style.borderLeftColor = '#00C47A';
+        const ic = el.querySelector('.vitae-banner-ic');
+        if (ic) { ic.style.background = '#00C47A'; ic.textContent = '✓'; }
+        const btn = el.querySelector('.vitae-banner-btn');
+        if (btn) btn.style.background = '#00C47A';
+      }
+    }, 10);
   }
 }
 
@@ -2726,9 +2859,11 @@ fileInput.addEventListener('change', async function(e) {
     await vitaeAPI.uploadExame(file);
     // Só roda se o servidor confirmou de verdade (sem erro lançado)
     _stopLiveProgressTicker();
+    // Aguarda servidor processar antes de mostrar celebração
+    // Vamos monitorar o polling — se concluir rapidinho, mostra modal
+    _aguardarConclusaoEMostrarCelebracao();
     await loadExams();
-    // Celebração in-app (Fase 4 traz modal mais elaborado; toast por enquanto)
-    showToast('Exame enviado! Analisando.');
+    showToast('Enviei! Tô lendo o exame...');
   } catch (err) {
     _stopLiveProgressTicker();
     lastUploadedUrl = null;

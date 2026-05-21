@@ -434,6 +434,84 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 }
 
 // ============================================================
+// FASE 4 — BOLINHA VERDE NO TAB BAR (exame pronto)
+// Quando um exame fica pronto e o paciente está em outra aba,
+// aparece uma bolinha verde discreta sobre o ícone "Exames".
+// ============================================================
+
+const EXAMES_VISTOS_KEY = 'vitae_exames_vistos_ids';
+
+// Marca um conjunto de IDs de exames como "já vistos" (paciente abriu a aba e viu)
+function _marcarExamesComoVistos(ids) {
+  try {
+    const arr = Array.from(new Set(ids.filter(Boolean)));
+    localStorage.setItem(EXAMES_VISTOS_KEY, JSON.stringify(arr));
+  } catch (_) {}
+}
+
+function _getExamesVistos() {
+  try {
+    return JSON.parse(localStorage.getItem(EXAMES_VISTOS_KEY) || '[]');
+  } catch (_) { return []; }
+}
+
+// Retorna true se há exames novos (concluidos depois da última visita à aba Exames)
+async function _temExamesNovos() {
+  if (!isLoggedIn()) return false;
+  try {
+    const data = await apiRequest('/exames').catch(() => null);
+    if (!data) return false;
+    const lista = Array.isArray(data) ? data : (data.exames || []);
+    const concluidos = lista.filter(e => e.status === 'CONCLUIDO').map(e => e.id);
+    const vistos = _getExamesVistos();
+    return concluidos.some(id => !vistos.includes(id));
+  } catch (_) { return false; }
+}
+
+// Pinta bolinha verde sobre o ícone "Exames" no tab bar da página atual.
+// Cada tela tem seu próprio HTML de tab bar — usamos seletor genérico.
+async function _atualizarBolinhaExames() {
+  // Se a página atual É a aba de exames, marca todos os concluidos como vistos
+  const path = (typeof window !== 'undefined' && window.location.pathname) || '';
+  const estaNaAbaExames = path.includes('09-exames-lista') || path.includes('10-exame-detalhe');
+  if (estaNaAbaExames) {
+    // Deixa a marca de "vistos" pra ser atualizada por loadExams() depois
+    // (lá temos a lista completa)
+    return;
+  }
+
+  // Verifica se há exames novos
+  const temNovos = await _temExamesNovos();
+  if (!temNovos) return;
+
+  // Procura o botão de Exames no tab bar e adiciona bolinha
+  // Convenção: tab que tem onclick com '09-exames-lista.html' OU classe 'tab' com label "Exames"
+  const candidatos = document.querySelectorAll('[onclick*="09-exames-lista"], .bn, .tab');
+  candidatos.forEach(el => {
+    const label = el.textContent || '';
+    if (!label.toLowerCase().includes('exames')) return;
+    if (el.querySelector('.vitae-bn-new')) return; // já tem
+    const dot = document.createElement('div');
+    dot.className = 'vitae-bn-new';
+    dot.style.cssText = 'position:absolute;top:-1px;right:6px;width:11px;height:11px;border-radius:50%;background:#00E5A0;border:2.5px solid #fff;box-shadow:0 0 10px rgba(0,229,160,0.55);z-index:5;pointer-events:none;';
+    // Garante que o pai tem position relative
+    const cs = window.getComputedStyle(el);
+    if (cs.position === 'static') el.style.position = 'relative';
+    el.appendChild(dot);
+  });
+}
+
+// Roda a verificação quando uma página (que não seja Exames) carrega
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('DOMContentLoaded', () => {
+    // Pequeno delay pra DOM estabilizar
+    setTimeout(() => {
+      _atualizarBolinhaExames().catch(() => {});
+    }, 800);
+  });
+}
+
+// ============================================================
 // DETECÇÃO DE OFFLINE (browser nativo)
 // ============================================================
 if (typeof window !== 'undefined' && window.addEventListener) {
