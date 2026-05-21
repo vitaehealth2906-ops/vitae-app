@@ -609,6 +609,74 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 28 — 20/05/2026 (tarde-noite, notebook faculdade) — Splash + Auth redirect + Fix corte titulos gradient
+
+**Contexto:** Lucas no notebook da faculdade, revisando visualmente as telas do app-v3. Abriu `preview-16-consulta-detalhe.html` e reportou: "todas as telas com titulo preto+gradient italic mostram o final cortado, mesmo pouco". Mesmo Lucas tinha trabalhado mais cedo no splash + logout redirect (encontrei essas mudancas unstaged ao entrar na sessao).
+
+**3 blocos de trabalho:**
+
+**Bloco 1 — Splash gradient verde marca + tagline PT-BR (`app-v3/20-splash.html`):**
+- Logo SVG voltou do azul `#0099C4` pro verde da marca `#00E5A0` no stop inicial
+- Tagline "Know Your Biology" → "Sua saúde, sempre com você"
+
+**Bloco 2 — Logout aponta pra 23-login (`app-v3/api.js` + `app-v3/api-real.js`):**
+- `logout()` e `requireAuth()` redirecionam pra `23-login.html` (tela dedicada de login) em vez de `03-cadastro.html` (que mistura cadastro + login). Separacao semantica: deslogar leva pra LOGIN, nao CADASTRO.
+- Adicionado `tests/validacao-splash-logout.js` (Playwright valida os 2 fluxos)
+
+**Bloco 3 — Fix corte gradient italic (10 selectors em 9 arquivos):**
+
+Causa raiz: `font-style: italic` + `-webkit-background-clip: text` cria um "clip box" que NAO acompanha a inclinacao da letra italic. O rabinho da letra inclinada sai pra fora do box e fica invisivel. Mais visivel em fontes pesadas (700+) que tem maior overhang.
+
+Fix universal: `padding-right: 0.08em` (8% da altura da fonte) — espaco suficiente pro overhang sem afetar layout visivel ou espacamento entre elementos.
+
+Selectors corrigidos:
+- `_core.css` — `.rgcard-brand .it`
+- `21-boas-vindas.html` — `.s-title .hl`
+- `24-esqueci-senha.html` — `.title em`
+- `25-nova-senha.html` — `.title em`
+- `28-onboarding.html` — `.ob-title em`
+- `31-pronto.html` — `.done-title span`
+- `app-galeria.html` — `.topo h1 em`
+- `pre-consulta.html` — `.ob-title em` + `.pob-headline em`
+- `preview-16-consulta-detalhe.html` — `.pv-title em`
+
+Bonus: `preview-16-consulta-detalhe.html` (Antes vs Depois standalone da tela de consulta-detalhe) versionado.
+
+**5 commits no main (push PENDENTE):**
+- `3442326` chore(auditoria): artefatos da auditoria 2026-05-20 + fixes pendentes + bump SW v2
+- `092e7f6` chore(faxina): remove 80+ arquivos orfaos confirmados (auditoria 2026-05-20)
+- `38b5cda` chore(tests): limpa logs/screenshots antigos (~10 MB liberados)
+- `9661bb5` fix(app-v3): splash gradient verde marca + logout aponta pra 23-login
+- `9e00214` fix(app-v3): corte no final dos titulos gradient italic (padding-right 0.08em)
+
+**INCIDENTE — Push bloqueado por credencial:**
+Notebook tem Credential Manager do Windows logado como `borellindo69` (mesma situacao da Sessao 26/faxina). Essa conta perdeu acesso de write ao repo da org `vitaehealth2906-ops` em algum momento entre 19 e 20 de maio. Tentativas:
+- `git push` → 403 forbidden
+- `ssh -T git@github.com` → sem chave SSH local
+- `gh` CLI → nao instalado
+- Credential Manager → so tem `borellindo69` salvo
+
+**Decisao:** Lucas saiu do notebook com o pendrive (`D:\` = pendrive, repositorio inteiro vai junto incluindo os 5 commits locais). No PC de casa, plugar pendrive + `git push` resolve (PC de casa historicamente tem credencial valida — se nao tiver mais, gerar PAT).
+
+**Handoff completo criado:**
+- `Obsidian Vault/HANDOFF-PC-CASA-20-MAI-2026-NOITE.md` — passo a passo de 6 passos pra retomar do PC de casa
+- `Obsidian Vault/13 — DIARIO/2026/05/2026-05-20.md` — diario do dia
+
+**Padrao vencedor candidato (anotar em PADROES-VENCEDORES.md):**
+> Toda vez que usar `font-style: italic` + `-webkit-background-clip: text`,
+> adicionar `padding-right: 0.08em` no mesmo elemento. Custa zero, evita
+> corte em qualquer fonte de peso 700+.
+
+**Pendente proxima sessao (PC de casa):**
+1. `git push` no pendrive (1 comando, ~1min)
+2. Validar em aba anonima: splash, onboarding, esqueci-senha, pre-consulta
+3. Se algum titulo ainda cortar, aumentar `padding-right` pra `0.12em`
+4. Decidir prioridade: Sentry, beta testers, CFM 2.454/2026 compliance (deadline 10/AGO)
+
+**Skills usadas:** Grep + Read pra mapear todos os pontos de corte gradient, Edit em paralelo nos 9 arquivos, AskUserQuestion pra estrategia (aplicar em todos vs só tela aberta), TodoWrite NAO usado (tarefa linear).
+
+---
+
 ### Sessao 27 — 18-19/05/2026 (noite-madrugada) — Bateria 10 cenarios automatizados pre-consulta
 
 **Contexto:** Lucas voltou da faculdade ~22h de 18/mai, decidiu validar que o bug do botao Enviar (que travou seu iPhone ao vivo) realmente foi corrigido. Pediu pra rodar robos automatizados navegando pela pre-consulta em multiplos perfis diferentes (so audio, so texto, mix, replica do seu cenario, clique-multiplo, rede-lenta).
