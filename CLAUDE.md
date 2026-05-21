@@ -609,6 +609,70 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 31 — 21/05/2026 (noite) — Fluxo retorno medico<->paciente completo
+
+**Contexto:** Lucas validou aba Consultas v2, descobriu 2 bugs do meu lado:
+- Editei o arquivo legacy `desktop/app.html` na FASE 2, quando producao usa `desktop/app-v2.html`
+- Mandei URL errada do app medico
+
+**Problemas reais no fluxo descobertos:**
+- Hora era chutada como 09:00 (paciente via "11h49" sem medico ter escolhido)
+- Medico nao via os 3 horarios sugeridos pelo paciente (so a primeira data)
+- Campo "observacoes" tinha label "so voce ve" mas paciente via no GET (vazamento de privacidade)
+- Campo Local era texto livre, Waze nao funcionava sem endereco real
+
+**Implementado autonomo (9 passos):**
+
+PASSO 1 — Reverti edicao equivocada em desktop/app.html (legacy)
+
+PASSO 2 — Backend: novo endpoint POST /agendamento/:id/aceitar-proposta
+  - Recebe {propostaIndex: 0|1|2}
+  - Le propostasAtuais, pega proposta no indice, confirma com data+hora exata
+  - statusProposta=CONFIRMADO, contadorTrocas=0, propostasAtuais=null
+  - Notifica paciente, registra auditoria
+
+PASSO 3 — Modal "Marcar retorno" no app-v2.html:
+  - Campo Hora (obrigatorio) ao lado de Data
+  - Placeholder Local: "Endereco completo (rua, numero, bairro)"
+  - Campo "Recado pro paciente" (verde, tag PACIENTE VE)
+  - Campo "Anotacoes pra voce" (cinza, tag PRIVADO)
+
+PASSO 4 — Modal "Reagendar retorno":
+  - Mesmos 4 campos novos
+  - Pre-preenche com dados do agendamento anterior
+
+PASSO 5 — Card "Proximo Retorno" do medico:
+  - Quando AGUARDANDO_MEDICO + propostasAtuais: mostra ate 3 botoes "DD/MMM HH:MM ✓ Aceitar"
+  - Banner azul anti-ciclo quando contadorTrocas >= 2
+  - Botao "Propor outra data" como alternativa
+
+PASSO 6 — App paciente: 16-consulta-detalhe.html
+  - Le ag.recadoPaciente (publico) em vez de ag.observacoes (privado)
+  - Label "Observacao" trocada para "Recado do medico"
+  - Privacidade resolvida (opcao B aprovada pelo Lucas)
+
+PASSO 7 — Smoke test Playwright (parcial — limitado por auth)
+
+PASSO 8 — Commit + push (commit 3309153)
+
+PASSO 9 — Esta entrada CLAUDE.md
+
+**Validado em producao (21/mai/2026 ~21:30 UTC):**
+- HTML serveado tem prRecadoInp, prHoraInp, prRemarcaHoraInp, prRemarcaRecadoInp
+- Funcao prAceitarPropostaPaciente carregada
+- Endpoint /aceitar-proposta responde 401 (rota existe)
+
+**Memoria salva:** `reference_app_medico_url.md` — app medico prod = `desktop/app-v2.html`, NUNCA app.html legacy
+
+**Pendencias futuras (fora do escopo):**
+- Lembretes 24h/2h incluir recadoPaciente no payload
+- Notificacao push pro paciente (hoje so in-app)
+- Cadastro fixo "Minha clinica" no perfil medico (opcao 2 do Local)
+- Historico de propostas trocadas com UI visivel (hoje so auditoria)
+- Expiracao automatica de retorno nao respondido
+
+---
+
 ### Sessao 30 — 21/05/2026 (tarde-noite) — Aba Consultas v2 (autonoma, 7 fases)
 
 **Contexto:** Lucas levou prints da aba Consultas atual: caos visual com 7+ retornos confirmados empilhados do mesmo medico, sem hierarquia, dificil de entender. Pediu PSF nivel 50 + plano completo + execucao autonoma do schema ao deploy.
