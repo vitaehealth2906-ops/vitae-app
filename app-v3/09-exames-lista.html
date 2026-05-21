@@ -2230,6 +2230,14 @@ fileInput.addEventListener('change', async function(e) {
   const file = e.target.files[0];
   if (!file) return;
 
+  // PORTEIRO v4: verifica sessão ANTES de fingir que tá processando.
+  // Caso Lessa: sem isso, cartão fantasma aparecia e ficava preso quando sessão expirava.
+  if (typeof vitaeAPI === 'undefined' || !vitaeAPI.isLoggedIn()) {
+    if (typeof _handleSessionExpired === 'function') _handleSessionExpired();
+    fileInput.value = '';
+    return;
+  }
+
   // Create preview URL for shimmer card
   if (file.type.startsWith('image/')) {
     lastUploadedUrl = URL.createObjectURL(file);
@@ -2242,15 +2250,19 @@ fileInput.addEventListener('change', async function(e) {
   showToast('Enviando exame...');
 
   try {
-    if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
-      await vitaeAPI.uploadExame(file);
-      await loadExams(); // Reloads list — shimmer stays if still processing
-      showToast('Exame enviado! Analisando.');
-    }
-  } catch (err) {
-    showToast('Erro ao enviar: ' + (err.message || 'tente novamente'));
-    lastUploadedUrl = null;
+    await vitaeAPI.uploadExame(file);
+    // Só roda se o servidor confirmou de verdade (sem erro lançado)
     await loadExams();
+    showToast('Exame enviado! Analisando.');
+  } catch (err) {
+    lastUploadedUrl = null;
+    const msg = (err && err.message) || '';
+    // Erros já tratados com banner global (porteiro) — não duplica com toast
+    const tratadosPorBanner = ['Sessao expirada', 'Sem conexão', 'Servidor indisponível'];
+    if (!tratadosPorBanner.includes(msg)) {
+      showToast('Erro ao enviar: ' + (msg || 'tente novamente'));
+    }
+    await loadExams().catch(() => {});
   }
   fileInput.value = '';
 });

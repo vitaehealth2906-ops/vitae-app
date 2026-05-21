@@ -522,22 +522,49 @@
   }
 
   // ===== Inicializacao =====
+  // PORTEIRO v4: alergias e medicamentos NÃO viram array vazio quando falham.
+  // Caso Bug #3: lista de alergias "fake-vazia" era risco real em saúde.
+  // Agora: se uma falha, marca como "indisponível" pra UI saber a diferença.
   async function iniciarTelaSaude() {
     try {
+      const SENTINEL_ERRO = { __erro: true };
       const [perfilRes, alergiasRes, medsRes] = await Promise.all([
         vitaeAPI.getPerfil(),
-        vitaeAPI.listarAlergias().catch(() => ({ alergias: [] })),
-        vitaeAPI.listarMedicamentos().catch(() => ({ medicamentos: [] }))
+        vitaeAPI.listarAlergias().catch((err) => {
+          console.warn('[01-saude] falha listar alergias:', err && err.message);
+          return SENTINEL_ERRO;
+        }),
+        vitaeAPI.listarMedicamentos().catch((err) => {
+          console.warn('[01-saude] falha listar medicamentos:', err && err.message);
+          return SENTINEL_ERRO;
+        })
       ]);
 
       const usuario = perfilRes.usuario || perfilRes;
       const perfil = perfilRes.perfil || perfilRes.perfilSaude || null;
-      const alergias = alergiasRes.alergias || alergiasRes || [];
-      const meds = medsRes.medicamentos || medsRes || [];
+      const alergiasErro = alergiasRes === SENTINEL_ERRO;
+      const medsErro = medsRes === SENTINEL_ERRO;
+      const alergias = alergiasErro ? [] : (alergiasRes.alergias || alergiasRes || []);
+      const meds = medsErro ? [] : (medsRes.medicamentos || medsRes || []);
 
       renderRG(usuario, perfil);
-      renderAlergias(Array.isArray(alergias) ? alergias : []);
-      renderMedsHoje(Array.isArray(meds) ? meds : []);
+      if (alergiasErro) {
+        // Não diz "Nenhuma alergia" quando na verdade não conseguiu carregar
+        const el = document.getElementById('alergiasResumo');
+        if (el) el.textContent = '— (sem conexão)';
+        const elVerso = document.getElementById('rgVersoAlergias');
+        if (elVerso) elVerso.textContent = '—';
+      } else {
+        renderAlergias(Array.isArray(alergias) ? alergias : []);
+      }
+      if (medsErro) {
+        const el = document.getElementById('medsTituloHoje');
+        if (el) el.textContent = '— (sem conexão)';
+        const elVerso = document.getElementById('rgVersoMeds');
+        if (elVerso) elVerso.textContent = '—';
+      } else {
+        renderMedsHoje(Array.isArray(meds) ? meds : []);
+      }
     } catch (e) {
       console.error('[01-saude] erro init', e);
       // fallback minimo: usa o que tem em localStorage
