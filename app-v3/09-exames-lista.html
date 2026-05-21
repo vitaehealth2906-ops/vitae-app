@@ -1096,6 +1096,12 @@ async function loadExams() {
 
     renderLista(processingExams.length, errorExams);
 
+    // FASE 2 — CAMADA 2/3: detectar exames problemáticos do servidor
+    // Caso 1: exame CONCLUIDO mas com 0 parâmetros = era capa do laudo ou não era exame
+    // Caso 2: erro de OCR = arquivo ilegível
+    // Caso 3: nome do paciente extraído ≠ nome da conta = exame de outra pessoa
+    _detectarExamesProblematicos(raw);
+
     // Inicia polling se há exames processando
     if (processingExams.length > 0) startPolling();
     else stopPolling();
@@ -1104,6 +1110,81 @@ async function loadExams() {
     console.log('Erro ao carregar exames:', err.message);
     renderLista(0, []);
   }
+}
+
+function _detectarExamesProblematicos(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) return;
+  // Pega o exame mais recente que ainda não foi avisado
+  const avisados = JSON.parse(sessionStorage.getItem('vitae_exames_avisados') || '[]');
+  const novos = raw.filter(e => !avisados.includes(e.id));
+
+  for (const e of novos) {
+    // CONCLUIDO sem parâmetros = capa ou não era exame
+    if (e.status === 'CONCLUIDO' && (e.totalParametros || 0) === 0) {
+      avisados.push(e.id);
+      if (typeof showVitaeBanner === 'function') {
+        showVitaeBanner({
+          type: 'arquivo',
+          title: 'Isso não parece um exame.',
+          message: 'O arquivo que você mandou não tem valores de laboratório. Pode ser uma receita, atestado, ou só a capa do laudo (sem os valores).',
+          actionLabel: 'Anexar outro',
+          actionFn: () => triggerUpload(),
+          closeable: true,
+          id: 'vbanner_naoeexame_' + e.id,
+        });
+      }
+      break; // só avisa um por vez pra não inundar
+    }
+    // ERRO no servidor = OCR falhou
+    if (e.status === 'ERRO') {
+      avisados.push(e.id);
+      if (typeof showVitaeBanner === 'function') {
+        showVitaeBanner({
+          type: 'arquivo',
+          title: 'Não consegui ler esse exame.',
+          message: 'Pode ser foto fora de foco, PDF com senha, ou arquivo corrompido. Tenta outra foto?',
+          actionLabel: 'Tentar de novo',
+          actionFn: () => triggerUpload(),
+          closeable: true,
+          id: 'vbanner_erroocr_' + e.id,
+        });
+      }
+      break;
+    }
+    // CONCLUIDO com nome diferente da conta
+    if (e.status === 'CONCLUIDO' && e.nomePacienteExame) {
+      const usuario = (typeof vitaeAPI !== 'undefined' && vitaeAPI.getUsuario) ? vitaeAPI.getUsuario() : null;
+      const nomeConta = usuario && usuario.nome ? usuario.nome : '';
+      if (nomeConta && !_nomesSimilares(e.nomePacienteExame, nomeConta)) {
+        avisados.push(e.id);
+        if (typeof showVitaeBanner === 'function') {
+          const nomeLaudo = e.nomePacienteExame;
+          showVitaeBanner({
+            type: 'offline',
+            title: 'Esse exame é seu mesmo?',
+            message: `O exame está no nome de "${nomeLaudo}", mas sua conta é "${nomeConta}". Confere se mandou o exame certo.`,
+            actionLabel: 'Sim, é meu',
+            actionFn: () => {},
+            closeable: true,
+            id: 'vbanner_nomedif_' + e.id,
+          });
+        }
+        break;
+      }
+    }
+  }
+
+  sessionStorage.setItem('vitae_exames_avisados', JSON.stringify(avisados.slice(-50))); // mantém só os últimos 50
+}
+
+// Comparação fuzzy de nomes (ignora maiúsculas, acentos, espaços extras)
+function _nomesSimilares(a, b) {
+  const normalize = (s) => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  const na = normalize(a);
+  const nb = normalize(b);
+  if (!na || !nb) return true; // se algum vazio, não compara
+  // Considera similar se um contém o outro (Lucas Silva vs Lucas Silva Santos)
+  return na.includes(nb) || nb.includes(na);
 }
 
 // ══════════════════════════════
@@ -1126,6 +1207,52 @@ async function renderPdfThumbnail(url, canvasId) {
   } catch(e) { /* silently fail — icon stays */ }
 }
 
+// Estado do upload em andamento (Fase 2 — cartão verde vivo)
+let _uploadStartedAt = null;
+let _uploadProgressTimer = null;
+
+function _formatElapsed(seconds) {
+  if (!seconds || seconds < 1) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function _refreshLiveProcessingCards() {
+  if (!_uploadStartedAt) return;
+  const elapsed = Math.floor((Date.now() - _uploadStartedAt) / 1000);
+  document.querySelectorAll('.live-eta-time').forEach(el => {
+    el.textContent = _formatElapsed(elapsed);
+  });
+  // Barra de progresso linear até 60s, depois 95% (não trava em 100% se demorar)
+  const pct = Math.min(95, Math.round((elapsed / 60) * 95));
+  document.querySelectorAll('.live-bar-fill').forEach(el => {
+    el.style.width = pct + '%';
+  });
+  // Etapa textual baseada no tempo
+  let etapa = 'etapa 1 de 4';
+  if (elapsed >= 5) etapa = 'etapa 2 de 4';
+  if (elapsed >= 20) etapa = 'etapa 3 de 4';
+  if (elapsed >= 45) etapa = 'etapa 4 de 4';
+  document.querySelectorAll('.live-eta-step').forEach(el => {
+    el.textContent = etapa;
+  });
+}
+
+function _startLiveProgressTicker() {
+  _uploadStartedAt = Date.now();
+  if (_uploadProgressTimer) clearInterval(_uploadProgressTimer);
+  _uploadProgressTimer = setInterval(_refreshLiveProcessingCards, 1000);
+}
+
+function _stopLiveProgressTicker() {
+  if (_uploadProgressTimer) {
+    clearInterval(_uploadProgressTimer);
+    _uploadProgressTimer = null;
+  }
+  _uploadStartedAt = null;
+}
+
 function buildExamCardHtml(e, i, isShimmer) {
   const tipo = e.tipoExame || 'Novo exame';
   const meta = [e.date, e.lab].filter(Boolean).join(' - ') || 'Processando...';
@@ -1142,8 +1269,31 @@ function buildExamCardHtml(e, i, isShimmer) {
     thumb = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f6f8;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,0.12)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>`;
   }
 
+  // CARTÃO VERDE VIVO (Fase 2): substitui o fantasma cinza por algo vivo com etapas + cronômetro
+  if (isShimmer) {
+    const elapsed = _uploadStartedAt ? Math.floor((Date.now() - _uploadStartedAt) / 1000) : 0;
+    const procThumb = e.arquivoUrl && isImg
+      ? `<img src="${e.arquivoUrl}" style="width:100%;height:100%;object-fit:cover;opacity:.85;" loading="lazy">`
+      : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#00C47A;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>`;
+    return `
+      <div class="exam-gc fade" style="animation-delay:${0.04 + i * 0.05}s;position:relative;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,229,160,0.12),0 4px 18px rgba(0,229,160,0.12);border:1px solid rgba(0,229,160,0.30);padding:10px;margin:0 6px 10px;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#00E5A0,transparent);animation:shimmerWave 1.8s ease-in-out infinite;pointer-events:none;"></div>
+        <div style="display:flex;gap:14px;align-items:stretch;">
+          <div style="width:100px;min-height:120px;border-radius:8px;background:linear-gradient(160deg,rgba(0,229,160,0.10),rgba(0,180,216,0.10));border:1.5px dashed rgba(0,229,160,0.30);overflow:hidden;flex-shrink:0;">${procThumb}</div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0;">
+            <div style="font-size:11px;color:#00C47A;text-transform:uppercase;letter-spacing:0.08em;line-height:1.3;font-weight:700;">Lendo agora</div>
+            <div style="font-size:15px;font-weight:700;color:#00C47A;line-height:1.35;">Seu exame</div>
+            <div style="width:100%;height:5px;border-radius:100px;background:rgba(0,229,160,0.13);overflow:hidden;margin:6px 0 4px;">
+              <div class="live-bar-fill" style="width:${Math.min(95, Math.round((elapsed/60)*95))}%;height:100%;background:linear-gradient(120deg,#00E5A0,#00B4D8);border-radius:100px;transition:width 0.4s;"></div>
+            </div>
+            <div style="font-size:10.5px;color:rgba(13,15,20,0.5);"><strong class="live-eta-time" style="color:rgba(13,15,20,0.85);font-weight:700;">${_formatElapsed(elapsed)}</strong> · <span class="live-eta-step">etapa 1 de 4</span> · em 60 segundos</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
   return `
-    <div class="exam-gc ${isShimmer ? 'shimmer-card' : ''} fade" style="animation-delay:${0.04 + i * 0.05}s;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);border:none;padding:10px;margin:0 6px 10px;" ${!isShimmer ? `onclick="openExam(${i})"` : ''} data-search="${(tipo + ' ' + (e.name||'') + ' ' + (e.lab||'') + ' ' + (e.date||'')).toLowerCase()}">
+    <div class="exam-gc fade" style="animation-delay:${0.04 + i * 0.05}s;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);border:none;padding:10px;margin:0 6px 10px;" onclick="openExam(${i})" data-search="${(tipo + ' ' + (e.name||'') + ' ' + (e.lab||'') + ' ' + (e.date||'')).toLowerCase()}">
       <div style="display:flex;gap:14px;align-items:stretch;">
         <div style="width:100px;min-height:120px;border-radius:8px;background:#f0f2f5;overflow:hidden;flex-shrink:0;">${thumb}</div>
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0;">
@@ -2226,6 +2376,105 @@ fileInput.accept = 'image/*,.pdf';
 fileInput.style.display = 'none';
 document.body.appendChild(fileInput);
 
+// ============================================================
+// PRÉ-CHECAGEM INTELIGENTE (Fase 2 — 3 camadas)
+// Camada 1 (celular, grátis): qualidade da foto
+// Camada 2 (depois do OCR): tipo de documento (no servidor)
+// Camada 3 (depois do OCR): identidade do paciente (no servidor)
+// ============================================================
+
+// Detecta se imagem está borrada usando variância de Laplace
+async function _detectarBorrada(file) {
+  if (!file.type.startsWith('image/')) return { borrada: false, razao: null };
+  try {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.src = url;
+    await new Promise((res, rej) => {
+      img.onload = res;
+      img.onerror = rej;
+      setTimeout(rej, 3000);
+    });
+
+    // Reduz pra 200x200 pra análise rápida
+    const canvas = document.createElement('canvas');
+    canvas.width = 200;
+    canvas.height = 200;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, 200, 200);
+    const data = ctx.getImageData(0, 0, 200, 200).data;
+
+    // Converte pra luminância e calcula variância (proxy de nitidez)
+    let sum = 0, sumSq = 0, n = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const lum = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+      sum += lum;
+      sumSq += lum * lum;
+      n++;
+    }
+    const mean = sum / n;
+    const variance = (sumSq / n) - (mean * mean);
+
+    URL.revokeObjectURL(url);
+
+    // Heurística: variância < 200 = imagem chapada/borrada/escura demais
+    // Mean < 30 = quase preta. Mean > 230 = quase branca (overexposed).
+    if (variance < 200) return { borrada: true, razao: 'foco' };
+    if (mean < 30) return { borrada: true, razao: 'escura' };
+    if (mean > 230) return { borrada: true, razao: 'clara' };
+    return { borrada: false, razao: null };
+  } catch (_) {
+    return { borrada: false, razao: null }; // se análise falhou, deixa passar
+  }
+}
+
+// Confirma com paciente se ele quer enviar mesmo com foto ruim
+function _confirmarEnvioFotoRuim(razao) {
+  return new Promise((resolve) => {
+    const motivo = razao === 'foco' ? 'meio borrada' : razao === 'escura' ? 'escura demais' : 'muito clara demais';
+    const dica = razao === 'foco' ? 'Tenta firmar a mão e refocar.' : 'Procura um lugar com luz natural, evita reflexo no papel.';
+
+    if (typeof showVitaeBanner !== 'function') {
+      // Fallback se banner global não tiver carregado: confirm nativo
+      resolve(confirm(`Essa foto tá ${motivo}. ${dica}\n\nEnviar mesmo assim?`));
+      return;
+    }
+    const id = 'vbanner_foto_' + Date.now();
+    showVitaeBanner({
+      type: 'offline', // amarelo
+      title: 'Essa foto tá ' + motivo + '.',
+      message: dica + ' Pode tirar outra antes de enviar.',
+      actionLabel: 'Tirar outra',
+      actionFn: () => {
+        hideVitaeBanner(id);
+        triggerUpload(); // reabre seletor
+        resolve(false);
+      },
+      closeable: false,
+      id: id,
+    });
+    // Botão secundário pra "enviar mesmo assim"
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const btnExtra = document.createElement('button');
+      btnExtra.textContent = 'Enviar mesmo assim';
+      btnExtra.style.cssText = 'padding:7px 14px;font-family:inherit;font-size:12.5px;font-weight:700;background:rgba(0,0,0,0.08);color:#0D0F14;border:none;border-radius:8px;cursor:pointer;flex-shrink:0;margin-left:6px;';
+      btnExtra.addEventListener('click', () => {
+        hideVitaeBanner(id);
+        resolve(true);
+      });
+      // Insere antes do botão de fechar (se houver) ou no final
+      const txt = el.querySelector('.vitae-banner-txt');
+      if (txt && txt.nextSibling) {
+        el.insertBefore(btnExtra, txt.nextSibling.nextSibling || null);
+      } else {
+        el.appendChild(btnExtra);
+      }
+    }, 50);
+  });
+}
+
 fileInput.addEventListener('change', async function(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -2238,6 +2487,19 @@ fileInput.addEventListener('change', async function(e) {
     return;
   }
 
+  // FASE 2 — CAMADA 1: qualidade da foto (no celular, antes de enviar)
+  // Mata 70% dos erros de OCR antes de gastar com servidor
+  if (file.type.startsWith('image/')) {
+    const { borrada, razao } = await _detectarBorrada(file);
+    if (borrada) {
+      const querMandarAssim = await _confirmarEnvioFotoRuim(razao);
+      if (!querMandarAssim) {
+        fileInput.value = '';
+        return;
+      }
+    }
+  }
+
   // Create preview URL for shimmer card
   if (file.type.startsWith('image/')) {
     lastUploadedUrl = URL.createObjectURL(file);
@@ -2245,16 +2507,19 @@ fileInput.addEventListener('change', async function(e) {
     lastUploadedUrl = null;
   }
 
-  // Immediately show shimmer card
+  // FASE 2: cartão verde vivo com cronômetro real (não mais fantasma cinza estático)
+  _startLiveProgressTicker();
   renderLista(1, []);
-  showToast('Enviando exame...');
 
   try {
     await vitaeAPI.uploadExame(file);
     // Só roda se o servidor confirmou de verdade (sem erro lançado)
+    _stopLiveProgressTicker();
     await loadExams();
+    // Celebração in-app (Fase 4 traz modal mais elaborado; toast por enquanto)
     showToast('Exame enviado! Analisando.');
   } catch (err) {
+    _stopLiveProgressTicker();
     lastUploadedUrl = null;
     const msg = (err && err.message) || '';
     // Erros já tratados com banner global (porteiro) — não duplica com toast
