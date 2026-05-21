@@ -510,7 +510,8 @@ model Agendamento {
   tipo            String // EXAME, CONSULTA, RETORNO
   local           String?
   medico          String?
-  observacoes     String?   @db.Text
+  observacoes     String?   @db.Text // PRIVADO: só o médico vê (anotação interna)
+  recadoPaciente  String?   @map("recado_paciente") @db.Text // PÚBLICO: paciente vê na aba Consultas
   dataHora        DateTime  @map("data_hora")
   lembrete        Boolean   @default(true)
   lembreteEnviado Boolean   @default(false) @map("lembrete_enviado")
@@ -521,6 +522,8 @@ model Agendamento {
   confirmadoEm    DateTime? @map("confirmado_em")
   dataAnterior    DateTime? @map("data_anterior") // historico da data original em remarcacoes
   motivoStatus    String?   @map("motivo_status") @db.Text // motivo opcional de recusa/cancelamento
+  contadorTrocas  Int       @default(0) @map("contador_trocas") // anti-ciclo: incrementa a cada proposta/contraproposta
+  propostasAtuais Json?     @map("propostas_atuais") // array [{data, hora}] da remarcação em andamento
   criadoEm        DateTime  @default(now()) @map("criado_em")
   atualizadoEm    DateTime @updatedAt @map("atualizado_em")
 
@@ -715,7 +718,8 @@ model AgendaSlot {
   status               String    @default("AGUARDANDO_CONFIRMACAO")
   // AGUARDANDO_CONFIRMACAO | CONFIRMADA | CANCELADA | REMARCADA | FALTA | COMPARECEU
   motivo               String?   @db.Text
-  observacoes          String?   @db.Text // anotacao interna (medico ou secretaria)
+  observacoes          String?   @db.Text // PRIVADO: anotacao interna (medico ou secretaria)
+  recadoPaciente       String?   @map("recado_paciente") @db.Text // PUBLICO: paciente vê na aba Consultas
   videoUrl             String?   @map("video_url")
   origem               String    @default("MANUAL")
   // MANUAL | RETORNO_PRE_CONSULTA | GOOGLE_IMPORT | FERIADO_AUTO | LISTA_ESPERA

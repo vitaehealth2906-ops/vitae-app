@@ -190,7 +190,8 @@ const slotCreateSchema = z.object({
   duracaoMin: z.number().min(10).max(480),
   tipo: z.enum(['CONSULTA_NOVA', 'RETORNO', 'ONLINE', 'BLOQUEIO']),
   motivo: z.string().optional().nullable(),
-  observacoes: z.string().optional().nullable(),
+  observacoes: z.string().optional().nullable(), // PRIVADO
+  recadoPaciente: z.string().max(500).optional().nullable(), // PUBLICO: paciente ve
   videoUrl: z.string().optional().nullable(),
   attemptId: z.string().optional(),
 });

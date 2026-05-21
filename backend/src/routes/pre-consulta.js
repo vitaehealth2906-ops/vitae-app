@@ -1347,6 +1347,76 @@ function marcarConteudoCurto(pc) {
   return pc;
 }
 
+// ---------------------------------------------------------------------------
+// GET /em-andamento — Pre-consulta abandonada do paciente logado
+// Retorna a PC mais recente do paciente que ele ainda nao terminou de responder.
+// Usado pela aba Consultas v2 (Bloco Urgente "Termine sua pre-consulta").
+// ---------------------------------------------------------------------------
+
+router.get('/em-andamento', verificarAuth, async (req, res, next) => {
+  try {
+    // Procura PC mais recente do paciente que:
+    //  - esta vinculada ao usuario logado (paciente)
+    //  - ainda nao foi respondida (sem audioUrl E sem respostas finais)
+    //  - foi criada nos ultimos 7 dias (link expira em 30d, mas urgencia decai em 7d)
+    const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const pc = await prisma.preConsulta.findFirst({
+      where: {
+        pacienteId: req.usuario.id,
+        deletadoEm: null,
+        audioUrl: null,
+        respondidaEm: null,
+        criadoEm: { gte: seteDiasAtras },
+      },
+      orderBy: { criadoEm: 'desc' },
+      include: {
+        medico: {
+          select: {
+            id: true,
+            especialidade: true,
+            usuario: { select: { nome: true, fotoUrl: true } },
+          },
+        },
+      },
+    });
+
+    if (!pc) return res.status(200).json({ preConsulta: null });
+
+    // Conta perguntas respondidas vs total (se template tiver)
+    let perguntasFeitas = 0;
+    let perguntasTotal = 0;
+    try {
+      if (pc.respostasParciais) {
+        const parciais = typeof pc.respostasParciais === 'string'
+          ? JSON.parse(pc.respostasParciais)
+          : pc.respostasParciais;
+        perguntasFeitas = Array.isArray(parciais) ? parciais.length : Object.keys(parciais || {}).length;
+      }
+      if (pc.perguntasSnapshot) {
+        const perguntas = typeof pc.perguntasSnapshot === 'string'
+          ? JSON.parse(pc.perguntasSnapshot)
+          : pc.perguntasSnapshot;
+        perguntasTotal = Array.isArray(perguntas) ? perguntas.length : 0;
+      }
+    } catch (_) { /* silencioso */ }
+
+    return res.status(200).json({
+      preConsulta: {
+        id: pc.id,
+        token: pc.token,
+        medicoNome: pc.medico?.usuario?.nome || 'seu medico',
+        medicoEspecialidade: pc.medico?.especialidade || '',
+        perguntasFeitas,
+        perguntasTotal,
+        link: `/pre-consulta.html?t=${pc.token}`,
+        criadoEm: pc.criadoEm,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/', verificarAuth, async (req, res, next) => {
   try {
     const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });

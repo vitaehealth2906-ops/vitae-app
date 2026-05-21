@@ -18,7 +18,8 @@ const criarAgendamentoSchema = z.object({
   tipo: z.enum(['EXAME', 'CONSULTA', 'RETORNO']),
   local: z.string().optional(),
   medico: z.string().optional(),
-  observacoes: z.string().optional(),
+  observacoes: z.string().optional(), // PRIVADO: so o medico ve
+  recadoPaciente: z.string().max(500).optional().nullable(), // PUBLICO: paciente ve na aba Consultas
   dataHora: z.string().transform((val) => new Date(val)),
   lembrete: z.boolean().optional(),
 });
@@ -26,15 +27,26 @@ const criarAgendamentoSchema = z.object({
 const proporRetornoSchema = z.object({
   pacienteId: z.string().uuid('pacienteId invalido'),
   dataHora: z.string().transform((val) => new Date(val)),
-  observacoes: z.string().max(500).optional(),
+  observacoes: z.string().max(500).optional(), // PRIVADO
+  recadoPaciente: z.string().max(500).optional().nullable(), // PUBLICO
   titulo: z.string().min(1).max(120).optional(),
   local: z.string().max(200).optional(),
 });
 
+// Remarcar aceita:
+//   - novaDataHora (legado: 1 data unica) — retrocompat
+//   - propostas[] (novo: ate 3 horarios sugeridos) — fluxo Consultas v2
 const remarcarSchema = z.object({
-  novaDataHora: z.string().transform((val) => new Date(val)),
+  novaDataHora: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+  propostas: z.array(z.object({
+    data: z.string(), // YYYY-MM-DD
+    hora: z.string(), // HH:mm
+  })).min(1).max(3).optional(),
   motivo: z.string().max(500).optional(),
-});
+}).refine(
+  (d) => d.novaDataHora !== undefined || (d.propostas && d.propostas.length > 0),
+  { message: 'Envie novaDataHora ou propostas[]' }
+);
 
 const recusarOuCancelarSchema = z.object({
   motivo: z.string().max(500).optional(),
@@ -211,7 +223,7 @@ router.post('/propor-retorno', validate(proporRetornoSchema), async (req, res, n
     });
     if (!medico) return res.status(403).json({ erro: 'Perfil medico nao encontrado' });
 
-    const { pacienteId, dataHora, observacoes, titulo, local } = req.body;
+    const { pacienteId, dataHora, observacoes, recadoPaciente, titulo, local } = req.body;
 
     if (dataHora <= new Date()) {
       return res.status(400).json({ erro: 'Data do retorno deve ser no futuro' });
@@ -230,6 +242,7 @@ router.post('/propor-retorno', validate(proporRetornoSchema), async (req, res, n
         local: local || null,
         medico: nomeMedico,
         observacoes: observacoes || null,
+        recadoPaciente: recadoPaciente || null,
         dataHora,
         statusProposta: 'AGUARDANDO_PACIENTE',
         propostoPor: 'MEDICO',
@@ -294,7 +307,12 @@ router.post('/:id/confirmar', async (req, res, next) => {
 
     const atualizado = await prisma.agendamento.update({
       where: { id: ag.id },
-      data: { statusProposta: 'CONFIRMADO', confirmadoEm: new Date() },
+      data: {
+        statusProposta: 'CONFIRMADO',
+        confirmadoEm: new Date(),
+        contadorTrocas: 0, // zera ao confirmar (anti-ciclo)
+        propostasAtuais: null, // limpa propostas em andamento
+      },
     });
 
     // Notifica o outro lado
@@ -387,29 +405,59 @@ router.post('/:id/remarcar', validate(remarcarSchema), async (req, res, next) =>
       return res.status(409).json({ erro: 'Este retorno nao pode ser remarcado agora' });
     }
 
-    const { novaDataHora, motivo } = req.body;
-    if (novaDataHora <= new Date()) {
-      return res.status(400).json({ erro: 'Nova data deve ser no futuro' });
+    const { novaDataHora, propostas, motivo } = req.body;
+    let primeiraData;
+    let propostasJson = null;
+
+    if (propostas && propostas.length > 0) {
+      // Fluxo NOVO: paciente sugere ate 3 horarios (data + hora)
+      const propostasComData = propostas.map(p => ({
+        data: p.data,
+        hora: p.hora,
+        timestamp: new Date(`${p.data}T${p.hora}:00`).toISOString(),
+      }));
+      // Valida que todas sao futuras
+      const agora = Date.now();
+      const invalidas = propostasComData.filter(p => new Date(p.timestamp).getTime() <= agora);
+      if (invalidas.length) return res.status(400).json({ erro: 'Todas as propostas devem ser no futuro' });
+      primeiraData = new Date(propostasComData[0].timestamp);
+      propostasJson = propostasComData;
+    } else if (novaDataHora) {
+      // Fluxo LEGADO: 1 data unica
+      if (novaDataHora <= new Date()) {
+        return res.status(400).json({ erro: 'Nova data deve ser no futuro' });
+      }
+      primeiraData = novaDataHora;
+    } else {
+      return res.status(400).json({ erro: 'Envie novaDataHora ou propostas[]' });
     }
+
+    const novoContador = (ag.contadorTrocas || 0) + 1;
 
     const atualizado = await prisma.agendamento.update({
       where: { id: ag.id },
       data: {
         dataAnterior: ag.dataHora,
-        dataHora: novaDataHora,
+        dataHora: primeiraData, // primeira proposta vira o dataHora "oficial" pra agenda do medico
+        propostasAtuais: propostasJson,
         statusProposta: 'AGUARDANDO_MEDICO',
         propostoPor: 'PACIENTE',
         propostoPorId: req.usuario.id,
         motivoStatus: motivo || null,
         confirmadoEm: null,
+        contadorTrocas: novoContador,
       },
     });
 
     if (ag.propostoPorId) {
+      const qtd = propostasJson ? propostasJson.length : 1;
+      const msg = qtd > 1
+        ? `O paciente sugeriu ${qtd} horarios. Escolha um ou proponha outras opcoes.`
+        : `O paciente sugeriu ${primeiraData.toLocaleDateString('pt-BR')}. Confirme ou proponha outra data.`;
       await notificarUsuario({
         usuarioId: ag.propostoPorId,
         titulo: 'Retorno remarcado pelo paciente',
-        mensagem: `O paciente sugeriu ${novaDataHora.toLocaleDateString('pt-BR')}. Confirme ou proponha outra data.`,
+        mensagem: msg,
         tipo: 'RETORNO',
       });
     }
@@ -419,7 +467,12 @@ router.post('/:id/remarcar', validate(remarcarSchema), async (req, res, next) =>
       atorTipo: 'PACIENTE',
       recursoTipo: 'AGENDAMENTO',
       recursoId: ag.id,
-      metadata: { dataAnterior: ag.dataHora.toISOString(), novaDataHora: novaDataHora.toISOString() },
+      metadata: {
+        dataAnterior: ag.dataHora.toISOString(),
+        novaDataHora: primeiraData.toISOString(),
+        qtdPropostas: propostasJson ? propostasJson.length : 1,
+        contadorTrocas: novoContador,
+      },
     });
 
     return res.status(200).json({ agendamento: atualizado });
