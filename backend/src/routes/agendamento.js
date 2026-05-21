@@ -347,6 +347,74 @@ router.post('/:id/confirmar', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /:id/aceitar-proposta — Medico aceita uma das 3 propostas do paciente
+// Body: { propostaIndex: 0|1|2 }
+// Usado quando paciente sugeriu ate 3 horarios (propostasAtuais) e medico
+// escolhe um diretamente sem precisar contrapropor.
+// ---------------------------------------------------------------------------
+
+const aceitarPropostaSchema = z.object({
+  propostaIndex: z.number().int().min(0).max(2),
+});
+
+router.post('/:id/aceitar-proposta', validate(aceitarPropostaSchema), async (req, res, next) => {
+  try {
+    const ag = await prisma.agendamento.findUnique({ where: { id: req.params.id } });
+    if (!ag) return res.status(404).json({ erro: 'Retorno nao encontrado' });
+
+    // Verifica que e o medico vinculado
+    const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
+    if (!medico) return res.status(403).json({ erro: 'Apenas medicos podem aceitar propostas' });
+    const ok = await validarVinculoMedicoPaciente(medico.id, ag.usuarioId);
+    if (!ok) return res.status(403).json({ erro: 'Voce nao tem acesso a esse paciente' });
+
+    // Verifica que ha propostas para aceitar
+    if (ag.statusProposta !== 'AGUARDANDO_MEDICO' || !ag.propostasAtuais) {
+      return res.status(409).json({ erro: 'Nao ha propostas do paciente para aceitar' });
+    }
+
+    const propostas = Array.isArray(ag.propostasAtuais) ? ag.propostasAtuais : [];
+    const { propostaIndex } = req.body;
+    const escolhida = propostas[propostaIndex];
+    if (!escolhida) return res.status(400).json({ erro: 'Proposta nao existe nesse indice' });
+
+    const novaDataHora = new Date(escolhida.timestamp || `${escolhida.data}T${escolhida.hora}:00`);
+    if (isNaN(novaDataHora.getTime())) return res.status(400).json({ erro: 'Proposta com data invalida' });
+
+    const atualizado = await prisma.agendamento.update({
+      where: { id: ag.id },
+      data: {
+        dataHora: novaDataHora,
+        statusProposta: 'CONFIRMADO',
+        confirmadoEm: new Date(),
+        contadorTrocas: 0,
+        propostasAtuais: null,
+      },
+    });
+
+    await notificarUsuario({
+      usuarioId: ag.usuarioId,
+      titulo: 'Retorno confirmado',
+      mensagem: `Seu medico aceitou ${novaDataHora.toLocaleDateString('pt-BR')} as ${escolhida.hora}.`,
+      tipo: 'RETORNO',
+    });
+
+    auditar(req, {
+      acao: 'ACEITAR_PROPOSTA_PACIENTE',
+      atorTipo: 'MEDICO',
+      recursoTipo: 'AGENDAMENTO',
+      recursoId: ag.id,
+      alvoId: ag.usuarioId,
+      metadata: { propostaIndex, propostasOriginais: propostas, escolhida },
+    });
+
+    return res.status(200).json({ agendamento: atualizado });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // POST /:id/recusar — Paciente recusa proposta
 // ---------------------------------------------------------------------------
 

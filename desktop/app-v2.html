@@ -2211,16 +2211,41 @@ function renderPacienteDetailInline(){
     html+='<div class="pdc-b"><div style="font-size:18px;font-weight:900;letter-spacing:-.4px;color:var(--t1);line-height:1">'+dAStr+'</div>';
     html+='<div style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:7px;background:'+c.bg+';color:'+c.cor+';border:1px solid '+c.brd+'"><span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span>'+c.txt+'</div>';
     if(agend.motivoStatus){html+='<div style="font-size:11.5px;color:var(--t3);margin-top:8px;line-height:1.45;font-style:italic">"'+escHtml(agend.motivoStatus)+'"</div>';}
-    html+='<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">';
-    if(st==='AGUARDANDO_MEDICO'){
-      html+='<button class="btn btn-p btn-sm" onclick="prConfirmarMedico(\''+escHtml(agend.id)+'\')">Aceitar nova data</button>';
-      html+='<button class="btn btn-s btn-sm" onclick="prAbrirRemarcarMedico(\''+escHtml(agend.id)+'\')">Propor outra</button>';
-    }else if(st==='RECUSADO'||st==='CANCELADO'){
-      html+='<button class="btn btn-p btn-sm" onclick="prAbrirMarcarRetorno(\''+escHtml(pacId)+'\')">Propor novo retorno</button>';
-    }else if(st==='AGUARDANDO_PACIENTE'||st==='CONFIRMADO'||st==='AGENDADO'){
-      html+='<button class="btn btn-ghost btn-sm" onclick="prCancelarRetorno(\''+escHtml(agend.id)+'\')">Cancelar</button>';
+    // Banner anti-ciclo (Sessão 30): apos 2 trocas, sugere WhatsApp
+    if((agend.contadorTrocas||0)>=2){
+      html+='<div style="margin-top:10px;padding:10px 12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.20);border-radius:10px;font-size:11.5px;color:var(--t2);line-height:1.5"><b style="color:#1E40AF">Estão demorando pra encaixar.</b> Vocês já trocaram '+(agend.contadorTrocas)+' propostas — considere alinhar pelo WhatsApp.</div>';
     }
-    html+='</div></div>';
+    // NOVO (Sessão 30): se paciente sugeriu 3 horarios, mostra os 3 com botoes
+    var propostas = Array.isArray(agend.propostasAtuais) ? agend.propostasAtuais : [];
+    if(st==='AGUARDANDO_MEDICO' && propostas.length>0){
+      html+='<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">';
+      html+='<div style="font-size:11px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Paciente sugeriu '+propostas.length+' horário'+(propostas.length>1?'s':'')+'</div>';
+      propostas.forEach(function(p,idx){
+        try {
+          var dP = new Date(p.timestamp || (p.data+'T'+p.hora+':00'));
+          if(isNaN(dP.getTime())) return;
+          var dStr = dP.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+          var diaSem = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'][dP.getDay()];
+          var hStr = String(dP.getHours()).padStart(2,'0')+'h'+(dP.getMinutes()===0?'':String(dP.getMinutes()).padStart(2,'0'));
+          html+='<button class="btn btn-s" onclick="prAceitarPropostaPaciente(\''+escHtml(agend.id)+'\','+idx+')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:11px 14px;margin-bottom:6px;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s"><span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px"><span style="font-size:14px;font-weight:800;color:var(--t1);letter-spacing:-.2px">'+dStr+' · '+hStr+'</span><span style="font-size:11px;font-weight:500;color:var(--t3)">'+diaSem+'</span></span><span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:100px;background:rgba(0,229,160,.10);color:var(--ok);font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase">✓ Aceitar</span></button>';
+        } catch(_e){}
+      });
+      html+='<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px" onclick="prAbrirRemarcarMedico(\''+escHtml(agend.id)+'\')">Propor outra data</button>';
+      html+='</div>';
+    } else {
+      html+='<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">';
+      if(st==='AGUARDANDO_MEDICO'){
+        // Fallback: paciente sugeriu 1 unica data (legacy, sem array propostasAtuais)
+        html+='<button class="btn btn-p btn-sm" onclick="prConfirmarMedico(\''+escHtml(agend.id)+'\')">Aceitar nova data</button>';
+        html+='<button class="btn btn-s btn-sm" onclick="prAbrirRemarcarMedico(\''+escHtml(agend.id)+'\')">Propor outra</button>';
+      }else if(st==='RECUSADO'||st==='CANCELADO'){
+        html+='<button class="btn btn-p btn-sm" onclick="prAbrirMarcarRetorno(\''+escHtml(pacId)+'\')">Propor novo retorno</button>';
+      }else if(st==='AGUARDANDO_PACIENTE'||st==='CONFIRMADO'||st==='AGENDADO'){
+        html+='<button class="btn btn-ghost btn-sm" onclick="prCancelarRetorno(\''+escHtml(agend.id)+'\')">Cancelar</button>';
+      }
+      html+='</div>';
+    }
+    html+='</div>';
   }else{
     html+='<div class="pdc-b"><div style="font-size:12.5px;color:var(--t3);line-height:1.5;margin-bottom:10px">Nenhum retorno agendado para este paciente.</div><button class="btn btn-p btn-sm" style="width:100%;justify-content:center" onclick="prAbrirMarcarRetorno(\''+escHtml(pacId)+'\')">+ Marcar retorno</button></div>';
   }
@@ -2428,16 +2453,39 @@ function renderPacienteDetail(){
     if(agend.motivoStatus){
       html+='<div style="font-size:12px;color:var(--t3);margin-top:10px;line-height:1.5;font-style:italic">"'+escHtml(agend.motivoStatus)+'"</div>';
     }
-    html+='<div style="display:flex;gap:7px;margin-top:14px;flex-wrap:wrap">';
-    if(st==='AGUARDANDO_MEDICO'){
-      html+='<button class="btn btn-p btn-sm" onclick="prConfirmarMedico(\''+escHtml(agend.id)+'\')">Aceitar nova data</button>';
-      html+='<button class="btn btn-s btn-sm" onclick="prAbrirRemarcarMedico(\''+escHtml(agend.id)+'\')">Propor outra</button>';
-    }else if(st==='RECUSADO'||st==='CANCELADO'){
-      html+='<button class="btn btn-p btn-sm" onclick="prAbrirMarcarRetorno(\''+escHtml(pacId)+'\')">Propor novo retorno</button>';
-    }else if(st==='AGUARDANDO_PACIENTE'||st==='CONFIRMADO'||st==='AGENDADO'){
-      html+='<button class="btn btn-ghost btn-sm" onclick="prCancelarRetorno(\''+escHtml(agend.id)+'\')">Cancelar</button>';
+    // Banner anti-ciclo
+    if((agend.contadorTrocas||0)>=2){
+      html+='<div style="margin-top:14px;padding:11px 14px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.20);border-radius:10px;font-size:12px;color:var(--t2);line-height:1.5"><b style="color:#1E40AF">Estão demorando pra encaixar.</b> Vocês já trocaram '+(agend.contadorTrocas)+' propostas — considere alinhar pelo WhatsApp.</div>';
     }
-    html+='</div></div>';
+    var propostas2 = Array.isArray(agend.propostasAtuais) ? agend.propostasAtuais : [];
+    if(st==='AGUARDANDO_MEDICO' && propostas2.length>0){
+      html+='<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">';
+      html+='<div style="font-size:11px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Paciente sugeriu '+propostas2.length+' horário'+(propostas2.length>1?'s':'')+'</div>';
+      propostas2.forEach(function(p,idx){
+        try {
+          var dP = new Date(p.timestamp || (p.data+'T'+p.hora+':00'));
+          if(isNaN(dP.getTime())) return;
+          var dStr = dP.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+          var diaSem = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'][dP.getDay()];
+          var hStr = String(dP.getHours()).padStart(2,'0')+'h'+(dP.getMinutes()===0?'':String(dP.getMinutes()).padStart(2,'0'));
+          html+='<button class="btn btn-s" onclick="prAceitarPropostaPaciente(\''+escHtml(agend.id)+'\','+idx+')" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 16px;margin-bottom:7px;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s"><span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px"><span style="font-size:15px;font-weight:800;color:var(--t1);letter-spacing:-.2px">'+dStr+' · '+hStr+'</span><span style="font-size:11.5px;font-weight:500;color:var(--t3)">'+diaSem+'</span></span><span style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:100px;background:rgba(0,229,160,.10);color:var(--ok);font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase">✓ Aceitar</span></button>';
+        } catch(_e){}
+      });
+      html+='<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="prAbrirRemarcarMedico(\''+escHtml(agend.id)+'\')">Propor outra data</button>';
+      html+='</div>';
+    } else {
+      html+='<div style="display:flex;gap:7px;margin-top:14px;flex-wrap:wrap">';
+      if(st==='AGUARDANDO_MEDICO'){
+        html+='<button class="btn btn-p btn-sm" onclick="prConfirmarMedico(\''+escHtml(agend.id)+'\')">Aceitar nova data</button>';
+        html+='<button class="btn btn-s btn-sm" onclick="prAbrirRemarcarMedico(\''+escHtml(agend.id)+'\')">Propor outra</button>';
+      }else if(st==='RECUSADO'||st==='CANCELADO'){
+        html+='<button class="btn btn-p btn-sm" onclick="prAbrirMarcarRetorno(\''+escHtml(pacId)+'\')">Propor novo retorno</button>';
+      }else if(st==='AGUARDANDO_PACIENTE'||st==='CONFIRMADO'||st==='AGENDADO'){
+        html+='<button class="btn btn-ghost btn-sm" onclick="prCancelarRetorno(\''+escHtml(agend.id)+'\')">Cancelar</button>';
+      }
+      html+='</div>';
+    }
+    html+='</div>';
   }else{
     html+='<div class="pdc-b"><div style="font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:14px">Nenhum retorno agendado para este paciente.</div><button class="btn btn-p btn-sm" style="width:100%;justify-content:center" onclick="prAbrirMarcarRetorno(\''+escHtml(pacId)+'\')">+ Marcar retorno</button></div>';
   }
@@ -2802,19 +2850,38 @@ function _prFmt(d){
   try{ return new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}); }catch(_e){ return d; }
 }
 
-function prAbrirMarcarRetorno(pacienteId){
+function prAbrirMarcarRetorno(pacienteId, prefill){
   if(!pacienteId){ toast('Paciente sem ID — recarregue a tela'); return; }
+  prefill = prefill || {};
+  var defLocal = prefill.local || '';
+  var defRecado = prefill.recadoPaciente || '';
+  var defObs = prefill.observacoes || '';
+  var defDate = prefill.data || _prDefaultDate();
+  var defHora = prefill.hora || '09:00';
   var html=''
     +'<div class="modal-h"><div style="font-size:18px;font-weight:900;letter-spacing:-.4px">Marcar retorno</div>'
       +'<button class="btn btn-ghost btn-sm" onclick="closeModal()">Fechar</button></div>'
     +'<div class="modal-b">'
-      +'<div style="font-size:12.5px;color:var(--t3);line-height:1.55;margin-bottom:16px">O paciente recebe um aviso e pode confirmar, recusar ou propor outra data.</div>'
-      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Data do retorno</label>'
-      +'<input id="prDateInp" type="date" min="'+_prMinDateAttr()+'" value="'+_prDefaultDate()+'" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;font-weight:600"/>'
+      +'<div style="font-size:12.5px;color:var(--t3);line-height:1.55;margin-bottom:16px">O paciente recebe um aviso e pode confirmar ou sugerir 3 horários alternativos.</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 120px;gap:10px">'
+        +'<div>'
+          +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Data do retorno</label>'
+          +'<input id="prDateInp" type="date" min="'+_prMinDateAttr()+'" value="'+defDate+'" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;font-weight:600"/>'
+        +'</div>'
+        +'<div>'
+          +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Hora</label>'
+          +'<input id="prHoraInp" type="time" value="'+defHora+'" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;font-weight:600;font-variant-numeric:tabular-nums"/>'
+        +'</div>'
+      +'</div>'
       +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Local (opcional)</label>'
-      +'<input id="prLocalInp" type="text" placeholder="Consultório, hospital, telemedicina…" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none"/>'
-      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Observação (opcional)</label>'
-      +'<textarea id="prObsInp" rows="3" placeholder="Ex: trazer exames recentes" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;resize:vertical"></textarea>'
+      +'<input id="prLocalInp" type="text" value="'+escHtml(defLocal)+'" placeholder="Endereço completo (rua, número, bairro)" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none"/>'
+      +'<div style="font-size:11px;color:var(--t3);margin-top:4px;font-style:italic">Endereço completo permite o paciente abrir no Waze.</div>'
+      +'<label style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Recado pro paciente <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:100px;background:rgba(0,196,122,.10);color:#00764A;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase">Paciente vê</span></label>'
+      +'<textarea id="prRecadoInp" rows="2" maxlength="500" placeholder="Ex: venha em jejum de 8h, traga seus exames recentes" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid rgba(0,229,160,.25);border-radius:10px;background:rgba(0,229,160,.04);color:var(--t1);outline:none;resize:vertical">'+escHtml(defRecado)+'</textarea>'
+      +'<div style="font-size:11px;color:var(--t3);margin-top:4px;font-style:italic">Aparece na tela "Sua próxima consulta" do paciente.</div>'
+      +'<label style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Anotações pra você <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:100px;background:rgba(0,0,0,.05);color:var(--t3);font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase">Privado</span></label>'
+      +'<textarea id="prObsInp" rows="2" maxlength="500" placeholder="Suas notas privadas (paciente não vê)" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;resize:vertical">'+escHtml(defObs)+'</textarea>'
+      +'<div style="font-size:11px;color:var(--t3);margin-top:4px;font-style:italic">Só você (ou sua secretária) vê.</div>'
     +'</div>'
     +'<div class="modal-f"><button class="btn btn-s" onclick="closeModal()">Cancelar</button>'
       +'<button class="btn btn-p" id="prSubmitBtn" onclick="prProporRetorno(\''+pacienteId+'\')">Enviar proposta</button></div>';
@@ -2825,12 +2892,16 @@ function prAbrirMarcarRetorno(pacienteId){
 async function prProporRetorno(pacienteId){
   if(!window.BACKEND||!window.BACKEND.api){ toast('Sistema indisponível'); return; }
   var dateInp=document.getElementById('prDateInp');
+  var horaInp=document.getElementById('prHoraInp');
   var localInp=document.getElementById('prLocalInp');
+  var recadoInp=document.getElementById('prRecadoInp');
   var obsInp=document.getElementById('prObsInp');
   var btn=document.getElementById('prSubmitBtn');
   if(!dateInp||!dateInp.value){ toast('Escolha uma data'); return; }
-  var dataHora=new Date(dateInp.value+'T09:00:00');
-  if(dataHora<=new Date()){ toast('Data deve ser no futuro'); return; }
+  if(!horaInp||!horaInp.value){ toast('Escolha uma hora'); return; }
+  var dataHora=new Date(dateInp.value+'T'+horaInp.value+':00');
+  if(isNaN(dataHora.getTime())){ toast('Data ou hora inválida'); return; }
+  if(dataHora<=new Date()){ toast('Data e hora devem ser no futuro'); return; }
   if(btn){ btn.disabled=true; btn.textContent='Enviando…'; }
   try{
     var res = await _prApiJson('/agendamento/propor-retorno',{
@@ -2838,8 +2909,9 @@ async function prProporRetorno(pacienteId){
       body:{
         pacienteId:pacienteId,
         dataHora:dataHora.toISOString(),
-        local:(localInp&&localInp.value)||undefined,
-        observacoes:(obsInp&&obsInp.value)||undefined
+        local:(localInp&&localInp.value.trim())||undefined,
+        recadoPaciente:(recadoInp&&recadoInp.value.trim())||undefined,
+        observacoes:(obsInp&&obsInp.value.trim())||undefined
       }
     });
     if(res&&res.agendamento){
@@ -2865,15 +2937,48 @@ async function prProporRetorno(pacienteId){
 
 function prAbrirRemarcarMedico(agendamentoId){
   if(!agendamentoId){ toast('Agendamento sem ID'); return; }
+  // Pré-preenche com dados do agendamento atual (Sessão 30: paciente nao precisa redigitar tudo)
+  var ag = null;
+  try {
+    var pcCache = (pcState && pcState.currentPacienteData) || {};
+    if (pcCache.proximoAgendamento && pcCache.proximoAgendamento.id === agendamentoId) {
+      ag = pcCache.proximoAgendamento;
+    }
+  } catch(_e){}
+  var defLocal = (ag && ag.local) || '';
+  var defRecado = (ag && ag.recadoPaciente) || '';
+  var defObs = (ag && ag.observacoes) || '';
+  var defDate = _prDefaultDate();
+  var defHora = '09:00';
+  if (ag && ag.dataHora) {
+    try {
+      var d = new Date(ag.dataHora);
+      defHora = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    } catch(_e){}
+  }
   var html=''
     +'<div class="modal-h"><div style="font-size:18px;font-weight:900;letter-spacing:-.4px">Reagendar retorno</div>'
       +'<button class="btn btn-ghost btn-sm" onclick="closeModal()">Fechar</button></div>'
     +'<div class="modal-b">'
-      +'<div style="font-size:12.5px;color:var(--t3);line-height:1.55;margin-bottom:16px">Proponha uma nova data. O paciente recebe aviso e pode confirmar ou recusar.</div>'
-      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Nova data</label>'
-      +'<input id="prRemarcaDateInp" type="date" min="'+_prMinDateAttr()+'" value="'+_prDefaultDate()+'" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;font-weight:600"/>'
+      +'<div style="font-size:12.5px;color:var(--t3);line-height:1.55;margin-bottom:16px">Proponha uma nova data. O paciente recebe aviso e pode confirmar ou sugerir 3 horários alternativos.</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 120px;gap:10px">'
+        +'<div>'
+          +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Nova data</label>'
+          +'<input id="prRemarcaDateInp" type="date" min="'+_prMinDateAttr()+'" value="'+defDate+'" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;font-weight:600"/>'
+        +'</div>'
+        +'<div>'
+          +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Hora</label>'
+          +'<input id="prRemarcaHoraInp" type="time" value="'+defHora+'" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;font-weight:600;font-variant-numeric:tabular-nums"/>'
+        +'</div>'
+      +'</div>'
       +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Motivo (opcional)</label>'
       +'<input id="prRemarcaMotivoInp" type="text" placeholder="Ex: ajuste de agenda" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none"/>'
+      +'<label style="display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Local (opcional)</label>'
+      +'<input id="prRemarcaLocalInp" type="text" value="'+escHtml(defLocal)+'" placeholder="Endereço completo (rua, número, bairro)" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none"/>'
+      +'<label style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Recado pro paciente <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:100px;background:rgba(0,196,122,.10);color:#00764A;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase">Paciente vê</span></label>'
+      +'<textarea id="prRemarcaRecadoInp" rows="2" maxlength="500" placeholder="Ex: venha em jejum de 8h" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid rgba(0,229,160,.25);border-radius:10px;background:rgba(0,229,160,.04);color:var(--t1);outline:none;resize:vertical">'+escHtml(defRecado)+'</textarea>'
+      +'<label style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Anotações pra você <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:100px;background:rgba(0,0,0,.05);color:var(--t3);font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase">Privado</span></label>'
+      +'<textarea id="prRemarcaObsInp" rows="2" maxlength="500" placeholder="Suas notas privadas" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--t1);outline:none;resize:vertical">'+escHtml(defObs)+'</textarea>'
     +'</div>'
     +'<div class="modal-f"><button class="btn btn-s" onclick="closeModal()">Cancelar</button>'
       +'<button class="btn btn-p" id="prRemarcaBtn" onclick="prRemarcarMedico(\''+agendamentoId+'\')">Enviar nova data</button></div>';
@@ -2884,11 +2989,17 @@ async function prRemarcarMedico(agendamentoId){
   // Médico reagendando = cancela atual + propõe novo (paciente precisa confirmar de novo)
   if(!window.BACKEND||!window.BACKEND.api){ toast('Sistema indisponível'); return; }
   var dateInp=document.getElementById('prRemarcaDateInp');
+  var horaInp=document.getElementById('prRemarcaHoraInp');
   var motivoInp=document.getElementById('prRemarcaMotivoInp');
+  var localInp=document.getElementById('prRemarcaLocalInp');
+  var recadoInp=document.getElementById('prRemarcaRecadoInp');
+  var obsInp=document.getElementById('prRemarcaObsInp');
   var btn=document.getElementById('prRemarcaBtn');
   if(!dateInp||!dateInp.value){ toast('Escolha uma nova data'); return; }
-  var novaDataHora=new Date(dateInp.value+'T09:00:00');
-  if(novaDataHora<=new Date()){ toast('Data deve ser no futuro'); return; }
+  if(!horaInp||!horaInp.value){ toast('Escolha uma hora'); return; }
+  var novaDataHora=new Date(dateInp.value+'T'+horaInp.value+':00');
+  if(isNaN(novaDataHora.getTime())){ toast('Data ou hora inválida'); return; }
+  if(novaDataHora<=new Date()){ toast('Data e hora devem ser no futuro'); return; }
   if(btn){ btn.disabled=true; btn.textContent='Enviando…'; }
   try{
     var pcCache=(pcState&&pcState.currentPacienteData)||{};
@@ -2900,7 +3011,13 @@ async function prRemarcarMedico(agendamentoId){
     if(pacienteId){
       var res = await _prApiJson('/agendamento/propor-retorno',{
         method:'POST',
-        body:{ pacienteId:pacienteId, dataHora:novaDataHora.toISOString() }
+        body:{
+          pacienteId:pacienteId,
+          dataHora:novaDataHora.toISOString(),
+          local:(localInp&&localInp.value.trim())||undefined,
+          recadoPaciente:(recadoInp&&recadoInp.value.trim())||undefined,
+          observacoes:(obsInp&&obsInp.value.trim())||undefined
+        }
       });
       if(res&&res.agendamento){
         closeModal();
@@ -2916,6 +3033,32 @@ async function prRemarcarMedico(agendamentoId){
   }catch(err){
     toast(err.message || 'Falha de rede — tente novamente');
     if(btn){ btn.disabled=false; btn.textContent='Enviar nova data'; }
+  }
+}
+
+// Médico aceita uma das 3 propostas que o paciente sugeriu (Sessão 30)
+async function prAceitarPropostaPaciente(agendamentoId, propostaIndex){
+  if(!window.BACKEND||!window.BACKEND.api){ toast('Sistema indisponível'); return; }
+  try{
+    var res = await _prApiJson('/agendamento/'+encodeURIComponent(agendamentoId)+'/aceitar-proposta',{
+      method:'POST',
+      body:{ propostaIndex: propostaIndex }
+    });
+    if(res&&res.agendamento){
+      var d = new Date(res.agendamento.dataHora);
+      var dataStr = d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+      var horaStr = String(d.getHours()).padStart(2,'0')+'h'+(d.getMinutes()===0?'':String(d.getMinutes()).padStart(2,'0'));
+      toast('Retorno confirmado para '+dataStr+', '+horaStr);
+      try{
+        var pcCache=(pcState&&pcState.currentPacienteData)||{};
+        if(pcCache.proximoAgendamento&&pcCache.proximoAgendamento.id===agendamentoId){
+          pcCache.proximoAgendamento=res.agendamento;
+        }
+      }catch(_e){}
+      if(typeof renderPacienteDetail==='function') renderPacienteDetail();
+    }
+  }catch(err){
+    toast(err.message || 'Não consegui aceitar agora. Tente novamente.');
   }
 }
 
