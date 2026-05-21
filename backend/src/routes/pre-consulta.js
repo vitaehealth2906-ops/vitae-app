@@ -1426,24 +1426,42 @@ router.get('/:id', verificarAuth, async (req, res, next) => {
 // POST /:id/regenerar — Regenerar resumo IA de uma pre-consulta (autenticado)
 // ---------------------------------------------------------------------------
 
-// FASE 9 — debounce em memoria: regenerar/PC nao pode ser disparado > 1x em 15s
-const _regenDebounce = new Map();
+// FASE 9 + Fase 4 perf — debounce em memoria duplo:
+//   - hard 60s (era 15s): regeneração não pode ser chamada > 1x em 60s
+//   - soft 5min: avisa "acabou de regenerar, tem certeza?" (cliente passa force:true pra confirmar)
+const _regenDebounce = new Map();        // hard — bloqueia 60s
+const _regenSuccessLog = new Map();      // soft — última regen com sucesso (pra avisar 5min)
 setInterval(function() {
   const agora = Date.now();
-  for (const [k, v] of _regenDebounce.entries()) if (agora - v > 30000) _regenDebounce.delete(k);
-}, 60000).unref();
+  for (const [k, v] of _regenDebounce.entries()) if (agora - v > 120000) _regenDebounce.delete(k);
+  for (const [k, v] of _regenSuccessLog.entries()) if (agora - v > 600000) _regenSuccessLog.delete(k);
+}, 120000).unref();
 
 router.post('/:id/regenerar', verificarAuth, async (req, res, next) => {
   try {
     const medico = await prisma.medico.findUnique({ where: { usuarioId: req.usuario.id } });
     if (!medico) return res.status(403).json({ erro: 'Apenas medicos' });
 
-    // FASE 9 — debounce: evita custo duplicado se medico clica 3x rapido
+    // Fase 4 perf — debounce hard 60s (eleva de 15s pra evitar queima de R$ em cliques rápidos)
     const debounceKey = medico.id + '|' + req.params.id;
     const ultimo = _regenDebounce.get(debounceKey);
-    if (ultimo && Date.now() - ultimo < 15000) {
-      return res.status(429).json({ erro: 'Aguarde 15 segundos antes de regenerar novamente.' });
+    if (ultimo && Date.now() - ultimo < 60000) {
+      return res.status(429).json({ erro: 'Aguarde 60 segundos antes de regenerar novamente.', codigo: 'DEBOUNCE_HARD' });
     }
+
+    // Fase 4 perf — soft 5min: se regenerou com sucesso há < 5min, pede confirmação
+    const force = !!(req.body && req.body.force) || req.query.force === '1';
+    const ultimoSucesso = _regenSuccessLog.get(debounceKey);
+    if (ultimoSucesso && !force && Date.now() - ultimoSucesso < 5 * 60 * 1000) {
+      const minAtras = Math.round((Date.now() - ultimoSucesso) / 60000);
+      return res.status(409).json({
+        erro: 'Resumo regenerado há ' + (minAtras === 0 ? 'menos de 1 minuto' : minAtras + ' min') + '. Tem certeza que quer regenerar de novo? Vai gastar IA outra vez.',
+        codigo: 'RECENTLY_REGENERATED',
+        precisaConfirmar: true,
+        ultimoSucessoMs: ultimoSucesso,
+      });
+    }
+
     _regenDebounce.set(debounceKey, Date.now());
 
     const pc = await prisma.preConsulta.findFirst({
@@ -1545,6 +1563,9 @@ router.post('/:id/regenerar', verificarAuth, async (req, res, next) => {
       where: { id: pc.id },
       data: { summaryIA: resultado.summaryTexto, summaryJson: summaryJsonFinal },
     });
+
+    // Fase 4 perf — marca sucesso pra ativar soft confirmation nos próximos 5min
+    _regenSuccessLog.set(debounceKey, Date.now());
 
     // TTS em background
     if (resultado.textoVoz || resultado.summaryTexto) {
@@ -1882,8 +1903,32 @@ router.post('/:id/analise-prosodica', verificarAuth, async (req, res, next) => {
       return res.status(200).json({ alerta: null, motivo: resultado.motivo || 'features_indisponiveis' });
     }
 
+    // Fase 4 perf — dedupe por hashAudio: se já existe análise para o MESMO
+    // áudio, devolve a existente em vez de criar registro duplicado.
+    const hashAudio = resultado.hashAudio || 'no-audio-buffer';
+    let registro = null;
+    if (hashAudio && hashAudio !== 'no-audio-buffer') {
+      try {
+        registro = await prisma.analiseProsodicaArquive.findFirst({
+          where: { preConsultaId: pc.id, hashAudio },
+          orderBy: { criadoEm: 'desc' },
+        });
+        if (registro) {
+          return res.status(200).json({
+            alerta: registro.alertaMensagem ? {
+              severidade: registro.alertaSeveridade,
+              mensagem: registro.alertaMensagem,
+            } : null,
+            registroId: registro.id,
+            modo: resultado.modo,
+            _cached: true,
+          });
+        }
+      } catch (_e) { /* tabela existe, mas se der erro, segue criando novo */ }
+    }
+
     // Grava no archive
-    const registro = await prisma.analiseProsodicaArquive.create({
+    registro = await prisma.analiseProsodicaArquive.create({
       data: {
         preConsultaId: pc.id,
         medicoId: pc.medicoId,
@@ -1892,7 +1937,7 @@ router.post('/:id/analise-prosodica', verificarAuth, async (req, res, next) => {
         thresholds: resultado.thresholds,
         trechoInicioMs: resultado.trecho.inicio_ms,
         trechoFimMs: resultado.trecho.fim_ms,
-        hashAudio: resultado.hashAudio || 'no-audio-buffer',
+        hashAudio: hashAudio,
         retencaoAte: resultado.retencaoAte,
         alertaSeveridade: resultado.alerta?.severidade || null,
         alertaMensagem: resultado.alerta?.mensagem || null,
