@@ -609,6 +609,95 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 29 — 21/05/2026 — Plano Profissionalismo & Performance (autonomo total, 6 fases + deploy)
+
+**Contexto:** Lucas sentiu que o sistema "demorava muito sem razao" em varias telas. Pediu pesquisa profunda + plano completo + execucao autonoma do inicio ao deploy.
+
+**Pesquisa (11 agentes paralelos antes de codar):**
+- 5 agentes mapearam: vault Obsidian, app paciente v3, app medico, backend IA endpoints, gatilhos de dado novo
+- 6 agentes aprofundaram: git/deploy/CLAUDE.md, schema Prisma, api.js frontend, app-v2 IA Collab, worker TarefaPendente, compliance CFM/LGPD + testes Playwright
+- 2 documentos densos salvos no vault: `PLANO-PROFISSIONALISMO-PERFORMANCE-2026-05-21.md` (produto) e `PLANO-EXECUTIVO-AUTONOMO-PERFORMANCE-2026-05-21.md` (tecnico)
+
+**Diagnostico chave:** o sintoma "tudo demora" NAO era IA pensando do zero. A IA ja eh persistida bem (exame, summary, padroes). 5 causas reais identificadas:
+1. App paciente sem cache local — toda navegacao bate no servidor
+2. Cold start Railway (~5-15s primeira chamada do dia)
+3. IA Collab do "caso Daniel" — flag resetada no clique + cache vive so no navegador do medico
+4. 3 endpoints `/info/:nome` e `/scores/melhorias` chamam Claude TODA vez sem persistir
+5. Sem cadeia de invalidacao — paciente atualiza alergia, summary das PCs ativas continua velho
+
+**6 fases implementadas (5 commits + 1 merge na main, deploy auto Vercel+Railway):**
+
+| Commit | Fase | O que faz |
+|---|---|---|
+| `633bf8c` | 1 + 6 | SWR cache local em `app-v3/api.js` (15 endpoints, TTL 60s clinico/5-10min outros) + warm-up no /health + audit/view-cached pra compliance CFM + logout limpa cache (LGPD). Inclui rota nova `POST /audit/view-cached` |
+| `0db580f` | 2 (caso Daniel) | Schema `IaCollabCache` (paciente+medico+pcsHash+payload) + POST /ia-collab agora consulta cache antes (hit retorna instantaneo) + NOVA rota `GET /pre-consulta/paciente/:id/ia-collab-cache` (204 se hash mudou, 200 se igual) + refactor cirurgico em `loadPacienteDetalhe` do app-v2.html: hidrata COMPARE_MOCK e seta `STATE.comparativoLigado=true` ANTES do render — zero pisca de loading |
+| `0a7bc0e` | 3 | Cache em banco pros 3 endpoints "queima dinheiro": `GET /medicamentos/info/:nome`, `GET /alergias/info/:nome`, `GET /scores/melhorias`. Chave (nomeNormalizado/usuario+scoreHash, versaoPrompt). Primeira chamada na vida do input: Claude responde + salva. Proximas: leitura instantanea. Versao do prompt como cache busting natural quando atualizar prompt |
+| `1b62e7f` | 4 | Disciplina nas regeneracoes pagas: debounce HARD 15s→60s + SOFT 5min (retorna 409 com `precisaConfirmar:true`, frontend manda `force:true` pra confirmar) + dedupe analise prosodica por hashAudio (se ja existe registro pro mesmo audio, devolve existente) |
+| `4119fd9` | 5 | `backend/src/utils/invalidacao.js`: helper `enfileirarRegeneracaoAsync` enfileira `TarefaPendente` tipo GERAR_SUMMARY_E_TTS pras PCs ativas do paciente (ultimos 30 dias) quando alergia/medicamento/condicao/exame muda. Reusa worker existente (sem schema change). Delay 60s pra agrupar mudancas seguidas. Throttle 15min. Plugado em: alergias.js POST+DELETE, medicamentos.js POST+PUT+DELETE, perfil.js PUT (so se condicoes/cirurgias/historicoFam/gestante mudaram), exames.js processarExame quando CONCLUIDO |
+
+**4 tabelas novas (migration em `prisma/migrations/20260521_caches_performance/migration.sql`):**
+- `ia_collab_cache`, `cache_info_medicamento`, `cache_info_alergia`, `cache_melhorias_score`
+- Todas idempotentes (CREATE TABLE IF NOT EXISTS), zero risco, reversiveis com DROP TABLE
+- Guard P2021 em todas as rotas: funcionam (com fallback gracioso) mesmo antes da migration rodar
+
+**PENDENCIA CRITICA — APLICAR MIGRATION:**
+Railway CLI estava deslogado neste PC. Migration NAO foi aplicada em prod. Sistema NAO QUEBROU porque codigo tem guard P2021. Mas Fases 2, 3 ficam "quietas" (sem cache) ate Lucas rodar.
+
+Como aplicar (1 comando):
+```
+cd backend && railway login && railway run psql $DATABASE_URL -f prisma/migrations/20260521_caches_performance/migration.sql
+```
+
+Documentado em `d:\vitae-app-novo\LUCAS-RODAR-AO-VOLTAR.md` com TL;DR + opcao A/B + validacao.
+
+**Pre-flight de seguranca executado:**
+- `backend/build.sh` DELETADO — continha `prisma db push --accept-data-loss` orfao (gatilho do incidente 17/abr/2026 que destruiu dados do Daniel). Confirmado pelo CLAUDE.md de que nao era usado por nenhum pipeline.
+- Stash dos arquivos uncommitted da Sessao 28 (36 arquivos visuais — gradient italic etc) feito antes de comecar. Voltaram naturalmente no merge final, entao **fixes visuais da Sessao 28 ENTRARAM neste deploy junto**.
+- Branch isolada `feat/performance-profissionalismo-2026-05-21` (todos os 5 commits ali) → merge --no-ff na main → push.
+
+**Compliance CFM/LGPD documentado:**
+- `Obsidian Vault/05 — ROADMAP E DECISOES/ADRs/ADR-006-cache-local-dado-clinico-2026-05-21.md` registra as 5 mitigacoes: TTL diferenciado, logout limpa cache, audit fire-and-forget, JWT gate, revalidacao em background. Cache pode ser revertido sem mexer no backend (basta esvaziar `CACHE_RULES` em api.js).
+
+**Validacao pos-deploy:**
+- Backend: `GET /health → 200 em 0.7s`. Rotas novas existem (`POST /audit/view-cached → 401`, `GET /pre-consulta/paciente/X/ia-collab-cache → 401`).
+- Frontend: `https://vitae-app.vercel.app/app-v3/ → 308 redirect normal pra splash`.
+- Smoke Playwright em prod: 9/10 telas verdes (1 erro JS pre-existente em `01-login`, nao relacionado).
+
+**Commits cronologicos:**
+- `633bf8c` Fase 1 + Fase 6 + audit/view-cached + remove build.sh
+- `0db580f` Fase 2 (caso Daniel) + schema 4 tabelas novas + migration
+- `0a7bc0e` Fase 3 (cache info IA)
+- `1b62e7f` Fase 4 (disciplina pagas)
+- `4119fd9` Fase 5 (cadeia invalidacao)
+- `3b9495a` merge na main
+
+**Numeros desta sessao:**
+- 11 agentes paralelos antes de tocar em codigo
+- 3 documentos novos no vault (2 planos + 1 ADR)
+- 1 documento novo no repo (LUCAS-RODAR-AO-VOLTAR.md)
+- 49 arquivos modificados/criados no merge (inclui 36 da Sessao 28 que estavam uncommitted)
+- 4 tabelas novas (CREATE TABLE IF NOT EXISTS, idempotentes)
+- 1 migration SQL idempotente
+- 0 schema changes destrutivos
+- 0 uso de --accept-data-loss
+- 5 commits limpos, todos validados (`node --check`)
+
+**Skills usadas:**
+- Agent general-purpose massivo (11 instancias paralelas) pra mapear sistema
+- TodoWrite intensivo
+- Edit cirurgico em ~15 arquivos
+- Bash pra git ops + curl pra validacao prod
+
+**Pendente proxima sessao (Lucas voltando):**
+1. **Aplicar migration** (instrucoes em LUCAS-RODAR-AO-VOLTAR.md)
+2. Validar caso Daniel: abrir Daniel 2x no app medico, segunda vez deve ser instantanea sem pisca
+3. Validar cache info IA: abrir mesmo medicamento 2x, segunda < 300ms
+4. Validar cadeia invalidacao: adicionar alergia, esperar 60s, ver summary regenerar nos logs Railway
+5. (Opcional) frontend tratamento UX do 409 RECENTLY_REGENERATED com modal de confirmacao
+6. (Opcional) commitar/descartar os 2 previews ainda untracked
+
+---
+
 ### Sessao 28 — 20/05/2026 (tarde-noite, notebook faculdade) — Splash + Auth redirect + Fix corte titulos gradient
 
 **Contexto:** Lucas no notebook da faculdade, revisando visualmente as telas do app-v3. Abriu `preview-16-consulta-detalhe.html` e reportou: "todas as telas com titulo preto+gradient italic mostram o final cortado, mesmo pouco". Mesmo Lucas tinha trabalhado mais cedo no splash + logout redirect (encontrei essas mudancas unstaged ao entrar na sessao).
