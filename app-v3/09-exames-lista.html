@@ -719,8 +719,10 @@ body{display:flex;flex-direction:column;align-items:center;justify-content:cente
 
   <!-- ══ LISTA ══ -->
   <div class="screen active" id="s-lista">
-    <div class="topbar">
+    <div class="topbar" style="display:flex;align-items:center;justify-content:space-between;">
       <span class="topbar-title">Exames</span>
+      <!-- Botão "?" (Fase 3 v4): abre direto o onboarding, sem menu -->
+      <button id="helpBtnExames" onclick="abrirOnboardingExames(true)" aria-label="Ver tutorial de novo" style="width:32px;height:32px;border-radius:50%;background:rgba(0,229,160,0.10);border:1px solid rgba(0,229,160,0.22);display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:800;color:#00C47A;cursor:pointer;padding:0;line-height:1;">?</button>
     </div>
 
     <!-- Search bar -->
@@ -735,6 +737,32 @@ body{display:flex;flex-direction:column;align-items:center;justify-content:cente
     <div id="listaContent"></div>
     <div style="height:80px"></div>
 
+  </div>
+
+  <!-- ══ ONBOARDING EXAMES (Fase 3 v4) ══ -->
+  <!-- Aparece UMA vez na primeira entrada na aba. Reabre pelo "?". Copy provocativa. -->
+  <div id="onbExamesOverlay" style="display:none;position:absolute;inset:0;background:#F8FAFB;z-index:200;flex-direction:column;">
+    <button id="onbSkipBtn" onclick="fecharOnboardingExames()" style="position:absolute;top:54px;right:20px;z-index:5;background:none;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:rgba(13,15,20,0.4);cursor:pointer;padding:6px 10px;">Pular</button>
+
+    <div id="onbSlideContainer" style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:60px 24px 24px;overflow-y:auto;">
+      <!-- Slide content renderizado por JS em mostrarSlideOnb() -->
+    </div>
+
+    <div style="padding:0 24px 28px;display:flex;flex-direction:column;align-items:center;">
+      <div id="onbDots" style="display:flex;gap:6px;margin-bottom:20px;">
+        <span class="onb-dot" data-idx="0"></span>
+        <span class="onb-dot" data-idx="1"></span>
+        <span class="onb-dot" data-idx="2"></span>
+        <span class="onb-dot" data-idx="3"></span>
+      </div>
+      <button id="onbCtaBtn" onclick="proximoSlideOnb()" style="width:100%;max-width:340px;padding:16px;background:linear-gradient(120deg,#00E5A0,#00B4D8);border-radius:14px;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800;color:#0D0F14;box-shadow:0 8px 22px rgba(0,229,160,0.32);cursor:pointer;letter-spacing:0.02em;">Próximo</button>
+      <button id="onbCtaSec" onclick="fecharOnboardingExames()" style="display:none;margin-top:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;color:rgba(13,15,20,0.45);padding:6px;background:none;border:none;cursor:pointer;">Depois eu faço</button>
+    </div>
+
+    <style>
+      .onb-dot{width:7px;height:7px;border-radius:50%;background:rgba(0,0,0,0.10);transition:all .25s;}
+      .onb-dot.on{width:22px;border-radius:4px;background:linear-gradient(120deg,#00E5A0,#00B4D8);}
+    </style>
   </div>
 
   <!-- ══ VISÃO GERAL ══ -->
@@ -831,6 +859,189 @@ body{display:flex;flex-direction:column;align-items:center;justify-content:cente
 <script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <script src="api.js"></script>
 <script>
+// ══════════════════════════════
+// ONBOARDING DA ABA EXAMES (Fase 3 v4)
+// Aparece UMA vez na primeira entrada. Reabre pelo botão "?".
+// Copy provocativa, ícones polidos.
+// ══════════════════════════════
+const ONB_EXAMES_KEY = 'vitae_onb_exames_visto';
+let _onbSlideAtual = 0;
+
+const ONB_EXAMES_SLIDES = [
+  {
+    titulo: 'Você já entendeu <em>algum exame</em> seu na vida?',
+    texto: 'Aquele papel cheio de números, daqueles que nem o médico te explicou direito.',
+    cta: 'Próximo',
+    svg: `<svg viewBox="0 0 200 200" fill="none" style="width:100%;height:100%;">
+      <defs>
+        <linearGradient id="og1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#00B4D8"/></linearGradient>
+        <filter id="oglow1"><feGaussianBlur stdDeviation="3"/></filter>
+      </defs>
+      <rect x="58" y="48" width="84" height="108" rx="7" fill="#fff" stroke="url(#og1)" stroke-width="3"/>
+      <line x1="70" y1="72" x2="115" y2="72" stroke="#9CA3AF" stroke-width="2.5"/>
+      <line x1="70" y1="84" x2="130" y2="84" stroke="#9CA3AF" stroke-width="2.5"/>
+      <line x1="70" y1="96" x2="110" y2="96" stroke="#9CA3AF" stroke-width="2.5"/>
+      <line x1="70" y1="114" x2="120" y2="114" stroke="#9CA3AF" stroke-width="2.5"/>
+      <line x1="70" y1="126" x2="105" y2="126" stroke="#9CA3AF" stroke-width="2.5"/>
+      <line x1="70" y1="138" x2="116" y2="138" stroke="#9CA3AF" stroke-width="2.5"/>
+      <circle cx="148" cy="55" r="26" fill="url(#og1)"/>
+      <text x="148" y="65" text-anchor="middle" fill="#fff" font-family="Plus Jakarta Sans" font-size="30" font-weight="900">?</text>
+      <circle cx="40" cy="76" r="12" fill="url(#og1)" opacity="0.40"/>
+      <text x="40" y="81" text-anchor="middle" fill="#fff" font-family="Plus Jakarta Sans" font-size="14" font-weight="900">?</text>
+      <circle cx="46" cy="148" r="9" fill="url(#og1)" opacity="0.28"/>
+      <text x="46" y="152" text-anchor="middle" fill="#fff" font-family="Plus Jakarta Sans" font-size="11" font-weight="900">?</text>
+      <path d="M168 122 l4 7 7 4 -7 4 -4 7 -4 -7 -7 -4 7 -4 z" fill="url(#og1)" opacity="0.55"/>
+      <path d="M32 36 l2.5 5 5 2.5 -5 2.5 -2.5 5 -2.5 -5 -5 -2.5 5 -2.5 z" fill="url(#og1)" opacity="0.5"/>
+    </svg>`,
+  },
+  {
+    titulo: 'Aqui você entende <em>o que acontece</em> com você',
+    texto: 'Em <strong style="color:#00C47A;">60 segundos</strong>, a gente lê seu exame, separa cada valor, e te mostra o que tá em ordem, o que merece atenção e o que vale conversar com o médico.',
+    cta: 'Próximo',
+    svg: `<svg viewBox="0 0 200 200" fill="none" style="width:100%;height:100%;">
+      <defs>
+        <linearGradient id="og2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#00B4D8"/></linearGradient>
+        <linearGradient id="og2soft" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#00E5A0" stop-opacity="0.18"/><stop offset="100%" stop-color="#00B4D8" stop-opacity="0.04"/></linearGradient>
+      </defs>
+      <rect x="20" y="40" width="64" height="100" rx="6" fill="url(#og2soft)" stroke="url(#og2)" stroke-width="3"/>
+      <rect x="28" y="48" width="48" height="6" rx="1.5" fill="url(#og2)"/>
+      <line x1="28" y1="62" x2="76" y2="62" stroke="#9CA3AF" stroke-width="2"/>
+      <line x1="28" y1="72" x2="68" y2="72" stroke="#9CA3AF" stroke-width="2"/>
+      <line x1="28" y1="82" x2="76" y2="82" stroke="#9CA3AF" stroke-width="2"/>
+      <line x1="28" y1="92" x2="62" y2="92" stroke="#9CA3AF" stroke-width="2"/>
+      <line x1="28" y1="102" x2="76" y2="102" stroke="#9CA3AF" stroke-width="2"/>
+      <line x1="28" y1="112" x2="64" y2="112" stroke="#9CA3AF" stroke-width="2"/>
+      <line x1="28" y1="122" x2="70" y2="122" stroke="#9CA3AF" stroke-width="2"/>
+      <line x1="28" y1="132" x2="58" y2="132" stroke="#9CA3AF" stroke-width="2"/>
+      <path d="M92 90 L114 90" stroke="url(#og2)" stroke-width="4" stroke-linecap="round"/>
+      <path d="M108 84 L114 90 L108 96" stroke="url(#og2)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <rect x="120" y="56" width="60" height="22" rx="6" fill="#00C47A"/>
+      <circle cx="131" cy="67" r="3.5" fill="#fff"/>
+      <text x="170" y="71" text-anchor="end" fill="#fff" font-family="Plus Jakarta Sans" font-size="11" font-weight="800">OK</text>
+      <rect x="120" y="86" width="60" height="22" rx="6" fill="#F59E0B"/>
+      <circle cx="131" cy="97" r="3.5" fill="#fff"/>
+      <text x="170" y="101" text-anchor="end" fill="#fff" font-family="Plus Jakarta Sans" font-size="9" font-weight="800">ATENÇÃO</text>
+      <rect x="120" y="116" width="60" height="22" rx="6" fill="#EF4444"/>
+      <circle cx="131" cy="127" r="3.5" fill="#fff"/>
+      <text x="170" y="131" text-anchor="end" fill="#fff" font-family="Plus Jakarta Sans" font-size="9" font-weight="800">URGENTE</text>
+      <path d="M178 30 l3 6 6 3 -6 3 -3 6 -3 -6 -6 -3 6 -3 z" fill="url(#og2)" opacity="0.65"/>
+      <path d="M14 154 l2.5 5 5 2.5 -5 2.5 -2.5 5 -2.5 -5 -5 -2.5 5 -2.5 z" fill="url(#og2)" opacity="0.55"/>
+    </svg>`,
+  },
+  {
+    titulo: 'Pode <em>fechar o app</em> — a gente te chama',
+    texto: 'Não precisa ficar olhando o celular. Quando seu exame ficar pronto, aparece um aviso aqui dentro.',
+    cta: 'Próximo',
+    svg: `<svg viewBox="0 0 200 200" fill="none" style="width:100%;height:100%;">
+      <defs>
+        <linearGradient id="og3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#00B4D8"/></linearGradient>
+        <linearGradient id="og3soft" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#00E5A0" stop-opacity="0.15"/><stop offset="100%" stop-color="#00B4D8" stop-opacity="0.03"/></linearGradient>
+      </defs>
+      <rect x="58" y="34" width="72" height="130" rx="14" fill="url(#og3soft)" stroke="url(#og3)" stroke-width="3"/>
+      <rect x="86" y="42" width="16" height="3.5" rx="1.5" fill="#9CA3AF"/>
+      <line x1="68" y1="64" x2="120" y2="64" stroke="#E5E7EB" stroke-width="3"/>
+      <line x1="68" y1="76" x2="108" y2="76" stroke="#E5E7EB" stroke-width="3"/>
+      <rect x="68" y="92" width="52" height="44" rx="6" fill="rgba(0,229,160,0.10)" stroke="url(#og3)" stroke-width="2"/>
+      <rect x="74" y="98" width="14" height="32" rx="2" fill="#fff" stroke="#00E5A0" stroke-width="1"/>
+      <line x1="92" y1="104" x2="114" y2="104" stroke="#00C47A" stroke-width="2"/>
+      <line x1="92" y1="112" x2="116" y2="112" stroke="#9CA3AF" stroke-width="1.5"/>
+      <line x1="92" y1="120" x2="112" y2="120" stroke="#9CA3AF" stroke-width="1.5"/>
+      <circle cx="112" cy="130" r="3" fill="#00C47A"/>
+      <line x1="68" y1="148" x2="120" y2="148" stroke="#E5E7EB" stroke-width="2"/>
+      <rect x="118" y="18" width="74" height="30" rx="10" fill="#fff" stroke="url(#og3)" stroke-width="2.5"/>
+      <circle cx="130" cy="33" r="7" fill="url(#og3)"/>
+      <text x="130" y="36" text-anchor="middle" fill="#fff" font-family="Plus Jakarta Sans" font-size="8" font-weight="900">V</text>
+      <line x1="143" y1="29" x2="184" y2="29" stroke="#0D0F14" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="143" y1="35" x2="178" y2="35" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="143" y1="40" x2="182" y2="40" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="124" cy="58" r="4" fill="url(#og3)" opacity="0.6"/>
+      <circle cx="118" cy="68" r="2.5" fill="url(#og3)" opacity="0.45"/>
+      <circle cx="114" cy="78" r="1.8" fill="url(#og3)" opacity="0.3"/>
+      <circle cx="106" cy="55" r="6" fill="#00C47A" stroke="#fff" stroke-width="2"/>
+    </svg>`,
+  },
+  {
+    titulo: 'Tudo seu, <em>tudo seguro</em>',
+    texto: 'Seus exames ficam criptografados. Só você decide quem pode ver — médico, família, ou ninguém.',
+    cta: 'Anexar meu primeiro exame',
+    ctaSec: 'Depois eu faço',
+    svg: `<svg viewBox="0 0 200 200" fill="none" style="width:100%;height:100%;">
+      <defs>
+        <linearGradient id="og4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#00B4D8"/></linearGradient>
+        <linearGradient id="og4b" x1="0%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="#00E5A0" stop-opacity="0.18"/><stop offset="100%" stop-color="#00B4D8" stop-opacity="0.06"/></linearGradient>
+      </defs>
+      <path d="M100 24 L156 42 L156 110 Q156 142 100 168 Q44 142 44 110 L44 42 Z" fill="url(#og4b)" stroke="url(#og4)" stroke-width="3.5" stroke-linejoin="round"/>
+      <rect x="74" y="92" width="52" height="40" rx="5" fill="#fff" stroke="url(#og4)" stroke-width="3"/>
+      <path d="M84 92 V76 Q84 60 100 60 Q116 60 116 76 V92" stroke="url(#og4)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <circle cx="100" cy="110" r="5" fill="url(#og4)"/>
+      <line x1="100" y1="115" x2="100" y2="124" stroke="url(#og4)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="100" cy="54" r="11" fill="url(#og4)"/>
+      <path d="M94 54 L98 58 L106 50" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <path d="M168 64 l3 6 6 3 -6 3 -3 6 -3 -6 -6 -3 6 -3 z" fill="url(#og4)" opacity="0.65"/>
+      <path d="M22 110 l2.5 5 5 2.5 -5 2.5 -2.5 5 -2.5 -5 -5 -2.5 5 -2.5 z" fill="url(#og4)" opacity="0.55"/>
+      <path d="M178 140 l2 4 4 2 -4 2 -2 4 -2 -4 -4 -2 4 -2 z" fill="url(#og4)" opacity="0.45"/>
+    </svg>`,
+  },
+];
+
+function abrirOnboardingExames(forcado = false) {
+  // Se já viu E não é forçado pelo botão "?", não abre
+  if (!forcado && localStorage.getItem(ONB_EXAMES_KEY) === '1') return;
+  if (medicoModePacienteId) return; // médico não vê onboarding paciente
+  _onbSlideAtual = 0;
+  const overlay = document.getElementById('onbExamesOverlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  mostrarSlideOnb();
+}
+
+function mostrarSlideOnb() {
+  const slide = ONB_EXAMES_SLIDES[_onbSlideAtual];
+  if (!slide) return;
+  const container = document.getElementById('onbSlideContainer');
+  container.innerHTML = `
+    <div style="width:200px;height:200px;margin:30px auto 26px;position:relative;display:flex;align-items:center;justify-content:center;">
+      <div style="position:absolute;width:240px;height:240px;background:radial-gradient(circle,rgba(0,229,160,0.25),transparent 65%);filter:blur(20px);z-index:0;"></div>
+      <div style="width:200px;height:200px;position:relative;z-index:2;">${slide.svg}</div>
+    </div>
+    <div style="font-size:26px;font-weight:800;letter-spacing:-0.5px;line-height:1.18;margin-bottom:12px;max-width:300px;color:#0D0F14;">${slide.titulo.replace(/<em>/g, '<em style="font-style:italic;color:#00C47A;">')}</div>
+    <div style="font-size:14px;color:#6B7280;line-height:1.55;max-width:320px;">${slide.texto}</div>
+  `;
+  // Atualiza dots
+  document.querySelectorAll('#onbDots .onb-dot').forEach((d, i) => {
+    if (i === _onbSlideAtual) d.classList.add('on'); else d.classList.remove('on');
+  });
+  // Atualiza CTA
+  const cta = document.getElementById('onbCtaBtn');
+  cta.textContent = slide.cta || 'Próximo';
+  const ctaSec = document.getElementById('onbCtaSec');
+  if (slide.ctaSec) {
+    ctaSec.textContent = slide.ctaSec;
+    ctaSec.style.display = 'block';
+  } else {
+    ctaSec.style.display = 'none';
+  }
+  // Esconde "Pular" no último slide
+  document.getElementById('onbSkipBtn').style.display = (_onbSlideAtual === ONB_EXAMES_SLIDES.length - 1) ? 'none' : 'block';
+}
+
+function proximoSlideOnb() {
+  if (_onbSlideAtual >= ONB_EXAMES_SLIDES.length - 1) {
+    // Último slide: CTA = "Anexar meu primeiro exame"
+    fecharOnboardingExames();
+    triggerUpload();
+    return;
+  }
+  _onbSlideAtual++;
+  mostrarSlideOnb();
+}
+
+function fecharOnboardingExames() {
+  const overlay = document.getElementById('onbExamesOverlay');
+  if (overlay) overlay.style.display = 'none';
+  localStorage.setItem(ONB_EXAMES_KEY, '1');
+}
+
 // ══════════════════════════════
 // NAVIGATION STACK
 // ══════════════════════════════
@@ -2617,6 +2828,9 @@ if (typeof vitaeAPI !== 'undefined' && (vitaeAPI.isLoggedIn() || medicoModePacie
       if (idx !== -1) openExam(idx);
     } else if (openIdx !== null && allExams[Number(openIdx)]) {
       openExam(Number(openIdx));
+    } else {
+      // Fase 3: na primeira entrada na aba Exames, mostra onboarding (1x só)
+      setTimeout(() => abrirOnboardingExames(false), 250);
     }
   });
 } else {
