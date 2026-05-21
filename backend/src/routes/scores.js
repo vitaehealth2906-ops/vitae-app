@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
 const scoreEngine = require('../services/score-engine');
@@ -7,6 +8,19 @@ const ai = require('../services/ai');
 const router = express.Router();
 
 router.use(verificarAuth);
+
+// Fase 3 perf: cache /melhorias por (usuario, prompt, hash dos inputs)
+const VERSAO_PROMPT_MELHORIAS = 'v1-2026-05';
+function _scoreInputsHash({ scoreAtual, exames, medicamentos, alergias, checkins }) {
+  const parts = [
+    scoreAtual ? `s:${scoreAtual.id}` : 's:none',
+    'e:' + exames.map(e => e.id).sort().join(','),
+    'm:' + medicamentos.map(m => m.id).sort().join(','),
+    'a:' + alergias.map(a => a.id).sort().join(','),
+    'c:' + (checkins[0] ? checkins[0].id : 'none'),
+  ];
+  return crypto.createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 24);
+}
 
 function calcularIdadeCronologica(dataNascimento) {
   if (!dataNascimento) return null;
@@ -102,7 +116,34 @@ router.get('/melhorias', async (req, res, next) => {
       });
     }
 
+    // Fase 3 perf: cache lookup
+    const scoreHash = _scoreInputsHash({ scoreAtual, exames, medicamentos, alergias, checkins });
+    try {
+      const cached = await prisma.cacheMelhoriasScore.findUnique({
+        where: { usuarioId_versaoPrompt_scoreHash: { usuarioId, versaoPrompt: VERSAO_PROMPT_MELHORIAS, scoreHash } },
+      });
+      if (cached) {
+        return res.status(200).json({ melhorias: cached.payload, _cached: true });
+      }
+    } catch (err) {
+      if (err && err.code !== 'P2021') {
+        console.warn('[CACHE_MELHORIAS] lookup falhou:', err.message);
+      }
+    }
+
     const melhorias = await ai.gerarMelhorias(perfil, exames, medicamentos, alergias.map(a => a.nome), checkins, scoreAtual);
+
+    // Salva no cache (resiliente)
+    try {
+      await prisma.cacheMelhoriasScore.create({
+        data: { usuarioId, versaoPrompt: VERSAO_PROMPT_MELHORIAS, scoreHash, payload: melhorias },
+      });
+    } catch (err) {
+      if (err && err.code !== 'P2021' && err.code !== 'P2002') {
+        console.warn('[CACHE_MELHORIAS] save falhou:', err.message);
+      }
+    }
+
     return res.status(200).json({ melhorias });
   } catch (err) {
     next(err);

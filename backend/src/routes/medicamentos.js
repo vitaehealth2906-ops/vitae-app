@@ -5,6 +5,7 @@ const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const ai = require('../services/ai');
+const { enfileirarRegeneracaoAsync } = require('../utils/invalidacao');
 
 const router = express.Router();
 
@@ -171,6 +172,9 @@ router.post('/', validate(criarMedicamentoSchema), async (req, res, next) => {
       });
     }
 
+    // Fase 5 perf — invalida summary das PCs ativas
+    enfileirarRegeneracaoAsync(usuarioId, 'medicamento', { id: medicamento.id, nome: medicamento.nome, op: duplicadoDetectado ? 'update' : 'create' });
+
     return res.status(duplicadoDetectado ? 200 : 201).json({ medicamento, duplicadoAtualizado: duplicadoDetectado });
   } catch (err) {
     next(err);
@@ -201,6 +205,9 @@ router.put('/:id', validate(atualizarMedicamentoSchema), async (req, res, next) 
       data: req.body,
     });
 
+    // Fase 5 perf — invalida summary
+    enfileirarRegeneracaoAsync(usuarioId, 'medicamento', { id, nome: medicamento.nome, op: 'update' });
+
     return res.status(200).json({ medicamento });
   } catch (err) {
     next(err);
@@ -228,6 +235,9 @@ router.delete('/:id', async (req, res, next) => {
 
     await prisma.medicamento.delete({ where: { id } });
 
+    // Fase 5 perf — invalida summary
+    enfileirarRegeneracaoAsync(usuarioId, 'medicamento', { id, nome: existente.nome, op: 'delete' });
+
     return res.status(200).json({ mensagem: 'Medicamento removido' });
   } catch (err) {
     next(err);
@@ -236,12 +246,57 @@ router.delete('/:id', async (req, res, next) => {
 
 // ---------------------------------------------------------------------------
 // GET /info/:nome — AI-generated info about a medication
+// Fase 3 perf: cache em banco por (nomeNormalizado, versaoPrompt).
+// Primeira vez na vida do remédio: chama Claude e salva. Próximas: leitura instantânea.
+// Guard P2021: funciona mesmo antes da migration rodar (cai no fluxo legado).
 // ---------------------------------------------------------------------------
+
+const VERSAO_PROMPT_INFO_MED = 'v1-2026-05';
+
+function _normalizarNomeIA(nome) {
+  return String(nome || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().trim().replace(/\s+/g, ' ');
+}
 
 router.get('/info/:nome', async (req, res, next) => {
   try {
-    const { nome } = req.params;
-    const info = await ai.gerarInfoSubstancia(decodeURIComponent(nome), 'medicamento');
+    const nomeOriginal = decodeURIComponent(req.params.nome);
+    const nomeNorm = _normalizarNomeIA(nomeOriginal);
+
+    // 1) Cache hit (resiliente — ignora se tabela ainda não existe)
+    try {
+      const cached = await prisma.cacheInfoMedicamento.findUnique({
+        where: { nomeNormalizado_versaoPrompt: { nomeNormalizado: nomeNorm, versaoPrompt: VERSAO_PROMPT_INFO_MED } },
+      });
+      if (cached) {
+        // bump hits async (fire-and-forget)
+        prisma.cacheInfoMedicamento.update({
+          where: { id: cached.id },
+          data: { hits: { increment: 1 } },
+        }).catch(() => {});
+        return res.status(200).json({ info: cached.payload, _cached: true });
+      }
+    } catch (err) {
+      if (err && err.code !== 'P2021') {
+        console.warn('[CACHE_INFO_MED] lookup falhou:', err.message);
+      }
+    }
+
+    // 2) Miss → roda IA
+    const info = await ai.gerarInfoSubstancia(nomeOriginal, 'medicamento');
+
+    // 3) Salva no cache (resiliente)
+    try {
+      await prisma.cacheInfoMedicamento.create({
+        data: { nomeNormalizado: nomeNorm, versaoPrompt: VERSAO_PROMPT_INFO_MED, payload: info },
+      });
+    } catch (err) {
+      if (err && err.code !== 'P2021' && err.code !== 'P2002') {
+        console.warn('[CACHE_INFO_MED] save falhou:', err.message);
+      }
+    }
+
     return res.status(200).json({ info });
   } catch (err) {
     next(err);

@@ -65,6 +65,142 @@ const API_URL = _useLocalApi
 window.API_URL = API_URL; // expõe pra debug/teste
 console.log('[api] URL detectada:', API_URL);
 
+// ---- Warm-up Railway (Fase 6) ----
+// Dispara fetch invisível pra /health assim que api.js carrega.
+// Acorda servidor que dorme. Sem await — não bloqueia nada.
+(function _warmUpServer() {
+  try {
+    fetch(`${API_URL}/health`, { method: 'GET', cache: 'no-store' }).catch(() => {});
+  } catch (_) { /* silencioso */ }
+})();
+
+// ---- SWR cache (Fase 1) ----
+// Regra geral: GET cacheável → mostra cópia local na hora + revalida em segundo plano.
+// TTL menor (60s) pra dado clínico crítico (alergia/medicamento/perfil/condições).
+// TTL maior (5-10min) pra dado que muda pouco (agendamentos, documentos, scores).
+// Logout limpa tudo (compliance LGPD em equipamento compartilhado).
+const CACHE_PREFIX = 'vitae_swr_';
+const CACHE_RULES = [
+  // CRÍTICO clínico — 60 segundos
+  { match: (p) => p === '/perfil', ttl: 60_000, key: 'perfil' },
+  { match: (p) => p === '/medicamentos', ttl: 60_000, key: 'medicamentos', clinico: true },
+  { match: (p) => p === '/alergias', ttl: 60_000, key: 'alergias', clinico: true },
+  // EXAMES — só cacheia se a lista anterior NÃO tinha PROCESSANDO/ENVIADO
+  { match: (p) => p === '/exames', ttl: 5 * 60_000, key: 'exames', clinico: true, skipIf: (data) => Array.isArray(data) && data.some(e => e && (e.status === 'PROCESSANDO' || e.status === 'ENVIADO')) },
+  // AGENDAMENTOS/DOCUMENTOS — 5 minutos
+  { match: (p) => p === '/agendamento', ttl: 5 * 60_000, key: 'agendamentos' },
+  { match: (p) => p === '/agendamento/proximo', ttl: 5 * 60_000, key: 'agendamento_proximo' },
+  { match: (p) => p === '/agendamento/retornos-pendentes', ttl: 2 * 60_000, key: 'retornos_pendentes' },
+  { match: (p) => p === '/documentos/meus', ttl: 5 * 60_000, key: 'documentos_meus' },
+  // SCORES — 10 minutos (mudam só quando exame entra ou check-in roda)
+  { match: (p) => p === '/scores/atual', ttl: 10 * 60_000, key: 'score_atual' },
+  { match: (p) => p === '/scores/historico', ttl: 10 * 60_000, key: 'score_historico' },
+  // OUTROS — 5 minutos
+  { match: (p) => p === '/timeline', ttl: 5 * 60_000, key: 'timeline' },
+  { match: (p) => p === '/checkin/historico', ttl: 5 * 60_000, key: 'checkin_historico' },
+  { match: (p) => p === '/contato/medico-do-paciente', ttl: 10 * 60_000, key: 'medico_do_paciente' },
+  { match: (p) => p === '/autorizacao', ttl: 5 * 60_000, key: 'autorizacoes' },
+  { match: (p) => p === '/consentimento', ttl: 5 * 60_000, key: 'consentimentos' },
+  { match: (p) => p === '/consentimento/status', ttl: 5 * 60_000, key: 'consentimento_status' },
+  { match: (p) => p === '/notificacoes', ttl: 60_000, key: 'notificacoes' },
+];
+
+// Mutações invalidam keys correspondentes.
+// path é o path BASE; o que vier depois (ex: /:id) é tratado.
+const INVALIDATIONS = {
+  '/medicamentos': ['medicamentos'],
+  '/medicamentos/scan': ['medicamentos'],
+  '/alergias': ['alergias'],
+  '/alergias/scan': ['alergias'],
+  '/perfil': ['perfil'],
+  '/perfil/conta': ['perfil'],
+  '/perfil/foto': ['perfil'],
+  '/exames/upload': ['exames', 'score_atual', 'score_historico', 'timeline'],
+  '/checkin': ['checkin_historico', 'score_atual', 'timeline'],
+  '/scores/recalcular': ['score_atual', 'score_historico'],
+  '/agendamento': ['agendamentos', 'agendamento_proximo'],
+  '/autorizacao': ['autorizacoes'],
+  '/consentimento': ['consentimentos', 'consentimento_status'],
+};
+
+function _matchCacheRule(path) {
+  // Remove query string para casar com regras base
+  const cleanPath = String(path || '').split('?')[0];
+  return CACHE_RULES.find(r => r.match(cleanPath));
+}
+
+function _swrRead(key) {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== 'object') return null;
+    return obj;
+  } catch (_) { return null; }
+}
+
+function _swrWrite(key, data) {
+  try {
+    const obj = { data, savedAt: Date.now() };
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(obj));
+  } catch (e) {
+    // QuotaExceeded — limpa entradas antigas e tenta de novo
+    try {
+      const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_PREFIX));
+      keys.sort((a, b) => {
+        try {
+          return (JSON.parse(localStorage.getItem(a)).savedAt || 0) - (JSON.parse(localStorage.getItem(b)).savedAt || 0);
+        } catch (_) { return 0; }
+      });
+      // Apaga a metade mais velha
+      keys.slice(0, Math.ceil(keys.length / 2)).forEach(k => localStorage.removeItem(k));
+      localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ data, savedAt: Date.now() }));
+    } catch (_) { /* desiste silencioso */ }
+  }
+}
+
+function _swrInvalidate(keys) {
+  if (!Array.isArray(keys)) return;
+  keys.forEach(k => {
+    try { localStorage.removeItem(CACHE_PREFIX + k); } catch (_) {}
+  });
+}
+
+function _swrClearAll() {
+  try {
+    const all = Object.keys(localStorage).filter(k => k.startsWith(CACHE_PREFIX));
+    all.forEach(k => localStorage.removeItem(k));
+  } catch (_) {}
+}
+
+// Notifica páginas que escutarem evento de atualização em background
+function _swrNotify(key, data) {
+  try {
+    window.dispatchEvent(new CustomEvent('vitae:data-updated', { detail: { key, data } }));
+  } catch (_) {}
+}
+
+// Compliance CFM: registra acesso a dado clínico mesmo via cache (fire-and-forget)
+function _auditViewCached(path, key) {
+  try {
+    const token = getToken();
+    if (!token) return;
+    fetch(`${API_URL}/audit/view-cached`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ path, key, ts: Date.now() }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (_) {}
+}
+
+// Expor utilitários globalmente para debug e telas que queiram forçar refresh
+window.vitaeSWR = {
+  invalidate: _swrInvalidate,
+  clearAll: _swrClearAll,
+  read: _swrRead,
+};
+
 // ---- Token management ----
 
 function getToken() {
@@ -93,6 +229,8 @@ function logout() {
   localStorage.removeItem('vitae_token');
   localStorage.removeItem('vitae_refresh_token');
   localStorage.removeItem('vitae_usuario');
+  // LGPD: cache de dado clínico não pode persistir após logout em equipamento compartilhado
+  try { _swrClearAll(); } catch (_) {}
   window.location.href = '23-login.html';
 }
 
@@ -112,6 +250,68 @@ function requireAuth() {
 // ---- HTTP helpers ----
 
 async function apiRequest(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const noCache = options.noCache === true; // bypass explícito (ex: polling de exames)
+
+  // === SWR (Fase 1): GET cacheável retorna versão local na hora + revalida em background ===
+  if (method === 'GET' && !noCache && !(options.body instanceof FormData)) {
+    const rule = _matchCacheRule(path);
+    if (rule) {
+      const cached = _swrRead(rule.key);
+      const fresh = cached && (Date.now() - (cached.savedAt || 0) < rule.ttl);
+
+      // Dispara revalidação em background (sempre — paciente vê sempre o mais novo na próxima)
+      const revalidate = (async () => {
+        try {
+          const data = await _doFetch(path, options);
+          // Verifica regra skipIf (ex: não cachear exames com PROCESSANDO)
+          if (typeof rule.skipIf === 'function' && rule.skipIf(data)) {
+            _swrInvalidate([rule.key]);
+          } else {
+            _swrWrite(rule.key, data);
+            if (cached && JSON.stringify(cached.data) !== JSON.stringify(data)) {
+              _swrNotify(rule.key, data);
+            }
+          }
+          return data;
+        } catch (e) {
+          // Se falhou e tinha cache válido, mantém cache. Se não tinha, propaga erro.
+          if (!cached) throw e;
+          return cached.data;
+        }
+      })();
+
+      if (fresh) {
+        // Compliance CFM: registra leitura via cache em dado clínico
+        if (rule.clinico) _auditViewCached(path, rule.key);
+        // Não bloqueia — devolve o cache e revalida em segundo plano
+        revalidate.catch(() => {}); // já tratado dentro
+        return cached.data;
+      }
+      // Sem cache fresh: aguarda revalidação como request normal
+      return revalidate;
+    }
+  }
+
+  // Request normal (sem cache, ou mutação)
+  const data = await _doFetch(path, options);
+
+  // === Mutações invalidam cache correspondente ===
+  if (method !== 'GET') {
+    const cleanPath = String(path || '').split('?')[0];
+    // Match exato ou prefix (ex: POST /agendamento/:id/confirmar invalida /agendamento)
+    Object.keys(INVALIDATIONS).forEach(base => {
+      if (cleanPath === base || cleanPath.startsWith(base + '/')) {
+        _swrInvalidate(INVALIDATIONS[base]);
+      }
+    });
+  }
+
+  return data;
+}
+
+// Função interna que faz o fetch real (com retry em 401)
+async function _doFetch(path, options = {}) {
   const token = getToken();
   const headers = {
     'Content-Type': 'application/json',
@@ -127,23 +327,22 @@ async function apiRequest(path, options = {}) {
     delete headers['Content-Type'];
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const fetchOpts = {
     ...options,
     headers,
     body: options.body instanceof FormData ? options.body : (options.body ? JSON.stringify(options.body) : undefined),
-  });
+  };
+  // Limpa flags internas que não devem ir pro fetch
+  delete fetchOpts.noCache;
+
+  const response = await fetch(`${API_URL}${path}`, fetchOpts);
 
   // Se token expirou, tenta refresh
   if (response.status === 401 && getRefreshToken()) {
     const refreshed = await refreshTokens();
     if (refreshed) {
-      // Retry com novo token
       headers['Authorization'] = `Bearer ${getToken()}`;
-      const retryResponse = await fetch(`${API_URL}${path}`, {
-        ...options,
-        headers,
-        body: options.body instanceof FormData ? options.body : (options.body ? JSON.stringify(options.body) : undefined),
-      });
+      const retryResponse = await fetch(`${API_URL}${path}`, { ...fetchOpts, headers });
       return handleResponse(retryResponse);
     } else {
       logout();

@@ -3,6 +3,7 @@ const { z } = require('zod');
 const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
+const { enfileirarRegeneracaoAsync } = require('../utils/invalidacao');
 
 const router = express.Router();
 
@@ -127,6 +128,12 @@ router.put('/', validate(atualizarPerfilSchema), async (req, res, next) => {
         ...dados,
       },
     });
+
+    // Fase 5 perf — invalida summary se mudaram dados clínicos relevantes
+    const clinicoMudou = !!(dados.condicoes !== undefined || dados.cirurgias !== undefined || dados.historicoFamiliar !== undefined || dados.gestante !== undefined);
+    if (clinicoMudou) {
+      enfileirarRegeneracaoAsync(usuarioId, 'perfil', { op: 'update', campos: Object.keys(dados) });
+    }
 
     return res.status(200).json({ perfil });
   } catch (err) {

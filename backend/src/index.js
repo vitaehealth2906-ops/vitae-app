@@ -25,6 +25,7 @@ const adminRoutes = require('./routes/admin');
 const agendaRoutes = require('./routes/agenda');
 const documentosRoutes = require('./routes/documentos');
 const contatoRoutes = require('./routes/contato');
+const auditRoutes = require('./routes/audit');
 
 // Observabilidade — inicializa Sentry se SENTRY_DSN setado
 require('./services/observability');
@@ -162,6 +163,8 @@ app.use('/timeline', limiterGeral, timelineRoutes);
 app.use('/admin', limiterPublico, adminRoutes);
 // Agenda v1 — feature flag dentro da rota controla 503; google callback usa cookie
 app.use('/agenda', limiterGeral, agendaRoutes);
+// Auditoria adicional (cache view-cached) — compliance CFM
+app.use('/audit', limiterGeral, auditRoutes);
 
 // ── 404 para rotas nao encontradas ────────────────────
 app.use((_req, res) => {

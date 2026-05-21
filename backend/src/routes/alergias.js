@@ -5,6 +5,7 @@ const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const ai = require('../services/ai');
+const { enfileirarRegeneracaoAsync } = require('../utils/invalidacao');
 
 const router = express.Router();
 
@@ -89,6 +90,8 @@ router.post('/', validate(criarAlergiaSchema), async (req, res, next) => {
           gravidade: gravidade || existente.gravidade,
         },
       });
+      // Fase 5 perf — invalida summary das PCs ativas (sem bloquear resposta)
+      enfileirarRegeneracaoAsync(usuarioId, 'alergia', { id: alergia.id, nome: alergia.nome, op: 'update' });
       return res.status(200).json({ alergia, duplicadoAtualizado: true });
     }
 
@@ -100,6 +103,9 @@ router.post('/', validate(criarAlergiaSchema), async (req, res, next) => {
         gravidade: gravidade || null,
       },
     });
+
+    // Fase 5 perf — invalida summary
+    enfileirarRegeneracaoAsync(usuarioId, 'alergia', { id: alergia.id, nome: alergia.nome, op: 'create' });
 
     return res.status(201).json({ alergia });
   } catch (err) {
@@ -128,6 +134,9 @@ router.delete('/:id', async (req, res, next) => {
 
     await prisma.alergia.delete({ where: { id } });
 
+    // Fase 5 perf — invalida summary
+    enfileirarRegeneracaoAsync(usuarioId, 'alergia', { id, nome: existente.nome, op: 'delete' });
+
     return res.status(200).json({ mensagem: 'Alergia removida' });
   } catch (err) {
     next(err);
@@ -136,12 +145,52 @@ router.delete('/:id', async (req, res, next) => {
 
 // ---------------------------------------------------------------------------
 // GET /info/:nome — AI-generated info about an allergy
+// Fase 3 perf: cache em banco por (nomeNormalizado, versaoPrompt).
+// Guard P2021: funciona antes da migration rodar (fallback Claude).
 // ---------------------------------------------------------------------------
+
+const VERSAO_PROMPT_INFO_ALERGIA = 'v1-2026-05';
+
+function _normalizarNomeIA(nome) {
+  return String(nome || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().trim().replace(/\s+/g, ' ');
+}
 
 router.get('/info/:nome', async (req, res, next) => {
   try {
-    const { nome } = req.params;
-    const info = await ai.gerarInfoSubstancia(decodeURIComponent(nome), 'alergia');
+    const nomeOriginal = decodeURIComponent(req.params.nome);
+    const nomeNorm = _normalizarNomeIA(nomeOriginal);
+
+    try {
+      const cached = await prisma.cacheInfoAlergia.findUnique({
+        where: { nomeNormalizado_versaoPrompt: { nomeNormalizado: nomeNorm, versaoPrompt: VERSAO_PROMPT_INFO_ALERGIA } },
+      });
+      if (cached) {
+        prisma.cacheInfoAlergia.update({
+          where: { id: cached.id },
+          data: { hits: { increment: 1 } },
+        }).catch(() => {});
+        return res.status(200).json({ info: cached.payload, _cached: true });
+      }
+    } catch (err) {
+      if (err && err.code !== 'P2021') {
+        console.warn('[CACHE_INFO_ALERGIA] lookup falhou:', err.message);
+      }
+    }
+
+    const info = await ai.gerarInfoSubstancia(nomeOriginal, 'alergia');
+
+    try {
+      await prisma.cacheInfoAlergia.create({
+        data: { nomeNormalizado: nomeNorm, versaoPrompt: VERSAO_PROMPT_INFO_ALERGIA, payload: info },
+      });
+    } catch (err) {
+      if (err && err.code !== 'P2021' && err.code !== 'P2002') {
+        console.warn('[CACHE_INFO_ALERGIA] save falhou:', err.message);
+      }
+    }
+
     return res.status(200).json({ info });
   } catch (err) {
     next(err);
