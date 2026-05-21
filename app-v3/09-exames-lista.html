@@ -1223,7 +1223,9 @@ let pollInterval = null;
 function startPolling() {
   if (pollInterval) return;
   pollInterval = setInterval(async () => {
-    const prevProcessing = processingExams.length;
+    // Se a aba do navegador está em background, pula essa iteração
+    // (evita gastar bateria/dados sem necessidade)
+    if (typeof document !== 'undefined' && document.hidden) return;
     await loadExams();
     // Se terminou de processar, para o polling
     if (processingExams.length === 0) stopPolling();
@@ -1232,6 +1234,25 @@ function startPolling() {
 
 function stopPolling() {
   if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+}
+
+// FASE 5 / Correção Secundária A: limpa polling órfão ao sair da aba
+// (antes ficavam vigias fantasma acumulando em cada visita)
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('beforeunload', () => {
+    stopPolling();
+    _stopLiveProgressTicker && _stopLiveProgressTicker();
+  });
+  window.addEventListener('pagehide', () => {
+    stopPolling();
+    _stopLiveProgressTicker && _stopLiveProgressTicker();
+  });
+  // Quando a aba volta a ficar visível, força um refresh imediato
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && processingExams.length > 0) {
+      loadExams().catch(() => {});
+    }
+  });
 }
 
 // ══════════════════════════════
@@ -1285,6 +1306,14 @@ async function loadExams() {
         const criticoCount = medicoModePacienteId
           ? params.filter(p => p.status === 'CRITICO').length
           : (e.criticoCount || 0);
+        // FASE 5: origem do exame — só "Você enviou" ou "Laboratório enviou" (decisão Lucas v4)
+        // Médico não anexa nessa aba (anexa em Consultas).
+        let origem = 'Você enviou';
+        if (e.origem === 'LABORATORIO' || e.origem === 'LAB' || (e.laboratorio && !e.criadoPorPaciente)) {
+          // Heurística: se tem nome de lab E não foi criado pelo paciente, assume lab enviou
+          // (backend pode passar e.criadoPorPaciente=true pra contrariar essa heurística)
+          origem = e.criadoPorPaciente === false ? 'Laboratório enviou' : 'Você enviou';
+        }
         return {
           id: e.id,
           name: toNomeAmigavel(e.tipoExame) || 'Exame',
@@ -1299,6 +1328,7 @@ async function loadExams() {
           normalCount: normalCount,
           atencaoCount: atencaoCount,
           criticoCount: criticoCount,
+          origem: origem,
           // Salva parametros raw no modo medico (fallback se /exames/:id falhar)
           rawParametros: medicoModePacienteId ? params : undefined,
           rawResumoIA: medicoModePacienteId ? e.resumoIA : undefined,
@@ -1636,6 +1666,23 @@ function buildExamCardHtml(e, i, isShimmer) {
       </div>`;
   }
 
+  // FASE 5: badges de origem + contagem de status (resumo visual no cartão)
+  const origem = e.origem || 'Você enviou';
+  const origemEhPaciente = origem.toLowerCase().includes('voc');
+  const origemBadge = `<span style="font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;padding:3px 7px;border-radius:100px;background:${origemEhPaciente ? 'rgba(0,180,216,0.10)' : 'rgba(245,158,11,0.10)'};color:${origemEhPaciente ? '#00B4D8' : '#F59E0B'};">${origem}</span>`;
+
+  let statusBadge = '';
+  const cN = e.normalCount || 0;
+  const cA = e.atencaoCount || 0;
+  const cC = e.criticoCount || 0;
+  if (cC > 0) {
+    statusBadge = `<span style="font-size:8.5px;font-weight:800;letter-spacing:0.06em;padding:3px 7px;border-radius:100px;background:rgba(239,68,68,0.10);color:#EF4444;border:1px solid rgba(239,68,68,0.18);">${cC} urgente${cC>1?'s':''}</span>`;
+  } else if (cA > 0) {
+    statusBadge = `<span style="font-size:8.5px;font-weight:800;letter-spacing:0.06em;padding:3px 7px;border-radius:100px;background:rgba(245,158,11,0.10);color:#F59E0B;border:1px solid rgba(245,158,11,0.18);">${cA} atenção</span>`;
+  } else if (cN > 0) {
+    statusBadge = `<span style="font-size:8.5px;font-weight:800;letter-spacing:0.06em;padding:3px 7px;border-radius:100px;background:rgba(0,196,122,0.10);color:#00C47A;border:1px solid rgba(0,196,122,0.18);">Tudo normal</span>`;
+  }
+
   return `
     <div class="exam-gc fade" style="animation-delay:${0.04 + i * 0.05}s;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);border:none;padding:10px;margin:0 6px 10px;" onclick="openExam(${i})" data-search="${(tipo + ' ' + (e.name||'') + ' ' + (e.lab||'') + ' ' + (e.date||'')).toLowerCase()}">
       <div style="display:flex;gap:14px;align-items:stretch;">
@@ -1644,6 +1691,7 @@ function buildExamCardHtml(e, i, isShimmer) {
           <div style="font-size:12px;color:rgba(13,15,20,0.4);text-transform:capitalize;line-height:1.3;">${tipo}</div>
           <div style="font-size:15px;font-weight:700;color:#00E5A0;line-height:1.35;">${e.name || 'Analisando exame...'}</div>
           <div style="font-size:12px;color:rgba(13,15,20,0.35);margin-top:2px;">${meta}</div>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">${origemBadge}${statusBadge}</div>
         </div>
       </div>
     </div>`;
@@ -1653,22 +1701,38 @@ function renderLista(processingCount = 0, errorExams = []) {
   const container = document.getElementById('listaContent');
   let html = '';
 
-  // Empty state
+  // Empty state — FASE 5: visual melhorado com ícone gradient + seta apontando pro FAB
   if (allExams.length === 0 && processingCount === 0 && errorExams.length === 0) {
-    const emptySub = medicoModePacienteId
-      ? 'Este paciente ainda nao possui exames registrados.'
-      : 'Toque no <strong>+</strong> para enviar seu primeiro resultado de laboratorio.';
-    const emptyTitle = medicoModePacienteId ? 'Nenhum exame registrado' : 'Nenhum exame ainda';
+    if (medicoModePacienteId) {
+      container.innerHTML = `
+        <div class="empty-state fade" style="padding:60px 20px;text-align:center;">
+          <div class="empty-icon" style="margin:0 auto 14px;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(0,229,160,.4)" stroke-width="1.5" stroke-linecap="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <div class="empty-title">Nenhum exame registrado</div>
+          <div class="empty-sub">Este paciente ainda não possui exames registrados.</div>
+        </div>`;
+      return;
+    }
     container.innerHTML = `
-      <div class="empty-state fade" style="padding:60px 20px;">
-        <div class="empty-icon">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(0,229,160,.4)" stroke-width="1.5" stroke-linecap="round">
+      <div class="empty-state fade" style="padding:60px 30px 30px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;">
+        <div style="width:80px;height:80px;border-radius:22px;background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.12);display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:6px;">
+          <div style="position:absolute;inset:-12px;background:radial-gradient(circle,rgba(0,229,160,0.18),transparent 60%);filter:blur(12px);z-index:-1;"></div>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00C47A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
             <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
           </svg>
         </div>
-        <div class="empty-title" style="margin-top:12px;">${emptyTitle}</div>
-        <div class="empty-sub">${emptySub}</div>
+        <div style="font-size:21px;font-weight:800;color:#0D0F14;line-height:1.22;max-width:260px;">Anexa seu primeiro exame e <span style="color:#00E5A0;font-style:italic;">descobre</span></div>
+        <div style="font-size:13.5px;color:#6B7280;line-height:1.55;max-width:280px;">Foto ou PDF do laudo. Em 60 segundos a gente lê e te mostra tudo separadinho.</div>
+        <div style="margin-top:18px;font-size:11px;color:#9CA3AF;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;display:flex;align-items:center;gap:8px;">
+          <span>Toque no</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>aqui embaixo</span>
+        </div>
       </div>`;
     return;
   }
