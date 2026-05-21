@@ -6,6 +6,7 @@ const storage = require('../services/storage');
 const ocr = require('../services/ocr');
 const ai = require('../services/ai');
 const scoreEngine = require('../services/score-engine');
+const { enfileirarRegeneracaoAsync } = require('../utils/invalidacao');
 
 const router = express.Router();
 
@@ -128,6 +129,9 @@ async function processarExame(exameId, usuarioId) {
     } catch (scoreErr) {
       console.error(`[EXAME] Erro ao calcular scores: ${scoreErr.message}`);
     }
+
+    // Fase 5 perf — exame CONCLUIDO invalida summary das PCs ativas
+    enfileirarRegeneracaoAsync(usuarioId, 'exame', { exameId, op: 'concluido' });
 
     console.log(`[EXAME] Exame ${exameId} processado com sucesso!`);
   } catch (err) {

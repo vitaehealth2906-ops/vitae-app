@@ -5,6 +5,7 @@ const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const ai = require('../services/ai');
+const { enfileirarRegeneracaoAsync } = require('../utils/invalidacao');
 
 const router = express.Router();
 
@@ -171,6 +172,9 @@ router.post('/', validate(criarMedicamentoSchema), async (req, res, next) => {
       });
     }
 
+    // Fase 5 perf — invalida summary das PCs ativas
+    enfileirarRegeneracaoAsync(usuarioId, 'medicamento', { id: medicamento.id, nome: medicamento.nome, op: duplicadoDetectado ? 'update' : 'create' });
+
     return res.status(duplicadoDetectado ? 200 : 201).json({ medicamento, duplicadoAtualizado: duplicadoDetectado });
   } catch (err) {
     next(err);
@@ -201,6 +205,9 @@ router.put('/:id', validate(atualizarMedicamentoSchema), async (req, res, next) 
       data: req.body,
     });
 
+    // Fase 5 perf — invalida summary
+    enfileirarRegeneracaoAsync(usuarioId, 'medicamento', { id, nome: medicamento.nome, op: 'update' });
+
     return res.status(200).json({ medicamento });
   } catch (err) {
     next(err);
@@ -227,6 +234,9 @@ router.delete('/:id', async (req, res, next) => {
     }
 
     await prisma.medicamento.delete({ where: { id } });
+
+    // Fase 5 perf — invalida summary
+    enfileirarRegeneracaoAsync(usuarioId, 'medicamento', { id, nome: existente.nome, op: 'delete' });
 
     return res.status(200).json({ mensagem: 'Medicamento removido' });
   } catch (err) {

@@ -5,6 +5,7 @@ const prisma = require('../utils/prisma');
 const { verificarAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const ai = require('../services/ai');
+const { enfileirarRegeneracaoAsync } = require('../utils/invalidacao');
 
 const router = express.Router();
 
@@ -89,6 +90,8 @@ router.post('/', validate(criarAlergiaSchema), async (req, res, next) => {
           gravidade: gravidade || existente.gravidade,
         },
       });
+      // Fase 5 perf — invalida summary das PCs ativas (sem bloquear resposta)
+      enfileirarRegeneracaoAsync(usuarioId, 'alergia', { id: alergia.id, nome: alergia.nome, op: 'update' });
       return res.status(200).json({ alergia, duplicadoAtualizado: true });
     }
 
@@ -100,6 +103,9 @@ router.post('/', validate(criarAlergiaSchema), async (req, res, next) => {
         gravidade: gravidade || null,
       },
     });
+
+    // Fase 5 perf — invalida summary
+    enfileirarRegeneracaoAsync(usuarioId, 'alergia', { id: alergia.id, nome: alergia.nome, op: 'create' });
 
     return res.status(201).json({ alergia });
   } catch (err) {
@@ -127,6 +133,9 @@ router.delete('/:id', async (req, res, next) => {
     }
 
     await prisma.alergia.delete({ where: { id } });
+
+    // Fase 5 perf — invalida summary
+    enfileirarRegeneracaoAsync(usuarioId, 'alergia', { id, nome: existente.nome, op: 'delete' });
 
     return res.status(200).json({ mensagem: 'Alergia removida' });
   } catch (err) {
