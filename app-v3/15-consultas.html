@@ -488,8 +488,12 @@ document.addEventListener('keydown', (e) => {
 if (window.vitaeAPI && !vitaeAPI.isLoggedIn()) {
   window.location.replace('23-login.html');
 } else {
-  renderTela();
+  // Onboarding e render sao independentes — se um falhar, o outro continua
   maybeAutoOpenOnboarding();
+  Promise.resolve().then(renderTela).catch(e => {
+    console.error('[15-consultas] renderTela falhou:', e);
+    document.getElementById('doctorsBlock').innerHTML = '<div style="padding:30px var(--s5);text-align:center;color:var(--ink3);font-size:13px">Sem conexão. Tente recarregar a página.</div>';
+  });
 }
 </script>
 </body>

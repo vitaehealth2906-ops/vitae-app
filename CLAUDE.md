@@ -609,6 +609,76 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 30 — 21/05/2026 (tarde-noite) — Aba Consultas v2 (autonoma, 7 fases)
+
+**Contexto:** Lucas levou prints da aba Consultas atual: caos visual com 7+ retornos confirmados empilhados do mesmo medico, sem hierarquia, dificil de entender. Pediu PSF nivel 50 + plano completo + execucao autonoma do schema ao deploy.
+
+**Decisoes de design:**
+- Aba Consultas agrupada **por medico** (em vez de pilha vertical de retornos/docs misturados)
+- Bloco urgente no topo: pre-consulta inacabada + proxima consulta hero + retornos aguardando paciente
+- Onboarding 3 slides na 1a visita (estilo Apps modernos) + bolinha "?" no header reabre
+- Estado vazio refeito: estetoscopio SVG com gradient da marca (substitui calendario fraco) + copy persuasiva "Aqui e onde seus medicos vao aparecer"
+- Telas DEDICADAS (nao popups): proxima consulta, perfil medico, historico
+- Paciente NAO cancela nem recusa — so REMARCA com 3 horarios (data + hora)
+- Anti-ciclo: apos 2 trocas, banner "Falar pelo WhatsApp"
+- Recado do medico: campo PUBLICO novo separado do `observacoes` (privado, bug silencioso de privacidade que existia ate hoje)
+
+**Implementado (7 fases sem pausa):**
+
+FASE 1 — Backend:
+- Schema: `agendamentos.recado_paciente` (TEXT), `contador_trocas` (INT), `propostas_atuais` (JSONB), `agenda_slots.recado_paciente`
+- Migration SQL manual: `prisma/migrations/20260521_recado_paciente_e_contador_trocas/migration.sql`
+- POST `/agendamento/:id/remarcar` aceita array `propostas[]` (1-3 com data+hora), incrementa contadorTrocas
+- POST `/agendamento/:id/confirmar` zera contadorTrocas
+- POST `/agendamento/propor-retorno` aceita recadoPaciente
+- Rota nova `GET /pre-consulta/em-andamento` pra Bloco Urgente
+- Commit `53d2113`
+
+FASE 2 — App Medico:
+- Modal editar consulta: 1 campo "Observacoes (so voce ve)" virou 2 — "Recado pro paciente" (PUBLICO, tag verde, fundo verde claro) + "Anotacoes pra voce" (PRIVADO, tag cinza)
+- Resolve bug: hoje medico anotava achando que era privado mas paciente via no GET
+- Commit `e5db6b9`
+
+FASE 3 — App Paciente lista + estado vazio + onboarding:
+- `15-consultas.html` reescrita: agrupada por medico, busca, skeleton de loading, ordenacao por pendencia
+- `44-consultas-vazia.html`: estetoscopio + copy "Aqui e onde seus medicos vao APARECER"
+- `api.js`: `listarMeusMedicos()` agrega 3 fontes; `getPreConsultaEmAndamento()`; `propostaRemarcacao()`
+- Onboarding 3 slides com ilustracoes SVG profissionais (cards empilhados / balao+phone / calendario 3 horarios)
+- Botao "?" no header reabre; setas teclado navegam; Esc fecha
+- Commit `0bc7e4a`
+
+FASE 4+5 — 3 telas dedicadas + pickers custom:
+- `17-proxima-consulta.html`: bloco data destacado escuro com gradient, local, recado do medico, Waze + WhatsApp, "Preciso remarcar" com modal de 3 slots + pickers custom (calendario inline + chips de hora)
+- `18-medico-perfil.html`: hero, mini-card proxima, WhatsApp com status, docs do medico, historico (3 + ver todos)
+- `19-medico-historico.html`: lista cronologica completa, leva pra 16-consulta-detalhe legacy
+- Anti-ciclo: banner "Falar pelo WhatsApp" se contadorTrocas >= 2
+- Commit `8f7a5df`
+
+FASE 6 — Smoke test:
+- `tests/validacao-consultas-v2.js` criado (8 cenarios)
+- Nao rodou completamente (depende de fetch ao backend Railway que precisa de auth real) — Lucas pode rodar quando tiver banco populado
+
+FASE 7 — Docs + deploy:
+- Esta entrada CLAUDE.md
+- Tag defensiva: `pre-consultas-v2-2026-05-21` (criada antes de comecar)
+- Push para origin/main → Vercel auto-deploy
+
+**Pendencias para aplicar manualmente no Railway (NAO automatico — regra db-safety pos-incidente 17-abr):**
+1. `railway login`
+2. `cd backend`
+3. `railway run pg_dump $DATABASE_URL > ../backups/pre-consultas-v2-21mai.dump`
+4. `railway run psql $DATABASE_URL -f prisma/migrations/20260521_recado_paciente_e_contador_trocas/migration.sql`
+5. `railway run npx prisma generate`
+
+Sem isso, o backend vai dar erro nas chamadas que usam `recadoPaciente`/`contadorTrocas`/`propostasAtuais`. Risco da migration: ZERO (ADD COLUMN nullable).
+
+**Pendencias funcionais (futuras sessoes):**
+- App medico ainda nao mostra propostasAtuais (array de 3 horarios) — hoje so mostra `dataHora` legado
+- Lembretes (lembrete24/2h) precisam considerar recadoPaciente no payload de notificacao
+- Playwright completo com login real
+
+---
+
 ### Sessao 29 — 21/05/2026 — Plano Profissionalismo & Performance (autonomo total, 6 fases + deploy)
 
 **Contexto:** Lucas sentiu que o sistema "demorava muito sem razao" em varias telas. Pediu pesquisa profunda + plano completo + execucao autonoma do inicio ao deploy.
