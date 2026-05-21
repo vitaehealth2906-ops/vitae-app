@@ -541,10 +541,14 @@ function logout() {
   // PORTEIRO v4: limpa onboarding flag — multi-user no mesmo celular não pula tutorial
   localStorage.removeItem('vitae_onb_quiz_visto');
   localStorage.removeItem('vitae_onb_exames_visto');
+  // CORREÇÃO BUG: limpa flags de banners "já avisados" — outro usuário não herda histórico
+  localStorage.removeItem('vitae_exames_avisados');
+  localStorage.removeItem('vitae_exames_vistos_ids');
   // LGPD: cache de dado clínico não pode persistir após logout em equipamento compartilhado
   try { _swrClearAll(); } catch (_) {}
   // Limpa também o return_to (não faz sentido depois de logout explícito)
   try { sessionStorage.removeItem('vitae_return_to'); } catch (_) {}
+  try { sessionStorage.removeItem('vitae_exames_avisados'); } catch (_) {} // migração: limpa o antigo também
   window.location.href = '23-login.html';
 }
 

@@ -1486,11 +1486,68 @@ function _detectarExamesProntosFora(raw) {
   }
 }
 
+// MIGRAÇÃO ÚNICA: limpa a flag antiga em sessionStorage (versão buggada)
+(function _migrarFlagAvisados() {
+  try {
+    if (sessionStorage.getItem('vitae_exames_avisados')) {
+      sessionStorage.removeItem('vitae_exames_avisados');
+    }
+  } catch (_) {}
+})();
+
+// Adiciona botão "Excluir esse" no banner de erro (apaga o exame com erro do banco)
+function _adicionarBotaoExcluirBanner(bannerId, exameId) {
+  const el = document.getElementById(bannerId);
+  if (!el) return;
+  if (el.querySelector('.btn-excluir-exame')) return; // já tem
+  const btn = document.createElement('button');
+  btn.className = 'btn-excluir-exame';
+  btn.textContent = 'Excluir esse';
+  btn.style.cssText = 'padding:7px 12px;font-family:"Plus Jakarta Sans",sans-serif;font-size:11.5px;font-weight:700;background:transparent;color:rgba(13,15,20,0.55);border:1px solid rgba(0,0,0,0.10);border-radius:8px;cursor:pointer;flex-shrink:0;margin-right:4px;';
+  btn.addEventListener('click', async () => {
+    if (!confirm('Excluir esse exame com erro? (não dá pra desfazer)')) return;
+    btn.disabled = true;
+    btn.textContent = 'Excluindo...';
+    try {
+      await vitaeAPI.deletarExame(exameId);
+      el.remove();
+      // Recarrega lista pra refletir
+      if (typeof loadExams === 'function') loadExams().catch(() => {});
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Erro — tentar de novo';
+    }
+  });
+  // Insere antes do botão principal (que tem data-act=1)
+  const btnPrincipal = el.querySelector('[data-act]');
+  if (btnPrincipal) {
+    el.insertBefore(btn, btnPrincipal);
+  } else {
+    el.appendChild(btn);
+  }
+}
+
 function _detectarExamesProblematicos(raw) {
   if (!Array.isArray(raw) || raw.length === 0) return;
-  // Pega o exame mais recente que ainda não foi avisado
-  const avisados = JSON.parse(sessionStorage.getItem('vitae_exames_avisados') || '[]');
-  const novos = raw.filter(e => !avisados.includes(e.id));
+
+  // CORREÇÃO BUG: usar localStorage (persiste entre sessões) em vez de sessionStorage
+  // Antes: banner reaparecia em TODA refresh/nova aba pra exames antigos
+  // Agora: cada exame avisa UMA vez na vida do paciente
+  let avisados = [];
+  try {
+    avisados = JSON.parse(localStorage.getItem('vitae_exames_avisados') || '[]');
+  } catch (_) { avisados = []; }
+
+  // FILTRO 24H: só avisa sobre exames criados nas últimas 24 horas.
+  // Erros antigos no banco (testes, casos resolvidos) não perseguem o paciente.
+  const AGORA = Date.now();
+  const VINTE_QUATRO_HORAS = 24 * 60 * 60 * 1000;
+  const recentes = raw.filter(e => {
+    if (!e.criadoEm) return false;
+    const tCriado = new Date(e.criadoEm).getTime();
+    return (AGORA - tCriado) < VINTE_QUATRO_HORAS;
+  });
+  const novos = recentes.filter(e => !avisados.includes(e.id));
 
   for (const e of novos) {
     // CONCLUIDO sem parâmetros = capa ou não era exame
@@ -1513,15 +1570,18 @@ function _detectarExamesProblematicos(raw) {
     if (e.status === 'ERRO') {
       avisados.push(e.id);
       if (typeof showVitaeBanner === 'function') {
+        const bannerId = 'vbanner_erroocr_' + e.id;
         showVitaeBanner({
           type: 'arquivo',
           title: 'Não consegui ler esse exame.',
-          message: 'Pode ser foto fora de foco, PDF com senha, ou arquivo corrompido. Tenta outra foto?',
+          message: 'Pode ser foto fora de foco, PDF com senha, ou arquivo corrompido.',
           actionLabel: 'Tentar de novo',
           actionFn: () => triggerUpload(),
           closeable: true,
-          id: 'vbanner_erroocr_' + e.id,
+          id: bannerId,
         });
+        // Bônus: botão extra "Excluir esse" para apagar exames antigos com erro
+        setTimeout(() => _adicionarBotaoExcluirBanner(bannerId, e.id), 50);
       }
       break;
     }
@@ -1548,7 +1608,10 @@ function _detectarExamesProblematicos(raw) {
     }
   }
 
-  sessionStorage.setItem('vitae_exames_avisados', JSON.stringify(avisados.slice(-50))); // mantém só os últimos 50
+  // Persiste em localStorage (não sessionStorage) — mantém os últimos 200 IDs
+  try {
+    localStorage.setItem('vitae_exames_avisados', JSON.stringify(avisados.slice(-200)));
+  } catch (_) {}
 }
 
 // Comparação fuzzy de nomes (ignora maiúsculas, acentos, espaços extras)
