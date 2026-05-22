@@ -889,6 +889,15 @@
   }
 
   async function iniciarTelaSaude() {
+    // === ETAPA 0: pintura otimista com vitae_usuario (não espera nada) ===
+    // Crítico em PRIMEIRO ACESSO + cold start Railway: sem isso, cartão fica
+    // vazio (nome em branco, QR sem código) por 30s+ enquanto backend acorda.
+    // O localStorage tem nome e id desde o login — usa imediatamente.
+    try {
+      const u = JSON.parse(localStorage.getItem('vitae_usuario') || 'null');
+      if (u && u.id) renderRG(u, null);
+    } catch (_) {}
+
     // === ETAPA 1: cache otimista (sem network) ===
     const cachePerfil = _lerCache('perfil');
     const cacheAlergias = _lerCache('alergias');
