@@ -805,6 +805,27 @@ const vitaeAPI = {
     return apiRequest('/perfil/foto', { method: 'POST', body: { fotoUrl } });
   },
 
+  // === Flags do app por conta (onboarding visto, exames já avisados) ===
+  // Persiste no servidor. Se backend ainda não tem a coluna (migração pendente),
+  // funciona com fallback transparente — código não quebra.
+  async getFlagsApp() {
+    try {
+      const r = await apiRequest('/perfil/flags-app', { noCache: true });
+      return (r && r.flagsApp) || {};
+    } catch (_) { return {}; }
+  },
+
+  async setFlagsApp(novosCampos) {
+    try {
+      const r = await apiRequest('/perfil/flags-app', { method: 'POST', body: novosCampos });
+      return r;
+    } catch (e) {
+      // Não interrompe UX se servidor falhar — flag local já cobre
+      console.warn('[setFlagsApp] não conseguiu persistir:', e && e.message);
+      return { flagsApp: novosCampos, persistido: false };
+    }
+  },
+
   // Exames
   async listarExames() {
     return apiRequest('/exames');

@@ -95,9 +95,34 @@ router.get('/', async (req, res, next) => {
       return res.status(404).json({ erro: 'Usuario nao encontrado' });
     }
 
-    const perfil = await prisma.perfilSaude.findUnique({
-      where: { usuarioId: req.usuario.id },
-    });
+    // Defensivo: se flagsApp ainda não foi migrado, findUnique sem select quebra.
+    // Tenta com flagsApp; se P2022, refaz sem.
+    let perfil = null;
+    try {
+      perfil = await prisma.perfilSaude.findUnique({
+        where: { usuarioId: req.usuario.id },
+      });
+    } catch (e) {
+      if (e && e.code === 'P2022') {
+        console.warn('[perfil GET] coluna pendente — refazendo query sem flagsApp');
+        perfil = await prisma.perfilSaude.findUnique({
+          where: { usuarioId: req.usuario.id },
+          select: {
+            id: true, usuarioId: true, genero: true, dataNascimento: true,
+            alturaCm: true, pesoKg: true, tipoSanguineo: true,
+            historicoFamiliar: true, nivelAtividade: true, horasSono: true,
+            fuma: true, alcool: true, contatoEmergenciaNome: true,
+            contatoEmergenciaTel: true, nomeMae: true, telMae: true,
+            nomePai: true, telPai: true, condicoes: true, cpf: true,
+            cirurgias: true, planoSaude: true, carteirinhaPlano: true,
+            apelido: true, nomeSocial: true, estadoCivil: true, corEtnia: true,
+            limitacoesAcessibilidade: true, atualizadoEm: true,
+          },
+        });
+      } else {
+        throw e;
+      }
+    }
 
     return res.status(200).json({
       usuario,
@@ -185,6 +210,86 @@ router.post('/foto', async (req, res, next) => {
     });
 
     return res.status(200).json({ fotoUrl });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /flags-app — flags do app (onboarding visto, exames já avisados)
+// Defensivo: se coluna flags_app não existe (migração não aplicada), retorna {}.
+// ---------------------------------------------------------------------------
+
+router.get('/flags-app', async (req, res, next) => {
+  try {
+    const perfil = await prisma.perfilSaude.findUnique({
+      where: { usuarioId: req.usuario.id },
+      select: { flagsApp: true },
+    });
+    return res.status(200).json({ flagsApp: (perfil && perfil.flagsApp) || {} });
+  } catch (err) {
+    // P2022 (coluna não existe) ou P2021 (tabela não existe) — tolera, retorna vazio
+    if (err && (err.code === 'P2022' || err.code === 'P2021')) {
+      console.warn('[perfil/flags-app] coluna flags_app ausente — rodar migration 20260522_flags_app_onboarding');
+      return res.status(200).json({ flagsApp: {} });
+    }
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /flags-app — merge incremental nas flags (não substitui o objeto inteiro)
+// Body aceito: { onboardingExamesVisto?: ISOString, onboardingConsultasVisto?: ISOString, ... }
+// ---------------------------------------------------------------------------
+
+const flagsAppSchema = z.object({
+  onboardingExamesVisto: z.string().optional(),
+  onboardingConsultasVisto: z.string().optional(),
+  onboardingQrCodeVisto: z.string().optional(),
+  onboardingSaudeVisto: z.string().optional(),
+  examesAvisadosIds: z.array(z.string()).max(500).optional(),
+  examesVistosIds: z.array(z.string()).max(500).optional(),
+}).passthrough(); // permite chaves futuras sem quebrar
+
+router.post('/flags-app', validate(flagsAppSchema), async (req, res, next) => {
+  try {
+    const usuarioId = req.usuario.id;
+    const novosCampos = req.body || {};
+
+    // Merge: lê flags atuais, sobrescreve só as chaves enviadas
+    let flagsAtuais = {};
+    try {
+      const atual = await prisma.perfilSaude.findUnique({
+        where: { usuarioId },
+        select: { flagsApp: true },
+      });
+      flagsAtuais = (atual && atual.flagsApp) || {};
+    } catch (e) {
+      if (e && (e.code === 'P2022' || e.code === 'P2021')) {
+        // Coluna não existe — não persiste, mas devolve 200 pra não travar UX
+        console.warn('[perfil/flags-app POST] coluna flags_app ausente — flag enviada perdida ate migration rodar');
+        return res.status(200).json({ flagsApp: novosCampos, persistido: false });
+      }
+      throw e;
+    }
+
+    const flagsMerged = { ...flagsAtuais, ...novosCampos };
+
+    try {
+      await prisma.perfilSaude.upsert({
+        where: { usuarioId },
+        update: { flagsApp: flagsMerged, atualizadoEm: new Date() },
+        create: { usuarioId, flagsApp: flagsMerged },
+      });
+    } catch (e) {
+      if (e && (e.code === 'P2022' || e.code === 'P2021')) {
+        console.warn('[perfil/flags-app POST upsert] coluna ausente — retornando 200 sem persistir');
+        return res.status(200).json({ flagsApp: novosCampos, persistido: false });
+      }
+      throw e;
+    }
+
+    return res.status(200).json({ flagsApp: flagsMerged, persistido: true });
   } catch (err) {
     next(err);
   }
