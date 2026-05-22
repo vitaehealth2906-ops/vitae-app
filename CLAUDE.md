@@ -609,6 +609,113 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 32 — 22/05/2026 — Conserto 3 frentes (autonomo + Playwright 9/9)
+
+**Contexto:** Lucas reportou 4 frustrações testando login com `lucasborelli096@gmail.com` em aparelho novo:
+1. Onboarding aparecia de novo em Exames/Consultas mesmo já tendo dados
+2. Aviso "X exames prontos" falso disparando em aparelho novo
+3. Aba Meu RG ficando em esqueleto cinza
+4. Tab-bar com posicoes diferentes entre as 4 telas + fundo preto/branco mudando
+
+Pediu analise profunda primeiro ("se aprofunde muito, sem margem de erro"). Apos receber a analise de 5 camadas por problema (bugs, riscos LGPD, UX frustrations, second-order effects), tomou 3 decisoes:
+- A: qualquer fechamento do onboarding = visto pra sempre
+- B: cache otimista no RG + indicador discreto "atualizando..."
+- C: esconder tab-bar nas telas de detalhe
+
+Depois: "VAI COM PLAYWRIGHT" — execucao autonoma total.
+
+**Implementado em 4 commits:**
+
+**Backend** (defensive com P2022 guard — funciona mesmo sem migration aplicada):
+- `PerfilSaude.flagsApp Json?` no schema (campo novo nullable)
+- Migration `backend/prisma/migrations/20260522_flags_app_onboarding/migration.sql` — ADD COLUMN IF NOT EXISTS, idempotente, zero risco
+- 2 rotas novas em `backend/src/routes/perfil.js`:
+  - `GET /perfil/flags-app` — retorna flags ou `{}` default
+  - `POST /perfil/flags-app` — merge incremental (nao substitui objeto inteiro)
+- Ambas retornam 200 mesmo se coluna nao existe (UX nao trava)
+- `GET /perfil` agora tolera P2022 — refaz query sem flagsApp
+
+**Frontend**:
+- `app-v3/api.js`: `vitaeAPI.getFlagsApp()` + `vitaeAPI.setFlagsApp(novosCampos)`
+- `app-v3/01-saude.html`:
+  - Bug `greetingNome` (id que nao existia) consertado em 2 lugares
+  - Bug `vitaeAPI.jaTemRG is not a function` (pre-existente CLAUDE.md, Sessao 24) consertado com typeof guard
+  - `_lerCache(key)` le `localStorage.vitae_swr_*` (prefixo do SWR ja existente)
+  - `iniciarTelaSaude` reescrita: pinta com cache local imediatamente, depois atualiza com servidor em background
+  - Listener `vitae:data-updated` re-renderiza quando dado novo chega
+  - Pill discreto "atualizando..." no canto direito (cyan #00B4D8 + dot pulsando)
+- `app-v3/09-exames-lista.html`:
+  - Onboarding v6 — funcao `_exJaViuOnboarding()` checa 3 fontes: presenca de exame, flag local, flag servidor
+  - Banner "X exames prontos" so dispara se NAO e primeira chegada do aparelho (RAW localStorage === null)
+  - Regras CSS internas `.tab-bar/.tab/.tab-label` (nao pode linkar _core.css por tema dark proprio)
+- `app-v3/15-consultas.html`:
+  - `maybeAutoOpenOnboarding` async com 3 fontes em ordem
+  - Removido override `body { background:#F4F6FA }` (fonte do preto/branco)
+  - `closeOnboarding` persiste no servidor fire-and-forget
+- `app-v3/12-qr-code.html`: removido `body { background:#000 }` + regras CSS internas tab-bar
+- **Sed mass-replace** removeu style inline gigante da tab-bar das 11 telas extras (03/05/06/08 + 40-44 + 52 + 71)
+- **8 telas de detalhe** (04, 07, 10, 16, 17, 18-medico-perfil, 18-perfil, 19) **e 71-privacidade** tiveram tab-bar INTEIRA removida — auditoria confirmou botao voltar no header em todas
+
+**Tag rollback:** `pre-conserto-22-mai-2026` (criada antes de tocar arquivo)
+
+**Commits cronologicos:**
+- `632d06a` — commit principal (15 arquivos: backend + migration + 12 telas + api.js)
+- `34f99a6` — fix `jaTemRG` typeof guard
+- `04f7e0c` — CSS internas tab-bar 09 + 12
+- `539e51e` — sed mass-replace 11 telas + 71-privacidade tab-bar removida
+- `(proximo)` — commit do teste Playwright + esta entrada
+
+**Playwright validacao final em producao:**
+- Edge com perfil persistente efemero (cria pasta tmp por execucao, zero SW residual)
+- `serviceWorkers: 'block'` + `--disable-cache`
+- Mock auth via `addInitScript` (token + usuario + perfil_saude em localStorage)
+- **9/9 cenarios OK:**
+  1. Splash redireciona ✓
+  2. Saude carrega cache otimista + pill `updPill` presente ✓
+  3-4. Tab-bar IDENTICA nas 4 telas: altura 86px, padding-bottom 8px ✓
+  5. Tab-bar AUSENTE nas 8 telas de detalhe ✓
+  6. JS onboarding Exames carregado ✓
+  8. JS onboarding Consultas v6 presente no source ✓
+  10. Rota `/perfil/flags-app` existe (401 sem auth) ✓
+  11. Cache + funcoes de pintar em 01-saude ✓
+
+**Bugs descobertos durante a sessao:**
+1. `vitaeAPI.jaTemRG is not a function` — pre-existente, documentado mas nunca consertado (Sessao 24 CLAUDE.md). Estava travando o porteiro do 01-saude.html quando funcao nao existe. Fix: `typeof === 'function'` guard.
+2. **15-consultas redireciona pra 44-consultas-vazia** quando paciente sem medicos. 44 tinha tab-bar com style inline antigo (80px / 0 padding) → era a fonte real do "tab-bar dancando" que o Lucas viu. Fix: sed mass-replace nas telas vazias 40-44.
+3. **Vercel servia HTML antigo no Edge persistente** apesar de `Cache-Control: no-cache`. Causa: SW antigo registrado no perfil do Edge do usuario do Lucas. Resolveu com `launchPersistentContext(tmpDir, {serviceWorkers: 'block'})` no Playwright.
+
+**Pendencia critica — APLICAR MIGRATION (Lucas, 1 comando, zero risco):**
+```
+cd backend
+railway run psql $DATABASE_URL -f prisma/migrations/20260522_flags_app_onboarding/migration.sql
+```
+ADD COLUMN IF NOT EXISTS — idempotente. Sem aplicar, sistema continua funcionando — flag de onboarding so nao persiste no servidor (cai pro localStorage como antes).
+
+**Handoff completo:** `Obsidian Vault/HANDOFF-22-MAI-2026-CONSERTO-3-FRENTES.md`
+
+**Memoria nova:** `project_sessao_22_mai_conserto.md` em MEMORY.md.
+
+**Skills usadas:**
+- TodoWrite intensivo (8 tarefas rastreadas, sequenciais)
+- AskUserQuestion (3 decisoes A/B/C antes de comecar)
+- Grep/Read paralelos pra auditoria de 8 telas de detalhe
+- Edit cirurgico em 16 arquivos
+- Sed mass-replace nas 11 telas extras (mais rapido que Edit individual)
+- Playwright via Node script direto (igual sessoes anteriores)
+- Defensive backend (P2022/P2021 guards)
+
+**Validacao manual pendente Lucas (no iPhone real):**
+1. Login com conta que tem exames + medico vinculado
+2. Aba Exames: NAO abre onboarding (regra "tem dado = visto")
+3. Aba Consultas: idem
+4. Aba Meu RG: cartao imediato + pill "atualizando" sumindo em ~1-2s
+5. Tab-bar identica nas 4 abas (altura, fundo)
+6. Telas de detalhe (clicar exame/alergia/medicamento): SEM tab-bar
+7. Botao "?" em Exames/Consultas reabre onboarding
+8. Logout + login outra conta: cartao NAO vaza dado do anterior (logout limpa cache SWR)
+
+---
+
 ### Sessao 31 — 21/05/2026 (noite) — Fluxo retorno medico<->paciente completo
 
 **Contexto:** Lucas validou aba Consultas v2, descobriu 2 bugs do meu lado:
