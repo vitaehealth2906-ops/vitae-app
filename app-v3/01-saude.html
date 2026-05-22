@@ -7,10 +7,12 @@
 <script src="api.js"></script>
 <script>
   // Gate de primeiro acesso: se ainda não tem RG da Saúde, força onboarding+quiz.
+  // Defensivo: jaTemRG pode não existir no api.js (bug pré-existente documentado).
   (function () {
     if (!window.vitaeAPI) return;
     if (!vitaeAPI.isLoggedIn()) { window.location.replace('20-splash.html'); return; }
-    if (!vitaeAPI.jaTemRG()) {
+    const temRG = (typeof vitaeAPI.jaTemRG === 'function') ? vitaeAPI.jaTemRG() : true;
+    if (!temRG) {
       const jaViuOnb = localStorage.getItem('vitae_onb_quiz_visto') === '1';
       window.location.replace(jaViuOnb ? '30-quiz.html' : '28-onboarding.html');
       return;
