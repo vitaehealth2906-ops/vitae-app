@@ -20,9 +20,283 @@
   })();
 </script>
 <link rel="stylesheet" href="_core.css">
+<!-- qrcodejs: mesma lib usada pela aba QR (12-qr-code.html), pra garantir QR idêntico -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" defer></script>
 <style>
-  /* Cartão hero — overrides especificos pra home */
-  .rgcard-hero { margin-top: var(--s2); margin-bottom: var(--s5); }
+  /* ============================================================
+     CARTÃO RG — ÔNIX (preto fosco premium, sem flip)
+     Inspiração: Mastercard Black / Visa Infinite / Amex Centurion.
+     Layout: logo topo · nome + CPF rodapé-esq · QR rodapé-dir.
+     Classes prefixadas .rgonix* para zero colisão com .rgcard*
+     (que continua sendo usado por 60-erro-offline.html).
+     ============================================================ */
+  .rgonix {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    aspect-ratio: 1.586 / 1;          /* ISO/IEC 7810 ID-1 */
+    margin: var(--s2) auto var(--s5);
+    border-radius: 16px;
+    padding: 18px 20px;
+    color: #FAFAF7;
+    cursor: pointer;
+    user-select: none;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 18% -10%, rgba(255,255,255,0.045), transparent 55%),
+      radial-gradient(ellipse at 95% 110%, rgba(255,255,255,0.025), transparent 50%),
+      linear-gradient(135deg, #050507 0%, #0e0e10 50%, #050507 100%);
+    box-shadow:
+      0 24px 60px rgba(0,0,0,0.55),
+      0 6px 18px rgba(0,0,0,0.35),
+      0 0 0 0.5px rgba(255,255,255,0.06) inset,
+      0 1px 0 rgba(255,255,255,0.05) inset,
+      0 -1px 0 rgba(0,0,0,0.4) inset;
+    transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+  .rgonix:active { transform: scale(0.985); }
+  .rgonix:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 3px;
+  }
+
+  /* === Camada 1: noise SVG (textura fosca real) === */
+  .rgonix-noise {
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence baseFrequency='0.85' seed='4'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    pointer-events: none;
+    z-index: 1;
+    mix-blend-mode: overlay;
+    opacity: 0.6;
+  }
+
+  /* === Camada 2: marca d'água gigante "vita id" no fundo === */
+  .rgonix-watermark {
+    position: absolute;
+    bottom: -14%;
+    right: -4%;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 52%;                    /* relativo ao cartão */
+    font-weight: 900;
+    letter-spacing: -0.07em;
+    line-height: 0.78;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(255,255,255,0.04);
+    z-index: 1;
+    pointer-events: none;
+    text-transform: lowercase;
+    font-style: italic;
+  }
+
+  /* === Camada 3: reflexo especular diagonal === */
+  .rgonix-spec {
+    position: absolute; inset: 0;
+    background: linear-gradient(112deg,
+      transparent 36%,
+      rgba(255,255,255,0.05) 48%,
+      rgba(255,255,255,0.02) 52%,
+      transparent 64%);
+    pointer-events: none;
+    z-index: 2;
+    mix-blend-mode: overlay;
+  }
+
+  /* === Camada 4: micro-impressão na borda inferior === */
+  .rgonix-micro {
+    position: absolute;
+    bottom: 4px;
+    left: 6%;
+    right: 6%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 4.5px;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    color: rgba(255,255,255,0.16);
+    font-weight: 500;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    user-select: none;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* === Topo: brand vita id em foil prata gravado === */
+  .rgonix-top {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .rgonix-brand {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 300;
+    letter-spacing: 0.005em;
+    line-height: 1;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+  }
+  .rgonix-brand strong {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(180deg,
+      #fafaf7 0%, #e8e5df 35%, #aaa7a0 60%, #d8d4c8 85%, #6e6b62 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter:
+      drop-shadow(0 1px 0 rgba(0,0,0,0.45))
+      drop-shadow(0 2px 1px rgba(0,0,0,0.28));
+  }
+  .rgonix-brand em {
+    font-style: italic;
+    font-weight: 400;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding-right: 0.14em;
+    display: inline-block;
+    filter: drop-shadow(0 1px 0 rgba(0,0,0,0.3));
+  }
+
+  /* === Rodapé: nome + CPF (esq) + QR (dir) === */
+  .rgonix-bottom {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 18px;
+    z-index: 3;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .rgonix-data {
+    flex: 1;
+    min-width: 0;
+  }
+  .rgonix-l {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7.5px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.42);
+    font-weight: 600;
+    margin-bottom: 5px;
+    line-height: 1;
+  }
+  .rgonix-name {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #FAFAF7;
+    line-height: 1.05;
+    text-shadow:
+      0 1px 0 rgba(0,0,0,0.55),
+      0 2px 2px rgba(0,0,0,0.3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+  }
+  .rgonix-cpf-wrap {
+    margin-top: 10px;
+  }
+  .rgonix-cpf {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: #FAFAF7;
+    line-height: 1;
+    text-shadow:
+      0 1px 0 rgba(0,0,0,0.55),
+      0 1px 2px rgba(0,0,0,0.28);
+    white-space: nowrap;
+  }
+  .rgonix-cpf.is-empty { color: rgba(255,255,255,0.32); }
+
+  /* === QR === */
+  .rgonix-qr {
+    width: 64px;
+    height: 64px;
+    background: #FAFAF7;
+    border-radius: 6px;
+    padding: 4px;
+    flex-shrink: 0;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.5),
+      0 0 0 1px rgba(255,255,255,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.25s var(--ease);
+  }
+  .rgonix:hover .rgonix-qr { transform: scale(1.04); }
+  .rgonix-qr canvas,
+  .rgonix-qr img {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    image-rendering: pixelated;
+  }
+  /* Fallback se a lib falhar carregar */
+  .rgonix-qr.is-fallback {
+    background: #1a1a1c;
+    color: rgba(255,255,255,0.45);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  /* === Estado de carregamento (skeleton) === */
+  .rgonix.is-loading .rgonix-name,
+  .rgonix.is-loading .rgonix-cpf {
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0.05) 0%,
+      rgba(255,255,255,0.12) 50%,
+      rgba(255,255,255,0.05) 100%);
+    background-size: 200% 100%;
+    color: transparent;
+    border-radius: 3px;
+    text-shadow: none;
+    animation: rgonixSkel 1.4s ease-in-out infinite;
+  }
+  @keyframes rgonixSkel {
+    0%, 100% { background-position: 200% 0; }
+    50% { background-position: -200% 0; }
+  }
+
+  /* === Reduced motion: desliga animação === */
+  @media (prefers-reduced-motion: reduce) {
+    .rgonix { transition: none; }
+    .rgonix:active { transform: none; }
+    .rgonix.is-loading .rgonix-name,
+    .rgonix.is-loading .rgonix-cpf { animation: none; }
+  }
+
+  /* === Mobile (≤480px): mesma proporção, cabe natural === */
+  @media (max-width: 480px) {
+    .rgonix {
+      max-width: 320px;
+      padding: 16px 18px;
+    }
+    .rgonix-bottom { left: 18px; right: 18px; bottom: 16px; }
+    .rgonix-qr { width: 58px; height: 58px; }
+    .rgonix-name { font-size: 12.5px; }
+    .rgonix-cpf { font-size: 11px; }
+  }
 
   /* Bloco "Adicionar medicamentos" (estado vazio) */
   .add-meds-card {
@@ -261,65 +535,35 @@
     <h1 class="page-title anim anim-d1">Minha <em>saúde</em></h1>
     <div class="page-subtitle anim anim-d1">Tudo sobre você, em um só lugar</div>
 
-    <!-- CARTÃO RG HERO -->
-    <div class="rgcard rgcard-hero anim anim-d2" onclick="flipCard(this); event.stopPropagation()" id="rgCard">
-      <div class="rgcard-inner">
-        <!-- FRENTE -->
-        <div class="rgcard-face">
-          <div class="rgcard-top">
-            <div class="rgcard-brand">vita <span class="it">id</span></div>
-            <div class="rgcard-flip-hint">
-              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              tocar pra virar
-            </div>
-          </div>
-          <div class="rgcard-mid">
-            <div class="rgcard-name" id="rgNome">&nbsp;</div>
-            <div class="rgcard-id">RG da Saúde · #<span id="rgNumero">&nbsp;</span></div>
-            <div class="rgcard-cols">
-              <div class="rgcol">
-                <div class="slbl">TIPO</div>
-                <div class="vbig" id="rgSangue">&nbsp;</div>
-              </div>
-              <div class="rgcol">
-                <div class="slbl">NASCIMENTO</div>
-                <div class="vmid" id="rgNascimento">&nbsp;</div>
-              </div>
-              <div class="rgcol">
-                <div class="slbl">EMERGÊNCIA</div>
-                <div class="vmid" id="rgEmerg">&nbsp;</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- VERSO -->
-        <div class="rgcard-face rgcard-back">
-          <div class="rgcard-top">
-            <div class="rgcard-brand">vita <span class="it">id</span></div>
-            <div class="rgcard-flip-hint">
-              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              tocar pra voltar
-            </div>
-          </div>
-          <div style="margin-top: -4px;">
-            <div class="rgcard-back-section">
-              <div class="rgcard-back-label">Alergias críticas</div>
-              <div class="rgcard-back-content allergy" id="rgVersoAlergias">&nbsp;</div>
-            </div>
-            <div class="rgcard-back-section">
-              <div class="rgcard-back-label">Medicamentos em uso</div>
-              <div class="rgcard-back-content" id="rgVersoMeds">&nbsp;</div>
-            </div>
-            <div class="rgcard-back-section">
-              <div class="rgcard-back-label">Contato de emergência</div>
-              <div class="rgcard-back-content" id="rgVersoEmerg">&nbsp;</div>
-            </div>
-          </div>
-          <div style="font-size:9px;color:rgba(255,255,255,0.42);font-weight:600;letter-spacing:0.05em;text-align:right;">
-            Atualizado em <span id="rgAtualizadoEm">&nbsp;</span>
-          </div>
-        </div>
+    <!-- CARTÃO RG HERO (Ônix) — preto fosco, sem flip -->
+    <div class="rgonix anim anim-d2"
+         id="rgOnix"
+         role="button"
+         tabindex="0"
+         aria-label="Abrir QR Code do RG da Saúde"
+         onclick="abrirQrCode()"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirQrCode()}">
+      <div class="rgonix-noise" aria-hidden="true"></div>
+      <div class="rgonix-watermark" aria-hidden="true">vita id</div>
+      <div class="rgonix-spec" aria-hidden="true"></div>
+
+      <div class="rgonix-top">
+        <div class="rgonix-brand"><strong>vita</strong> <em>id</em></div>
       </div>
+
+      <div class="rgonix-bottom">
+        <div class="rgonix-data">
+          <div class="rgonix-l">titular</div>
+          <div class="rgonix-name" id="rgNome">&nbsp;</div>
+          <div class="rgonix-cpf-wrap">
+            <div class="rgonix-l">cpf</div>
+            <div class="rgonix-cpf" id="rgCpf">···.···.···-··</div>
+          </div>
+        </div>
+        <div class="rgonix-qr" id="rgOnixQr" aria-hidden="true"></div>
+      </div>
+
+      <div class="rgonix-micro" aria-hidden="true">VITA·ID · DOCUMENTO·DE·SAÚDE · VITA·ID · DOCUMENTO·DE·SAÚDE · VITA·ID · DOCUMENTO·DE·SAÚDE · VITA·ID</div>
     </div>
 
     <!-- MEDICAMENTOS DE HOJE -->
@@ -374,8 +618,42 @@
 </div>
 
 <script>
-  function flipCard(el) {
-    el.classList.toggle('flipped');
+  // ===== Navegação do cartão Ônix → aba QR Code (mesma tela do QR escaneado) =====
+  function abrirQrCode() { window.location.href = '12-qr-code.html'; }
+
+  // ===== Geração do QR no próprio cartão (usa mesma lib + mesma URL da aba QR Code) =====
+  // O QR aponta pra 14-rg-publico.html?id={userId} — idêntico ao gerado em 12-qr-code.html.
+  // Quem escanear com câmera externa cai na MESMA tela.
+  let _qrOnixGerado = false;
+  function gerarQrOnix(userId) {
+    if (_qrOnixGerado) return;
+    const el = document.getElementById('rgOnixQr');
+    if (!el || !userId) return;
+    try {
+      if (typeof QRCode === 'undefined') {
+        // Lib ainda não carregou — tenta de novo em 250ms
+        return setTimeout(() => gerarQrOnix(userId), 250);
+      }
+      const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]+$/, '');
+      const qrContent = baseUrl + '14-rg-publico.html?id=' + userId;
+      el.innerHTML = '';
+      new QRCode(el, {
+        text: qrContent,
+        width: 56,
+        height: 56,
+        colorDark: '#0A0A0B',
+        colorLight: '#FAFAF7',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      // Instrumentação: expõe URL gerada para testes E2E confirmarem
+      // que é a MESMA que 12-qr-code.html gera
+      el.setAttribute('data-qr-url', qrContent);
+      _qrOnixGerado = true;
+    } catch (e) {
+      console.warn('[01-saude] falha gerar QR Ônix:', e && e.message);
+      el.classList.add('is-fallback');
+      el.innerHTML = 'QR';
+    }
   }
 
   // ===== Lote 1: tela Saude HOME conectada ao backend =====
@@ -421,26 +699,41 @@
   const ICON_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   const ICON_ALERT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
 
-  // ===== Render: RG card =====
-  function renderRG(usuario, perfil) {
-    const nomeUp = (usuario.nome || '').toUpperCase();
-    const idade = calcularIdade(perfil?.dataNascimento);
-    const greetEl = document.getElementById('greetingNome');
-    if (greetEl) greetEl.textContent = usuario.nome || '';
-    document.getElementById('rgNome').textContent = nomeUp;
-    document.getElementById('rgNumero').textContent = shortId(usuario.id);
-    document.getElementById('rgSangue').textContent = SANGUE_LABEL[perfil?.tipoSanguineo] || '—';
-    document.getElementById('rgNascimento').textContent = formatarData(perfil?.dataNascimento) || '—';
-    document.getElementById('rgEmerg').textContent = perfil?.contatoEmergenciaTel || '—';
-    document.getElementById('rgAtualizadoEm').textContent = formatarMesAbrev();
+  // ===== Render: Cartão Ônix (só nome + CPF + QR; defensivo contra IDs ausentes) =====
+  function formatarCpf(cpf) {
+    if (!cpf) return null;
+    const d = String(cpf).replace(/\D/g, '');
+    if (d.length !== 11) return null;
+    return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9,11)}`;
+  }
 
-    const nomeEmerg = perfil?.contatoEmergenciaNome || '';
-    const telEmerg = perfil?.contatoEmergenciaTel || '';
-    if (nomeEmerg || telEmerg) {
-      document.getElementById('rgVersoEmerg').textContent = [nomeEmerg, telEmerg].filter(Boolean).join(' · ');
-    } else {
-      document.getElementById('rgVersoEmerg').textContent = '—';
+  function renderRG(usuario, perfil) {
+    const card = document.getElementById('rgOnix');
+    if (card) card.classList.remove('is-loading');
+
+    // Saudação no header (greetingNome existe em algumas variações da home — defensivo)
+    const greetEl = document.getElementById('greetingNome');
+    if (greetEl) greetEl.textContent = (usuario && usuario.nome) || '';
+
+    // Nome completo
+    const elNome = document.getElementById('rgNome');
+    if (elNome) elNome.textContent = (usuario && usuario.nome) ? usuario.nome.toUpperCase() : '—';
+
+    // CPF — pode vir como cpf, cpfMascarado, ou estar ausente
+    const elCpf = document.getElementById('rgCpf');
+    if (elCpf) {
+      const cpfFmt = formatarCpf(perfil && (perfil.cpf || perfil.cpfMascarado));
+      if (cpfFmt) {
+        elCpf.textContent = cpfFmt;
+        elCpf.classList.remove('is-empty');
+      } else {
+        elCpf.textContent = '···.···.···-··';
+        elCpf.classList.add('is-empty');
+      }
     }
+
+    // Gera QR (só uma vez por sessão — userId não muda)
+    if (usuario && usuario.id) gerarQrOnix(usuario.id);
   }
 
   // ===== Render: alergias =====
@@ -461,12 +754,12 @@
       resumo.textContent = partes.join(' · ');
     }
 
-    // Verso do RG (so as criticas)
+    // Verso do RG removido no Ônix — escrita defensiva (id não existe mais)
     const verso = document.getElementById('rgVersoAlergias');
-    if (criticas.length === 0) {
-      verso.textContent = 'Nenhuma';
-    } else {
-      verso.textContent = criticas.slice(0,4).map(a => a.nome).join(' · ');
+    if (verso) {
+      verso.textContent = criticas.length === 0
+        ? 'Nenhuma'
+        : criticas.slice(0,4).map(a => a.nome).join(' · ');
     }
 
     // Lista expandida (ate 3 alergias, prioriza criticas)
@@ -495,13 +788,13 @@
 
   // ===== Render: medicamentos hoje =====
   function renderMedsHoje(meds) {
-    // Verso do RG (3 primeiros ativos)
     const ativos = meds.filter(m => m.ativo !== false);
+    // Verso do RG removido no Ônix — escrita defensiva (id não existe mais)
     const verso = document.getElementById('rgVersoMeds');
-    if (ativos.length === 0) {
-      verso.textContent = 'Nenhum';
-    } else {
-      verso.textContent = ativos.slice(0,3).map(m => `${m.nome}${m.dosagem ? ' '+m.dosagem : ''}`).join(' · ');
+    if (verso) {
+      verso.textContent = ativos.length === 0
+        ? 'Nenhum'
+        : ativos.slice(0,3).map(m => `${m.nome}${m.dosagem ? ' '+m.dosagem : ''}`).join(' · ');
     }
 
     // Lista hoje (todos os ativos com horario, ordenados por hora)
