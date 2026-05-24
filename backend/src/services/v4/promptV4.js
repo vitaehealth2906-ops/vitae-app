@@ -123,7 +123,9 @@ async function gerarTextoVoz({ userPrompt, instrucaoCorrecao = null }) {
 
   const t0 = Date.now();
   const resp = await client.messages.create({
-    model: process.env.V4_MODEL || 'claude-opus-4-7',
+    // Default Sonnet 4.6: ~10x mais barato que Opus, qualidade equivalente nos testes V4.
+    // Trocar pra Opus via env: V4_MODEL=claude-opus-4-7
+    model: process.env.V4_MODEL || 'claude-sonnet-4-6',
     max_tokens: 4096,
     system: SYSTEM_V4,
     messages: [{ role: 'user', content: user }]

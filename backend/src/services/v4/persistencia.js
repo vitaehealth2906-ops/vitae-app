@@ -39,10 +39,40 @@ async function persistirV4({ preConsultaId, outputIA, tts, contexto }) {
   const pc = await prisma.preConsulta.findUnique({ where: { id: preConsultaId } });
   if (!pc) throw new Error(`PC ${preConsultaId} nao encontrada`);
 
+  // Compat com frontend antigo: mapeia summary_visual V4 → anamneseEstruturada
+  // (formato { campo: { valor, fonte } } esperado pelas caixinhas do app medico)
+  const summaryVisualV4 = outputIA.summary_visual || {};
+  const anamneseEstruturadaCompat = {};
+  for (const k of Object.keys(summaryVisualV4)) {
+    const v = summaryVisualV4[k];
+    if (v && typeof v === 'object' && 'valor' in v) {
+      anamneseEstruturadaCompat[k] = { valor: v.valor, fonte: v.fonte || null };
+    }
+  }
+
+  // Compat: mapeia pontos_consolidados V4 → pontosAtencao (caixinha "Pontos de atenção")
+  // V4 nao emite gravidade clinica (proibido por design CFM), entao usa 'media' default
+  const pontosAtencaoCompat = (outputIA.pontos_consolidados || []).map((msg, i) => ({
+    titulo: `Ponto pra confirmar ${i + 1}`,
+    mensagem: msg,
+    gravidade: 'media'
+  }));
+
+  // Compat: descricaoBreve a partir de queixaPrincipal do summary_visual (frontend usa esse campo)
+  const queixaSV = summaryVisualV4.queixaPrincipal && summaryVisualV4.queixaPrincipal.valor;
+  const descricaoBreveCompat = queixaSV
+    ? `${queixaSV.slice(0, 240)}`
+    : (outputIA.textoVoz || '').slice(0, 240);
+
   // Preserva o summaryJson antigo dentro do novo, em campo paralelo
   const summaryJsonAtual = pc.summaryJson || {};
   const novoSummaryJson = {
     ...summaryJsonAtual,
+    // Compat front antigo
+    anamneseEstruturada: anamneseEstruturadaCompat,
+    pontosAtencao: pontosAtencaoCompat,
+    descricaoBreve: descricaoBreveCompat,
+    summaryTexto: outputIA.textoVoz, // alias usado em alguns lugares
     _v4_meta: {
       versaoPipeline: 'v4.0.0',
       criadoEm: new Date().toISOString(),
