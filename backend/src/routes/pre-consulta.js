@@ -2127,6 +2127,7 @@ router.get('/:id/audio-summary-url', verificarAuth, async (req, res, next) => {
       await prisma.auditoriaAcesso.create({
         data: {
           usuarioId: req.usuario.id,
+          atorTipo: 'MEDICO',
           acao: 'VIEW_AUDIO_BRIEFING_V4',
           recursoTipo: 'PRECONSULTA',
           recursoId: id,

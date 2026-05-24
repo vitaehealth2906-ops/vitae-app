@@ -12,7 +12,8 @@ async function registrarAuditoria({ preConsultaId, medicoId, pacienteId, meta })
   try {
     await prisma.auditoriaAcesso.create({
       data: {
-        usuarioId: medicoId || pacienteId || preConsultaId, // qualquer id valido
+        usuarioId: medicoId || pacienteId || preConsultaId,
+        atorTipo: 'SISTEMA',
         acao: 'GERAR_BRIEFING_V4',
         recursoTipo: 'PRECONSULTA',
         recursoId: preConsultaId,
@@ -89,9 +90,14 @@ async function persistirV4({ preConsultaId, outputIA, tts, contexto }) {
     statusResumoIa: contexto.validacao && contexto.validacao.ok ? 'ok' : 'requer_revisao_manual'
   };
 
-  // Audio URL — pra V4 e o storage path do bucket privado (vamos servir via endpoint signed URL)
+  // Audio URL — V4 prefere bucket privado (servido via endpoint signed URL),
+  // mas se cai no fallback publico, persiste URL direta (compat com V3)
   if (tts && tts.storagePath) {
-    updateData.audioSummaryUrl = `vitae-priv://${tts.bucket}/${tts.storagePath}`;
+    if (tts.privado) {
+      updateData.audioSummaryUrl = `vitae-priv://${tts.bucket}/${tts.storagePath}`;
+    } else if (tts.publicUrl) {
+      updateData.audioSummaryUrl = tts.publicUrl;
+    }
     updateData.statusAudioResumo = 'ok';
   }
 

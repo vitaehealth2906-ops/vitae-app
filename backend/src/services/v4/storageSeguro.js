@@ -57,8 +57,19 @@ async function uploadAudioSeguro({ buffer, fileName, contentType = 'audio/mpeg' 
     contentType,
     upsert: true
   });
-  if (error) throw new Error(`upload V4 falhou: ${error.message}`);
-  return { storagePath: path, bucket: BUCKET_PRIVADO };
+  if (!error) return { storagePath: path, bucket: BUCKET_PRIVADO, privado: true };
+
+  // FALLBACK: bucket privado nao existe ou sem permissao — usa bucket publico (igual V3)
+  // LGPD: nao pior que estado atual. Lucas pode criar bucket privado depois manual.
+  console.warn(`[V4-storage] privado falhou (${error.message}) — fallback bucket publico 'vitae'`);
+  const fallbackPath = `tts-v4/${path}`;
+  const { error: errFb } = await c.storage.from('vitae').upload(fallbackPath, buffer, {
+    contentType,
+    upsert: true
+  });
+  if (errFb) throw new Error(`upload V4 fallback publico falhou: ${errFb.message}`);
+  const { data: urlData } = c.storage.from('vitae').getPublicUrl(fallbackPath);
+  return { storagePath: fallbackPath, bucket: 'vitae', publicUrl: urlData.publicUrl, privado: false };
 }
 
 /**
