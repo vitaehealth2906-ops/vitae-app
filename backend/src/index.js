@@ -39,6 +39,9 @@ const app = express();
 const allowedOrigins = [
   'https://vitaehealth2906-ops.github.io',
   'https://vitae-app.vercel.app',
+  'https://app.vitaidsaude.com',
+  'https://medico.vitaidsaude.com',
+  'https://vitaidsaude.com',
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',

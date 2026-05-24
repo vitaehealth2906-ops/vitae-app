@@ -59,9 +59,10 @@ function vitaeNav(target) {
 // URL detection: usa Railway por padrão. Pra rodar contra backend local,
 // abra o app com ?api=local na URL (ex: http://localhost:8080/app.html?api=local)
 const _useLocalApi = new URLSearchParams(window.location.search).get('api') === 'local';
+const _h = window.location.hostname;
 const API_URL = _useLocalApi
   ? 'http://localhost:3002'
-  : 'https://vitae-app-production.up.railway.app';
+  : (_h.endsWith('vitaidsaude.com') ? 'https://api.vitaidsaude.com' : 'https://vitae-app-production.up.railway.app');
 window.API_URL = API_URL; // expõe pra debug/teste
 console.log('[api] URL detectada:', API_URL);
 
