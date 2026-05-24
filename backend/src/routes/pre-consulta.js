@@ -5,7 +5,7 @@ const { z } = require('zod');
 const prisma = require('../utils/prisma');
 const { verificarAuth, authOpcional } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
-const { gerarSummaryPreConsulta, gerarAudioElevenLabs, verificarCompletudeTopicos, classificarRespostaIndividual } = require('../services/ai');
+const { gerarSummaryPreConsulta, gerarAudioElevenLabs, verificarCompletudeTopicos, classificarRespostaIndividual, processarSummaryV4OuLegado } = require('../services/ai');
 const { enviarEmailPreConsultaRespondida } = require('../services/email');
 // SMS de confirmação ao paciente removido em 2026-05-10 (paciente vê
 // confirmação dentro da própria pre-consulta.html ao finalizar).
@@ -537,9 +537,19 @@ router.post('/t/:token/responder-audio', authOpcional, audioUpload.fields([
     let summaryIA = null;
     let summaryJson = null;
     try {
-      const resultado = await gerarSummaryPreConsulta(preConsulta.pacienteNome, respostas, transcricao, preConsulta.templatePerguntas);
+      const resultado = await processarSummaryV4OuLegado({
+        preConsultaId: preConsulta.id,
+        pacienteNome: preConsulta.pacienteNome,
+        respostas,
+        transcricao,
+        templatePerguntas: preConsulta.templatePerguntas
+      });
       summaryIA = resultado.summaryTexto;
       summaryJson = resultado;
+      // Se V4 ja persistiu tudo no banco, summaryJson aqui e so um stub — nao sobrescrever o que V4 gravou
+      if (resultado._v4) {
+        console.log('[PRE-CONSULTA] Summary V4 ok — preConsultaId:', preConsulta.id, 'cluster:', resultado.v4_meta.cluster);
+      }
     } catch (aiErr) {
       console.error('[PRE-CONSULTA] Erro ao gerar summary IA:', aiErr.message);
     }
@@ -1575,9 +1585,13 @@ router.post('/:id/regenerar', verificarAuth, async (req, res, next) => {
       }
     }
 
-    const resultado = await gerarSummaryPreConsulta(
-      pc.pacienteNome, respostasEnriq, pc.transcricao || '', pc.templatePerguntas
-    );
+    const resultado = await processarSummaryV4OuLegado({
+      preConsultaId: pc.id,
+      pacienteNome: pc.pacienteNome,
+      respostas: respostasEnriq,
+      transcricao: pc.transcricao || '',
+      templatePerguntas: pc.templatePerguntas
+    });
 
     // PADROES V2 tambem roda na regeneracao (flag-gated)
     let summaryJsonFinal = resultado;
@@ -2074,6 +2088,54 @@ router.get('/analise-prosodica/:registroId', verificarAuth, async (req, res, nex
     try { await auditar({ usuarioId: req.usuario.id, acao: 'ANALISE_PROSODICA_AUDITADA', meta: { registroId } }); } catch(e){}
 
     return res.status(200).json({ registro: reg });
+  } catch (err) { next(err); }
+});
+
+// ============================================================================
+// V4 — Endpoint pra gerar signed URL on-demand do audio do briefing (bucket privado)
+// LGPD: audio nunca tem URL publica. Medico autenticado pede, sistema gera URL temporaria.
+// ============================================================================
+router.get('/:id/audio-summary-url', verificarAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const pc = await prisma.preConsulta.findUnique({ where: { id }, include: { medico: true } });
+    if (!pc) return res.status(404).json({ erro: 'PC nao encontrada' });
+
+    // Validar que medico tem acesso (e o medico da PC)
+    if (pc.medico && pc.medico.usuarioId && pc.medico.usuarioId !== req.usuario.id) {
+      return res.status(403).json({ erro: 'sem permissao' });
+    }
+
+    const url = pc.audioSummaryUrl;
+    if (!url) return res.status(404).json({ erro: 'sem audio summary' });
+
+    // Se for URL publica antiga (sem prefixo vitae-priv://), devolve como esta
+    if (!url.startsWith('vitae-priv://')) {
+      return res.status(200).json({ url, signed: false });
+    }
+
+    // URL privada V4 — extrair bucket e path
+    const semPrefixo = url.replace('vitae-priv://', '');
+    const [bucket, ...pathParts] = semPrefixo.split('/');
+    const storagePath = pathParts.join('/');
+
+    const { gerarSignedUrl } = require('../services/v4/storageSeguro');
+    const { url: signedUrl, expiraEm } = await gerarSignedUrl(storagePath);
+
+    // Auditoria
+    try {
+      await prisma.auditoriaAcesso.create({
+        data: {
+          usuarioId: req.usuario.id,
+          acao: 'VIEW_AUDIO_BRIEFING_V4',
+          recursoTipo: 'PRECONSULTA',
+          recursoId: id,
+          meta: { bucket, expiraEm: expiraEm.toISOString() }
+        }
+      });
+    } catch (_) {}
+
+    return res.status(200).json({ url: signedUrl, signed: true, expiraEm });
   } catch (err) { next(err); }
 });
 

@@ -12,7 +12,7 @@
 
 const prisma = require('../utils/prisma');
 const storage = require('../services/storage');
-const { gerarSummaryPreConsulta, gerarAudioElevenLabs } = require('../services/ai');
+const { gerarSummaryPreConsulta, gerarAudioElevenLabs, processarSummaryV4OuLegado } = require('../services/ai');
 const { transcreverAudio, transcreverAudioComTimestamps } = require('../services/transcription');
 const { enviarEmailPreConsultaRespondida } = require('../services/email');
 const { registrarFalha } = require('../services/observability');
@@ -235,12 +235,13 @@ async function processarGerarSummaryETts(tarefa) {
 
   for (let tentativaSummary = 1; tentativaSummary <= 2; tentativaSummary++) {
     try {
-      const resultado = await gerarSummaryPreConsulta(
-        preConsulta.pacienteNome,
-        respostasEnriquecidas,
+      const resultado = await processarSummaryV4OuLegado({
+        preConsultaId: preConsulta.id,
+        pacienteNome: preConsulta.pacienteNome,
+        respostas: respostasEnriquecidas,
         transcricao,
-        preConsulta.templatePerguntas
-      );
+        templatePerguntas: preConsulta.templatePerguntas
+      });
       summaryJson = resultado;
       summaryIA = resultado.summaryTexto;
 

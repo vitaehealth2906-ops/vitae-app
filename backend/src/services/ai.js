@@ -1635,6 +1635,50 @@ Exemplos:
   }
 }
 
+// ============================================================================
+// V4 — Wrapper que decide pipeline V4 ou V3 (legado) baseado em feature flag
+// PROMPT_V4_ENABLED=true → V4 (cluster + modo + validador + storage privado)
+// PROMPT_V4_ENABLED=false (default) → V3 legado (gerarSummaryPreConsulta)
+// ============================================================================
+async function processarSummaryV4OuLegado({ preConsultaId, pacienteNome, respostas, transcricao, templatePerguntas }) {
+  const flag = (process.env.PROMPT_V4_ENABLED || '').toString().toLowerCase();
+  if (flag === 'true' || flag === '1' || flag === 'on') {
+    if (!preConsultaId) {
+      console.warn('[AI] V4 ativo mas preConsultaId ausente — usando fallback legado');
+      return await gerarSummaryPreConsulta(pacienteNome, respostas, transcricao, templatePerguntas);
+    }
+    try {
+      const { executarPipelineV4 } = require('./v4/pipeline');
+      const resV4 = await executarPipelineV4(preConsultaId);
+      // Formato compativel com o que callers esperam (summaryTexto principal)
+      return {
+        _v4: true,
+        v4_meta: {
+          cluster: resV4.cluster,
+          clusterNome: resV4.clusterNome,
+          modo: resV4.modo,
+          tentativas: resV4.tentativas,
+          palavras: resV4.palavras,
+          requerRevisaoManual: resV4.requerRevisaoManual
+        },
+        summaryTexto: resV4.summaryIA,
+        textoVoz: resV4.textoVoz,
+        // Os campos abaixo o V4 ja persistiu direto no banco (em summaryJson.v4)
+        // Devolvemos vazio pra evitar caller sobrescrever
+        blocos: [],
+        alertas: [],
+        pontosAtencao: [],
+        identificaPadroes: [],
+        anamneseEstruturada: {}
+      };
+    } catch (e) {
+      console.error('[AI] Pipeline V4 FALHOU, caindo no legado:', e.message);
+      return await gerarSummaryPreConsulta(pacienteNome, respostas, transcricao, templatePerguntas);
+    }
+  }
+  return await gerarSummaryPreConsulta(pacienteNome, respostas, transcricao, templatePerguntas);
+}
+
 module.exports = {
   estruturarExame,
   estruturarExameDeArquivo,
@@ -1649,4 +1693,5 @@ module.exports = {
   scanReceita,
   scanAlergia,
   classificarRespostaIndividual,
+  processarSummaryV4OuLegado,
 };
