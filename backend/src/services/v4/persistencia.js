@@ -12,12 +12,13 @@ async function registrarAuditoria({ preConsultaId, medicoId, pacienteId, meta })
   try {
     await prisma.auditoriaAcesso.create({
       data: {
-        usuarioId: medicoId || pacienteId || preConsultaId,
+        atorId: medicoId || pacienteId || null,
         atorTipo: 'SISTEMA',
         acao: 'GERAR_BRIEFING_V4',
         recursoTipo: 'PRECONSULTA',
         recursoId: preConsultaId,
-        meta: meta || {}
+        alvoId: pacienteId || null,
+        metadata: meta || {}
       }
     });
   } catch (e) {
