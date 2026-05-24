@@ -3175,18 +3175,27 @@ if (typeof vitaeAPI !== 'undefined' && (vitaeAPI.isLoggedIn() || medicoModePacie
     const params = new URLSearchParams(window.location.search);
     const openIdx = params.get('openExam');
     const openId = params.get('openExamId');
+    const forceOnb = params.get('onb') === '1';
     if (openId) {
       const idx = allExams.findIndex(e => e.id === openId);
       if (idx !== -1) openExam(idx);
     } else if (openIdx !== null && allExams[Number(openIdx)]) {
       openExam(Number(openIdx));
+    } else if (forceOnb) {
+      // Veio da tela vazia clicando no "?": abre onboarding forcado
+      setTimeout(() => abrirOnboardingExames(true), 250);
     } else {
       // Fase 3: na primeira entrada na aba Exames, mostra onboarding (1x só)
       setTimeout(() => abrirOnboardingExames(false), 250);
     }
   });
 } else {
-  renderLista(); // show empty state
+  // Tela vazia OU veio com ?onb=1 da tela vazia
+  renderLista();
+  try {
+    const forceOnb = new URLSearchParams(window.location.search).get('onb') === '1';
+    if (forceOnb) setTimeout(() => abrirOnboardingExames(true), 250);
+  } catch(_) {}
 }
 </script>
 </body>
