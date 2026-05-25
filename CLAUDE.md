@@ -609,6 +609,78 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 33 — 24-25/05/2026 — Site marketing: Hero + Pilares estilo Maia (autonomo)
+
+**Foco:** site marketing institucional. Zero alteracao funcional no app (excecao: 1 copy).
+
+**O que foi feito:**
+
+1. **Hero composite (laptop + 2 iPhones estilo MAIA)** com screenshots REAIS do app de producao
+   - `docs/marketing/hero-vitaid.html` — versao completa com headline "O paciente conta uma vez. O medico recebe pronto." (Instagram/print)
+   - `docs/marketing/hero-vitaid-embed.html` — versao limpa, transparente, sem headline (embed em site)
+   - 3 telas embedadas como iframes ou PNG: aba Exames patient + Resumo 1min medico + Pre-consulta gravando
+
+2. **Captura da tela REAL do medico (Resumo 1min)** via Playwright + mock API
+   - `tests/_shot-laptop-real.js` — abre prod `vitae-app.vercel.app/desktop/app-v2.html`, mocka localStorage + intercepta API com `ctx.route()`, dispara `openSummary('fake-pc-beatriz-cefaleia')`, screenshota
+   - Saida: `docs/marketing/screens/thumbs/laptop-real.png`
+   - Paciente ficticia: Beatriz Oliveira, 34 anos, alergia Dipirona+Penicilina (referencia historia Lucas), cefaleia pulsatil unilateral
+
+3. **5 miniaturas de laudos medicos** geradas via Playwright HTML->JPG
+   - `docs/marketing/screens/thumbs/_gerar.js` — renderiza 5 laudos plausiveis
+   - hemograma.jpg / tsh.jpg (TSH 5.84 elevado) / glicemia.jpg / ecg.jpg (SVG vermelho) / usg.jpg
+   - Cabecalho de laboratorio, tabela de parametros, comentario clinico, assinatura de medico ficticio, protocolo
+
+4. **Site oficial atualizado** (`site-oficial.html`)
+   - Hero antigo da secao "A SOLUCAO" (#como) substituido pelo novo
+   - Tecnica: `tests/_swap-hero-no-site.js` decodifica `<script type="__bundler/manifest">` (JSON c/ assets UUID->base64), troca o conteudo da UUID `6a805543-5166-4d29-9bbe-769b1689ad39`. Markup intocada. Backups automaticos.
+
+5. **Copy "Exportar iClinic" -> "Exportar prontuario"** em `desktop/app-v2.html` linha 4158
+   - Source alterado. Deploy ainda nao rolou.
+   - Script `_shot-laptop-real.js` aplica replace JS post-render pra captura ja refletir.
+
+6. **Investigacao tecnica do site da Maia** (healthmaia.com)
+   - `tests/_inspect-maia.js` + `_inspect-maia-deep.js` (relatorio em `_maia-deep-report.json`)
+   - Descobertas: tudo CSS puro + IntersectionObserver caseiro (ZERO biblioteca)
+   - 11 keyframes catalogados (heroPulse, hintScroll, waveBar, sparkRise, baLed, etc)
+   - 3 tecnicas premium: stagger Fibonacci-ish (0.05/0.12/0.19 nao 0.1/0.2/0.3) / hover spotlight (siblings encolhem 4% + perdem saturacao quando hover em UM) / mobile focal por scroll center
+   - Easing institucional: `cubic-bezier(0.2, 0.8, 0.2, 1)` = Material 3 ease-emphasized-out
+
+7. **Secao Pilares standalone** (`docs/marketing/pilares.html`) com TODAS as tecnicas Maia + extras
+   - 3 cards verde/azul/roxo com badge pulsante + headline + copy + mock real + "Saber mais"
+   - IntersectionObserver caseiro pra reveal stagger
+   - 6+ keyframes vivos dentro dos mocks (dotPulse, livePulse, waveBar, caret, sparkRise, progFill, toastInLoop, checkPop)
+   - Hover spotlight signature da Maia replicado
+   - Mobile focal card por scroll position
+   - Respeita `prefers-reduced-motion`
+   - Pilares mapeados em vault PSF: Antes do paciente entrar / Continuidade real / Zero retrabalho
+
+8. **Captura dos 3 pilares com screens REAIS do app** (`tests/_shot-pilares-reais.js`)
+   - Pilar 1: iPhone paciente respondendo pre-consulta (orb verde + onda + cronometro)
+   - Pilar 2: desktop briefing 1min clipado a area de content (sem sidebar)
+   - Pilar 3: BUG — `pcState.currentPC` null no momento da chamada `pcOpenIclModal()`. Fix de 10min documentado no handoff.
+
+**Bug aberto:** Pilar 3 — modal Exportar prontuario vem vazio na captura. Solucao: forcar `pcState.currentPC = window.PCS[FAKE_PC_ID]` antes de chamar `pcOpenIclModal()`. Documentado em [[Obsidian/HANDOFF-MARKETING-PILARES-25-MAI-2026]] secao 8.
+
+**Pendente Lucas decidir:**
+- Copy do "O PROBLEMA" — 3 direcoes propostas (Espelho Identitario / Cena / Inversao). Vault consultado: BRIEFING-MEDICO + PERSUASAO-ETICA + PADROES-VENCEDORES.
+- Embed do pilares.html no site — Opcao A (markup vivo no bundle) ou B (PNG estatico no manifest)
+
+**Handoff completo:** `C:\Users\win11\OneDrive\Documentos\Obsidian Vault\HANDOFF-MARKETING-PILARES-25-MAI-2026.md`
+
+**Pipeline reprodutivel (8 comandos sequenciais):**
+```bash
+node docs/marketing/screens/thumbs/_gerar.js
+node tests/_shot-laptop-real.js
+node tests/_shot-pilares-reais.js
+node tests/_shot-hero.js
+node tests/_shot-hero-embed.js
+node tests/_shot-pilares.js
+node tests/_swap-hero-no-site.js
+node tests/_shot-site-solucao.js
+```
+
+---
+
 ### Sessao 32 — 22/05/2026 — Conserto 3 frentes (autonomo + Playwright 9/9)
 
 **Contexto:** Lucas reportou 4 frustrações testando login com `lucasborelli096@gmail.com` em aparelho novo:

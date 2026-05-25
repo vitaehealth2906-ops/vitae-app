@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440, initial-scale=1.0">
+<title>vita id · Resumo de 1 minuto</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ═══ CSS extraído de desktop-core.css + app-v2.html (v-summary view) ═══ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --green:#00E5A0;--cyan:#00B4D8;
+  --grad:linear-gradient(120deg,#00E5A0,#00B4D8);
+  --dark:#0D0F14;--bg:#F7F8FA;--surface:#fff;--s2:#F2F4F7;--s3:#E8EBF0;
+  --border:rgba(0,0,0,0.06);--b2:rgba(0,0,0,0.10);
+  --t1:#111318;--t2:#5A6070;--t3:#9CA3AF;--t4:#D1D5DB;
+  --acc:rgba(0,229,160,0.08);--accb:rgba(0,229,160,0.18);
+  --ok:#00C47A;--warn:#F59E0B;--bad:#EF4444;--info:#3B82F6;
+  --font:'Plus Jakarta Sans',sans-serif;--r:12px;--sidebar:240px;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased;overflow:hidden}
+.app{display:flex;height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--dark);display:flex;flex-direction:column;overflow:hidden;padding:18px 14px 14px}
+.sb-logo{padding:6px 10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.logo{display:inline-flex;align-items:baseline;gap:2px;font-size:22px;font-weight:900;letter-spacing:-.04em;color:#fff;line-height:1}
+.logo .ib{display:inline-flex;align-items:center;justify-content:center;background:var(--grad);color:var(--dark);font-weight:900;letter-spacing:-.02em;padding:2px 7px;border-radius:6px;margin-left:2px}
+.sb-tag{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);padding:3px 7px;border:1px solid rgba(255,255,255,.10);border-radius:999px}
+.sb-nav{flex:1;padding:0}
+.sb-g{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.28);padding:0 12px 8px;margin:18px 0 0}
+.sb-g:first-child{margin-top:4px}
+.nl{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;cursor:pointer;transition:background .15s,color .15s;border:1px solid transparent;position:relative;margin-bottom:1px}
+.nl:hover{background:rgba(255,255,255,.05)}
+.nl.on{background:rgba(0,229,160,.10);border-color:rgba(0,229,160,.22)}
+.nl.on::before{content:'';position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--grad);border-radius:0 2px 2px 0}
+.nl svg{width:16px;height:16px;stroke:rgba(255,255,255,.45);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.nl span{font-size:13px;font-weight:600;color:rgba(255,255,255,.55);flex:1}
+.nl.on svg{stroke:var(--green)}.nl.on span{color:#fff}
+.pip{margin-left:auto;font-size:11px;font-weight:700;min-width:22px;height:22px;padding:0 6px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center}
+.pip-g{background:rgba(0,196,122,.14);color:var(--green)}
+.sb-user{margin-top:8px;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);display:flex;align-items:center;gap:10px}
+.sb-av{width:32px;height:32px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--dark)}
+.sb-name{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.95)}
+.sb-crm{font-size:10px;font-weight:500;color:rgba(255,255,255,.35);margin-top:1px}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
+.tb-title{font-size:14.5px;font-weight:700;color:var(--t1)}
+.tb-sep{width:1px;height:14px;background:var(--border)}
+.tb-sub{font-size:12px;color:var(--t3)}
+.tb-space{flex:1}
+.tb-time{font-size:11.5px;font-weight:600;color:var(--t3);font-variant-numeric:tabular-nums}
+.content{flex:1;overflow-y:auto;padding:26px 28px}
+
+/* ═══ V-SUMMARY view ═══ */
+.resumo-wrap{max-width:1320px;margin:0 auto;padding:0 24px}
+.resumo-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px}
+.resumo-top .top-actions{display:flex;align-items:center;gap:10px}
+.timestamp{font-size:11.5px;color:var(--t3);font-weight:600;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-variant-numeric:tabular-nums}
+.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer;padding:6px 10px;border-radius:8px;border:none;background:none;font-family:var(--font)}
+.back-btn svg{width:14px;height:14px;stroke:var(--t2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-family:var(--font);font-size:12.5px;font-weight:600;background:var(--surface);color:var(--t1)}
+.btn svg{width:13px;height:13px;fill:none;stroke-width:2}
+.resumo-head{margin-bottom:24px}
+.resumo-head h1{font-size:26px;font-weight:900;letter-spacing:-.6px;color:var(--t1);line-height:1.1}
+.resumo-head h1 em{font-style:italic;font-weight:900;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-right:0.10em}
+.resumo-head .sub{font-size:13px;color:var(--t3);margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.resumo-head .sub .dot{width:3px;height:3px;border-radius:50%;background:var(--t4)}
+.detail-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:28px;align-items:start}
+
+/* Patient card */
+.pac-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03)}
+.pac-head{padding:22px 22px 18px;display:flex;gap:14px;align-items:flex-start;border-bottom:1px solid var(--border)}
+.pac-avatar{width:52px;height:52px;border-radius:50%;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0;box-shadow:0 4px 12px rgba(0,229,160,.25);overflow:hidden}
+.pac-info{flex:1;min-width:0}
+.pac-name{font-size:18px;font-weight:800;letter-spacing:-.3px;color:var(--t1)}
+.pac-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pac-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:#F4F6FA;border-radius:100px;font-size:11px;font-weight:700;color:var(--t3)}
+.pac-chip.ok{background:#ECFDF5;color:#027A48}
+.pac-chip.ok::before{content:"";width:5px;height:5px;border-radius:50%;background:#00C47A}
+.pac-quote{padding:18px 22px 22px;font-size:14.5px;color:var(--t2);line-height:1.55;font-style:italic}
+
+/* Player áudio */
+.dk-player{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:18px 20px;margin-bottom:16px;position:relative;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03)}
+.dk-player.playing{box-shadow:0 1px 3px rgba(0,0,0,.06),0 6px 24px rgba(0,196,122,.10)}
+.dk-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.dk-rec{width:8px;height:8px;border-radius:50%;background:#00C47A;animation:dkPulse 1.5s ease-in-out infinite}
+@keyframes dkPulse{0%,100%{opacity:1}50%{opacity:.45}}
+.dk-meta{flex:1;min-width:0}
+.dk-title{font-size:13.5px;font-weight:700;color:#0D0F14;letter-spacing:-.15px}
+.dk-date{font-size:11.5px;color:#9CA3AF;margin-top:2px;font-weight:500}
+.dk-foot{display:flex;align-items:center;gap:14px;margin-top:12px}
+.dk-t{font-size:11px;color:#9CA3AF;font-weight:600;font-variant-numeric:tabular-nums;min-width:38px}
+.dk-t.right{text-align:right}
+.dk-ctrl-wrap{display:flex;align-items:center;justify-content:center;gap:14px;flex:1}
+.dk-play{width:42px;height:42px;border-radius:50%;background:#00C47A;display:flex;align-items:center;justify-content:center;border:none}
+.dk-play svg{width:14px;height:14px;fill:#fff;stroke:none}
+.dk-skip{width:30px;height:30px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;color:#9CA3AF}
+.dk-skip svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.dk-waveform{width:100%;height:44px;border-radius:8px;display:flex;align-items:center;gap:2px;padding:0 2px}
+.dk-wave-bar{flex:1;border-radius:1px;background:rgba(0,196,122,.4);transition:background .15s}
+.dk-wave-bar.done{background:#00C47A}
+.dk-speed{padding:4px 10px;border-radius:100px;background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.06);font-family:var(--font);font-size:11px;font-weight:700;color:#6B7280}
+
+/* Queixa principal */
+.q-card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:18px 20px 16px;margin:16px 0 12px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03)}
+.q-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.q-label{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#6B7280}
+.q-pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.04);color:#6B7280}
+.q-frase{font-size:20px;font-weight:700;color:#0D0F14;letter-spacing:-.3px;line-height:1.3;margin-bottom:10px}
+.q-quote{font-size:14px;color:#4B5563;line-height:1.6;font-style:italic;padding:12px 14px;background:rgba(0,0,0,.025);border-radius:10px;border-left:3px solid rgba(0,0,0,.10)}
+.q-quote::before{content:"\201C ";color:#9CA3AF;font-style:normal;font-weight:800}
+.q-quote::after{content:"\201D";color:#9CA3AF;font-style:normal;font-weight:800}
+
+/* Análise prosódica */
+.alert-prosodica{background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(245,158,11,.02));border:1px solid rgba(245,158,11,.25);border-radius:14px;padding:18px;margin-bottom:14px}
+.ap-h{font-size:11px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--warn);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.ap-b{font-size:12.5px;color:var(--t1);line-height:1.55}
+.ap-b strong{font-weight:800}
+.ap-feat{font-size:11px;color:var(--t3);margin-top:8px;font-family:monospace;line-height:1.6}
+
+/* Right column blocks */
+.right-col-card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.rc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.rc-title{font-size:13px;font-weight:800;color:#0D0F14;display:flex;align-items:center;gap:8px}
+.rc-title svg{width:14px;height:14px;stroke:#5A6070;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rc-count{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.05);color:#6B7280}
+
+.aler-chip{padding:6px 11px;background:#FEF2F2;border:1px solid #FECACA;border-radius:100px;font-size:11.5px;font-weight:700;color:#B91C1C;display:inline-flex;align-items:center;gap:6px;margin:0 4px 4px 0}
+.aler-chip::before{content:"";width:5px;height:5px;border-radius:50%;background:#EF4444}
+.med-chip{padding:6px 11px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:100px;font-size:11.5px;font-weight:700;color:#027A48;display:inline-flex;align-items:center;gap:6px;margin:0 4px 4px 0}
+.med-chip .dose{color:#065F46;font-weight:600;opacity:.75}
+
+.exam-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+.exam-row:last-child{border-bottom:0}
+.exam-ico{width:42px;height:50px;border-radius:6px;background:#F4F6FA;flex-shrink:0;overflow:hidden;border:1px solid rgba(0,0,0,.06)}
+.exam-ico img{width:100%;height:100%;object-fit:cover;object-position:top left;display:block}
+.exam-info{flex:1;min-width:0}
+.exam-name{font-size:12.5px;font-weight:700;color:var(--t1)}
+.exam-date{font-size:10.5px;color:var(--t3);margin-top:2px}
+.exam-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
+.exam-badge.alt{background:rgba(245,158,11,.10);color:#92400E}
+.exam-badge.ok{background:rgba(0,196,122,.10);color:#027A48}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <div class="logo">vita<span class="ib">id</span></div>
+      <div class="sb-tag">PRO</div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-g">Núcleo</div>
+      <div class="nl">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Hoje</span>
+      </div>
+      <div class="nl on">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>Pré-Consultas</span>
+        <span class="pip pip-g">3</span>
+      </div>
+      <div class="nl">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Pacientes</span>
+        <span class="pip pip-g">12</span>
+      </div>
+      <div class="sb-g">Workspace</div>
+      <div class="nl">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        <span>Templates</span>
+      </div>
+      <div class="nl">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Meu Perfil</span>
+      </div>
+    </nav>
+    <div class="sb-user">
+      <div class="sb-av">LB</div>
+      <div style="flex:1;min-width:0">
+        <div class="sb-name">Dr. Lucas Borelli</div>
+        <div class="sb-crm">CRM 09876543 · SP</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-title">Pré-consulta</div>
+      <div class="tb-sep"></div>
+      <div class="tb-sub">Resumo de 1 minuto</div>
+      <div class="tb-space"></div>
+      <div class="tb-time">Hoje · 14:38</div>
+    </div>
+
+    <div class="content">
+      <div class="resumo-wrap">
+
+        <div class="resumo-top">
+          <button class="back-btn">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+            Voltar
+          </button>
+          <div class="top-actions">
+            <button class="btn" style="background:rgba(21,101,192,.08);border-color:rgba(21,101,192,.18);color:#1565C0">
+              <svg viewBox="0 0 24 24" style="stroke:#1565C0"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar iClinic
+            </button>
+            <div class="timestamp">Respondida hoje · 13:52</div>
+          </div>
+        </div>
+
+        <div class="resumo-head">
+          <h1>Resumo do <em>paciente</em></h1>
+          <div class="sub">
+            <span>Beatriz Oliveira</span>
+            <span class="dot"></span>
+            <span>34 anos</span>
+            <span class="dot"></span>
+            <span>Respondida hoje · 13:52</span>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+
+          <!-- COLUNA ESQUERDA -->
+          <div class="left-col">
+
+            <!-- Patient card -->
+            <div class="pac-card">
+              <div class="pac-head">
+                <div class="pac-avatar">BO</div>
+                <div class="pac-info">
+                  <div class="pac-name">Beatriz Oliveira</div>
+                  <div class="pac-chips">
+                    <span class="pac-chip">34 anos</span>
+                    <span class="pac-chip">O+</span>
+                    <span class="pac-chip ok">Respondida</span>
+                  </div>
+                </div>
+              </div>
+              <div class="pac-quote">"Tô com dor de cabeça que vem e vai há uns 12 dias, lateja do lado direito e piora quando eu me abaixo. Já tomei dipirona e não passou."</div>
+            </div>
+
+            <!-- Player áudio -->
+            <div class="dk-player playing">
+              <div class="dk-head">
+                <div class="dk-rec"></div>
+                <div class="dk-meta">
+                  <div class="dk-title">Resumo em áudio</div>
+                  <div class="dk-date">Hoje · 13:52 · 1 min</div>
+                </div>
+                <button class="dk-speed">1x</button>
+              </div>
+              <div class="dk-waveform" id="wave"></div>
+              <div class="dk-foot">
+                <span class="dk-t">0:24</span>
+                <div class="dk-ctrl-wrap">
+                  <button class="dk-skip"><svg viewBox="0 0 24 24"><path d="M9 14l-4-4 4-4"/><path d="M5 10h9a6 6 0 010 12H11"/></svg></button>
+                  <button class="dk-play"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="4" height="18" rx="1"/><rect x="15" y="3" width="4" height="18" rx="1"/></svg></button>
+                  <button class="dk-skip"><svg viewBox="0 0 24 24"><path d="M15 14l4-4-4-4"/><path d="M19 10h-9a6 6 0 000 12h3"/></svg></button>
+                </div>
+                <span class="dk-t right">-0:36</span>
+              </div>
+            </div>
+
+            <!-- Queixa principal -->
+            <div class="q-card">
+              <div class="q-head">
+                <div class="q-label">Queixa principal</div>
+                <div class="q-pill">extraído do áudio</div>
+              </div>
+              <div class="q-frase">Cefaleia pulsátil unilateral há 12 dias, sem alívio com analgésico comum.</div>
+              <div class="q-quote">eu acordo já com essa dor, ela bate do lado direito e quando eu me abaixo pra pegar alguma coisa fica muito pior, igual se tivesse um peso ali</div>
+            </div>
+
+            <!-- Análise prosódica -->
+            <div class="alert-prosodica">
+              <div class="ap-h">
+                <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#F59E0B;fill:none;stroke-width:2"><path d="M12 9v2m0 4h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                Análise prosódica
+              </div>
+              <div class="ap-b">A paciente <strong>hesitou 3 vezes</strong> ao falar sobre os analgésicos que tomou e demonstrou <strong>tensão na voz</strong> ao mencionar histórico familiar. Considere investigar uso real de medicação.</div>
+              <div class="ap-feat">pausas: 3 · variação tonal: alta · ritmo: 78 wpm</div>
+            </div>
+
+          </div>
+
+          <!-- COLUNA DIREITA -->
+          <div class="right-col">
+
+            <!-- Alergias -->
+            <div class="right-col-card">
+              <div class="rc-head">
+                <div class="rc-title">
+                  <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Alergias
+                </div>
+                <div class="rc-count">2</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap">
+                <span class="aler-chip">Dipirona</span>
+                <span class="aler-chip">Penicilina</span>
+              </div>
+            </div>
+
+            <!-- Medicamentos -->
+            <div class="right-col-card">
+              <div class="rc-head">
+                <div class="rc-title">
+                  <svg viewBox="0 0 24 24"><path d="M10.5 20.5L3.5 13.5a4.95 4.95 0 010-7 4.95 4.95 0 017 0L17.5 13.5a4.95 4.95 0 010 7 4.95 4.95 0 01-7 0z"/><line x1="8" y1="8" x2="16" y2="16"/></svg>
+                  Medicamentos em uso
+                </div>
+                <div class="rc-count">3</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap">
+                <span class="med-chip">Losartana <span class="dose">50mg</span></span>
+                <span class="med-chip">Sertralina <span class="dose">25mg</span></span>
+                <span class="med-chip">Vitamina D <span class="dose">2.000UI</span></span>
+              </div>
+            </div>
+
+            <!-- Exames -->
+            <div class="right-col-card">
+              <div class="rc-head">
+                <div class="rc-title">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  Exames recentes
+                </div>
+                <div class="rc-count">4</div>
+              </div>
+              <div class="exam-row">
+                <div class="exam-ico"><img src="thumbs/hemograma.jpg" alt=""></div>
+                <div class="exam-info">
+                  <div class="exam-name">Hemograma completo</div>
+                  <div class="exam-date">há 18 dias · Fleury</div>
+                </div>
+                <span class="exam-badge ok">normal</span>
+              </div>
+              <div class="exam-row">
+                <div class="exam-ico"><img src="thumbs/tsh.jpg" alt=""></div>
+                <div class="exam-info">
+                  <div class="exam-name">TSH e T4 livre</div>
+                  <div class="exam-date">há 21 dias · Delboni</div>
+                </div>
+                <span class="exam-badge alt">TSH ↑</span>
+              </div>
+              <div class="exam-row">
+                <div class="exam-ico"><img src="thumbs/glicemia.jpg" alt=""></div>
+                <div class="exam-info">
+                  <div class="exam-name">Glicemia em jejum</div>
+                  <div class="exam-date">há 21 dias · Delboni</div>
+                </div>
+                <span class="exam-badge ok">normal</span>
+              </div>
+              <div class="exam-row">
+                <div class="exam-ico"><img src="thumbs/ecg.jpg" alt=""></div>
+                <div class="exam-info">
+                  <div class="exam-name">Eletrocardiograma</div>
+                  <div class="exam-date">há 2 meses · Sírio</div>
+                </div>
+                <span class="exam-badge ok">normal</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Gera barrinhas da waveform — visual estático mas convincente
+(function(){
+  const wave = document.getElementById('wave');
+  const N = 80;
+  const playedPct = 0.40;
+  for (let i = 0; i < N; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'dk-wave-bar';
+    // altura pseudo-aleatória mas determinística
+    const h = 8 + Math.abs(Math.sin(i * 0.45) * 28) + Math.abs(Math.cos(i * 0.21) * 8);
+    bar.style.height = Math.min(40, h) + 'px';
+    if (i / N < playedPct) bar.classList.add('done');
+    wave.appendChild(bar);
+  }
+})();
+</script>
+
+</body>
+</html>
