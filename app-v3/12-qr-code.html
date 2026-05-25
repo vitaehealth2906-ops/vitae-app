@@ -46,16 +46,58 @@
         }
 
         /* ── QR Card ── */
+        @property --qr-beam-angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
         .qr-card-wrap {
+            position:relative;
             width:100%; max-width:300px;
             background:#ffffff;
             border-radius:20px;
-            border:1px solid rgba(0,0,0,0.08);
-            padding:20px 20px 20px;
+            padding:20px;
             display:flex; flex-direction:column; align-items:center;
             box-shadow:0 4px 24px rgba(0,0,0,0.06);
             margin-bottom:24px;
+            isolation:isolate;
         }
+        /* Borda estatica suave (compativel com qualquer navegador) */
+        .qr-card-wrap::after {
+            content:'';
+            position:absolute; inset:0;
+            border-radius:inherit;
+            padding:1px;
+            background:linear-gradient(120deg, rgba(0,229,160,0.35), rgba(0,180,216,0.35));
+            -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                    mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite:xor;
+                    mask-composite:exclude;
+            pointer-events:none;
+            z-index:0;
+        }
+        /* Feixe luminoso animado orbitando a borda (estilo BorderBeam 21st.dev) */
+        .qr-card-wrap::before {
+            content:'';
+            position:absolute; inset:0;
+            border-radius:inherit;
+            padding:2px;
+            background:conic-gradient(from var(--qr-beam-angle), transparent 0deg, transparent 270deg, #00E5A0 320deg, #00B4D8 350deg, transparent 360deg);
+            -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                    mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite:xor;
+                    mask-composite:exclude;
+            animation:qrBorderBeam 6s linear infinite;
+            pointer-events:none;
+            z-index:1;
+        }
+        @keyframes qrBorderBeam {
+            to { --qr-beam-angle: 360deg; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .qr-card-wrap::before { animation:none; opacity:0; }
+        }
+        .qr-card-wrap > * { position:relative; z-index:2; }
 
         #qrcode { width:240px; height:240px; }
         #qrcode img, #qrcode canvas { border-radius:6px; display:block; width:240px !important; height:240px !important; }
@@ -107,23 +149,31 @@
         /* ── Secure note ── */
         .secure-note {
             width:100%;
-            padding:13px 16px;
+            padding:14px 16px;
             background:rgba(0,229,160,.05);
             border:1px solid rgba(0,229,160,.16);
             border-radius:14px;
-            display:flex; align-items:center; gap:12px;
+            display:flex; align-items:flex-start; gap:12px;
         }
         .secure-icon {
             width:34px; height:34px; flex-shrink:0; border-radius:10px;
             background:rgba(0,229,160,.12);
             display:flex; align-items:center; justify-content:center;
+            margin-top:1px;
         }
         .secure-icon svg { width:16px; height:16px; stroke:#00B4D8; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; fill:none; }
         .secure-text {
-            font-size:11.5px; color:rgba(13,15,20,.48);
-            line-height:1.55;
+            font-family:'Plus Jakarta Sans', sans-serif;
+            font-size:12.5px; font-weight:500;
+            color:#4B5563;
+            line-height:1.5;
+            letter-spacing:-0.1px;
         }
-        .secure-text strong { color:rgba(13,15,20,.72); font-weight:600; }
+        .secure-text strong {
+            color:#0D0F14; font-weight:700;
+            display:block; margin-bottom:2px;
+            font-size:13px;
+        }
 
         /* ── Botão "?" padronizado (igual Exames/Consultas) ── */
         .ph-help {
@@ -419,7 +469,8 @@
                 </svg>
             </div>
             <div class="secure-text">
-                <strong>Compartilhe com segurança.</strong> Este QR Code contém seus dados de saúde essenciais. Mostre apenas para profissionais de confiança.
+                <strong>Mande pelo WhatsApp sem medo.</strong>
+                Seu QR Code abre só pra quem você enviar. Mande pro médico, pra família ou pro cuidador — você decide quem vê seus dados de saúde.
             </div>
         </div>
     </div>
