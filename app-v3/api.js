@@ -803,7 +803,19 @@ const vitaeAPI = {
   },
 
   async uploadFoto(fotoUrl) {
-    return apiRequest('/perfil/foto', { method: 'POST', body: { fotoUrl } });
+    // AbortController: corta em 8s pra Promise nunca ficar pendente forever
+    // se backend travar. Diferente de uploads de receita (28s) porque foto
+    // de perfil eh pequena e ja vem comprimida do canvas (~50KB).
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    try {
+      return await apiRequest('/perfil/foto', { method: 'POST', body: { fotoUrl }, signal: controller.signal });
+    } catch (err) {
+      if (err.name === 'AbortError') throw new Error('Upload de foto demorou demais. Tente novamente.');
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   },
 
   // === Flags do app por conta (onboarding visto, exames já avisados) ===
@@ -1312,8 +1324,10 @@ const vitaeAPI = {
   },
 
   // Consentimento
+  // keepalive: true permite que o request continue mesmo apos o redirect
+  // (essencial pra LGPD — consentimentos sao fire-and-forget no fim do quiz)
   async registrarConsentimento(dados) {
-    return apiRequest('/consentimento', { method: 'POST', body: dados });
+    return apiRequest('/consentimento', { method: 'POST', body: dados, keepalive: true });
   },
 
   async listarConsentimentos() {

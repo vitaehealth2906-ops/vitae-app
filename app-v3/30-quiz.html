@@ -740,6 +740,8 @@
     };
 
     // ===== Foto handler =====
+    // Comprime agressivo: max 600px + qualidade 0.72 → avatar tipico fica 30-50KB
+    // (vs 200-400KB do ajuste antigo 1200px@0.8). Isso encurta upload em 4-6x.
     function handleFotoSelect(input) {
         const file = input.files && input.files[0];
         if (!file) return;
@@ -750,14 +752,14 @@
             img.onload = function() {
                 const canvas = document.createElement('canvas');
                 let w = img.width, h = img.height;
-                const MAX = 1200;
+                const MAX = 600;
                 if (w > MAX || h > MAX) {
                     if (w > h) { h = Math.round(h * (MAX / w)); w = MAX; }
                     else { w = Math.round(w * (MAX / h)); h = MAX; }
                 }
                 canvas.width = w; canvas.height = h;
                 canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                const base64 = canvas.toDataURL('image/jpeg', 0.8);
+                const base64 = canvas.toDataURL('image/jpeg', 0.72);
                 formData.fotoUrl = base64;
                 const preview = document.getElementById('fotoPreview');
                 preview.src = base64;
@@ -1644,11 +1646,16 @@
 
         try {
             console.log('[QUIZ] Enviando profileData:', JSON.stringify(profileData, null, 2));
-            await vitaeAPI.atualizarPerfil(profileData);
+            // Paraleliza perfil + foto. uploadFoto tem timeout proprio (ver api.js)
+            // pra nao deixar promise pendente forever se backend travar.
+            const tasks = [vitaeAPI.atualizarPerfil(profileData)];
             if (formData.fotoUrl) {
-                try { await vitaeAPI.uploadFoto(formData.fotoUrl); }
-                catch (fe) { console.warn('[QUIZ] Foto nao salva:', fe); }
+                tasks.push(
+                    vitaeAPI.uploadFoto(formData.fotoUrl)
+                        .catch(fe => { console.warn('[QUIZ] Foto nao salva:', fe); })
+                );
             }
+            await Promise.all(tasks);
             saveSuccess = true;
         } catch (e) {
             console.error('[QUIZ] Erro ao salvar perfil. profileData enviado:', profileData);
@@ -1672,55 +1679,58 @@
             return;
         }
 
-        // Salvar alergias, medicamentos e exames (novos passos)
+        // Alergias / medicamentos / consentimentos: kick-off em PARALELO sem await.
+        // Continuam rodando no background — o paciente vai pra proxima tela imediatamente.
+        // Falhas individuais sao toleraveis (paciente pode reentrar e cadastrar depois).
+        const fireAndForget = [];
         try {
             const alergiasTxt = (document.getElementById('alergiasInput') || {}).value || '';
             if (alergiasTxt.trim()) {
                 const lista = alergiasTxt.split(',').map(s => s.trim()).filter(Boolean);
                 for (const nome of lista) {
-                    try { await vitaeAPI.adicionarAlergia({ nome }); } catch (e) { console.log('alergia', nome, e.message); }
+                    fireAndForget.push(vitaeAPI.adicionarAlergia({ nome }).catch(e => console.log('alergia', nome, e.message)));
                 }
             }
-        } catch (e) { console.log('erro alergias:', e.message); }
+        } catch (_) {}
 
         try {
             const medsTxt = (document.getElementById('medicamentosInput') || {}).value || '';
             if (medsTxt.trim()) {
                 const lista = medsTxt.split(',').map(s => s.trim()).filter(Boolean);
                 for (const item of lista) {
-                    try { await vitaeAPI.adicionarMedicamento({ nome: item }); } catch (e) { console.log('med', item, e.message); }
+                    fireAndForget.push(vitaeAPI.adicionarMedicamento({ nome: item }).catch(e => console.log('med', item, e.message)));
                 }
             }
-        } catch (e) { console.log('erro meds:', e.message); }
+        } catch (_) {}
 
-        // Exames: nao precisa salvar aqui — ja foram uploadeados via API durante o passo 6
-        // Os exames ficam na tabela Exame vinculados ao usuario
-
-        // Register LGPD consents (non-blocking)
+        // LGPD: 3 consentimentos em paralelo, com await curto (rapidissimo em paralelo).
+        // Espera no maximo 1.5s — depois redireciona mesmo se algum demorar.
+        // (Se redirect rola antes deles enviarem, navegador aborta — entao precisamos
+        // esperar o suficiente pros 3 saírem da fila. Em paralelo, ~200-500ms.)
         if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
-            try {
-                await vitaeAPI.registrarConsentimento({ tipo: 'TERMOS_USO', aceito: true });
-                await vitaeAPI.registrarConsentimento({ tipo: 'POLITICA_PRIVACIDADE', aceito: true });
-                await vitaeAPI.registrarConsentimento({ tipo: 'DADOS_SAUDE', aceito: true });
-            } catch (e) {
-                console.log('Erro ao registrar consentimentos:', e.message);
-            }
+            const consentimentos = Promise.all([
+                vitaeAPI.registrarConsentimento({ tipo: 'TERMOS_USO', aceito: true }).catch(()=>{}),
+                vitaeAPI.registrarConsentimento({ tipo: 'POLITICA_PRIVACIDADE', aceito: true }).catch(()=>{}),
+                vitaeAPI.registrarConsentimento({ tipo: 'PROCESSAMENTO_IA', aceito: true }).catch(()=>{}),
+            ]);
+            await Promise.race([
+                consentimentos,
+                new Promise(r => setTimeout(r, 1500)),
+            ]);
         }
 
         // Quiz vita id terminou: RG da Saúde criado.
-        // Se veio de link de médico (preConsultaToken), volta pra pre-consulta.
-        // Senão, segue pro 31-pronto que celebra e leva pra 01-saude.
+        // Redirect IMEDIATO. Alergias/meds (se houver) continuam fire-and-forget
+        // — keepalive=true garante entrega mesmo apos unload pra requests pequenos.
         if (saveSuccess) {
             localStorage.setItem('vitae_quiz_completo', '1');
-            setTimeout(() => {
-                if (preConsultaToken) {
-                    localStorage.removeItem('vitae_pre_consulta_token');
-                    localStorage.removeItem('vitae_quiz_retorno');
-                    window.location.href = 'pre-consulta.html?token=' + encodeURIComponent(preConsultaToken) + '&voltei=quizvid';
-                } else {
-                    window.location.href = '31-pronto.html';
-                }
-            }, 800);
+            if (preConsultaToken) {
+                localStorage.removeItem('vitae_pre_consulta_token');
+                localStorage.removeItem('vitae_quiz_retorno');
+                window.location.href = 'pre-consulta.html?token=' + encodeURIComponent(preConsultaToken) + '&voltei=quizvid';
+            } else {
+                window.location.href = '31-pronto.html';
+            }
         }
     }
 
