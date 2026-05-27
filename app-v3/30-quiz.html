@@ -545,15 +545,39 @@
             <button class="btn-next" onclick="validateAndGoNext(3)">Próximo</button>
         </div>
 
-        <!-- STEP 3: Alergias -->
+        <!-- STEP 3: Alergias (formulário estruturado, alinhado com 08-add-alergia.html) -->
         <div class="step" id="step3">
             <div class="step-title">Suas <span>alergias</span></div>
-            <div class="step-subtitle">Importante para segurança em medicações e procedimentos</div>
+            <div class="step-subtitle">Adicione uma por vez. Pode salvar sua vida em emergência.</div>
 
             <div class="field">
-                <div class="field-label">Tem alguma alergia?</div>
-                <textarea class="field-input" id="alergiasInput" placeholder="Ex: dipirona, penicilina, amendoim, frutos do mar..." rows="3" style="resize:none;font-family:'Plus Jakarta Sans',sans-serif;"></textarea>
-                <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">Separe por vírgula. Deixe vazio se nenhuma.</div>
+                <div class="field-label">Alergias cadastradas</div>
+                <div id="alergiasListaQuiz" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+
+                <!-- Formulário inline -->
+                <div id="alergiaFormBox" style="background:rgba(0,0,0,0.025);border:1px dashed rgba(0,0,0,0.12);border-radius:12px;padding:14px;margin-bottom:8px">
+                    <div style="display:grid;grid-template-columns:1fr;gap:8px">
+                        <input type="text" class="field-input" id="alergiaNomeInput" placeholder="Substância (ex: Dipirona, Camarão...)" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px">
+                        <select class="field-input" id="alergiaTipoInput" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px;appearance:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239CA3AF%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>');background-repeat:no-repeat;background-position:right 12px center;padding-right:32px">
+                            <option value="MEDICAMENTO">Medicamento</option>
+                            <option value="ALIMENTO">Alimento</option>
+                            <option value="CONTATO">Contato (látex, metal...)</option>
+                            <option value="AMBIENTAL">Ambiental (pólen, ácaro...)</option>
+                            <option value="OUTRO">Outro</option>
+                        </select>
+                        <div style="display:flex;gap:6px" id="alergiaGravidadeGroup">
+                            <button type="button" data-gravidade="LEVE"     onclick="selecionarGravidadeQuiz(this)" style="flex:1;padding:10px 8px;border:1.5px solid rgba(0,0,0,0.07);background:#FFFFFF;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:#9CA3AF;cursor:pointer;transition:all 0.2s">Leve</button>
+                            <button type="button" data-gravidade="MODERADA" onclick="selecionarGravidadeQuiz(this)" style="flex:1;padding:10px 8px;border:1.5px solid rgba(0,0,0,0.07);background:#FFFFFF;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:#9CA3AF;cursor:pointer;transition:all 0.2s">Moderada</button>
+                            <button type="button" data-gravidade="GRAVE"    onclick="selecionarGravidadeQuiz(this)" style="flex:1;padding:10px 8px;border:1.5px solid rgba(0,0,0,0.07);background:#FFFFFF;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:#9CA3AF;cursor:pointer;transition:all 0.2s">Grave</button>
+                        </div>
+                    </div>
+                    <button type="button" onclick="adicionarAlergiaQuiz()" style="margin-top:10px;width:100%;padding:10px;border:none;border-radius:10px;background:rgba(0,229,160,0.12);color:#00B486;font-weight:700;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Adicionar à lista</button>
+                </div>
+
+                <!-- Campo hidden compatível com cruzamento alergia-medicamento (concatena nomes) -->
+                <textarea id="alergiasInput" style="display:none"></textarea>
+
+                <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Pode pular se não tem nenhuma alergia.</div>
             </div>
 
             <button class="btn-next" onclick="validateAndGoNext(4)">Próximo</button>
@@ -576,7 +600,19 @@
                             <input type="text" class="field-input" id="medDoseInput" placeholder="Dose (ex: 50mg)" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px">
                             <input type="time" class="field-input" id="medHoraInput" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px">
                         </div>
-                        <input type="text" class="field-input" id="medMotivoInput" placeholder="Motivo (opcional)" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px">
+                        <select class="field-input" id="medFreqInput" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px;appearance:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239CA3AF%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>');background-repeat:no-repeat;background-position:right 12px center;padding-right:32px">
+                            <option value="diário">Todo dia</option>
+                            <option value="2x ao dia">2x ao dia</option>
+                            <option value="3x ao dia">3x ao dia</option>
+                            <option value="semanal">Uma vez por semana</option>
+                            <option value="se necessário">Se necessário</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                        <input type="text" class="field-input" id="medMotivoInput" placeholder="Motivo (opcional, ex: pressão alta)" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px">
+                        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(0,0,0,0.65);cursor:pointer;padding:6px 0">
+                            <input type="checkbox" id="medContinuoInput" checked style="width:16px;height:16px;cursor:pointer">
+                            Uso contínuo (sem data de fim)
+                        </label>
                     </div>
                     <button type="button" onclick="adicionarMedQuiz()" style="margin-top:10px;width:100%;padding:10px;border:none;border-radius:10px;background:rgba(0,229,160,0.12);color:#00B486;font-weight:700;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Adicionar à lista</button>
                 </div>
@@ -1679,26 +1715,53 @@
             return;
         }
 
-        // Alergias / medicamentos / consentimentos: kick-off em PARALELO sem await.
-        // Continuam rodando no background — o paciente vai pra proxima tela imediatamente.
-        // Falhas individuais sao toleraveis (paciente pode reentrar e cadastrar depois).
+        // Alergias / medicamentos: usa as listas estruturadas (ALERGIAS_QUIZ, MEDS_QUIZ)
+        // pra enviar TUDO que o paciente preencheu — nome+tipo+gravidade pra alergias,
+        // nome+dose+freq+horario+motivo pra medicamentos. Garante que os componentes
+        // da aba Saude tenham os dados completos pra renderizar bonito.
+        // Fallback (compat com fluxo antigo via texto livre): se as listas vierem vazias
+        // mas o textarea hidden tiver algo, ainda manda só o nome.
         const fireAndForget = [];
         try {
-            const alergiasTxt = (document.getElementById('alergiasInput') || {}).value || '';
-            if (alergiasTxt.trim()) {
-                const lista = alergiasTxt.split(',').map(s => s.trim()).filter(Boolean);
-                for (const nome of lista) {
-                    fireAndForget.push(vitaeAPI.adicionarAlergia({ nome }).catch(e => console.log('alergia', nome, e.message)));
+            const usaLista = Array.isArray(window.ALERGIAS_QUIZ) && window.ALERGIAS_QUIZ.length > 0;
+            if (usaLista) {
+                for (const a of window.ALERGIAS_QUIZ) {
+                    const payload = { nome: a.nome };
+                    if (a.tipo) payload.tipo = a.tipo;
+                    if (a.gravidade) payload.gravidade = a.gravidade;
+                    fireAndForget.push(vitaeAPI.adicionarAlergia(payload).catch(e => console.log('alergia', a.nome, e.message)));
+                }
+            } else {
+                // Compat legado: textarea livre (caso o paciente vier de versao antiga em cache)
+                const alergiasTxt = (document.getElementById('alergiasInput') || {}).value || '';
+                if (alergiasTxt.trim()) {
+                    const lista = alergiasTxt.split(',').map(s => s.trim()).filter(Boolean);
+                    for (const nome of lista) {
+                        fireAndForget.push(vitaeAPI.adicionarAlergia({ nome, gravidade: 'MODERADA' }).catch(e => console.log('alergia', nome, e.message)));
+                    }
                 }
             }
         } catch (_) {}
 
         try {
-            const medsTxt = (document.getElementById('medicamentosInput') || {}).value || '';
-            if (medsTxt.trim()) {
-                const lista = medsTxt.split(',').map(s => s.trim()).filter(Boolean);
-                for (const item of lista) {
-                    fireAndForget.push(vitaeAPI.adicionarMedicamento({ nome: item }).catch(e => console.log('med', item, e.message)));
+            const usaLista = Array.isArray(window.MEDS_QUIZ) && window.MEDS_QUIZ.length > 0;
+            if (usaLista) {
+                for (const m of window.MEDS_QUIZ) {
+                    const payload = { nome: m.nome };
+                    if (m.dosagem) payload.dosagem = m.dosagem;
+                    if (m.horario) payload.horario = m.horario;
+                    if (m.motivo) payload.motivo = m.motivo;
+                    if (m.frequencia) payload.frequencia = m.frequencia;
+                    fireAndForget.push(vitaeAPI.adicionarMedicamento(payload).catch(e => console.log('med', m.nome, e.message)));
+                }
+            } else {
+                // Compat legado
+                const medsTxt = (document.getElementById('medicamentosInput') || {}).value || '';
+                if (medsTxt.trim()) {
+                    const lista = medsTxt.split(',').map(s => s.trim()).filter(Boolean);
+                    for (const item of lista) {
+                        fireAndForget.push(vitaeAPI.adicionarMedicamento({ nome: item }).catch(e => console.log('med', item, e.message)));
+                    }
                 }
             }
         } catch (_) {}
@@ -1918,7 +1981,9 @@
             nome: nome,
             dosagem: document.getElementById('medDoseInput').value.trim(),
             horario: document.getElementById('medHoraInput').value,
-            motivo: document.getElementById('medMotivoInput').value.trim()
+            motivo: document.getElementById('medMotivoInput').value.trim(),
+            frequencia: (document.getElementById('medFreqInput') || {}).value || 'diário',
+            continuo: (document.getElementById('medContinuoInput') || {}).checked !== false,
         };
         // Detecta cruzamento alergia-med usando o helper existente (se houver)
         try {
@@ -1936,6 +2001,8 @@
         document.getElementById('medDoseInput').value = '';
         document.getElementById('medHoraInput').value = '';
         document.getElementById('medMotivoInput').value = '';
+        if (document.getElementById('medFreqInput')) document.getElementById('medFreqInput').value = 'diário';
+        if (document.getElementById('medContinuoInput')) document.getElementById('medContinuoInput').checked = true;
         document.getElementById('medNomeInput').focus();
     };
 
@@ -1987,6 +2054,102 @@
             }
         }
     } catch(_) {}
+
+    // ===== Gerenciador de alergias estruturadas (mesmo padrao de MEDS_QUIZ) =====
+    // Coleta nome + tipo + gravidade igual a tela 08-add-alergia.html, pra evitar
+    // o caso onde alergia salva sem gravidade some dos componentes.
+    window.ALERGIAS_QUIZ = [];
+
+    window.selecionarGravidadeQuiz = function(btn) {
+        const group = btn.parentElement;
+        group.querySelectorAll('button').forEach(b => {
+            b.style.background = '#FFFFFF';
+            b.style.color = '#9CA3AF';
+            b.style.borderColor = 'rgba(0,0,0,0.07)';
+            b.dataset.selected = '';
+        });
+        btn.dataset.selected = '1';
+        // Cores por gravidade (matching com tela add-alergia)
+        const grav = btn.dataset.gravidade;
+        if (grav === 'GRAVE') {
+            btn.style.background = 'rgba(239,68,68,0.12)';
+            btn.style.color = '#EF4444';
+            btn.style.borderColor = 'rgba(239,68,68,0.3)';
+        } else if (grav === 'MODERADA') {
+            btn.style.background = 'rgba(245,158,11,0.12)';
+            btn.style.color = '#D97706';
+            btn.style.borderColor = 'rgba(245,158,11,0.3)';
+        } else {
+            btn.style.background = 'rgba(34,197,94,0.12)';
+            btn.style.color = '#059669';
+            btn.style.borderColor = 'rgba(34,197,94,0.3)';
+        }
+    };
+
+    window.adicionarAlergiaQuiz = function() {
+        const nome = document.getElementById('alergiaNomeInput').value.trim();
+        if (!nome || nome.length < 2) {
+            quizToast('Coloca o nome da substancia (minimo 2 letras)', 'warn');
+            return;
+        }
+        const tipo = document.getElementById('alergiaTipoInput').value;
+        const gravSel = document.querySelector('#alergiaGravidadeGroup button[data-selected="1"]');
+        const gravidade = gravSel ? gravSel.dataset.gravidade : 'MODERADA'; // default seguro
+        ALERGIAS_QUIZ.push({ nome, tipo, gravidade });
+        renderAlergiasListaQuiz();
+        document.getElementById('alergiaNomeInput').value = '';
+        document.getElementById('alergiaTipoInput').value = 'MEDICAMENTO';
+        // limpa selecao de gravidade visual
+        document.querySelectorAll('#alergiaGravidadeGroup button').forEach(b => {
+            b.style.background = '#FFFFFF';
+            b.style.color = '#9CA3AF';
+            b.style.borderColor = 'rgba(0,0,0,0.07)';
+            b.dataset.selected = '';
+        });
+        document.getElementById('alergiaNomeInput').focus();
+    };
+
+    window.removerAlergiaQuiz = function(idx) {
+        ALERGIAS_QUIZ.splice(idx, 1);
+        renderAlergiasListaQuiz();
+    };
+
+    function renderAlergiasListaQuiz() {
+        const lista = document.getElementById('alergiasListaQuiz');
+        if (!lista) return;
+        if (ALERGIAS_QUIZ.length === 0) {
+            lista.innerHTML = '';
+            document.getElementById('alergiasInput').value = '';
+            return;
+        }
+        const corGrav = {
+            GRAVE:    { bg: 'rgba(239,68,68,0.10)',  fg: '#EF4444', label: 'Grave' },
+            MODERADA: { bg: 'rgba(245,158,11,0.10)', fg: '#D97706', label: 'Moderada' },
+            LEVE:     { bg: 'rgba(34,197,94,0.10)',  fg: '#059669', label: 'Leve' },
+        };
+        lista.innerHTML = ALERGIAS_QUIZ.map((a, i) => {
+            const c = corGrav[a.gravidade] || corGrav.MODERADA;
+            const safeNome = (a.nome||'').replace(/</g,'&lt;');
+            return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:10px">
+                <div style="flex:1;min-width:0">
+                    <div style="font-weight:700;font-size:13px;color:#0D0F14">${safeNome}</div>
+                    <div style="display:flex;gap:6px;margin-top:4px">
+                        <span style="font-size:10px;padding:2px 8px;border-radius:6px;background:${c.bg};color:${c.fg};font-weight:600">${c.label}</span>
+                        <span style="font-size:10px;color:rgba(0,0,0,0.45);padding:2px 0">${a.tipo||'-'}</span>
+                    </div>
+                </div>
+                <button type="button" onclick="removerAlergiaQuiz(${i})" style="border:none;background:rgba(239,68,68,0.1);color:#EF4444;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700">×</button>
+            </div>`;
+        }).join('');
+        // Sincroniza textarea hidden (pra compat com detector de cruzamento alergia-med)
+        document.getElementById('alergiasInput').value = ALERGIAS_QUIZ.map(a => a.nome).join(', ');
+    }
+
+    // Restaura selecao default "Moderada" na primeira renderizacao
+    try {
+        const btnDef = document.querySelector('#alergiaGravidadeGroup button[data-gravidade="MODERADA"]');
+        if (btnDef) selecionarGravidadeQuiz(btnDef);
+    } catch(_){}
 
     // Detector online/offline
     window.addEventListener('offline', function() {

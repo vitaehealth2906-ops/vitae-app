@@ -751,10 +751,18 @@
   }
 
   // ===== Render: alergias =====
+  // Default tolerante: alergia sem gravidade aparece como "leve" (igual 06-alergias.html).
+  // Evita o caso onde alergia salva pelo quiz (sem gravidade) sumia da home.
+  function _nivelAlergia(g) {
+    const t = (g||'').toUpperCase();
+    if (['GRAVE','CRITICA','ALTA','ANAFILAXIA'].includes(t)) return 'critica';
+    if (['MODERADA','MEDIA'].includes(t)) return 'media';
+    return 'leve'; // tudo o resto, incluindo vazio
+  }
   function renderAlergias(alergias) {
-    const criticas = alergias.filter(a => ['GRAVE','CRITICA','ALTA'].includes((a.gravidade||'').toUpperCase()));
-    const moderadas = alergias.filter(a => ['MODERADA','MEDIA'].includes((a.gravidade||'').toUpperCase()));
-    const leves = alergias.filter(a => ['LEVE','BAIXA'].includes((a.gravidade||'').toUpperCase()));
+    const criticas  = alergias.filter(a => _nivelAlergia(a.gravidade) === 'critica');
+    const moderadas = alergias.filter(a => _nivelAlergia(a.gravidade) === 'media');
+    const leves     = alergias.filter(a => _nivelAlergia(a.gravidade) === 'leve');
 
     // Resumo titulo
     const resumo = document.getElementById('alergiasResumo');
@@ -811,25 +819,29 @@
         : ativos.slice(0,3).map(m => `${m.nome}${m.dosagem ? ' '+m.dosagem : ''}`).join(' · ');
     }
 
-    // Lista hoje (todos os ativos com horario, ordenados por hora)
-    const hoje = ativos.filter(m => m.horario || m.frequencia).map(m => ({
+    // Lista: TODOS os ativos (com ou sem horario). Os com horario ficam ordenados
+    // por hora; os sem horario aparecem no final como "Sem horario definido".
+    // Antes: filtrava por horario obrigatorio — medicamento do quiz (sem hora) sumia.
+    const comHorario = ativos.filter(m => m.horario || m.frequencia).map(m => ({
       ...m,
       _horario: extrairHorario(m)
     })).sort((a,b) => (a._horario||'99:99').localeCompare(b._horario||'99:99'));
+    const semHorario = ativos.filter(m => !m.horario && !m.frequencia);
+    const todos = [...comHorario, ...semHorario];
 
     const lista = document.getElementById('medsHomeList');
     const titulo = document.getElementById('medsTituloHoje');
 
-    if (hoje.length === 0) {
-      titulo.textContent = ativos.length === 0 ? 'Nenhum cadastrado' : `${ativos.length} ativo${ativos.length===1?'':'s'}`;
-      lista.innerHTML = `<div style="padding:16px;text-align:center;color:var(--ink3);font-size:12px">${ativos.length===0?'Nenhum medicamento cadastrado. <a href=\"03-medicamentos.html\" style=\"color:var(--green2);text-decoration:none;font-weight:700\">Adicionar</a>':'Sem horários definidos hoje.'}</div>`;
+    if (todos.length === 0) {
+      titulo.textContent = 'Nenhum cadastrado';
+      lista.innerHTML = `<div style="padding:16px;text-align:center;color:var(--ink3);font-size:12px">Nenhum medicamento cadastrado. <a href="03-medicamentos.html" style="color:var(--green2);text-decoration:none;font-weight:700">Adicionar</a></div>`;
       return;
     }
 
-    titulo.textContent = `${hoje.length} ${hoje.length===1?'medicamento':'medicamentos'}`;
+    titulo.textContent = `${ativos.length} ativo${ativos.length===1?'':'s'}`;
 
-    lista.innerHTML = hoje.slice(0,4).map(m => {
-      const linha2 = [m._horario, m.via || m.frequencia].filter(Boolean).join(' · ') || '—';
+    lista.innerHTML = todos.slice(0,4).map(m => {
+      const linha2 = [m._horario, m.via || m.frequencia].filter(Boolean).join(' · ') || 'Sem horário definido';
       return `<div class="med-row" onclick="window.location='04-med-detalhe.html?id=${m.id}'" style="cursor:pointer">
         <div class="med-icon">${ICON_PILL}</div>
         <div class="med-row-info">
