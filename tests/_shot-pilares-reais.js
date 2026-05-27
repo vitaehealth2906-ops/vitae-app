@@ -177,39 +177,43 @@ FAKE_PERFIL.paciente.exames = [
     // PILAR 3 — usa o MESMO contexto: dispara modal export e captura
     // ════════════════════════════════════════════════════════════════
     console.log('\n=== PILAR 3: desktop com modal Exportar ===');
-    // Diagnóstico ANTES de tentar abrir
+
+    // FIX: força pcState.currentPC + pcState.currentPacienteData antes de chamar pcOpenIclModal
+    // (race condition — openSummary populou globals mas pcState pode ter sido resetado)
+    await page.evaluate(({ pc, perfil }) => {
+      if (typeof pcState !== 'undefined') {
+        pcState.currentPC = pc;
+        pcState.currentPacienteData = perfil.paciente;
+      }
+      // Garante que PCS global também tem o PC
+      if (typeof PCS !== 'undefined') PCS[pc.id] = pc;
+    }, { pc: FAKE_PC, perfil: FAKE_PERFIL });
+    await page.waitForTimeout(300);
+
     const preState = await page.evaluate(() => ({
       hasFn: typeof window.pcOpenIclModal === 'function',
-      hasPcState: typeof pcState !== 'undefined',
-      pcStateCurrentPC: typeof pcState !== 'undefined' && pcState.currentPC ? { id: pcState.currentPC.id, nome: pcState.currentPC.pacienteNome } : null,
-      pcStateCurrentPacienteData: typeof pcState !== 'undefined' && pcState.currentPacienteData ? { nome: pcState.currentPacienteData.nome, alergias: (pcState.currentPacienteData.alergias||[]).length } : null,
+      pcStateCurrentPC: typeof pcState !== 'undefined' && pcState.currentPC ? pcState.currentPC.pacienteNome : null,
+      pcStateCurrentPacienteData: typeof pcState !== 'undefined' && pcState.currentPacienteData ? (pcState.currentPacienteData.alergias||[]).length + ' alergias' : null,
     }));
     console.log('preState:', JSON.stringify(preState));
 
-    // Chama com a função inline pra garantir contexto certo
     await page.evaluate(() => {
       try { window.pcOpenIclModal && window.pcOpenIclModal(); } catch (e) { console.error('erro:', e.message); }
     });
     await page.waitForTimeout(1500);
 
+    // ▼ Modal CORRETO: #pc-modalIcl (.pc-icl-overlay), criado dinamicamente em document.body
     const modalInfo = await page.evaluate(() => {
-      const bg = document.querySelector('#modalBg');
-      const card = document.querySelector('#modalCard');
+      const m = document.querySelector('#pc-modalIcl');
       return {
-        bgClasses: bg ? bg.className : 'NULL',
-        bgDisplay: bg ? window.getComputedStyle(bg).display : 'NULL',
-        cardChildren: card ? card.children.length : 0,
-        cardHTML: card ? card.outerHTML.slice(0, 400) : 'NULL',
+        exists: !!m,
+        classes: m ? m.className : 'NULL',
+        hasShow: m ? m.classList.contains('show') : false,
+        innerHTMLLength: m ? m.innerHTML.length : 0,
+        noteText: document.getElementById('pc-iclNote') ? document.getElementById('pc-iclNote').textContent.slice(0, 120) : 'NULL',
       };
     });
     console.log('modal info:', JSON.stringify(modalInfo));
-
-    // Se modal ainda não tá show, força via classe
-    await page.evaluate(() => {
-      const bg = document.querySelector('#modalBg');
-      if (bg && !bg.classList.contains('show')) bg.classList.add('show');
-    });
-    await page.waitForTimeout(500);
 
     // Aplica swap de copy "iClinic" → "prontuário"
     await page.evaluate(() => {
@@ -219,13 +223,13 @@ FAKE_PERFIL.paciente.exames = [
         }
       });
     });
-    // PILAR 3: captura SÓ o modal (centralizado, sem o fundo desfocado)
+    // PILAR 3: captura SÓ o body do modal pc-icl-overlay (centralizado)
     const out3 = path.join(OUT_DIR, 'pilar-3-export.png');
     const modalBox = await page.evaluate(() => {
-      const m = document.querySelector('#modalCard') || document.querySelector('.modal-bg .modal');
+      const m = document.querySelector('#pc-modalIcl .pc-icl-body') || document.querySelector('#pc-modalIcl');
       if (!m) return null;
       const r = m.getBoundingClientRect();
-      if (r.width < 100 || r.height < 100) return null; // modal não renderizou
+      if (r.width < 100 || r.height < 100) return null;
       return {
         x: Math.max(0, Math.floor(r.left - 24)),
         y: Math.max(0, Math.floor(r.top - 24)),

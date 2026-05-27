@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>vita id — Motion Flow: Médico cria → Paciente recebe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   MOTION FLOW — 12 segundos
+   Cena 1 (0.0–2.0s)   Médico abre app, vê lista de pré-consultas
+   Cena 2 (2.0–3.0s)   Cursor clica "+ Nova" — lista DESLIZA pra fora
+   Cena 3 (3.0–6.5s)   Form "Nova Pré-Consulta" desliza pra dentro — preenche
+   Cena 4 (6.5–7.5s)   Cursor clica "Enviar" — tela médico ZOOM OUT
+   Cena 5 (6.8–8.0s)   Pulso verde dispara do botão, voa em arco
+   Cena 6 (7.5–9.5s)   iPhone do paciente SOBE — notificação WhatsApp chega
+   Cena 7 (9.5–11.5s)  Dedo toca — abre conversa, mostra cartão da pré-consulta
+   Cena 8 (11.5–12.0s) Hold final
+   ═══════════════════════════════════════════════════════════════ */
+
+:root{
+  --ink-1:#0D0F14; --ink-2:#3F4655; --ink-3:#6B7280; --ink-4:#9CA3AF; --ink-5:#C4C9D4;
+  --hairline:rgba(13,15,20,0.06);
+  --hairline-strong:rgba(13,15,20,0.10);
+  --bg-soft:#F7F8FB;
+  --green:#00C47A;
+  --green-bright:#00E5A0;
+  --cyan:#00B4D8;
+  --green-light:#E5F8F1;
+  --green-ink:#0F8A75;
+  --gradient:linear-gradient(120deg, #00E5A0, #00B4D8);
+  --wa-green:#25D366;
+  --wa-dark-green:#008069;
+  --wa-header-bg:#008069;
+  --wa-bg:#EFE7DE;
+  --wa-msg-in:#FFFFFF;
+  --wa-msg-out:#D9FDD3;
+  --wa-text:#111B21;
+  --wa-text-meta:#667781;
+  --wa-link:#039BE5;
+  --wa-input-bg:#F0F2F5;
+  --ease-cinema:cubic-bezier(0.83, 0, 0.17, 1);
+  --ease-out:cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce:cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  background:var(--bg-soft);
+  color:var(--ink-1);
+  width:1280px; height:720px;
+  overflow:hidden;
+}
+
+.bg{
+  position:fixed; inset:0; z-index:-1;
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 30%, rgba(0,196,122,.05), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 70%, rgba(0,180,216,.04), transparent 60%),
+    var(--bg-soft);
+}
+
+.stage{
+  position:absolute;
+  inset:0;
+  perspective:1800px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TELA DO MÉDICO (desktop app vita id)
+   Visível 0–7.5s
+   Faz zoom out + fade aos 6.5s
+   ═══════════════════════════════════════════════════════════════ */
+.medic-screen{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%, -50%);
+  width:900px;
+  height:540px;
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:14px;
+  box-shadow:
+    0 1px 2px rgba(13,15,20,.04),
+    0 32px 64px -20px rgba(13,15,20,.22);
+  overflow:hidden;
+  display:flex;
+  transform-origin:25% 92%;
+  /* LOOP SEAMLESS: já começa visível (frame 0 = frame final) */
+  opacity:1;
+  animation:medicExit .55s var(--ease-cinema) forwards 7.0s,
+            medicReturn .25s ease-out forwards 11.7s;
+}
+/* EXIT cinema: zoom in pra DENTRO do botão "Gerar link" + blur + fade */
+@keyframes medicExit{
+  0%   { opacity:1; transform:translate(-50%, -50%) scale(1); filter:blur(0) }
+  60%  { opacity:.6; transform:translate(-50%, -50%) scale(1.35); filter:blur(4px) }
+  100% { opacity:0; transform:translate(-50%, -50%) scale(1.7); filter:blur(12px) }
+}
+/* RETURN: reseta tudo + fade in pra LOOPAR no frame inicial */
+@keyframes medicReturn{
+  0%   { opacity:0; transform:translate(-50%, -50%) scale(1); filter:blur(0) }
+  100% { opacity:1; transform:translate(-50%, -50%) scale(1); filter:blur(0) }
+}
+
+/* Flash verde REMOVIDO conforme pedido — transição mantém apenas zoom+blur+fade */
+
+/* Sidebar */
+.medic-side{
+  width:200px;
+  background:#0D0F14;
+  color:#fff;
+  padding:18px 14px;
+  display:flex;
+  flex-direction:column;
+  flex-shrink:0;
+}
+.medic-side .logo{
+  display:flex; align-items:baseline; gap:2px;
+  font-size:18px; font-weight:900; letter-spacing:-.04em;
+  margin-bottom:24px;
+}
+.medic-side .logo .ib{
+  background:var(--gradient);
+  color:#0D0F14;
+  padding:1px 6px;
+  border-radius:5px;
+  margin-left:2px;
+  font-weight:900;
+}
+.medic-side .group{
+  font-size:9.5px; font-weight:700; letter-spacing:.16em;
+  text-transform:uppercase; color:rgba(255,255,255,.28);
+  padding:0 8px 8px; margin-top:8px;
+}
+.medic-side .nl{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px; border-radius:8px;
+  font-size:12.5px; font-weight:600;
+  color:rgba(255,255,255,.6);
+  margin-bottom:2px;
+}
+.medic-side .nl.on{
+  background:rgba(0,229,160,.10);
+  border:1px solid rgba(0,229,160,.22);
+  color:#fff;
+}
+.medic-side .nl svg{
+  width:14px; height:14px; flex-shrink:0;
+  stroke:currentColor; fill:none; stroke-width:2;
+}
+.medic-side .nl.on svg{ stroke:var(--green-bright) }
+.medic-side .nl .pip{
+  margin-left:auto;
+  font-size:10px; font-weight:700;
+  padding:1px 7px; border-radius:100px;
+  background:rgba(0,196,122,.16); color:var(--green-bright);
+}
+.medic-side .user{
+  margin-top:auto;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.02);
+  display:flex; align-items:center; gap:9px;
+}
+.medic-side .user .av{
+  width:28px; height:28px; border-radius:50%;
+  background:var(--gradient); color:#0D0F14;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:800;
+}
+.medic-side .user .nm{ font-size:11.5px; font-weight:700 }
+.medic-side .user .crm{ font-size:9.5px; color:rgba(255,255,255,.35); margin-top:1px }
+
+/* Main */
+.medic-main{
+  flex:1;
+  background:#F7F8FA;
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+.medic-top{
+  height:48px;
+  background:#fff;
+  border-bottom:1px solid var(--hairline);
+  display:flex; align-items:center;
+  padding:0 22px;
+  font-size:13px; font-weight:600; color:var(--ink-1);
+}
+.medic-top .sep{
+  width:1px; height:14px; background:var(--hairline-strong);
+  margin:0 12px;
+}
+.medic-top .sub{ font-size:11.5px; color:var(--ink-3); font-weight:500 }
+.medic-top .time{ margin-left:auto; font-size:11px; color:var(--ink-3); font-variant-numeric:tabular-nums }
+
+.medic-content{
+  flex:1;
+  position:relative;
+  overflow:hidden;
+}
+
+/* ─── VIEW 1: Lista de pré-consultas (0-2.5s) ─── */
+.view-lista{
+  position:absolute;
+  inset:0;
+  padding:26px 28px;
+  background:#F7F8FA;
+  display:flex; flex-direction:column;
+  animation:listaExit .5s var(--ease-cinema) forwards 2s,
+            listaReset 0s linear forwards 11.55s;
+}
+@keyframes listaExit{
+  0%   { opacity:1; transform:translateX(0) }
+  100% { opacity:0; transform:translateX(-100%) }
+}
+/* RESET pro loop: volta pro estado inicial enquanto o medic-screen tá invisível */
+@keyframes listaReset{
+  to { opacity:1; transform:translateX(0) }
+}
+.view-lista h1{
+  font-size:22px; font-weight:800; letter-spacing:-.4px;
+  color:var(--ink-1); margin-bottom:4px;
+}
+.view-lista h1 em{font-style:italic; color:var(--green-ink); font-weight:800}
+.view-lista .lista-sub{
+  font-size:12.5px; color:var(--ink-3); margin-bottom:16px;
+}
+.view-lista .lista-actions{
+  display:flex; gap:8px; margin-bottom:16px; align-items:center;
+}
+.view-lista .lista-actions .search{
+  flex:1; max-width:300px;
+  padding:7px 12px;
+  background:#fff;
+  border:1px solid var(--hairline-strong);
+  border-radius:8px;
+  font-size:12px; color:var(--ink-4);
+  display:flex; align-items:center; gap:7px;
+}
+.view-lista .lista-actions .search svg{ width:12px; height:12px; stroke:var(--ink-4); fill:none; stroke-width:2 }
+.view-lista .lista-actions .btn-novo{
+  padding:8px 14px;
+  background:var(--gradient); color:#fff;
+  border-radius:8px;
+  font-size:12.5px; font-weight:700;
+  display:inline-flex; align-items:center; gap:5px;
+  box-shadow:0 6px 16px -6px rgba(0,229,160,.4);
+  position:relative;
+}
+.view-lista .lista-actions .btn-novo svg{ width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2.4 }
+.view-lista .filters{ display:flex; gap:6px; margin-bottom:12px }
+.view-lista .filter{
+  padding:4px 10px;
+  border-radius:100px; font-size:11px; font-weight:700;
+  background:#fff; border:1px solid var(--hairline-strong);
+  color:var(--ink-3);
+}
+.view-lista .filter.on{
+  background:var(--green-light); border-color:rgba(0,196,122,.3); color:var(--green-ink);
+}
+.view-lista .pc-row{
+  display:grid; grid-template-columns:32px 1fr 110px 110px 100px;
+  gap:12px;
+  padding:11px 16px;
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:10px;
+  margin-bottom:6px;
+  align-items:center;
+  font-size:12px;
+}
+.view-lista .pc-av{
+  width:28px; height:28px; border-radius:50%;
+  background:var(--gradient); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10.5px; font-weight:800;
+}
+.view-lista .pc-name{ font-weight:700; color:var(--ink-1) }
+.view-lista .pc-meta{ font-size:10.5px; color:var(--ink-4) }
+.view-lista .pc-status{
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:10.5px; font-weight:700;
+  padding:3px 9px; border-radius:100px;
+}
+.view-lista .pc-status .dot{ width:5px; height:5px; border-radius:50%; background:currentColor }
+.view-lista .pc-status.respondida{ background:rgba(0,196,122,.10); color:#027A48 }
+.view-lista .pc-status.aguardando{ background:rgba(245,158,11,.10); color:#92400E }
+.view-lista .pc-status.enviada{ background:rgba(59,130,246,.10); color:#1E40AF }
+.view-lista .pc-date{ font-size:11px; color:var(--ink-3); font-variant-numeric:tabular-nums }
+
+/* ─── VIEW 2: Form Nova Pré-Consulta REAL (3s-8s) ─── */
+.view-form{
+  position:absolute;
+  inset:0;
+  padding:22px 26px;
+  background:#F7F8FA;
+  display:flex; flex-direction:column;
+  overflow-y:hidden;
+  opacity:0;
+  transform:translateX(100%);
+  animation:formEnter .55s var(--ease-cinema) forwards 2.5s,
+            formReset 0s linear forwards 11.55s;
+}
+@keyframes formEnter{
+  0%   { opacity:0; transform:translateX(100%) }
+  100% { opacity:1; transform:translateX(0) }
+}
+/* RESET pro loop: form volta pra fora da tela */
+@keyframes formReset{
+  to { opacity:0; transform:translateX(100%) }
+}
+.view-form .back-btn{
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:12px; font-weight:600; color:var(--ink-3);
+  background:none; border:none;
+  padding:4px 8px; border-radius:6px;
+  margin-bottom:8px;
+}
+.view-form .back-btn svg{ width:12px; height:12px; stroke:currentColor; fill:none; stroke-width:2 }
+.view-form h1{
+  font-size:22px; font-weight:800; letter-spacing:-.4px; color:var(--ink-1);
+  margin-bottom:3px;
+}
+.view-form h1 em{ font-style:italic; color:var(--green-ink); font-weight:800 }
+.view-form .form-sub{ font-size:12px; color:var(--ink-3); margin-bottom:14px }
+
+/* 2 colunas */
+.form-grid{
+  display:grid;
+  grid-template-columns:1.5fr 1fr;
+  gap:18px;
+  align-items:start;
+}
+
+/* CARDS DO FORM */
+.form-card{
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:12px;
+  padding:18px;
+  margin-bottom:12px;
+  box-shadow:0 1px 3px rgba(13,15,20,.04);
+}
+.card-head{
+  display:flex; align-items:center; gap:9px;
+  margin-bottom:14px;
+  padding-bottom:11px;
+  border-bottom:1px solid var(--hairline);
+}
+.card-head svg{ width:16px; height:16px; stroke:var(--green-ink); fill:none; stroke-width:2 }
+.card-head h2{ font-size:13px; font-weight:800; color:var(--ink-1) }
+
+.field-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px }
+.field-single{ margin-bottom:12px }
+.field-single:last-child, .field-row:last-child{ margin-bottom:0 }
+
+.field-block label{
+  display:block;
+  font-size:10px; font-weight:700;
+  color:var(--ink-3); margin-bottom:5px;
+  letter-spacing:.02em;
+}
+.field-block label .opt{ color:var(--ink-4); font-weight:500 }
+.field-input{
+  width:100%;
+  padding:9px 11px;
+  background:#fff;
+  border:1.5px solid var(--hairline-strong);
+  border-radius:8px;
+  font-family:inherit;
+  font-size:12px;
+  color:var(--ink-4);
+  outline:none;
+  min-height:36px;
+  display:flex; align-items:center;
+  position:relative;
+  transition:border-color .25s, background .25s, color .25s;
+}
+.field-input.filled{
+  border-color:rgba(0,196,122,.45);
+  background:var(--green-light);
+  color:var(--ink-1);
+  font-weight:600;
+}
+.field-input.textarea{ min-height:56px; align-items:flex-start; padding:9px 11px; line-height:1.4 }
+
+/* Typing reveal — usa clip-path pra preservar layout */
+.typed-text{
+  display:inline-block;
+  clip-path:inset(0 100% 0 0);
+}
+.t-nome { animation:rev .9s steps(18, end) forwards 3.6s }
+.t-whats { animation:rev .6s steps(14, end) forwards 4.6s }
+.t-obs  { animation:rev 1.2s steps(40, end) forwards 6.0s }
+@keyframes rev{ to { clip-path:inset(0 0% 0 0) } }
+
+/* Field fill states — sequenciados */
+.f-nome   { animation:fill 0s 3.55s forwards }
+.f-whats  { animation:fill 0s 4.55s forwards }
+.f-data   { animation:fill 0s 5.05s forwards }
+.f-hora   { animation:fill 0s 5.40s forwards }
+.f-tpl    { animation:fill 0s 5.65s forwards }
+.f-obs    { animation:fill 0s 5.95s forwards }
+@keyframes fill{
+  to {
+    border-color:rgba(0,196,122,.45);
+    background:var(--green-light);
+    color:var(--ink-1);
+    font-weight:600;
+  }
+}
+
+/* Highlight pulse no campo quando o cursor entra nele */
+.field-input.active::before{
+  content:''; position:absolute; inset:-3px;
+  border:2px solid rgba(0,229,160,.6);
+  border-radius:11px;
+  opacity:0;
+  pointer-events:none;
+}
+.h-nome::before  { animation:hi 0.4s ease-out forwards 3.4s }
+.h-whats::before { animation:hi 0.4s ease-out forwards 4.4s }
+.h-data::before  { animation:hi 0.4s ease-out forwards 4.9s }
+.h-hora::before  { animation:hi 0.4s ease-out forwards 5.25s }
+.h-tpl::before   { animation:hi 0.4s ease-out forwards 5.50s }
+.h-obs::before   { animation:hi 0.4s ease-out forwards 5.80s }
+@keyframes hi{
+  0%   { opacity:0; transform:scale(.97) }
+  50%  { opacity:1; transform:scale(1.01) }
+  100% { opacity:0; transform:scale(1) }
+}
+
+/* Dropdown arrow */
+.field-arrow{ margin-left:auto }
+.field-arrow svg{ width:12px; height:12px; stroke:var(--ink-4); fill:none; stroke-width:2 }
+
+/* Card "COMO FUNCIONA" — sidebar direita */
+.como-card{
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:12px;
+  padding:18px;
+  box-shadow:0 1px 3px rgba(13,15,20,.04);
+}
+.como-card .como-h{
+  font-size:10px; font-weight:800;
+  letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:14px;
+}
+.como-card .step{
+  display:flex; gap:10px;
+  margin-bottom:13px;
+}
+.como-card .step:last-child{ margin-bottom:0 }
+.como-card .step-num{
+  width:22px; height:22px; border-radius:50%;
+  background:rgba(0,229,160,.10);
+  border:1px solid rgba(0,229,160,.22);
+  color:var(--green-ink);
+  font-size:10.5px; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.como-card .step-txt{
+  font-size:11.5px; line-height:1.5; color:var(--ink-1);
+}
+.como-card .step-txt strong{ font-weight:700 }
+
+/* Botão "Gerar link" — começa desabilitado, vira ativo aos 6.3s */
+.gen-btn{
+  margin-top:4px;
+  width:100%;
+  padding:13px;
+  background:#E8EBF0;
+  color:#9CA3AF;
+  border:none; border-radius:12px;
+  font-family:inherit;
+  font-size:13px; font-weight:800;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  box-shadow:none;
+  cursor:not-allowed;
+  position:relative;
+  transition:background .4s, color .4s, box-shadow .4s;
+  animation:btnActivate 0.5s var(--ease-cinema) forwards 6.3s;
+}
+@keyframes btnActivate{
+  to {
+    background:var(--gradient);
+    color:#fff;
+    box-shadow:0 10px 24px -10px rgba(0,229,160,.5);
+    cursor:pointer;
+  }
+}
+.gen-btn svg{ width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2.2 }
+
+/* Pulse no botão no click */
+.gen-btn-pulse{
+  position:absolute;
+  inset:0;
+  border-radius:12px;
+  border:2px solid var(--green);
+  opacity:0;
+  pointer-events:none;
+  animation:genPulse .9s ease-out 7.0s;
+}
+@keyframes genPulse{
+  0%   { opacity:0; transform:scale(.96) }
+  20%  { opacity:1; transform:scale(1) }
+  100% { opacity:0; transform:scale(1.08) }
+}
+
+/* ─── CURSOR DO MÉDICO ─── */
+.medic-cursor{
+  position:absolute;
+  width:22px; height:22px;
+  z-index:50;
+  pointer-events:none;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.30));
+  opacity:0;
+  top:0; left:0;
+  animation:medicCursorPath 7.2s var(--ease-cinema) forwards;
+}
+.medic-cursor svg{ width:100%; height:100%; fill:#0D0F14; stroke:#fff; stroke-width:1.5 }
+@keyframes medicCursorPath{
+  /* CENA 1: entra + clica em "+ Nova Pré-Consulta" */
+  0%    { top:90%; left:95%; opacity:0 }
+  7%    { top:55%; left:50%; opacity:1 }     /* 0.5s — visível */
+  22%   { top:34%; left:58%; opacity:1 }     /* 1.6s — perto botão */
+  28%   { top:34%; left:62%; opacity:1 }     /* 2.0s — em cima do botão */
+  32%   { top:34%; left:62%; opacity:1 }     /* 2.3s — pós click */
+  /* CENA 2: form aberto — cursor desce pra Nome, depois passa pelos campos */
+  44%   { top:39%; left:37%; opacity:1 }     /* 3.2s — pousa Nome */
+  53%   { top:39%; left:52%; opacity:1 }     /* 3.8s — WhatsApp */
+  62%   { top:58%; left:37%; opacity:1 }     /* 4.5s — Data */
+  68%   { top:58%; left:52%; opacity:1 }     /* 4.9s — Hora */
+  72%   { top:65%; left:42%; opacity:1 }     /* 5.2s — Template */
+  80%   { top:76%; left:42%; opacity:1 }     /* 5.8s — Observações */
+  92%   { top:92%; left:35%; opacity:1 }     /* 6.6s — botão Gerar link */
+  97%   { top:92%; left:35%; opacity:1 }     /* 7.0s — click */
+  100%  { top:120%; left:35%; opacity:0 }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   IPHONE DO PACIENTE
+   Visível 7.5–12s
+   ═══════════════════════════════════════════════════════════════ */
+.iphone{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%, -50%) scale(.35);
+  width:280px; height:580px;
+  background:#0D0F14;
+  border-radius:46px;
+  padding:6px;
+  border:1px solid #1A1E26;
+  box-shadow:
+    0 0 0 1.5px rgba(0,229,160,.10),
+    0 32px 60px -20px rgba(13,15,20,.45);
+  overflow:hidden;
+  opacity:0;
+  /* ENTRA escalando do CENTRO (mesmo ponto onde a tela do médico fez zoom-in)
+     — efeito "shared element" tipo Apple */
+  animation:phoneEnter .55s var(--ease-cinema) forwards 7.25s,
+            phoneExit .2s ease-in forwards 11.5s;
+}
+@keyframes phoneEnter{
+  0%   { opacity:0; transform:translate(-50%, -50%) scale(.35); filter:blur(8px) }
+  60%  { opacity:1; transform:translate(-50%, -50%) scale(1.04); filter:blur(0) }
+  100% { opacity:1; transform:translate(-50%, -50%) scale(1); filter:blur(0) }
+}
+/* EXIT do iPhone pra fechar o loop: fade out rápido (0.2s) */
+@keyframes phoneExit{
+  0%   { opacity:1; transform:translate(-50%, -50%) scale(1); filter:blur(0) }
+  100% { opacity:0; transform:translate(-50%, -50%) scale(.96); filter:blur(4px) }
+}
+
+.iphone .notch{
+  position:absolute;
+  top:10px; left:50%;
+  transform:translateX(-50%);
+  width:90px; height:24px;
+  background:#0D0F14;
+  border-radius:0 0 16px 16px;
+  z-index:30;
+}
+
+.iphone-screen{
+  width:100%; height:100%;
+  border-radius:40px;
+  overflow:hidden;
+  background:linear-gradient(170deg, #1B2735 0%, #090A0F 100%);
+  position:relative;
+}
+
+/* ─── VIEW: Conversa WhatsApp REAL (entra direto, sem lock screen) ─── */
+.wa-view{
+  position:absolute;
+  inset:0;
+  background:#ECE5DD;
+  display:flex; flex-direction:column;
+}
+/* Status bar do iPhone (hora + bateria) */
+.wa-view .ios-statusbar{
+  height:30px;
+  background:var(--wa-header-bg);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 24px 0;
+  font-size:12px; font-weight:600; color:#fff;
+  flex-shrink:0;
+}
+.wa-view .ios-statusbar .ios-icons{ display:flex; gap:5px; align-items:center }
+.wa-view .ios-statusbar svg{ width:14px; height:14px; fill:#fff }
+
+.wa-view .wa-header{
+  height:56px;
+  background:var(--wa-header-bg);
+  padding:0 8px;
+  display:flex; align-items:center; gap:6px;
+  flex-shrink:0;
+}
+.wa-view .wa-header svg.back{ width:12px; height:12px; stroke:#fff; fill:none; stroke-width:2.4; flex-shrink:0 }
+.wa-view .wa-header .av{
+  width:30px; height:30px; border-radius:50%;
+  background:#54656F;
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11.5px; font-weight:600;
+  flex-shrink:0;
+}
+.wa-view .wa-header-info{ flex:1; min-width:0; line-height:1.15; overflow:hidden }
+.wa-view .wa-header-name{ font-size:12.5px; font-weight:500; color:#fff; letter-spacing:.1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.wa-view .wa-header-status{ font-size:10px; color:rgba(255,255,255,.85); font-weight:400 }
+.wa-view .wa-header-actions{ display:flex; gap:12px; align-items:center; flex-shrink:0; padding:0 4px }
+.wa-view .wa-header-actions svg{ width:15px; height:15px; fill:#fff }
+
+.wa-view .wa-body{
+  flex:1;
+  padding:12px 8px 4px;
+  overflow:hidden;
+  background:var(--wa-bg);
+  background-image:
+    radial-gradient(rgba(0,0,0,.035) 1px, transparent 1px);
+  background-size:10px 10px;
+}
+
+/* Data divider "HOJE" — opcional, igual WhatsApp real */
+.wa-divider{
+  display:flex; justify-content:center; margin:6px 0 10px;
+}
+.wa-divider span{
+  background:#F7F5EE;
+  color:#54656F;
+  font-size:11px; font-weight:500;
+  padding:4px 10px; border-radius:6px;
+  box-shadow:0 1px 0.5px rgba(11,20,26,.08);
+  letter-spacing:.2px;
+}
+
+.wa-view .wa-msg{
+  background:var(--wa-msg-in);
+  border-radius:0 7px 7px 7px;
+  padding:6px 7px 4px 9px;
+  max-width:78%;
+  margin-bottom:3px;
+  font-size:13px;
+  line-height:1.36;
+  color:var(--wa-text);
+  box-shadow:0 1px .5px rgba(11,20,26,.13);
+  position:relative;
+  word-wrap:break-word;
+  margin-left:8px;
+  opacity:0;
+  transform:translateY(8px) scale(.98);
+  animation:msgIn .5s var(--ease-cinema) forwards 8.0s;
+}
+.wa-view .wa-msg::before{
+  content:'';
+  position:absolute; top:0; left:-8px;
+  width:8px; height:13px;
+  background:var(--wa-msg-in);
+  clip-path:polygon(100% 0, 0 0, 100% 100%);
+}
+.wa-view .wa-msg .msg-time{
+  font-size:10.5px;
+  color:var(--wa-text-meta);
+  text-align:right;
+  margin-top:0;
+  margin-left:8px;
+  float:right;
+  padding-top:4px;
+  padding-left:6px;
+  display:inline-flex; align-items:center; gap:3px;
+  position:relative;
+  bottom:-2px;
+}
+.wa-view .wa-msg .msg-time svg{ width:15px; height:11px; fill:#53BDEB }
+.wa-view .wa-msg::after{ content:''; display:block; clear:both }
+@keyframes msgIn{
+  0%   { opacity:0; transform:translateY(8px) scale(.98) }
+  100% { opacity:1; transform:translateY(0) scale(1) }
+}
+
+/* Segunda mensagem (a do link) — sem pontinha (mensagem subsequente do mesmo emissor) */
+.wa-view .wa-msg.with-link{
+  animation:msgIn .5s var(--ease-cinema) forwards 9.6s;
+  max-width:78%;
+  border-radius:7px 7px 7px 7px;
+  margin-top:3px;
+  padding:5px 7px 4px 6px;
+}
+.wa-view .wa-msg.with-link::before{ display:none }
+.wa-view .wa-link{
+  color:var(--wa-link);
+  text-decoration:underline;
+  font-weight:400;
+  word-break:break-all;
+  font-size:13px;
+  display:block;
+  padding:2px 3px 0;
+}
+.wa-view .wa-link-preview{
+  background:#F5F6F6;
+  border-left:4px solid var(--wa-link);
+  border-radius:6px 6px 0 0;
+  padding:7px 10px 8px;
+  margin-bottom:0;
+  font-size:11.5px;
+  color:#3B4A54;
+}
+.wa-view .wa-link-preview .lp-ttl{
+  font-weight:500; color:var(--wa-text); font-size:12.5px;
+  margin-bottom:2px;
+  line-height:1.3;
+}
+.wa-view .wa-link-preview .lp-desc{
+  font-size:11px; color:var(--wa-text-meta); line-height:1.3;
+}
+.wa-view .wa-link-preview .lp-host{
+  font-size:10.5px; color:var(--wa-text-meta);
+  margin-top:5px;
+  display:flex; align-items:center; gap:4px;
+}
+.wa-view .wa-link-preview .lp-host svg{ width:11px; height:11px; fill:var(--wa-text-meta) }
+
+/* Área de input do WhatsApp no rodapé — versão completa */
+.wa-view .wa-input-area{
+  background:transparent;
+  padding:6px 6px 8px;
+  display:flex; align-items:flex-end; gap:6px;
+  flex-shrink:0;
+}
+.wa-view .wa-input-area .wa-input{
+  flex:1;
+  background:#fff;
+  border-radius:22px;
+  padding:8px 10px 8px 14px;
+  font-size:12.5px;
+  color:#667781;
+  display:flex; align-items:center; gap:10px;
+  min-height:36px;
+  box-shadow:0 1px 0.5px rgba(11,20,26,.08);
+}
+.wa-view .wa-input-area .wa-input .emoji{ font-size:18px; line-height:1; opacity:.55 }
+.wa-view .wa-input-area .wa-input .placeholder{ flex:1 }
+.wa-view .wa-input-area .wa-input .clip-icons{
+  display:flex; align-items:center; gap:14px; margin-right:2px;
+}
+.wa-view .wa-input-area .wa-input .clip-icons svg{ width:18px; height:18px; fill:#54656F }
+.wa-view .wa-input-area .wa-mic{
+  width:42px; height:42px; border-radius:50%;
+  background:var(--wa-header-bg);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+  box-shadow:0 1px 2px rgba(0,0,0,.15);
+}
+.wa-view .wa-input-area .wa-mic svg{ width:22px; height:22px; fill:#fff }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<div class="stage">
+
+  <!-- ════════════════════════════════════════════════════════════
+       TELA DO MÉDICO (desktop)
+       ════════════════════════════════════════════════════════════ -->
+  <div class="medic-screen">
+
+    <!-- Sidebar dark -->
+    <aside class="medic-side">
+      <div class="logo">vita<span class="ib">id</span></div>
+      <div class="group">Núcleo</div>
+      <div class="nl">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Hoje
+      </div>
+      <div class="nl on">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Pré-Consultas
+        <span class="pip">3</span>
+      </div>
+      <div class="nl">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Pacientes
+      </div>
+      <div class="group">Workspace</div>
+      <div class="nl">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        Templates
+      </div>
+      <div class="nl">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Meu Perfil
+      </div>
+      <div class="user">
+        <div class="av">LB</div>
+        <div>
+          <div class="nm">Dr. Lucas Borelli</div>
+          <div class="crm">CRM 09876543·SP</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <div class="medic-main">
+      <div class="medic-top">
+        Pré-Consultas
+        <div class="sep"></div>
+        <div class="sub">Suas pré-consultas</div>
+        <div class="time">14:38</div>
+      </div>
+
+      <div class="medic-content">
+
+        <!-- VIEW 1: Lista pré-consultas (0-2.5s) -->
+        <div class="view-lista">
+          <h1>Suas <em>pré-consultas</em></h1>
+          <div class="lista-sub">Lista organizada por data. Mais próximas em cima.</div>
+          <div class="lista-actions">
+            <div class="search">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <span>Buscar paciente…</span>
+            </div>
+            <button class="btn-novo">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nova Pré-Consulta
+            </button>
+          </div>
+          <div class="filters">
+            <span class="filter on">Todas <strong style="margin-left:4px">3</strong></span>
+            <span class="filter">Aguardando</span>
+            <span class="filter">Respondidas</span>
+            <span class="filter">Expiradas</span>
+          </div>
+          <div class="pc-row">
+            <div class="pc-av">MS</div>
+            <div>
+              <div class="pc-name">Maria Silva · 52a</div>
+              <div class="pc-meta">Cardiologia</div>
+            </div>
+            <span class="pc-status respondida"><span class="dot"></span>Respondida</span>
+            <span class="pc-date">Hoje · 09:30</span>
+            <span></span>
+          </div>
+          <div class="pc-row">
+            <div class="pc-av">JS</div>
+            <div>
+              <div class="pc-name">João Santos · 38a</div>
+              <div class="pc-meta">Clínica geral</div>
+            </div>
+            <span class="pc-status aguardando"><span class="dot"></span>Aguardando</span>
+            <span class="pc-date">Amanhã · 10:00</span>
+            <span></span>
+          </div>
+          <div class="pc-row">
+            <div class="pc-av">RP</div>
+            <div>
+              <div class="pc-name">Rafael Pereira · 45a</div>
+              <div class="pc-meta">Retorno</div>
+            </div>
+            <span class="pc-status enviada"><span class="dot"></span>Enviada</span>
+            <span class="pc-date">Amanhã · 11:00</span>
+            <span></span>
+          </div>
+        </div>
+
+        <!-- VIEW 2: Form Nova Pré-Consulta REAL (entra aos 2.5s) -->
+        <div class="view-form">
+          <button class="back-btn">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Voltar
+          </button>
+          <h1>Nova <em>pré-consulta</em></h1>
+          <div class="form-sub">Envie o formulário antes da consulta e economize até 15 minutos</div>
+
+          <div class="form-grid">
+
+            <!-- COLUNA ESQUERDA: form -->
+            <div>
+
+              <!-- CARD: Dados do paciente -->
+              <div class="form-card">
+                <div class="card-head">
+                  <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <h2>Dados do paciente</h2>
+                </div>
+                <div class="field-row">
+                  <div class="field-block">
+                    <label>Nome completo *</label>
+                    <div class="field-input active h-nome f-nome">
+                      <span class="typed-text t-nome">Beatriz Oliveira</span>
+                    </div>
+                  </div>
+                  <div class="field-block">
+                    <label>WhatsApp <span class="opt">(opcional)</span></label>
+                    <div class="field-input active h-whats f-whats">
+                      <span class="typed-text t-whats">(11) 98765-4321</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="field-single">
+                  <label>Email <span class="opt">(opcional)</span></label>
+                  <div class="field-input">paciente@email.com</div>
+                </div>
+              </div>
+
+              <!-- CARD: Consulta -->
+              <div class="form-card">
+                <div class="card-head">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <h2>Consulta</h2>
+                </div>
+                <div class="field-row">
+                  <div class="field-block">
+                    <label>Data da consulta *</label>
+                    <div class="field-input active h-data f-data">
+                      <span>23/05/2026</span>
+                    </div>
+                  </div>
+                  <div class="field-block">
+                    <label>Hora *</label>
+                    <div class="field-input active h-hora f-hora">
+                      <span>10:00</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="field-single">
+                  <label>Template</label>
+                  <div class="field-input active h-tpl f-tpl">
+                    <span>CARDIOLOGIA · 12 perguntas</span>
+                    <span class="field-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
+                  </div>
+                </div>
+                <div class="field-single">
+                  <label>Observações para o paciente <span class="opt">(opcional)</span></label>
+                  <div class="field-input textarea active h-obs f-obs">
+                    <span class="typed-text t-obs">Traga exames recentes, venha em jejum 😊</span>
+                  </div>
+                </div>
+              </div>
+
+              <button class="gen-btn">
+                <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Gerar link
+                <span class="gen-btn-pulse"></span>
+              </button>
+
+            </div>
+
+            <!-- COLUNA DIREITA: COMO FUNCIONA -->
+            <div class="como-card">
+              <div class="como-h">Como funciona</div>
+              <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-txt"><strong>Envie o link</strong> para o paciente via WhatsApp antes da consulta.</div>
+              </div>
+              <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-txt"><strong>O paciente preenche o formulário</strong> com histórico e sintomas.</div>
+              </div>
+              <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-txt"><strong>O sistema gera o resumo clínico</strong> em áudio de 60 segundos.</div>
+              </div>
+              <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-txt"><strong>Você chega preparado</strong> e ganha até 15 min por consulta.</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Cursor médico -->
+    <div class="medic-cursor">
+      <svg viewBox="0 0 24 24"><path d="M5.5 3.21V20.79c0 .45.54.67.85.35l4.86-4.86a.5.5 0 01.35-.15h6.87a.5.5 0 00.35-.85L6.35 2.85a.5.5 0 00-.85.36z"/></svg>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       IPHONE DO PACIENTE
+       ════════════════════════════════════════════════════════════ -->
+  <div class="iphone">
+    <div class="notch"></div>
+    <div class="iphone-screen">
+
+      <!-- CONVERSA WHATSAPP REAL — aparece direto, sem lock screen -->
+      <div class="wa-view">
+
+        <!-- Status bar do iPhone (hora + sinal + bateria) -->
+        <div class="ios-statusbar">
+          <span>14:38</span>
+          <div class="ios-icons">
+            <svg viewBox="0 0 24 24"><path d="M2 17h2v3H2zm4-3h2v6H6zm4-3h2v9h-2zm4-3h2v12h-2zm4-3h2v15h-2z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M21 16.5v-9a2 2 0 00-2-2h-1v13h1a2 2 0 002-2zM3 7.5v9a2 2 0 002 2h12v-13H5a2 2 0 00-2 2zm15 2.5h2v4h-2z"/></svg>
+          </div>
+        </div>
+
+        <!-- Header do WhatsApp -->
+        <div class="wa-header">
+          <svg class="back" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          <div class="av">LB</div>
+          <div class="wa-header-info">
+            <div class="wa-header-name">Dr. Lucas Borelli</div>
+            <div class="wa-header-status">online</div>
+          </div>
+          <div class="wa-header-actions">
+            <svg viewBox="0 0 24 24"><path d="M15 8v8a4 4 0 01-4 4H7a4 4 0 01-4-4V8a4 4 0 014-4h4a4 4 0 014 4zm2.5 1L21 5v14l-3.5-4V9z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M20.5 3.5L21 4l-3 3 1.5 1.5L18 10l-1.5-1.5-3 3 1.5 1.5L13.5 14.5 12 13l-3 3 1.5 1.5L9 19l-1.5-1.5-3 3L4 21l-.5-.5 3-3L5 16l1.5-1.5L8 16l3-3-1.5-1.5L11 10l1.5 1.5 3-3L14 7l1.5-1.5L17 7l3-3-1.5-1.5L20 1l.5.5z"/></svg>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+          </div>
+        </div>
+
+        <!-- Mensagens -->
+        <div class="wa-body">
+
+          <!-- Data divider -->
+          <div class="wa-divider"><span>HOJE</span></div>
+
+          <!-- Mensagem 1: convite profissional com autoridade + reciprocidade -->
+          <div class="wa-msg">
+            Olá Beatriz, aqui é o Dr. Lucas Borelli. Confirmando sua consulta de cardiologia amanhã às 10h.<br><br>
+            Para que eu possa preparar seu atendimento, preciso que você responda algumas perguntas clínicas no link abaixo. Leva 3 minutos.
+            <span class="msg-time">
+              14:38
+              <svg viewBox="0 0 16 11"><path d="M11.071 0L4.928 6.143 1.929 3.143 0 5.071l4.928 4.928L13 1.929 11.071 0zm4 0L8.928 6.143 6.928 4.143 5 6.071l3.928 3.928L16.929 1.929 15.071 0z"/></svg>
+            </span>
+          </div>
+
+          <!-- Mensagem 2: o link real -->
+          <div class="wa-msg with-link">
+            <div class="wa-link-preview">
+              <div class="lp-ttl">Pré-consulta · Cardiologia</div>
+              <div class="lp-desc">Questionário clínico antes da consulta. 12 perguntas · 3 minutos.</div>
+              <div class="lp-host">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                vitaidsaude.com
+              </div>
+            </div>
+            <span class="wa-link">https://vitaidsaude.com/p/bz2026</span>
+            <span class="msg-time" style="margin-top:2px">
+              14:38
+              <svg viewBox="0 0 16 11"><path d="M11.071 0L4.928 6.143 1.929 3.143 0 5.071l4.928 4.928L13 1.929 11.071 0zm4 0L8.928 6.143 6.928 4.143 5 6.071l3.928 3.928L16.929 1.929 15.071 0z"/></svg>
+            </span>
+          </div>
+
+        </div>
+
+        <!-- Input area real do WhatsApp -->
+        <div class="wa-input-area">
+          <div class="wa-input">
+            <span class="emoji">😊</span>
+            <span class="placeholder">Mensagem</span>
+            <div class="clip-icons">
+              <svg viewBox="0 0 24 24"><path d="M16.5 6v11.5a4 4 0 11-8 0V5a2.5 2.5 0 015 0v10.5a1 1 0 11-2 0V6H10v9.5a2.5 2.5 0 005 0V5a4 4 0 10-8 0v12.5a5.5 5.5 0 0011 0V6h-1.5z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M20 5h-3.17l-1.84-2H9l-1.83 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-8 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/><circle cx="12" cy="12" r="3.2"/></svg>
+            </div>
+          </div>
+          <div class="wa-mic">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

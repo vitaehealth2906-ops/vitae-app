@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, initial-scale=1.0">
+<title>vita id — Motion Box 1 (Templates)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   MOTION SCENE — Box 1: Templates Inteligentes (8s)
+   ═══════════════════════════════════════════════════════════════
+   Timeline:
+   0.0–0.5s   Card "Novo template" entra (fade up + scale)
+   0.5–1.2s   Cursor entra da direita, vai pro campo Nome
+   1.2–2.4s   Typing "Nutrição esportiva" (typing effect)
+   2.4–2.7s   Cursor desce pro botão "+ Adicionar pergunta"
+   2.7–6.2s   4 perguntas surgindo em cascata (cada uma com typing)
+   5.5–7.0s   Câmera dá zoom out + cards de especialidades surgem (atrás/lado)
+   7.0–7.5s   Pin "Nutrição · novo" cai com bounce
+   7.5–8.0s   Hold final
+   ═══════════════════════════════════════════════════════════════ */
+
+:root{
+  --ink-1:#0D0F14; --ink-2:#3F4655; --ink-3:#6B7280; --ink-4:#9CA3AF; --ink-5:#C4C9D4;
+  --hairline:rgba(13,15,20,0.06);
+  --hairline-strong:rgba(13,15,20,0.10);
+  --bg-soft:#F7F8FB;
+  --bg-soft2:#F2F4F8;
+  --green:#00C47A;
+  --green-bright:#00E5A0;
+  --cyan:#00B4D8;
+  --green-light:#E5F8F1;
+  --green-ink:#0F8A75;
+  --gradient:linear-gradient(120deg, #00E5A0, #00B4D8);
+  --ease-cinema:cubic-bezier(0.83, 0, 0.17, 1);
+  --ease-out:cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce:cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  background:var(--bg-soft);
+  color:var(--ink-1);
+  width:1280px; height:720px;
+  overflow:hidden;
+}
+
+/* Background sutil */
+.bg{
+  position:fixed; inset:0; z-index:-1;
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 30%, rgba(0,196,122,.05), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 70%, rgba(0,180,216,.04), transparent 60%),
+    var(--bg-soft);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STAGE — onde tudo acontece, com perspective
+   ═══════════════════════════════════════════════════════════════ */
+.stage{
+  position:absolute;
+  inset:0;
+  perspective:1600px;
+  perspective-origin:center center;
+  /* Pequeno zoom out durante a cena */
+  animation:cameraZoom 8s var(--ease-cinema) forwards;
+}
+@keyframes cameraZoom{
+  0%   { transform:scale(1.06) }
+  60%  { transform:scale(1.0) }
+  100% { transform:scale(.94) }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD PRINCIPAL — "Novo template"
+   ═══════════════════════════════════════════════════════════════ */
+.card-main{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%, -50%) rotateY(-3deg) rotateX(2deg);
+  width:560px;
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:18px;
+  box-shadow:
+    0 1px 2px rgba(13,15,20,.04),
+    0 32px 64px -20px rgba(13,15,20,.20);
+  overflow:hidden;
+  opacity:0;
+  animation:cardIn 1s var(--ease-cinema) forwards;
+}
+@keyframes cardIn{
+  0%   { opacity:0; transform:translate(-50%, -42%) rotateY(-3deg) rotateX(2deg) scale(.94) }
+  100% { opacity:1; transform:translate(-50%, -50%) rotateY(-3deg) rotateX(2deg) scale(1) }
+}
+
+.card-main .head{ padding:14px 20px 12px; border-bottom:1px solid var(--hairline); }
+.card-main .crumbs{ font-size:11.5px; color:var(--ink-4); font-weight:600 }
+.card-main .crumbs strong{ color:var(--ink-2); font-weight:700 }
+
+.card-main .stepper{
+  display:flex; align-items:center; gap:8px;
+  padding:14px 20px; border-bottom:1px solid var(--hairline);
+}
+.card-main .step{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:600 }
+.card-main .step .num{
+  width:20px; height:20px; border-radius:50%;
+  background:var(--ink-5); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10.5px; font-weight:700;
+}
+.card-main .step.on .num{background:var(--green)}
+.card-main .step.on{ color:var(--green-ink) }
+.card-main .step .label{ color:var(--ink-3) }
+.card-main .step.on .label{ color:var(--ink-1); font-weight:700 }
+.card-main .step-sep{ flex:1; height:1px; background:var(--hairline-strong); margin:0 4px }
+
+.card-main h1{
+  padding:20px 20px 6px;
+  font-size:22px; font-weight:800; color:var(--ink-1); letter-spacing:-.4px;
+}
+.card-main h1 em{font-style:italic; color:var(--green-ink); font-weight:800}
+.card-main .sub{ padding:0 20px 14px; font-size:12.5px; color:var(--ink-3) }
+
+.card-main .field{
+  margin:0 20px 14px;
+  padding:14px 16px;
+  background:var(--bg-soft);
+  border:1px solid var(--hairline-strong);
+  border-radius:10px;
+}
+.card-main .field .lbl{
+  font-size:10.5px; font-weight:800;
+  letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); margin-bottom:8px;
+}
+.card-main .field .val{
+  font-family:'JetBrains Mono', monospace;
+  font-size:14.5px; font-weight:600; color:var(--ink-1); letter-spacing:-.3px;
+  min-height:1em;
+}
+.card-main .field .typed{
+  display:inline-block;
+  overflow:hidden;
+  white-space:nowrap;
+  vertical-align:bottom;
+  width:0;
+  animation:typing 1.0s steps(20, end) forwards;
+  animation-delay:1.2s;
+}
+@keyframes typing{ to{ width:18ch } }
+.card-main .field .caret{
+  display:inline-block; width:2px; height:1em; background:var(--green);
+  vertical-align:-3px; margin-left:2px;
+  animation:caret 1s steps(2) infinite;
+  animation-delay:1.2s;
+  opacity:0;
+}
+.card-main .field .caret.show{ animation:caretShow .1s linear forwards 1.2s, caret 1s steps(2) infinite 1.3s; }
+@keyframes caretShow{ to{ opacity:1 } }
+@keyframes caret{ 0%,50%{opacity:1} 51%,100%{opacity:0} }
+
+.card-main .qs{ padding:0 20px 14px }
+.card-main .qs-h{ font-size:12px; font-weight:800; color:var(--ink-1); margin-bottom:10px }
+.card-main .q{
+  display:flex; align-items:center; gap:10px;
+  padding:11px 13px; margin-bottom:7px;
+  background:#fff;
+  border:1px solid var(--hairline-strong);
+  border-radius:9px;
+  font-size:13px; color:var(--ink-2);
+  opacity:0;
+  transform:translateY(8px) scale(.98);
+  animation:qIn .55s var(--ease-cinema) forwards;
+}
+.card-main .q:nth-child(2){ animation-delay:2.9s }
+.card-main .q:nth-child(3){ animation-delay:3.7s }
+.card-main .q:nth-child(4){ animation-delay:4.5s }
+.card-main .q:nth-child(5){ animation-delay:5.3s }
+@keyframes qIn{
+  0%   { opacity:0; transform:translateY(8px) scale(.98) }
+  60%  { opacity:1; transform:translateY(-2px) scale(1.01) }
+  100% { opacity:1; transform:translateY(0) scale(1) }
+}
+.card-main .q .qnum{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; font-weight:700;
+  color:var(--green-ink);
+  background:var(--green-light);
+  width:24px; height:24px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.card-main .q .qtext{ flex:1; min-width:0 }
+.card-main .q .qmic{ width:14px; height:14px; color:var(--ink-4); flex-shrink:0 }
+.card-main .q .qmic svg{ width:100%; height:100%; fill:none; stroke:currentColor; stroke-width:2 }
+
+.card-main .add{
+  display:flex; align-items:center; gap:8px;
+  padding:11px 14px; margin-top:8px;
+  background:#fff;
+  border:1px dashed var(--hairline-strong);
+  border-radius:9px;
+  font-size:12px; font-weight:600; color:var(--ink-3);
+  transition:all .3s var(--ease-out);
+}
+.card-main .add.highlight{
+  border-color:var(--green);
+  background:var(--green-light);
+  color:var(--green-ink);
+}
+.card-main .add svg{ width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2.4 }
+
+.card-main .toggle{
+  margin:0 20px 14px;
+  padding:12px 14px;
+  background:var(--bg-soft);
+  border:1px solid var(--hairline);
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.card-main .toggle-l{ display:flex; flex-direction:column; gap:2px }
+.card-main .toggle-t{ font-size:12px; font-weight:700; color:var(--ink-1) }
+.card-main .toggle-s{ font-size:11px; color:var(--ink-3) }
+.card-main .toggle-sw{
+  width:34px; height:20px; border-radius:100px; background:var(--ink-5);
+  position:relative; transition:background .3s var(--ease-out);
+}
+.card-main .toggle-sw::after{
+  content:''; position:absolute; left:2px; top:2px;
+  width:16px; height:16px; border-radius:50%; background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);
+  transition:left .3s var(--ease-cinema);
+}
+.card-main .toggle-sw.on{ background:var(--green); animation:toggleOn 0s 6.5s forwards }
+.card-main .toggle-sw.on::after{ animation:toggleSlide .3s var(--ease-cinema) forwards 6.5s }
+@keyframes toggleOn{ to{ background:var(--green) } }
+@keyframes toggleSlide{ to{ left:16px } }
+
+.card-main .foot{
+  padding:16px 20px; border-top:1px solid var(--hairline);
+  display:flex; justify-content:flex-end;
+}
+.card-main .cta{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:10px 18px; border-radius:9px;
+  background:var(--gradient); color:#fff;
+  font-family:inherit; font-size:13px; font-weight:700;
+  border:none;
+  box-shadow:0 8px 20px -8px rgba(0,229,160,.45);
+}
+.card-main .cta svg{ width:13px; height:13px; fill:currentColor }
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD ESPECIALIDADES — entra atrás aos 5.5s
+   ═══════════════════════════════════════════════════════════════ */
+.card-esp{
+  position:absolute;
+  top:55%; right:60px;
+  transform:translateY(-50%) rotateY(6deg) rotateX(2deg) translateX(40px);
+  width:330px;
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:14px;
+  padding:16px;
+  box-shadow:
+    0 1px 2px rgba(13,15,20,.04),
+    0 24px 48px -20px rgba(13,15,20,.18);
+  opacity:0;
+  animation:espIn 1s var(--ease-cinema) forwards;
+  animation-delay:5.4s;
+}
+@keyframes espIn{
+  0%   { opacity:0; transform:translateY(-50%) rotateY(20deg) rotateX(2deg) translateX(80px) }
+  100% { opacity:1; transform:translateY(-50%) rotateY(6deg) rotateX(2deg) translateX(40px) }
+}
+.card-esp .h{
+  display:flex; align-items:center;
+  margin-bottom:12px;
+}
+.card-esp .h-title{
+  font-size:11px; font-weight:800; color:var(--ink-3);
+  letter-spacing:.08em; text-transform:uppercase;
+}
+.card-esp .h-count{
+  margin-left:auto;
+  font-size:10.5px; font-weight:700;
+  color:var(--green-ink);
+  background:var(--green-light);
+  padding:3px 8px; border-radius:100px;
+}
+.card-esp .search{
+  padding:7px 11px;
+  background:var(--bg-soft);
+  border:1px solid var(--hairline-strong);
+  border-radius:7px;
+  font-size:11px; color:var(--ink-4);
+  margin-bottom:10px;
+  display:flex; align-items:center; gap:7px;
+}
+.card-esp .search svg{ width:11px; height:11px; stroke:var(--ink-4); fill:none; stroke-width:2 }
+.card-esp .grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:7px;
+}
+.card-esp .esp{
+  padding:9px 11px;
+  background:var(--bg-soft);
+  border:1px solid var(--hairline);
+  border-radius:9px;
+}
+.card-esp .esp.featured{
+  background:var(--green-light);
+  border-color:rgba(0,196,122,.3);
+  position:relative;
+}
+.card-esp .e-name{ font-size:11.5px; font-weight:800; color:var(--ink-1); letter-spacing:-.1px }
+.card-esp .e-meta{ font-size:10px; color:var(--ink-4); margin-top:2px }
+.card-esp .e-usos{
+  font-size:9px; font-weight:700;
+  color:var(--green-ink);
+  margin-top:6px; display:inline-block;
+  background:var(--green-light);
+  padding:1px 6px; border-radius:100px;
+}
+.card-esp .esp.featured .e-usos{ background:#fff }
+
+/* ═══════════════════════════════════════════════════════════════
+   PIN "Nutrição · novo" — cai aos 7s
+   ═══════════════════════════════════════════════════════════════ */
+.pin{
+  position:absolute;
+  top:36%; right:340px;
+  z-index:10;
+  background:#fff;
+  border:1px solid var(--hairline);
+  padding:9px 14px 9px 9px;
+  border-radius:100px;
+  display:flex; align-items:center; gap:9px;
+  box-shadow:0 16px 36px -16px rgba(13,15,20,.28);
+  opacity:0;
+  animation:pinIn 1s var(--ease-bounce) forwards;
+  animation-delay:7.0s;
+}
+@keyframes pinIn{
+  0%   { opacity:0; transform:translateY(-30px) scale(.7) rotate(-8deg) }
+  60%  { opacity:1; transform:translateY(0) scale(1.08) rotate(2deg) }
+  100% { opacity:1; transform:translateY(0) scale(1) rotate(0deg) }
+}
+.pin .ic{
+  width:30px; height:30px; border-radius:50%;
+  background:linear-gradient(135deg, #FFE5B4, #FFCB7B);
+  display:flex; align-items:center; justify-content:center;
+}
+.pin .ic svg{ width:15px; height:15px; fill:#9C5800 }
+.pin .text{ font-size:12.5px; font-weight:800; color:var(--ink-1); letter-spacing:-.1px }
+.pin .text small{ display:block; font-size:10px; color:var(--ink-3); font-weight:500; letter-spacing:0 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CURSOR
+   ═══════════════════════════════════════════════════════════════ */
+.cursor{
+  position:absolute;
+  width:22px; height:22px;
+  z-index:100;
+  pointer-events:none;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.30));
+  opacity:0;
+  /* Posição controlada por keyframes */
+  top:0; left:0;
+  animation:cursorPath 8s var(--ease-cinema) forwards;
+}
+.cursor svg{ width:100%; height:100%; fill:#0D0F14; stroke:#fff; stroke-width:1.4 }
+@keyframes cursorPath{
+  /* Entra de fora-direita-baixo */
+  0%   { top:85%; left:95%; opacity:0 }
+  6%   { top:55%; left:50%; opacity:1 }
+  /* Vai pro campo Nome (centro) */
+  12%  { top:42%; left:45% }
+  /* Fica no campo enquanto digita "Nutrição esportiva" */
+  28%  { top:42%; left:55% }
+  /* Desce pro botão "+ Adicionar pergunta" */
+  32%  { top:74%; left:35% }
+  /* Volta levemente entre cada pergunta */
+  44%  { top:74%; left:38% }
+  56%  { top:74%; left:36% }
+  68%  { top:74%; left:39% }
+  /* Sai pro botão toggle "Permitir áudio" */
+  78%  { top:84%; left:62% }
+  /* Sai do palco pra direita */
+  90%  { top:50%; left:96% }
+  100% { top:50%; left:96%; opacity:0 }
+}
+
+/* Click ripple sincronizado com clicks importantes */
+.click-ripple{
+  position:absolute;
+  width:36px; height:36px;
+  border-radius:50%;
+  border:2px solid var(--green);
+  z-index:99;
+  pointer-events:none;
+  transform:translate(-50%, -50%);
+  opacity:0;
+}
+.click-ripple.c1{ top:74%; left:35%; animation:clickRing 1.5s ease-out 3.0s; }
+.click-ripple.c2{ top:84%; left:62%; animation:clickRing 1.5s ease-out 6.5s; }
+@keyframes clickRing{
+  0%   { opacity:0; transform:translate(-50%, -50%) scale(.4) }
+  20%  { opacity:1; transform:translate(-50%, -50%) scale(.6) }
+  100% { opacity:0; transform:translate(-50%, -50%) scale(2.4) }
+}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<div class="stage">
+
+  <!-- CARD PRINCIPAL — Novo template -->
+  <div class="card-main">
+    <div class="head">
+      <div class="crumbs">Templates · <strong>Novo template</strong></div>
+    </div>
+    <div class="stepper">
+      <div class="step on"><div class="num">1</div><div class="label">Perguntas</div></div>
+      <div class="step-sep"></div>
+      <div class="step"><div class="num">2</div><div class="label">Preview</div></div>
+      <div class="step-sep"></div>
+      <div class="step"><div class="num">3</div><div class="label">Pronto</div></div>
+    </div>
+    <h1>Novo <em>template</em></h1>
+    <div class="sub">3 passos · perguntas, preview e confirmação</div>
+
+    <div class="field">
+      <div class="lbl">Nome do template</div>
+      <div class="val">
+        <span class="typed">Nutrição esportiva</span><span class="caret show"></span>
+      </div>
+    </div>
+
+    <div class="qs">
+      <div class="qs-h">Perguntas adicionadas</div>
+      <div class="q">
+        <div class="qnum">1</div>
+        <div class="qtext">Qual seu peso atual e altura?</div>
+        <div class="qmic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg></div>
+      </div>
+      <div class="q">
+        <div class="qnum">2</div>
+        <div class="qtext">Em que horários você costuma treinar?</div>
+        <div class="qmic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg></div>
+      </div>
+      <div class="q">
+        <div class="qnum">3</div>
+        <div class="qtext">Que dias você descansa?</div>
+        <div class="qmic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg></div>
+      </div>
+      <div class="q">
+        <div class="qnum">4</div>
+        <div class="qtext">Quantas vezes por semana você come fast-food?</div>
+        <div class="qmic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg></div>
+      </div>
+      <div class="add">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Adicionar pergunta
+      </div>
+    </div>
+
+    <div class="toggle">
+      <div class="toggle-l">
+        <div class="toggle-t">Permitir áudio</div>
+        <div class="toggle-s">Paciente responde por voz</div>
+      </div>
+      <div class="toggle-sw on"></div>
+    </div>
+
+    <div class="foot">
+      <button class="cta">Continuar
+        <svg viewBox="0 0 24 24"><path d="M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.41L16.17 13H4z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- CARD ESPECIALIDADES (entra atrás, à direita) -->
+  <div class="card-esp">
+    <div class="h">
+      <div class="h-title">Templates prontos</div>
+      <div class="h-count">12 áreas</div>
+    </div>
+    <div class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>Buscar especialidade…</span>
+    </div>
+    <div class="grid">
+      <div class="esp featured">
+        <div class="e-name">Nutrição</div>
+        <div class="e-meta">8 perguntas</div>
+        <div class="e-usos">novo</div>
+      </div>
+      <div class="esp">
+        <div class="e-name">Cardiologia</div>
+        <div class="e-meta">12 perguntas</div>
+        <div class="e-usos">41 usos</div>
+      </div>
+      <div class="esp">
+        <div class="e-name">Ortopedia</div>
+        <div class="e-meta">10 perguntas</div>
+        <div class="e-usos">28 usos</div>
+      </div>
+      <div class="esp">
+        <div class="e-name">Pediatria</div>
+        <div class="e-meta">15 perguntas</div>
+        <div class="e-usos">19 usos</div>
+      </div>
+      <div class="esp">
+        <div class="e-name">Psiquiatria</div>
+        <div class="e-meta">11 perguntas</div>
+        <div class="e-usos">14 usos</div>
+      </div>
+      <div class="esp">
+        <div class="e-name">Dermatologia</div>
+        <div class="e-meta">9 perguntas</div>
+        <div class="e-usos">9 usos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN cai aos 7s -->
+  <div class="pin">
+    <div class="ic">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8 2 6 5 6 9c0 3 2 6 6 13 4-7 6-10 6-13 0-4-2-7-6-7z"/></svg>
+    </div>
+    <div class="text">
+      Nutrição
+      <small>adicionada agora</small>
+    </div>
+  </div>
+
+  <!-- CURSOR -->
+  <div class="cursor">
+    <svg viewBox="0 0 24 24"><path d="M5.5 3.21V20.79c0 .45.54.67.85.35l4.86-4.86a.5.5 0 01.35-.15h6.87a.5.5 0 00.35-.85L6.35 2.85a.5.5 0 00-.85.36z"/></svg>
+  </div>
+
+  <!-- Click rings nos momentos certos -->
+  <div class="click-ripple c1"></div>
+  <div class="click-ripple c2"></div>
+
+</div>
+
+</body>
+</html>

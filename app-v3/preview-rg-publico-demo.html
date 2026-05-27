@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>vitaid — RG da Saúde (PREVIEW com dados simulados)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg:#FFFFFF; --green:#00E5A0; --green:#00C47A; --bad:#EF4444; --blue:#3B82F6; --orange:#F0A050; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#F0F4F8; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif; }
+        .phone {
+            width:393px; max-width:100vw; min-height:100vh; background:#FFFFFF;
+            overflow-y:auto; position:relative;
+        }
+        @media (min-width:394px) {
+            .phone { height:852px; max-height:100vh; border-radius:52px; overflow:hidden;
+                box-shadow: 0 0 0 1px rgba(0,229,160,0.15), 0 0 0 3px #e5e7eb, 0 30px 80px rgba(0,0,0,0.12);
+                overflow-y:auto;
+            }
+        }
+        .content { padding:36px 20px 52px; }
+        .demo-banner { position:fixed; top:0; left:0; right:0; background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#0D0F14; text-align:center; padding:6px; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; z-index:9999; }
+
+        /* Header */
+        .pub-header { text-align:center; margin-bottom:22px; }
+        .pub-logo { font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; letter-spacing:0.2em; color:var(--green); text-transform:uppercase; margin-bottom:8px; }
+        .pub-title { font-family:'Plus Jakarta Sans',sans-serif; font-size:26px; font-weight:700; color:#0D0F14; line-height:1.2; }
+        .pub-badge { display:inline-flex; align-items:center; gap:6px; margin-top:10px; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; background:rgba(74,217,164,0.1); border:1px solid rgba(74,217,164,0.2); color:var(--green); }
+        .pub-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--green); }
+
+        .section-title {
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700; color:#0D0F14;
+            margin:20px 0 10px; display:flex; align-items:center; gap:8px;
+        }
+
+        .glass-card {
+            background:#FFFFFF; border:1px solid rgba(0,0,0,0.07);
+            border-radius:16px; padding:0; margin-bottom:10px;
+            overflow:hidden; box-shadow:0 1px 12px rgba(0,0,0,0.07);
+        }
+        .glass-card::before {
+            content:''; display:block; height:3px;
+            background:linear-gradient(90deg, #00E5A0, #00B4D8);
+        }
+        .glass-card-inner { padding:14px; }
+
+        .tags-wrap { display:flex; flex-wrap:wrap; gap:6px; }
+        .tag { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:20px; font-size:12px; font-weight:500; line-height:1; }
+        .tag.allergy { background:rgba(217,68,82,0.1); color:#e55; border:1px solid rgba(217,68,82,0.2); }
+        .tag.allergy-grave { background:rgba(217,68,82,0.18); color:#ff7070; border:1px solid rgba(217,68,82,0.4); font-weight:700; }
+        .tag.med { background:rgba(74,144,226,0.1); color:var(--blue); border:1px solid rgba(74,144,226,0.18); }
+        .tag.cond { background:rgba(0,229,160,0.08); color:var(--green); border:1px solid rgba(0,229,160,0.18); }
+        .tag.surgery { background:rgba(0,0,0,0.03); color:rgba(13,15,20,0.55); border:1px solid rgba(0,0,0,0.08); }
+        .tag.family { background:rgba(0,0,0,0.03); color:rgba(13,15,20,0.50); border:1px solid rgba(0,0,0,0.07); }
+
+        .pub-sec-label { font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; letter-spacing:.15em; color:rgba(13,15,20,.42); text-transform:uppercase; margin:0 0 10px; }
+
+        .warn-box { background:rgba(240,160,80,0.07); border:1px solid rgba(240,160,80,0.2); border-radius:12px; padding:12px 14px; margin-top:10px; display:flex; align-items:flex-start; gap:10px; }
+        .warn-box svg { flex-shrink:0; margin-top:1px; }
+        .warn-text { font-size:12px; color:rgba(200,130,50,0.9); line-height:1.5; }
+        .warn-text strong { display:block; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
+
+        .emergency-card { background:#FFFFFF; border:1px solid rgba(0,0,0,0.07); border-radius:16px; padding:0; margin-bottom:10px; overflow:hidden; box-shadow:0 1px 12px rgba(0,0,0,0.07); }
+        .emergency-card::before { content:''; display:block; height:3px; background:linear-gradient(90deg, #EF4444, #F59E0B); }
+        .emergency-label { font-size:10px; color:var(--bad); text-transform:uppercase; letter-spacing:0.1em; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+        .emerg-contact { display:flex; flex-direction:column; }
+        .emerg-badge { font-size:9px; text-transform:uppercase; letter-spacing:0.08em; color:rgba(13,15,20,0.30); margin-bottom:2px; }
+        .emerg-name { font-size:14px; font-weight:600; color:#0D0F14; }
+        .emerg-tel { font-size:13px; color:rgba(13,15,20,0.40); margin-top:1px; }
+        .emerg-divider { height:1px; background:rgba(217,68,82,0.10); margin:10px 0; }
+
+        .footer-note { text-align:center; padding:20px 12px 4px; font-size:11px; color:rgba(13,15,20,0.25); line-height:1.6; }
+        .footer-note a { color:var(--green); text-decoration:none; }
+
+        /* Flip card */
+        .hover-3d { display:inline-grid; perspective:75rem; cursor:pointer; margin-bottom:20px; width:100%; }
+        .card-flipper { width:100%; height:220px; position:relative; transform-style:preserve-3d; transition:transform 0.7s cubic-bezier(0.4,0,0.2,1); }
+        .card-flipper.flipped { transform:rotateY(180deg); }
+        .card-face { position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:18px; overflow:hidden; }
+        .card-back-face { transform:rotateY(180deg); }
+        .card-front { width:100%; height:100%; border-radius:18px; position:relative; overflow:hidden; background:#0D0F14; }
+        .card-bg-svg { position:absolute; inset:0; overflow:hidden; }
+        .card-content { position:absolute; inset:0; padding:14px 18px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; }
+        .card-top { display:flex; justify-content:space-between; align-items:flex-start; }
+        .card-logo { font-family:'Plus Jakarta Sans','Arial Black',sans-serif; font-size:15px; font-weight:800; letter-spacing:-0.8px; color:#fff; line-height:1; display:inline-flex; align-items:center; }
+        .card-logo .id-box { display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#0D0F14; font-weight:800; font-style:normal; margin-left:0; padding:1px 5px; border-radius:4px; line-height:1; }
+        .card-type-badge { font-size:6.5px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-top:2px; }
+        .card-middle { display:flex; align-items:center; gap:12px; }
+        .card-avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(120deg,#00E5A0,#00B4D8); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; }
+        .card-patient-name { font-size:13px; font-weight:700; color:#fff; letter-spacing:-0.3px; line-height:1.1; }
+        .card-patient-sub { font-size:8px; color:rgba(255,255,255,0.4); margin-top:2px; }
+        .card-divider { width:100%; height:1px; background:rgba(255,255,255,0.07); }
+        .card-fields-row { display:flex; gap:14px; }
+        .card-field { display:flex; flex-direction:column; gap:1px; }
+        .card-field-label { font-size:6.5px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.28); }
+        .card-field-value { font-size:9px; font-weight:600; color:rgba(255,255,255,0.9); margin-top:1px; }
+        .card-field-accent { font-size:9px; font-weight:700; background:linear-gradient(90deg,#00B4D8,#00E5A0); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-top:1px; padding-right:0.08em; }
+        .card-tags { display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+        .card-tag { font-size:6.5px; font-weight:600; letter-spacing:0.08em; padding:2px 7px; border-radius:100px; border:1px solid; }
+        .card-tag-allergy { color:#ffb347; border-color:rgba(255,179,71,0.35); background:rgba(255,179,71,0.08); }
+        .card-tag-condition { color:#00D4A0; border-color:rgba(0,212,160,0.35); background:rgba(0,212,160,0.08); }
+        .back-card { width:100%; height:100%; border-radius:18px; overflow:hidden; background:#111318; display:flex; flex-direction:column; }
+        .mag-strip { width:100%; height:28px; background:#1A1E26; margin-top:16px; }
+        .back-content-card { padding:8px 18px 12px; display:flex; flex-direction:column; justify-content:space-between; flex:1; }
+        .info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+        .info-cell { display:flex; flex-direction:column; gap:1px; }
+        .info-label-b { font-size:6.5px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.25); }
+        .info-value-b { font-size:9px; font-weight:600; color:rgba(255,255,255,0.8); }
+        .emergency-box { border:1px solid rgba(255,107,107,0.3); background:rgba(255,107,107,0.06); border-radius:8px; padding:6px 10px; display:flex; flex-direction:column; gap:2px; margin-top:6px; }
+        .emergency-title { font-size:6.5px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:#ff6b6b; }
+        .emergency-text { font-size:9px; font-weight:500; color:rgba(255,255,255,0.7); }
+        .back-bottom { display:flex; justify-content:space-between; align-items:center; margin-top:4px; }
+        .vitaid-small { font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:800; letter-spacing:-0.5px; color:rgba(255,255,255,0.4); line-height:1; display:inline-flex; align-items:center; }
+        .vitaid-small .id-box { display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#0D0F14; font-weight:800; font-style:normal; margin-left:0; padding:0px 3px; border-radius:3px; line-height:1; font-size:10px; }
+        .valid-text { font-size:7px; font-weight:500; color:rgba(255,255,255,0.2); letter-spacing:0.05em; }
+
+        @media(max-width:480px){body{padding:0!important;background:inherit!important}.phone{width:100vw!important;height:100vh!important;height:100svh!important;max-width:100vw!important;max-height:none!important;border-radius:0!important;box-shadow:none!important}.notch,.status{display:none!important}}
+    </style>
+</head>
+<body>
+
+<div class="demo-banner">PREVIEW — Dados simulados (não é paciente real)</div>
+
+<div class="phone">
+    <div class="content" id="mainContent"></div>
+</div>
+
+<script>
+    // ===== DADOS SIMULADOS =====
+    const MOCK = {
+        usuario: {
+            id: 'demo-maria-silveira',
+            nome: 'Maria Silveira'
+        },
+        perfil: {
+            nomeSocial: null,
+            cpf: '123.456.789-01',
+            dataNascimento: '1987-03-14',
+            tipoSanguineo: 'A_POS',
+            pesoKg: 68,
+            alturaCm: 165,
+            planoSaude: 'Unimed',
+            condicoes: 'Hipertensão arterial, Diabetes tipo 2',
+            cirurgias: ['Apendicectomia (2014)', 'Cesárea (2018)'],
+            historicoFamiliar: ['Pai — Infarto aos 62', 'Mãe — Diabetes', 'Avó materna — AVC'],
+            contatoEmergenciaNome: 'Carlos Silveira (marido)',
+            contatoEmergenciaTel: '(19) 99876-5432',
+            nomeMae: 'Helena Silveira',
+            telMae: '(19) 99123-4567',
+            limitacoesAcessibilidade: null
+        },
+        alergias: [
+            { nome: 'Dipirona', gravidade: 'GRAVE' },
+            { nome: 'Penicilina', gravidade: 'ANAFILAXIA' },
+            { nome: 'Camarão', gravidade: 'MODERADA' },
+            { nome: 'Látex', gravidade: 'LEVE' }
+        ],
+        medicamentos: [
+            { nome: 'Losartana', dosagem: '50mg', frequencia: '1x ao dia' },
+            { nome: 'Metformina', dosagem: '850mg', frequencia: '2x ao dia' },
+            { nome: 'Ozempic', dosagem: '0.5mg', frequencia: 'Semanal' },
+            { nome: 'Omeprazol', dosagem: '20mg', frequencia: 'Em jejum' }
+        ],
+        examesRecentes: [
+            { id: 'ex1', tipoExame: 'hemograma_completo', dataExame: '2026-04-12', laboratorio: 'Fleury', status: 'CONCLUIDO', arquivoUrl: null },
+            { id: 'ex2', tipoExame: 'glicemia_jejum', dataExame: '2026-04-12', laboratorio: 'Fleury', status: 'CONCLUIDO', arquivoUrl: null },
+            { id: 'ex3', tipoExame: 'colesterol_perfil', dataExame: '2026-03-08', laboratorio: 'Delboni', status: 'CONCLUIDO', arquivoUrl: null }
+        ]
+    };
+
+    // ===== LÓGICA (copiada do 14-rg-publico.html) =====
+    const bloodMap = { A_POS:'A+', A_NEG:'A-', B_POS:'B+', B_NEG:'B-', AB_POS:'AB+', AB_NEG:'AB-', O_POS:'O+', O_NEG:'O-' };
+    const glp1 = ['ozempic','mounjaro','wegovy','saxenda','victoza','trulicity','semaglutida','tirzepatida','liraglutida','dulaglutida'];
+    const monthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+
+    function calcAge(d) {
+        if (!d) return null;
+        const birth = new Date(d), now = new Date();
+        let age = now.getFullYear() - birth.getFullYear();
+        const m = now.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+        return age + ' anos';
+    }
+
+    function getInitials(name) {
+        if (!name) return '—';
+        return name.split(/\s+/).filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    }
+
+    function formatExamTitle(tipoExame) {
+        if (!tipoExame) return 'Exame';
+        return tipoExame.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function svgIcon(color, path) {
+        return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+    }
+
+    function render({ usuario, perfil: p, alergias, medicamentos, examesRecentes }) {
+        p = p || {};
+        const nome = p.nomeSocial || usuario.nome || 'Paciente';
+        const blood = bloodMap[p.tipoSanguineo] || null;
+        const age = calcAge(p.dataNascimento);
+        const initials = getInitials(nome);
+        const cpfDisplay = p.cpf ? `Paciente · CPF ${p.cpf}` : 'Paciente';
+        const plano = p.planoSaude || '—';
+        const hasGLP1 = (medicamentos || []).some(m => glp1.some(g => m.nome.toLowerCase().includes(g)));
+
+        const nascFormatted = p.dataNascimento ? new Date(p.dataNascimento).toLocaleDateString('pt-BR') : '—';
+        const peso = p.pesoKg ? p.pesoKg + ' kg' : '—';
+        const altura = p.alturaCm ? p.alturaCm + ' cm' : '—';
+        const allergyTags = (alergias || []).map(a => `<span class="card-tag card-tag-allergy">${a.nome}</span>`).join('');
+        const condTags = (p.condicoes ? p.condicoes.split(/[,;]/).map(c => c.trim()).filter(Boolean) : []).map(c => `<span class="card-tag card-tag-condition">${c}</span>`).join('');
+        const cardTags = allergyTags + condTags;
+        const allergiasBackText = (alergias && alergias.length > 0) ? alergias.map(a => a.nome).join(', ') : '—';
+        const emergName = p.contatoEmergenciaNome || '—';
+        const emergTel = p.contatoEmergenciaTel || '';
+        const emergText = emergTel ? emergName + ' · ' + emergTel : emergName;
+        const validYear = new Date().getFullYear() + 1;
+
+        let html = `
+            <div class="pub-header">
+                <div class="pub-logo">VITAE · RG DA SAÚDE</div>
+                <div class="pub-title">${nome}</div>
+                <div class="pub-badge">Verificado</div>
+            </div>
+
+            <div class="hover-3d" onclick="document.querySelector('.card-flipper').classList.toggle('flipped')">
+                <div class="card-flipper">
+                    <div class="card-face">
+                        <div class="card-front">
+                            <div class="card-bg-svg">
+                                <svg width="100%" height="100%" viewBox="0 0 640 404" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <linearGradient id="bggrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0D0F14"/><stop offset="100%" stop-color="#131820"/></linearGradient>
+                                        <linearGradient id="glow1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00B4D8" stop-opacity="0.1"/><stop offset="100%" stop-color="#00E5A0" stop-opacity="0"/></linearGradient>
+                                        <linearGradient id="glow2" x1="100%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="#00E5A0" stop-opacity="0.07"/><stop offset="100%" stop-color="#00B4D8" stop-opacity="0"/></linearGradient>
+                                    </defs>
+                                    <rect width="640" height="404" fill="url(#bggrad)"/>
+                                    <circle cx="500" cy="-60" r="280" fill="url(#glow1)"/>
+                                    <circle cx="60" cy="460" r="220" fill="url(#glow2)"/>
+                                </svg>
+                            </div>
+                            <div class="card-content">
+                                <div class="card-top">
+                                    <div>
+                                        <div class="card-logo">vita<span class="id-box">id</span></div>
+                                        <div class="card-type-badge">Identidade em Saúde</div>
+                                    </div>
+                                </div>
+                                <div class="card-middle">
+                                    <div class="card-avatar">${initials}</div>
+                                    <div>
+                                        <div class="card-patient-name">${nome}</div>
+                                        <div class="card-patient-sub">${cpfDisplay}</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="card-divider" style="margin-bottom:8px"></div>
+                                    <div class="card-fields-row">
+                                        <div class="card-field"><span class="card-field-label">Nascimento</span><span class="card-field-value">${nascFormatted}</span></div>
+                                        <div class="card-field"><span class="card-field-label">Sangue</span><span class="card-field-accent">${blood || '—'}</span></div>
+                                        <div class="card-field"><span class="card-field-label">Plano</span><span class="card-field-value">${plano}</span></div>
+                                    </div>
+                                    ${cardTags ? '<div class="card-tags">' + cardTags + '</div>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-face card-back-face">
+                        <div class="back-card">
+                            <div class="mag-strip"></div>
+                            <div class="back-content-card">
+                                <div class="info-grid">
+                                    <div class="info-cell"><span class="info-label-b">Sangue</span><span class="info-value-b">${blood || '—'}</span></div>
+                                    <div class="info-cell"><span class="info-label-b">Peso</span><span class="info-value-b">${peso}</span></div>
+                                    <div class="info-cell"><span class="info-label-b">Altura</span><span class="info-value-b">${altura}</span></div>
+                                    <div class="info-cell"><span class="info-label-b">Idade</span><span class="info-value-b">${age || '—'}</span></div>
+                                    <div class="info-cell"><span class="info-label-b">Plano</span><span class="info-value-b">${plano}</span></div>
+                                    <div class="info-cell"><span class="info-label-b">Alergias</span><span class="info-value-b">${allergiasBackText}</span></div>
+                                </div>
+                                <div class="emergency-box">
+                                    <span class="emergency-title">Contato de Emergência</span>
+                                    <span class="emergency-text">${emergText}</span>
+                                </div>
+                                <div class="back-bottom">
+                                    <div class="vitaid-small">vita<span class="id-box">id</span></div>
+                                    <div class="valid-text">Válido até ${validYear}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        // ALERGIAS
+        if (alergias && alergias.length > 0) {
+            html += `
+                <div class="section-title">${svgIcon('#EF4444','<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>')} Alergias</div>
+                <div class="glass-card"><div class="glass-card-inner">
+                    <div class="tags-wrap">
+                        ${alergias.map(a => {
+                            const grave = a.gravidade && ['GRAVE','SEVERA','ANAFILAXIA'].includes((a.gravidade||'').toUpperCase());
+                            return `<span class="tag ${grave ? 'allergy-grave' : 'allergy'}">${grave ? '⚠ ' : ''}${a.nome}${a.gravidade ? ` · ${a.gravidade}` : ''}</span>`;
+                        }).join('')}
+                    </div>
+                </div></div>`;
+        }
+
+        // MEDICAMENTOS
+        if (medicamentos && medicamentos.length > 0) {
+            html += `
+                <div class="section-title">${svgIcon('#3B82F6','<path d="M10.5 1.5H8C4.68 1.5 2 4.18 2 7.5S4.68 13.5 8 13.5h8c3.32 0 6-2.68 6-6s-2.68-6-6-6h-2.5"/><line x1="12" y1="1.5" x2="12" y2="13.5"/>')} Medicamentos em Uso</div>
+                <div class="glass-card"><div class="glass-card-inner">
+                    <div class="tags-wrap">
+                        ${medicamentos.map(m => `<span class="tag med">${m.nome}${m.dosagem ? ` ${m.dosagem}` : ''}${m.frequencia ? ` · ${m.frequencia}` : ''}</span>`).join('')}
+                    </div>
+                    ${hasGLP1 ? `<div class="warn-box">
+                        ${svgIcon('#F0A050','<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>')}
+                        <div class="warn-text"><strong>Agonista GLP-1 (Ozempic / Mounjaro)</strong>Paciente usa GLP-1. Para anestesia, jejum deve ser estendido para 24-48h.</div>
+                    </div>` : ''}
+                </div></div>`;
+        }
+
+        // CONDIÇÕES
+        if (p.condicoes) {
+            const conds = p.condicoes.split(/[,;]/).map(c => c.trim()).filter(Boolean);
+            if (conds.length > 0) {
+                html += `
+                    <div class="section-title">${svgIcon('#00E5A0','<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>')} Condições de Saúde</div>
+                    <div class="glass-card"><div class="glass-card-inner"><div class="tags-wrap">${conds.map(c => `<span class="tag cond">${c}</span>`).join('')}</div></div></div>`;
+            }
+        }
+
+        // CIRURGIAS
+        if (p.cirurgias && p.cirurgias.length > 0) {
+            html += `
+                <div class="section-title">${svgIcon('rgba(13,15,20,0.55)','<path d="M18 2l4 4-10 10H8v-4L18 2z"/><line x1="2" y1="22" x2="8" y2="16"/>')} Cirurgias Anteriores</div>
+                <div class="glass-card"><div class="glass-card-inner"><div class="tags-wrap">${p.cirurgias.map(c => `<span class="tag surgery">${c}</span>`).join('')}</div></div></div>`;
+        }
+
+        // HISTÓRICO FAMILIAR
+        if (p.historicoFamiliar && p.historicoFamiliar.length > 0) {
+            html += `
+                <div class="section-title">${svgIcon('rgba(13,15,20,0.5)','<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>')} Histórico Familiar</div>
+                <div class="glass-card"><div class="glass-card-inner"><div class="tags-wrap">${p.historicoFamiliar.map(h => `<span class="tag family">${h}</span>`).join('')}</div></div></div>`;
+        }
+
+        // CONTATOS EMERGÊNCIA
+        const hasEmerg = p.contatoEmergenciaNome || p.nomeMae || p.nomePai;
+        if (hasEmerg) {
+            html += `
+                <div class="section-title">${svgIcon('#EF4444','<path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>')} Contatos de Emergência</div>
+                <div class="emergency-card"><div class="glass-card-inner">
+                    <div class="emergency-label">${svgIcon('currentColor','<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>')} EMERGÊNCIA</div>`;
+            const contacts = [];
+            if (p.contatoEmergenciaNome) contacts.push({ badge:'Contato Principal', name:p.contatoEmergenciaNome, tel:p.contatoEmergenciaTel });
+            if (p.nomeMae) contacts.push({ badge:'Mãe', name:p.nomeMae, tel:p.telMae });
+            if (p.nomePai) contacts.push({ badge:'Pai', name:p.nomePai, tel:p.telPai });
+            html += contacts.map((c, i) => `
+                ${i > 0 ? '<div class="emerg-divider"></div>' : ''}
+                <div class="emerg-contact">
+                    <div class="emerg-badge">${c.badge}</div>
+                    <div class="emerg-name">${c.name}</div>
+                    ${c.tel ? `<a href="tel:${c.tel.replace(/\D/g,'')}" class="emerg-tel" style="text-decoration:none;">${c.tel}</a>` : ''}
+                </div>`).join('');
+            html += `</div></div>`;
+        }
+
+        // EXAMES
+        const examesFiltrados = (examesRecentes || []).filter(e => e.status !== 'ERRO');
+        if (examesFiltrados.length > 0) {
+            const total = examesFiltrados.length;
+            html += `
+                <div class="section-title">${svgIcon('#00C47A','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>')} Exames</div>
+                <div class="pub-sec-label">${total} exame${total > 1 ? 's' : ''}</div>`;
+
+            html += examesFiltrados.map((e, i) => {
+                const dt = e.dataExame ? new Date(e.dataExame) : null;
+                const dateLabel = dt ? (monthNames[dt.getMonth()] + ' ' + dt.getFullYear()) : '';
+                const tipo = e.tipoExame || 'Exame';
+                const title = formatExamTitle(e.tipoExame || e.nomeArquivo);
+                const meta = [dateLabel, e.laboratorio].filter(Boolean).join(' - ');
+                const thumb = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#f5f6f8;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(13,15,20,0.12)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>`;
+
+                return `<div style="border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);padding:10px;margin-bottom:10px;">
+                    <div style="display:flex;gap:14px;align-items:stretch;">
+                        <div style="width:100px;min-height:120px;border-radius:8px;background:#f0f2f5;overflow:hidden;flex-shrink:0;">${thumb}</div>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:4px 0;">
+                            <div style="font-size:12px;color:rgba(13,15,20,0.4);text-transform:capitalize;line-height:1.3;">${tipo.replace(/_/g,' ')}</div>
+                            <div style="font-size:15px;font-weight:700;color:#00E5A0;line-height:1.35;">${title}</div>
+                            <div style="font-size:12px;color:rgba(13,15,20,0.35);margin-top:2px;">${meta}</div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        html += `
+            <div class="footer-note">
+                Dados compartilhados via VITAE<br>
+                RG da Saúde Digital
+            </div>`;
+
+        document.getElementById('mainContent').innerHTML = html;
+    }
+
+    render(MOCK);
+</script>
+</body>
+</html>

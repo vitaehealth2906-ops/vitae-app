@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>vita id — Motion Summary Flow (real layout, camera tour)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   MOTION SUMMARY — 8s · estrutura espelhada da tela REAL
+   Layout: 2 colunas (esquerda larga + direita estreita), cards EMPILHADOS sem gaps
+   ═══════════════════════════════════════════════════════════════ */
+
+:root{
+  --ink-1:#0D0F14; --ink-2:#3F4655; --ink-3:#6B7280; --ink-4:#9CA3AF; --ink-5:#C4C9D4;
+  --hairline:rgba(13,15,20,0.06);
+  --hairline-strong:rgba(13,15,20,0.10);
+  --bg-soft:#F4F6FA;
+  --green:#00C47A;
+  --green-bright:#00E5A0;
+  --cyan:#00B4D8;
+  --green-light:#E5F8F1;
+  --green-ink:#0F8A75;
+  --gradient:linear-gradient(120deg, #00E5A0, #00B4D8);
+  --red:#EF4444;
+  --red-bg:#FEF2F2;
+  --red-border:#FECACA;
+  --amber:#F59E0B;
+  --amber-bg:#FFFBEB;
+  --amber-border:#FDE68A;
+  --info:#3B82F6;
+  --ease-cinema:cubic-bezier(0.83, 0, 0.17, 1);
+  --ease-out:cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  width:1280px; height:720px;
+  overflow:hidden;
+  background:var(--bg-soft);
+}
+
+.stage{
+  width:1280px; height:720px;
+  position:relative;
+  overflow:hidden;
+  background:var(--bg-soft);
+}
+
+/* CENA — palco vertical 1500x1500 (esquerda ~900px + direita ~430px) */
+.scene{
+  position:absolute;
+  width:1500px; height:1500px;
+  top:0; left:0;
+  transform-origin:0 0;
+  background:var(--bg-soft);
+  animation:cameraPath 8s var(--ease-cinema) forwards;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CÂMERA — paradas calculadas pra centro de cada componente
+   Math: translate = (640 - centerX*scale, 360 - centerY*scale)
+   ═══════════════════════════════════════════════════════════════ */
+/* Math CORRETA com transform-origin 0,0:
+   "scale(s) translate(tx, ty)" → posição final no stage = ((x+tx)*s, (y+ty)*s)
+   Pra centralizar ponto (X, Y) do .scene em (640, 360) do .stage:
+   tx = 640/s − X    |    ty = 360/s − Y
+
+   Centros dos componentes:
+   palco-todo (750, 750) → scale 0.42: tx=774, ty=107  (vista geral CENTRALIZADA)
+   paciente   (470, 257) → scale 1.15: tx=87,  ty=56
+   meds+aler  (1190, 335)→ scale 1.20: tx=-657,ty=-35
+   exames     (1190, 729)→ scale 1.05: tx=-580,ty=-386
+   audio      (470, 444) → scale 1.30: tx=22,  ty=-167
+   queixa     (470, 630) → scale 1.20: tx=63,  ty=-330
+   relato     (470, 842) → scale 1.10: tx=112, ty=-515  */
+@keyframes cameraPath{
+  /* 0–0.7s · vista geral (palco centralizado no stage) */
+  0%   { transform:scale(.42) translate(774px, 107px); }
+  9%   { transform:scale(.42) translate(774px, 107px); }
+
+  /* 0.7–1.7s · zoom paciente */
+  13%  { transform:scale(1.15) translate(87px, 56px); }
+  21%  { transform:scale(1.15) translate(87px, 56px); }
+
+  /* 1.7–3.0s · meds + alergias */
+  26%  { transform:scale(1.20) translate(-657px, -35px); }
+  37%  { transform:scale(1.20) translate(-657px, -35px); }
+
+  /* 3.0–4.2s · exames */
+  42%  { transform:scale(1.05) translate(-580px, -386px); }
+  52%  { transform:scale(1.05) translate(-580px, -386px); }
+
+  /* 4.2–5.4s · resumo em áudio */
+  57%  { transform:scale(1.30) translate(22px, -167px); }
+  67%  { transform:scale(1.30) translate(22px, -167px); }
+
+  /* 5.4–6.4s · queixa principal */
+  72%  { transform:scale(1.20) translate(63px, -330px); }
+  80%  { transform:scale(1.20) translate(63px, -330px); }
+
+  /* 6.4–7.2s · relato */
+  85%  { transform:scale(1.10) translate(112px, -515px); }
+  90%  { transform:scale(1.10) translate(112px, -515px); }
+
+  /* 7.2–8.0s · vista geral pro loop */
+  95%  { transform:scale(.42) translate(774px, 107px); }
+  100% { transform:scale(.42) translate(774px, 107px); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER TOPO
+   ═══════════════════════════════════════════════════════════════ */
+.top-bar{
+  position:absolute; top:0; left:0;
+  width:1500px; height:80px;
+  padding:20px 40px 0;
+  display:flex; align-items:flex-start;
+  background:var(--bg-soft);
+}
+.top-bar .back{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:14px; color:var(--ink-3); font-weight:500;
+}
+.top-bar .back svg{ width:14px; height:14px; stroke:var(--ink-3); fill:none; stroke-width:2.4 }
+.top-bar .actions{
+  margin-left:auto;
+  display:flex; align-items:center; gap:10px;
+}
+.top-bar .btn-export{
+  background:rgba(21,101,192,.08);
+  border:1px solid rgba(21,101,192,.18);
+  color:#1565C0;
+  padding:9px 14px; border-radius:9px;
+  font-size:13px; font-weight:600;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.top-bar .btn-export svg{ width:13px; height:13px; stroke:#1565C0; fill:none; stroke-width:2 }
+.top-bar .time-tag{
+  font-size:12px; color:var(--ink-3); font-weight:600;
+  padding:9px 13px; background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:9px;
+  font-variant-numeric:tabular-nums;
+}
+
+.section-head{
+  position:absolute; top:60px; left:40px;
+  width:1420px;
+}
+.section-head h1{
+  font-size:32px; font-weight:900; letter-spacing:-.7px;
+  color:var(--ink-1); line-height:1.1;
+}
+.section-head h1 em{
+  font-style:italic; font-weight:900;
+  background:var(--gradient);
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent;
+  padding-right:.08em;
+}
+.section-head .sub{
+  font-size:14px; color:var(--ink-3); margin-top:6px;
+  display:flex; align-items:center; gap:8px;
+}
+.section-head .sub .dot{
+  width:3px; height:3px; border-radius:50%; background:var(--ink-5);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT 2 COLUNAS (espelhando tela real)
+   Esquerda: ~840px wide
+   Direita: ~410px wide
+   ═══════════════════════════════════════════════════════════════ */
+.col-left{
+  position:absolute;
+  top:170px;
+  left:40px;
+  width:860px;
+}
+.col-right{
+  position:absolute;
+  top:170px;
+  left:920px;
+  width:540px;
+}
+
+.card{
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:14px;
+  box-shadow:0 1px 3px rgba(13,15,20,.04);
+  margin-bottom:14px;
+  opacity:0;
+  transform:translateY(8px) scale(.99);
+  transition:opacity .5s var(--ease-out), transform .5s var(--ease-out);
+}
+.card.in{ opacity:1; transform:translateY(0) scale(1); }
+.card:last-child{ margin-bottom:0 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD PACIENTE
+   ═══════════════════════════════════════════════════════════════ */
+.card-paciente{ padding:0; overflow:hidden; }
+.cp-head{
+  display:flex; gap:16px; align-items:center;
+  padding:22px 24px;
+  border-bottom:1px solid var(--hairline);
+}
+.cp-av{
+  width:64px; height:64px; border-radius:50%;
+  background:var(--gradient);
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; font-weight:800;
+  box-shadow:0 4px 14px rgba(0,229,160,.28);
+  flex-shrink:0;
+}
+.cp-info{ flex:1; min-width:0 }
+.cp-nome{ font-size:22px; font-weight:800; letter-spacing:-.3px; color:var(--ink-1); margin-bottom:6px }
+.cp-status{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:12.5px; font-weight:700;
+  color:#027A48;
+}
+.cp-status::before{content:'';width:6px;height:6px;border-radius:50%;background:#00C47A}
+.cp-quote{
+  padding:18px 24px 22px;
+  font-size:16px; color:var(--ink-2);
+  font-style:italic; line-height:1.55;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WARNING (pre-consulta com mais de X dias) — opcional
+   Removido nessa versão pra economizar espaço
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD RESUMO EM ÁUDIO
+   ═══════════════════════════════════════════════════════════════ */
+.card-audio{ padding:20px 22px; }
+.ca-head{
+  display:flex; align-items:center; gap:12px; margin-bottom:14px;
+}
+.ca-dot{
+  width:9px; height:9px; border-radius:50%;
+  background:#9CA3AF;
+}
+.ca-meta{ flex:1 }
+.ca-meta .title{ font-size:14.5px; font-weight:700; color:var(--ink-1) }
+.ca-meta .date{ font-size:11.5px; color:var(--ink-4); font-weight:500; margin-top:1px }
+.ca-speed{
+  padding:5px 11px; border-radius:100px;
+  background:rgba(0,0,0,.03); border:1px solid rgba(0,0,0,.06);
+  font-family:'JetBrains Mono', monospace; font-size:12px; font-weight:700; color:#6B7280;
+}
+.ca-wave{
+  height:52px;
+  display:flex; align-items:center; gap:3px;
+  padding:4px 0;
+  margin-bottom:12px;
+  width:100%;
+}
+.ca-wave i{
+  flex:1;
+  border-radius:100px;
+  background:#5CDDA4;
+  display:block;
+  animation:waveBar 1.5s ease-in-out infinite;
+  min-width:4px;
+}
+@keyframes waveBar{
+  0%,100%{ height:8px; opacity:.7 }
+  50%{ height:42px; opacity:1 }
+}
+/* Delays gerados via JS no script (loop de 55 barras) */
+/* Waveform inteira VERDE — sem parte tocada escura (igual o print real) */
+.ca-foot{
+  display:flex; align-items:center; justify-content:space-between;
+  font-size:11px; color:#9CA3AF; font-variant-numeric:tabular-nums;
+  font-weight:600;
+}
+.ca-play{
+  width:42px; height:42px; border-radius:50%;
+  background:#0D0F14;
+  display:flex; align-items:center; justify-content:center;
+}
+.ca-play svg{ width:14px; height:14px; fill:#fff; margin-left:2px }
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD QUEIXA PRINCIPAL
+   ═══════════════════════════════════════════════════════════════ */
+.card-queixa{ padding:20px 22px; }
+.cq-head{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:12px;
+}
+.cq-label{
+  font-size:11px; font-weight:800;
+  letter-spacing:.14em; text-transform:uppercase;
+  color:#6B7280;
+}
+.cq-pill{
+  font-size:11px; font-weight:700;
+  padding:3px 10px; border-radius:100px;
+  background:rgba(0,0,0,.04); color:#6B7280;
+}
+.cq-frase{
+  font-size:20px; font-weight:700;
+  color:var(--ink-1); line-height:1.3;
+  letter-spacing:-.3px;
+  margin-bottom:14px;
+}
+.cq-quote{
+  font-size:14px; color:#4B5563; line-height:1.6;
+  font-style:italic;
+  padding:12px 14px;
+  background:rgba(0,0,0,.025);
+  border-radius:10px;
+  border-left:3px solid rgba(0,0,0,.10);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD RELATO DO PACIENTE
+   ═══════════════════════════════════════════════════════════════ */
+.card-relato{ padding:20px 22px; }
+.cr-head{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:12px;
+}
+.cr-label{
+  font-size:11px; font-weight:800;
+  letter-spacing:.14em; text-transform:uppercase;
+  color:#6B7280;
+}
+.cr-pill{
+  font-size:11px; font-weight:600; font-style:italic;
+  color:var(--green-ink);
+}
+.cr-texto{
+  font-size:14.5px; color:var(--ink-1); line-height:1.65;
+  letter-spacing:-.05px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COLUNA DIREITA — meds + alergias + exames
+   ═══════════════════════════════════════════════════════════════ */
+.card-meds{ padding:20px; }
+.cm-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+.cm-ic{
+  width:36px; height:36px; border-radius:10px;
+  background:var(--green-light);
+  display:flex; align-items:center; justify-content:center;
+}
+.cm-ic svg{ width:18px; height:18px; stroke:var(--green-ink); fill:none; stroke-width:2 }
+.cm-count{
+  font-size:11.5px; font-weight:600;
+  padding:3px 10px; border-radius:100px;
+  background:#ECFDF5; color:#027A48;
+  display:flex; align-items:center; gap:5px;
+}
+.cm-count::before{content:'';width:5px;height:5px;border-radius:50%;background:#00C47A}
+.cm-title{
+  font-size:15px; font-weight:800;
+  color:var(--ink-1); margin-bottom:10px;
+  letter-spacing:-.2px;
+}
+.cm-chips{ display:flex; gap:6px; flex-wrap:wrap }
+.med-chip{
+  font-size:12.5px; font-weight:700;
+  padding:6px 12px; border-radius:100px;
+  background:#ECFDF5; border:1px solid #A7F3D0;
+  color:#027A48;
+}
+.med-chip .dose{ font-weight:500; opacity:.7; margin-left:3px }
+
+/* Card Alergias */
+.card-aler{ padding:20px; }
+.ca-h{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+.ca-ic-aler{
+  width:36px; height:36px; border-radius:10px;
+  background:#FEF3F2;
+  display:flex; align-items:center; justify-content:center;
+}
+.ca-ic-aler svg{ width:18px; height:18px; stroke:#B42318; fill:none; stroke-width:2 }
+.ca-count-aler{
+  font-size:11.5px; font-weight:600;
+  padding:3px 10px; border-radius:100px;
+  background:#FEF3F2; color:#B42318;
+  display:flex; align-items:center; gap:5px;
+}
+.ca-count-aler::before{content:'';width:5px;height:5px;border-radius:50%;background:#EF4444}
+.ca-title-aler{
+  font-size:15px; font-weight:800;
+  color:var(--ink-1); margin-bottom:10px;
+  letter-spacing:-.2px;
+}
+.aler-chips{ display:flex; gap:6px; flex-wrap:wrap }
+.aler-chip{
+  font-size:12.5px; font-weight:700;
+  padding:6px 12px; border-radius:100px;
+  background:#FEF2F2; border:1px solid #FECACA;
+  color:#B91C1C;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.aler-chip::before{
+  content:''; width:6px; height:6px; border-radius:50%; background:#EF4444;
+  animation:pulse-aler 1.8s ease-in-out infinite;
+}
+@keyframes pulse-aler{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Bloco Exames (não é card — é title verde + lista) */
+.exames-block{
+  margin-top:16px;
+  opacity:0;
+  transform:translateY(8px);
+  transition:opacity .5s var(--ease-out), transform .5s var(--ease-out);
+}
+.exames-block.in{ opacity:1; transform:translateY(0) }
+.exames-title{
+  font-size:19px; font-weight:800;
+  color:var(--green); letter-spacing:-.3px;
+  margin-bottom:12px;
+}
+.exames-search{
+  padding:10px 12px;
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:11px;
+  font-size:13px; color:var(--ink-4);
+  display:flex; align-items:center; gap:7px;
+  margin-bottom:10px;
+}
+.exames-search svg{ width:13px; height:13px; stroke:var(--ink-4); fill:none; stroke-width:2 }
+.exame-row{
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:11px;
+  padding:10px;
+  margin-bottom:8px;
+  display:flex; align-items:stretch; gap:12px;
+  box-shadow:0 1px 3px rgba(13,15,20,.04);
+}
+.exame-thumb{
+  width:80px; height:96px;
+  border-radius:7px;
+  overflow:hidden;
+  border:1px solid var(--hairline);
+  flex-shrink:0;
+  background:#F4F6FA;
+}
+.exame-thumb img{
+  width:100%; height:100%;
+  object-fit:cover; object-position:top center;
+  display:block;
+}
+.exame-info{
+  flex:1; min-width:0;
+  display:flex; flex-direction:column; justify-content:center;
+}
+.exame-tipo{
+  font-size:10.5px; color:var(--ink-4);
+  text-transform:capitalize; margin-bottom:2px;
+}
+.exame-nome{
+  font-size:14.5px; font-weight:700;
+  color:var(--green); line-height:1.3;
+  margin-bottom:4px;
+}
+.exame-meta{
+  font-size:11.5px; color:var(--ink-4);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SKELETONS (visíveis t=0, somem quando cards entram)
+   ═══════════════════════════════════════════════════════════════ */
+.skel{
+  position:absolute;
+  background:linear-gradient(90deg, #ECEFF3 0%, #F5F7FA 50%, #ECEFF3 100%);
+  background-size:200% 100%;
+  border-radius:14px;
+  animation:shimmer 1.5s linear infinite;
+  transition:opacity .35s var(--ease-out);
+}
+@keyframes shimmer{
+  0%   { background-position:200% 0 }
+  100% { background-position:-200% 0 }
+}
+.skel.hidden{opacity:0; pointer-events:none}
+.skel-paciente{ top:170px; left:40px; width:860px; height:175px }
+.skel-audio   { top:359px; left:40px; width:860px; height:170px }
+.skel-queixa  { top:543px; left:40px; width:860px; height:175px }
+.skel-relato  { top:732px; left:40px; width:860px; height:220px }
+.skel-meds    { top:170px; left:920px; width:540px; height:158px }
+.skel-aler    { top:342px; left:920px; width:540px; height:158px }
+.skel-exames  { top:514px; left:920px; width:540px; height:430px }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="scene">
+
+    <!-- Top bar com Voltar + Exportar prontuário + data -->
+    <div class="top-bar">
+      <span class="back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Voltar</span>
+      <div class="actions">
+        <span class="btn-export">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar prontuário
+        </span>
+        <span class="time-tag">25/05/2026 10:52</span>
+      </div>
+    </div>
+
+    <!-- Header section -->
+    <div class="section-head">
+      <h1>Resumo do <em>paciente</em></h1>
+      <div class="sub">
+        <span>Beatriz Oliveira</span><span class="dot"></span>
+        <span>34 anos</span><span class="dot"></span>
+        <span>Respondida em 25/05/2026 10:52</span>
+      </div>
+    </div>
+
+    <!-- Skeletons -->
+    <div class="skel skel-paciente"></div>
+    <div class="skel skel-audio"></div>
+    <div class="skel skel-queixa"></div>
+    <div class="skel skel-relato"></div>
+    <div class="skel skel-meds"></div>
+    <div class="skel skel-aler"></div>
+    <div class="skel skel-exames"></div>
+
+    <!-- ═════════ COLUNA ESQUERDA (paciente + áudio + queixa + relato) ═════════ -->
+    <div class="col-left">
+
+      <!-- CARD PACIENTE -->
+      <div class="card card-paciente">
+        <div class="cp-head">
+          <div class="cp-av">BO</div>
+          <div class="cp-info">
+            <div class="cp-nome">Beatriz Oliveira</div>
+            <div class="cp-status">Respondida</div>
+          </div>
+        </div>
+        <div class="cp-quote">"Paciente de 34 anos relata cefaleia pulsátil unilateral à direita há 12 dias, com piora ao se abaixar."</div>
+      </div>
+
+      <!-- CARD RESUMO EM ÁUDIO -->
+      <div class="card card-audio">
+        <div class="ca-head">
+          <div class="ca-dot"></div>
+          <div class="ca-meta">
+            <div class="title">Resumo em áudio</div>
+            <div class="date">25/05/2026 10:52 · 1 min</div>
+          </div>
+          <div class="ca-speed">1x</div>
+        </div>
+        <div class="ca-wave" id="caWave"></div>
+        <div class="ca-foot">
+          <span>0:24</span>
+          <div class="ca-play"><svg viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21"/></svg></div>
+          <span>-0:36</span>
+        </div>
+      </div>
+
+      <!-- CARD QUEIXA PRINCIPAL -->
+      <div class="card card-queixa">
+        <div class="cq-head">
+          <span class="cq-label">Queixa principal</span>
+          <span class="cq-pill">12 dias</span>
+        </div>
+        <div class="cq-frase">Cefaleia pulsátil unilateral à direita, há 12 dias, com piora ao se abaixar.</div>
+        <div class="cq-quote">"eu acordo já com essa dor, ela bate do lado direito e quando eu me abaixo pra pegar alguma coisa fica muito pior"</div>
+      </div>
+
+      <!-- CARD RELATO -->
+      <div class="card card-relato">
+        <div class="cr-head">
+          <span class="cr-label">Relato do paciente</span>
+          <span class="cr-pill">estruturado</span>
+        </div>
+        <div class="cr-texto">A paciente Beatriz, 34 anos, relata cefaleia pulsátil unilateral à direita há 12 dias, com piora ao se abaixar e ausência de alívio com dipirona. Refere uso prévio de analgésicos sem sucesso. Histórico de uso de Losartana, Sertralina e Vitamina D. Alergia conhecida a Dipirona e Penicilina. Mãe com enxaqueca crônica. Sono fragmentado nas últimas duas semanas.</div>
+      </div>
+
+    </div>
+
+    <!-- ═════════ COLUNA DIREITA (meds + alergias + exames) ═════════ -->
+    <div class="col-right">
+
+      <!-- CARD MEDS -->
+      <div class="card card-meds">
+        <div class="cm-head">
+          <div class="cm-ic">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+          </div>
+          <span class="cm-count">3 ativos</span>
+        </div>
+        <div class="cm-title">Medicamentos em uso</div>
+        <div class="cm-chips">
+          <span class="med-chip">Losartana <span class="dose">50mg</span></span>
+          <span class="med-chip">Sertralina <span class="dose">25mg</span></span>
+          <span class="med-chip">Vitamina D <span class="dose">2.000UI</span></span>
+        </div>
+      </div>
+
+      <!-- CARD ALERGIAS -->
+      <div class="card card-aler">
+        <div class="ca-h">
+          <div class="ca-ic-aler">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <span class="ca-count-aler">2 graves</span>
+        </div>
+        <div class="ca-title-aler">Alergias</div>
+        <div class="aler-chips">
+          <span class="aler-chip">Dipirona</span>
+          <span class="aler-chip">Penicilina</span>
+        </div>
+      </div>
+
+      <!-- BLOCO EXAMES -->
+      <div class="exames-block" id="exames-block">
+        <div class="exames-title">Exames de Beatriz</div>
+        <div class="exames-search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Buscar exame...
+        </div>
+        <div class="exame-row">
+          <div class="exame-thumb"><img src="../screens/thumbs/hemograma.jpg" alt=""></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Hematologia</div>
+            <div class="exame-nome">Hemograma completo</div>
+            <div class="exame-meta">há 18 dias · Fleury</div>
+          </div>
+        </div>
+        <div class="exame-row">
+          <div class="exame-thumb"><img src="../screens/thumbs/tsh.jpg" alt=""></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Hormônios</div>
+            <div class="exame-nome">TSH e T4 livre</div>
+            <div class="exame-meta">há 21 dias · Delboni</div>
+          </div>
+        </div>
+        <div class="exame-row">
+          <div class="exame-thumb"><img src="../screens/thumbs/ecg.jpg" alt=""></div>
+          <div class="exame-info">
+            <div class="exame-tipo">Cardiologia</div>
+            <div class="exame-nome">Eletrocardiograma</div>
+            <div class="exame-meta">há 2 meses · Sírio</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* Gera 55 barras de waveform com delays escalonados (preenche todo o card) */
+(function(){
+  const wave = document.getElementById('caWave');
+  if (!wave) return;
+  for (let i = 0; i < 55; i++) {
+    const bar = document.createElement('i');
+    bar.style.animationDelay = (i * 0.025) + 's';
+    wave.appendChild(bar);
+  }
+})();
+
+/* Sequência de entradas — cada card surge ANTES da câmera chegar nele */
+const reveals = [
+  { sel: '.card-paciente', delay:  800, skel: '.skel-paciente' },
+  { sel: '.card-meds',     delay: 1900, skel: '.skel-meds' },
+  { sel: '.card-aler',     delay: 2100, skel: '.skel-aler' },
+  { sel: '#exames-block',  delay: 3300, skel: '.skel-exames' },
+  { sel: '.card-audio',    delay: 4400, skel: '.skel-audio' },
+  { sel: '.card-queixa',   delay: 5500, skel: '.skel-queixa' },
+  { sel: '.card-relato',   delay: 6400, skel: '.skel-relato' },
+];
+
+reveals.forEach(r => {
+  setTimeout(() => {
+    document.querySelector(r.sel)?.classList.add('in');
+    document.querySelector(r.skel)?.classList.add('hidden');
+  }, r.delay);
+});
+
+/* RESET pro loop seamless */
+setTimeout(() => {
+  reveals.forEach(r => {
+    document.querySelector(r.sel)?.classList.remove('in');
+    document.querySelector(r.skel)?.classList.remove('hidden');
+  });
+}, 7800);
+</script>
+
+</body>
+</html>

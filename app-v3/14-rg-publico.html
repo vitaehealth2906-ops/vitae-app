@@ -266,6 +266,14 @@
 
     async function load() {
         const params = new URLSearchParams(window.location.search);
+
+        // MODO DEMO — abre 14-rg-publico.html?demo=1 pra ver a tela com dados simulados,
+        // sem precisar de ID real nem bater no servidor. Útil pra preview/redesign.
+        if (params.get('demo') === '1') {
+            render(_demoData());
+            return;
+        }
+
         const userId = params.get('id');
         if (!userId) { showError('Link inválido — ID não encontrado.'); return; }
 
@@ -276,6 +284,47 @@
         } catch (e) {
             showError(e.message || 'Erro ao carregar dados');
         }
+    }
+
+    // Dados simulados pro modo ?demo=1 — caso real do Lucas + Ozempic pra ver aviso GLP-1
+    function _demoData() {
+        return {
+            usuario: { id: 'demo-2CA338', nome: 'Lucas Borelli' },
+            perfil: {
+                nomeSocial: null,
+                dataNascimento: '2008-04-15',
+                cpf: '***.***.***-08',
+                tipoSanguineo: 'A+',
+                pesoKg: 72,
+                alturaCm: 178,
+                condicoes: 'Rinite alérgica, Histórico de anafilaxia',
+                cirurgias: ['Apendicectomia (2022)'],
+                historicoFamiliar: ['Mãe — Hipertensão', 'Pai — Diabetes tipo 2', 'Avó — AVC aos 68'],
+                contatoEmergenciaNome: 'Ana Borelli (Mãe)',
+                contatoEmergenciaTel: '(19) 99999-1234',
+                nomeMae: 'Ana Borelli',
+                telMae: '(19) 99999-1234',
+                nomePai: 'Carlos Borelli',
+                telPai: '(19) 98888-5678',
+                planoSaude: 'Unimed Campinas',
+                limitacoesAcessibilidade: null
+            },
+            alergias: [
+                { nome: 'Dipirona', gravidade: 'ANAFILAXIA' },
+                { nome: 'Penicilina', gravidade: 'GRAVE' },
+                { nome: 'Camarão', gravidade: 'MODERADA' }
+            ],
+            medicamentos: [
+                { nome: 'Loratadina', dosagem: '10mg', frequencia: '1x ao dia' },
+                { nome: 'Ozempic', dosagem: '0.5mg', frequencia: 'semanal' },
+                { nome: 'Cetirizina', dosagem: '10mg', frequencia: 'se necessário' }
+            ],
+            examesRecentes: [
+                { id: 'demo-1', tipoExame: 'Hemograma completo', dataExame: '2026-04-10', laboratorio: 'Hermes Pardini', status: 'CONCLUIDO', arquivoUrl: null },
+                { id: 'demo-2', tipoExame: 'Glicemia em jejum', dataExame: '2026-03-15', laboratorio: 'Fleury', status: 'CONCLUIDO', arquivoUrl: null },
+                { id: 'demo-3', tipoExame: 'Lipidograma', dataExame: '2026-02-20', laboratorio: 'Hermes Pardini', status: 'CONCLUIDO', arquivoUrl: null }
+            ]
+        };
     }
 
     function showError(msg) {
