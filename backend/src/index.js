@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { errorHandler } = require('./middleware/errorHandler');
+const trackerMedico = require('./middleware/trackerMedico');
 
 // ── Rotas ──────────────────────────────────────────────
 const authRoutes = require('./routes/auth');
@@ -26,6 +27,7 @@ const agendaRoutes = require('./routes/agenda');
 const documentosRoutes = require('./routes/documentos');
 const contatoRoutes = require('./routes/contato');
 const auditRoutes = require('./routes/audit');
+const eventosRoutes = require('./routes/eventos');
 
 // Observabilidade — inicializa Sentry se SENTRY_DSN setado
 require('./services/observability');
@@ -139,6 +141,10 @@ if (isDevelopment) {
   });
 }
 
+// ── Tracker comportamental do medico (beta) ────────────
+// Fire-and-forget no res.on('finish'). Bypass automatico se nao tem req.user.
+app.use(trackerMedico);
+
 // ── Montagem das rotas ─────────────────────────────────
 // Auth: brute-force protection mais agressiva
 app.use('/auth', limiterAuth, authRoutes);
@@ -168,6 +174,8 @@ app.use('/admin', limiterPublico, adminRoutes);
 app.use('/agenda', limiterGeral, agendaRoutes);
 // Auditoria adicional (cache view-cached) — compliance CFM
 app.use('/audit', limiterGeral, auditRoutes);
+// Eventos comportamentais (heartbeat + view) — autenticado
+app.use('/eventos', limiterGeral, eventosRoutes);
 
 // ── 404 para rotas nao encontradas ────────────────────
 app.use((_req, res) => {
@@ -450,6 +458,31 @@ app.listen(PORT, '0.0.0.0', async () => {
     await prisma.$executeRawUnsafe(`ALTER TABLE "medicos" ADD COLUMN IF NOT EXISTS "google_sync_erro_em" TIMESTAMP(3)`);
 
     console.log('[MIGRATE] ETAPA 8 (Agenda v1) — 6 tabelas + colunas em pre_consultas/medicos OK');
+
+    // ============================================
+    // ETAPA 9 — Eventos comportamentais do medico (beta tracking, 2026-05-28)
+    // ============================================
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "eventos_medico" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "medico_id" TEXT NOT NULL,
+        "tipo" TEXT NOT NULL,
+        "recurso_tipo" TEXT,
+        "recurso_id" TEXT,
+        "rota" TEXT,
+        "metodo" TEXT,
+        "payload" JSONB,
+        "ip_hash" TEXT,
+        "user_agent" TEXT,
+        "duracao_ms" INTEGER,
+        "status" INTEGER,
+        "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "eventos_medico_medico_criado_idx" ON "eventos_medico"("medico_id", "criado_em" DESC)`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "eventos_medico_tipo_criado_idx" ON "eventos_medico"("tipo", "criado_em" DESC)`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "eventos_medico_criado_idx" ON "eventos_medico"("criado_em" DESC)`);
+    console.log('[MIGRATE] tabela eventos_medico + indices OK');
   } catch (e) {
     console.error('[MIGRATE] Erro ao aplicar migracao manual:', e.message);
   }

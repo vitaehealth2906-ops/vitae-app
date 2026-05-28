@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vita id — painel beta do medico</title>
+<link rel="stylesheet" href="vitae-core.css">
+<style>
+  body { background:#F4F6FA; min-height:100vh; padding:24px; font-family:'Plus Jakarta Sans', system-ui; color:#0D0F14; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  h1 { font-size:26px; font-weight:900; letter-spacing:-0.8px; margin:0 0 4px; }
+  h1 em { font-style:italic; background:linear-gradient(120deg,#00E5A0,#00B4D8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; padding-right:0.10em; }
+  .subtitle { color:#6B7280; font-size:14px; margin:0 0 24px; }
+
+  .token-box { background:#fff; border:1.5px solid rgba(0,0,0,0.07); border-radius:14px; padding:16px; margin-bottom:16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .token-box input { flex:1; min-width:200px; border:0; outline:0; font-size:14px; font-family:monospace; }
+  .token-box button { background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#fff; border:0; padding:10px 18px; border-radius:12px; font-weight:700; cursor:pointer; }
+
+  .selector { background:#fff; border:1.5px solid rgba(0,0,0,0.07); border-radius:14px; padding:14px; margin-bottom:16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .selector label { font-size:11px; font-weight:700; color:#9CA3AF; text-transform:uppercase; letter-spacing:1.5px; }
+  .selector select { flex:1; min-width:240px; padding:10px 14px; border:1.5px solid rgba(0,0,0,0.07); border-radius:12px; font-size:14px; font-family:inherit; }
+
+  .section-label { font-size:11px; font-weight:700; letter-spacing:1.5px; color:#9CA3AF; text-transform:uppercase; margin:20px 0 10px; }
+
+  .hero-card { background:#fff; border-radius:18px; padding:20px; box-shadow:0 1px 14px rgba(0,0,0,0.06); display:grid; grid-template-columns:auto 1fr auto; gap:18px; align-items:center; }
+  .avatar { width:64px; height:64px; border-radius:50%; background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:22px; letter-spacing:-0.5px; }
+  .hero-info .nome { font-size:20px; font-weight:900; letter-spacing:-0.4px; }
+  .hero-info .meta { font-size:13px; color:#6B7280; margin-top:2px; }
+  .hero-info .email { font-size:12px; color:#9CA3AF; margin-top:2px; font-family:monospace; }
+  .online-badge { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+  .online-pill { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:100px; font-weight:700; font-size:13px; }
+  .online-pill.on { background:rgba(0,196,122,0.12); color:#00C47A; }
+  .online-pill.off { background:rgba(155,155,155,0.12); color:#6B7280; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#6B7280; }
+  .online-pill.on .dot { background:#00C47A; animation:pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.4);opacity:0.6;} }
+  .last-seen { font-size:11px; color:#9CA3AF; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; }
+  .card { background:#fff; border-radius:14px; padding:16px; box-shadow:0 1px 12px rgba(0,0,0,0.05); }
+  .card-label { font-size:11px; font-weight:700; color:#9CA3AF; text-transform:uppercase; letter-spacing:1px; }
+  .card-value { font-size:28px; font-weight:900; color:#0D0F14; margin-top:4px; }
+  .card-sub { font-size:12px; color:#6B7280; margin-top:4px; }
+
+  .por-tipo { background:#fff; border-radius:14px; padding:16px; box-shadow:0 1px 12px rgba(0,0,0,0.05); margin-top:12px; }
+  .por-tipo-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.04); }
+  .por-tipo-row:last-child { border:0; }
+  .por-tipo-row span:first-child { font-weight:600; font-size:13px; }
+  .por-tipo-row span:last-child { color:#00B4D8; font-weight:900; font-size:14px; }
+
+  .timeline { background:#fff; border-radius:14px; padding:8px 0; box-shadow:0 1px 12px rgba(0,0,0,0.05); margin-top:12px; }
+  .ev { display:grid; grid-template-columns:32px 1fr auto; gap:12px; padding:12px 16px; border-bottom:1px solid rgba(0,0,0,0.04); align-items:start; }
+  .ev:last-child { border:0; }
+  .ev-icon { width:32px; height:32px; border-radius:8px; background:#F4F6FA; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; color:#6B7280; }
+  .ev-icon.LOGIN, .ev-icon.HEARTBEAT { background:rgba(0,196,122,0.12); color:#00C47A; }
+  .ev-icon.LOGOUT, .ev-icon.DELETAR_CONTA { background:rgba(239,68,68,0.12); color:#EF4444; }
+  .ev-icon.CRIAR_TEMPLATE, .ev-icon.CRIAR_PRECONSULTA, .ev-icon.CRIAR_AGENDAMENTO { background:rgba(0,180,216,0.12); color:#00B4D8; }
+  .ev-icon.EDITAR_TEMPLATE, .ev-icon.EDITAR_PERFIL, .ev-icon.PROPOR_RETORNO, .ev-icon.REMARCAR_AGENDAMENTO { background:rgba(245,158,11,0.12); color:#F59E0B; }
+  .ev-icon.IA_COLLAB, .ev-icon.REGENERAR_SUMMARY { background:rgba(168,85,247,0.12); color:#A855F7; }
+  .ev-icon.EXPORTAR_PRONTUARIO, .ev-icon.EXPORTAR_LGPD { background:rgba(0,180,216,0.18); color:#0099C4; }
+  .ev-main { font-size:13px; }
+  .ev-main .tipo { font-weight:700; }
+  .ev-main .rota { color:#9CA3AF; font-size:11px; font-family:monospace; margin-top:2px; }
+  .ev-main .recurso { color:#6B7280; font-size:11px; margin-top:2px; }
+  .ev-time { font-size:11px; color:#9CA3AF; white-space:nowrap; }
+
+  .filter-row { display:flex; gap:8px; flex-wrap:wrap; padding:12px 16px; border-bottom:1.5px solid rgba(0,0,0,0.06); }
+  .filter-pill { padding:6px 12px; border-radius:100px; font-size:12px; font-weight:700; cursor:pointer; background:#F4F6FA; color:#6B7280; border:1.5px solid transparent; }
+  .filter-pill.active { background:rgba(0,229,160,0.12); color:#00C47A; border-color:rgba(0,229,160,0.2); }
+
+  .refresh-btn { position:fixed; bottom:24px; right:24px; background:linear-gradient(120deg,#00E5A0,#00B4D8); color:#fff; width:56px; height:56px; border-radius:50%; border:0; box-shadow:0 4px 20px rgba(0,229,160,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .refresh-btn svg { width:24px; height:24px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .erro-msg { background:rgba(239,68,68,0.08); border-left:4px solid #EF4444; padding:12px 16px; border-radius:8px; margin-top:12px; color:#991B1B; font-size:13px; }
+  .empty { text-align:center; padding:40px 20px; color:#9CA3AF; font-size:13px; }
+  .auto-refresh-toggle { display:inline-flex; align-items:center; gap:8px; font-size:12px; color:#6B7280; margin-left:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>vita id — <em>painel beta do medico</em></h1>
+  <p class="subtitle">So pra Lucas. Acompanha o medico beta em tempo real. Auto-refresh a cada 15s.</p>
+
+  <div class="token-box">
+    <input type="password" id="token" placeholder="Cola o ADMIN_TOKEN aqui">
+    <button onclick="conectar()">Conectar</button>
+  </div>
+
+  <div id="erroGeral"></div>
+
+  <div id="content" style="display:none">
+
+    <div class="selector">
+      <label>Medico:</label>
+      <select id="medicoSelect" onchange="trocarMedico()"></select>
+      <label class="auto-refresh-toggle">
+        <input type="checkbox" id="autoRefresh" checked> Auto-refresh 15s
+      </label>
+    </div>
+
+    <div class="section-label">Status agora</div>
+    <div class="hero-card">
+      <div class="avatar" id="heroAvatar">?</div>
+      <div class="hero-info">
+        <div class="nome" id="heroNome">–</div>
+        <div class="meta" id="heroMeta">–</div>
+        <div class="email" id="heroEmail">–</div>
+      </div>
+      <div class="online-badge">
+        <div class="online-pill off" id="onlinePill"><span class="dot"></span><span id="onlineText">offline</span></div>
+        <div class="last-seen" id="lastSeen">–</div>
+      </div>
+    </div>
+
+    <div class="section-label">Atividade nas ultimas 24h</div>
+    <div class="grid">
+      <div class="card"><div class="card-label">Acoes</div><div class="card-value" id="acoes24h">–</div></div>
+      <div class="card"><div class="card-label">Cadastro</div><div class="card-value" id="cadastro" style="font-size:14px;">–</div></div>
+      <div class="card"><div class="card-label">Ultimo login</div><div class="card-value" id="ultimoLogin" style="font-size:14px;">–</div></div>
+    </div>
+
+    <div class="section-label">Tipos de acao (24h)</div>
+    <div class="por-tipo" id="porTipoBox">
+      <div class="empty">Sem acoes nas ultimas 24h</div>
+    </div>
+
+    <div class="section-label">Timeline (mais recente primeiro)</div>
+    <div class="timeline">
+      <div class="filter-row">
+        <div class="filter-pill active" data-filter="" onclick="filtrar('')">Todos</div>
+        <div class="filter-pill" data-filter="LOGIN,LOGOUT,HEARTBEAT" onclick="filtrar('LOGIN,LOGOUT,HEARTBEAT')">Sessao</div>
+        <div class="filter-pill" data-filter="CRIAR_TEMPLATE,EDITAR_TEMPLATE,LISTAR_TEMPLATES,VER_TEMPLATE" onclick="filtrar('CRIAR_TEMPLATE,EDITAR_TEMPLATE,LISTAR_TEMPLATES,VER_TEMPLATE')">Templates</div>
+        <div class="filter-pill" data-filter="CRIAR_PRECONSULTA,VER_PRECONSULTA,LISTAR_PRECONSULTAS,IA_COLLAB,REGENERAR_SUMMARY" onclick="filtrar('CRIAR_PRECONSULTA,VER_PRECONSULTA,LISTAR_PRECONSULTAS,IA_COLLAB,REGENERAR_SUMMARY')">Pre-consulta</div>
+        <div class="filter-pill" data-filter="VER_PACIENTE,LISTAR_PACIENTES" onclick="filtrar('VER_PACIENTE,LISTAR_PACIENTES')">Pacientes</div>
+        <div class="filter-pill" data-filter="CRIAR_AGENDAMENTO,PROPOR_RETORNO,ACEITAR_PROPOSTA_RETORNO" onclick="filtrar('CRIAR_AGENDAMENTO,PROPOR_RETORNO,ACEITAR_PROPOSTA_RETORNO')">Agenda</div>
+        <div class="filter-pill" data-filter="EXPORTAR_PRONTUARIO,EXPORTAR_LGPD" onclick="filtrar('EXPORTAR_PRONTUARIO,EXPORTAR_LGPD')">Exportar</div>
+      </div>
+      <div id="timelineBody"><div class="empty">Carregando...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<button class="refresh-btn" onclick="atualizar()" title="Atualizar agora">
+  <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5"/></svg>
+</button>
+
+<script>
+const API = window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://vitae-app-production.up.railway.app';
+let TOKEN = localStorage.getItem('vitae_admin_token') || '';
+let MEDICO_ID = localStorage.getItem('vitae_painel_medico_id') || '';
+let FILTRO_TIPO = '';
+let TIMER = null;
+
+document.getElementById('token').value = TOKEN;
+if (TOKEN) conectar();
+
+async function api(path) {
+  const r = await fetch(API + path, { headers: { 'x-admin-token': TOKEN } });
+  if (r.status === 401) throw new Error('Token invalido');
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+async function conectar() {
+  TOKEN = document.getElementById('token').value.trim();
+  if (!TOKEN) return alert('Cola o token');
+  localStorage.setItem('vitae_admin_token', TOKEN);
+  document.getElementById('erroGeral').innerHTML = '';
+  try {
+    const lista = await api('/admin/medicos-recentes?limit=20');
+    const sel = document.getElementById('medicoSelect');
+    sel.innerHTML = '';
+    lista.medicos.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      const dt = new Date(m.criadoEm);
+      opt.textContent = `${m.nome || m.email} — ${m.medico?.crm || 's/CRM'} — ${dt.toLocaleDateString('pt-BR')}`;
+      sel.appendChild(opt);
+    });
+    if (MEDICO_ID && lista.medicos.find(m => m.id === MEDICO_ID)) {
+      sel.value = MEDICO_ID;
+    } else if (lista.medicos.length > 0) {
+      MEDICO_ID = lista.medicos[0].id;
+      sel.value = MEDICO_ID;
+      localStorage.setItem('vitae_painel_medico_id', MEDICO_ID);
+    }
+    document.getElementById('content').style.display = '';
+    atualizar();
+    iniciarAutoRefresh();
+  } catch (e) {
+    document.getElementById('erroGeral').innerHTML = `<div class="erro-msg">${e.message}</div>`;
+  }
+}
+
+function trocarMedico() {
+  MEDICO_ID = document.getElementById('medicoSelect').value;
+  localStorage.setItem('vitae_painel_medico_id', MEDICO_ID);
+  atualizar();
+}
+
+function filtrar(tipos) {
+  FILTRO_TIPO = tipos;
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.toggle('active', p.dataset.filter === tipos));
+  carregarTimeline();
+}
+
+function fmtTempo(iso) {
+  if (!iso) return '–';
+  const dt = new Date(iso);
+  const seg = Math.floor((Date.now() - dt.getTime()) / 1000);
+  if (seg < 60) return `${seg}s atras`;
+  if (seg < 3600) return `${Math.floor(seg/60)}min atras`;
+  if (seg < 86400) return `${Math.floor(seg/3600)}h atras`;
+  return dt.toLocaleString('pt-BR');
+}
+
+function fmtData(iso) {
+  if (!iso) return '–';
+  return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+async function atualizar() {
+  if (!MEDICO_ID) return;
+  try {
+    const status = await api(`/admin/medico-status/${MEDICO_ID}`);
+    renderStatus(status);
+    await carregarTimeline();
+  } catch (e) {
+    document.getElementById('erroGeral').innerHTML = `<div class="erro-msg">${e.message}</div>`;
+  }
+}
+
+function renderStatus(s) {
+  const u = s.usuario || {};
+  const m = u.medico || {};
+  document.getElementById('heroNome').textContent = u.nome || '(sem nome)';
+  document.getElementById('heroMeta').textContent = [
+    m.crm ? `CRM ${m.crm}/${m.ufCrm}` : '',
+    m.especialidade || '',
+    m.clinica || ''
+  ].filter(Boolean).join(' · ') || 'Sem perfil medico';
+  document.getElementById('heroEmail').textContent = u.email || '';
+  const inic = (u.nome || u.email || '?').split(' ').filter(Boolean).slice(0,2).map(s => s[0]).join('').toUpperCase();
+  document.getElementById('heroAvatar').textContent = inic || '?';
+
+  const pill = document.getElementById('onlinePill');
+  pill.classList.toggle('on', s.online);
+  pill.classList.toggle('off', !s.online);
+  document.getElementById('onlineText').textContent = s.online ? 'online' : 'offline';
+  document.getElementById('lastSeen').textContent = s.ultima_atividade
+    ? `ultima acao ${fmtTempo(s.ultima_atividade)}`
+    : 'nenhuma acao ainda';
+
+  document.getElementById('acoes24h').textContent = s.acoes_24h ?? 0;
+  document.getElementById('cadastro').textContent = fmtData(u.criadoEm);
+  document.getElementById('ultimoLogin').textContent = u.ultimoLogin ? fmtData(u.ultimoLogin) : 'nunca';
+
+  const box = document.getElementById('porTipoBox');
+  if (!s.por_tipo_24h || s.por_tipo_24h.length === 0) {
+    box.innerHTML = '<div class="empty">Sem acoes nas ultimas 24h</div>';
+  } else {
+    box.innerHTML = s.por_tipo_24h.map(t =>
+      `<div class="por-tipo-row"><span>${t.tipo}</span><span>${t.n}</span></div>`
+    ).join('');
+  }
+}
+
+async function carregarTimeline() {
+  if (!MEDICO_ID) return;
+  const q = new URLSearchParams({ limit: '200' });
+  if (FILTRO_TIPO) q.set('tipo', FILTRO_TIPO);
+  try {
+    const data = await api(`/admin/eventos-medico/${MEDICO_ID}?${q.toString()}`);
+    const body = document.getElementById('timelineBody');
+    if (!data.eventos || data.eventos.length === 0) {
+      body.innerHTML = `<div class="empty">${data.aviso || 'Sem eventos nesse filtro'}</div>`;
+      return;
+    }
+    body.innerHTML = data.eventos.map(e => {
+      const tipo = e.tipo || '?';
+      const iconLetter = tipo.charAt(0);
+      const recurso = e.recurso_tipo ? `${e.recurso_tipo}${e.recurso_id ? ' #' + String(e.recurso_id).slice(0,8) : ''}` : '';
+      return `
+        <div class="ev">
+          <div class="ev-icon ${tipo}">${iconLetter}</div>
+          <div class="ev-main">
+            <div class="tipo">${tipo}</div>
+            ${recurso ? `<div class="recurso">${recurso}</div>` : ''}
+            <div class="rota">${e.rota || ''} ${e.status ? '· ' + e.status : ''} ${e.duracao_ms ? '· ' + e.duracao_ms + 'ms' : ''}</div>
+          </div>
+          <div class="ev-time" title="${fmtData(e.criado_em)}">${fmtTempo(e.criado_em)}</div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    document.getElementById('timelineBody').innerHTML = `<div class="erro-msg">${e.message}</div>`;
+  }
+}
+
+function iniciarAutoRefresh() {
+  clearInterval(TIMER);
+  TIMER = setInterval(() => {
+    if (document.getElementById('autoRefresh').checked && !document.hidden) atualizar();
+  }, 15000);
+}
+</script>
+</body>
+</html>

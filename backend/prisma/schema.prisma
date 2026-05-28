@@ -631,6 +631,31 @@ model Consentimento {
   @@map("consentimentos")
 }
 
+// ---- EVENTOS COMPORTAMENTAIS DO MEDICO (beta tracking — 2026-05-28) ----
+// Diferente de AuditoriaAcesso (LGPD clinico): captura toda acao do medico
+// pra Lucas acompanhar uso do beta — login, navegacao, criacao, exportacao, heartbeat.
+// Retencao curta (90 dias) — nao e dado clinico, e telemetria de produto.
+model EventoMedico {
+  id          String   @id @default(uuid())
+  medicoId    String   @map("medico_id") // Usuario.id (tipo=MEDICO)
+  tipo        String   // LOGIN, LOGOUT, HEARTBEAT, NAVEGACAO, CRIAR_TEMPLATE, etc
+  recursoTipo String?  @map("recurso_tipo") // TEMPLATE, PRECONSULTA, PACIENTE, etc
+  recursoId   String?  @map("recurso_id")
+  rota        String?  // ex: GET /medico/pacientes/:id
+  metodo      String?  // GET, POST, PUT, DELETE
+  payload     Json?    // metadados (zero PII clinica — so contexto operacional)
+  ipHash      String?  @map("ip_hash")
+  userAgent   String?  @map("user_agent") // parsed/curto, nao raw
+  duracaoMs   Int?     @map("duracao_ms") // tempo de resposta da rota
+  status      Int?     // HTTP status code
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  @@index([medicoId, criadoEm])
+  @@index([tipo, criadoEm])
+  @@index([criadoEm])
+  @@map("eventos_medico")
+}
+
 // ---- AUDITORIA DE ACESSO (LGPD: quem viu qual dado, quando, de onde) ----
 model AuditoriaAcesso {
   id          String   @id @default(uuid())

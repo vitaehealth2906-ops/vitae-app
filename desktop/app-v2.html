@@ -6071,6 +6071,24 @@ document.addEventListener('DOMContentLoaded',function(){
   /* avatar sidebar pra abrir logout */
   var u=document.querySelector('.sb-user');
   if(u)u.style.cursor='pointer',u.onclick=function(){modalLogout();};
+
+  /* Heartbeat beta (2026-05-28) — Lucas acompanha uso real do medico.
+     Fire-and-forget. Pausa se aba escondida. Nao quebra nada se backend offline. */
+  (function(){
+    if (window._vitaeHeartbeat) return; window._vitaeHeartbeat = true;
+    var API_BASE = (location.hostname==='localhost') ? 'http://localhost:3001' : 'https://vitae-app-production.up.railway.app';
+    function ping(){
+      if (document.hidden) return;
+      var t; try { t = localStorage.getItem('vitae_token'); } catch(e){}
+      if (!t) return;
+      try {
+        fetch(API_BASE + '/eventos/ping', { method:'POST', headers:{ 'Authorization':'Bearer '+t, 'Content-Type':'application/json' }, body:'{}' })
+          .catch(function(){});
+      } catch(_e) {}
+    }
+    setTimeout(ping, 2000); /* primeiro ping 2s apos load */
+    setInterval(ping, 30000); /* a cada 30s */
+  })();
 });
 
 /* ============================================================

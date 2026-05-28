@@ -132,6 +132,99 @@ router.get('/medicos-recentes', exigirAdmin, async (req, res, next) => {
   }
 });
 
+// ── GET /admin/eventos-medico/:id — timeline de eventos do medico ─
+// Query: ?desde=ISO  ?ate=ISO  ?tipo=LOGIN,HEARTBEAT  ?limit=N (max 500)
+router.get('/eventos-medico/:id', exigirAdmin, async (req, res, next) => {
+  try {
+    const medicoId = req.params.id;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
+    const tipos = req.query.tipo ? String(req.query.tipo).split(',').map(s => s.trim()).filter(Boolean) : null;
+    const desde = req.query.desde ? new Date(req.query.desde) : null;
+    const ate = req.query.ate ? new Date(req.query.ate) : null;
+
+    const filtros = ['medico_id = $1'];
+    const params = [medicoId];
+    let idx = 2;
+    if (desde && !isNaN(desde.getTime())) { filtros.push(`criado_em >= $${idx++}`); params.push(desde); }
+    if (ate && !isNaN(ate.getTime())) { filtros.push(`criado_em <= $${idx++}`); params.push(ate); }
+    if (tipos && tipos.length > 0) {
+      const placeholders = tipos.map(() => `$${idx++}`).join(',');
+      filtros.push(`tipo IN (${placeholders})`);
+      params.push(...tipos);
+    }
+
+    const sql = `
+      SELECT id, tipo, recurso_tipo, recurso_id, rota, metodo, payload,
+             ip_hash, user_agent, duracao_ms, status, criado_em
+      FROM eventos_medico
+      WHERE ${filtros.join(' AND ')}
+      ORDER BY criado_em DESC
+      LIMIT ${limit}
+    `;
+    const eventos = await prisma.$queryRawUnsafe(sql, ...params);
+    res.json({ total: eventos.length, eventos });
+  } catch (e) {
+    // Se tabela ainda nao foi criada (boot do Railway nao rodou migration), responde vazio
+    if (e.message?.includes('eventos_medico') || e.code === '42P01') {
+      return res.json({ total: 0, eventos: [], aviso: 'Tabela eventos_medico ainda nao foi criada (aguarde redeploy)' });
+    }
+    next(e);
+  }
+});
+
+// ── GET /admin/medico-status/:id — agregado de status (online?, ultima acao, stats 24h)
+router.get('/medico-status/:id', exigirAdmin, async (req, res, next) => {
+  try {
+    const medicoId = req.params.id;
+    const ONLINE_TTL_SEC = parseInt(req.query.online_ttl, 10) || 90; // online se ultimo evento < 90s
+
+    // Busca em paralelo
+    const [usuario, ultimo, stats24h, porTipo24h, ultimos5] = await Promise.all([
+      prisma.usuario.findUnique({
+        where: { id: medicoId },
+        select: { id: true, email: true, nome: true, criadoEm: true, ultimoLogin: true,
+                  medico: { select: { crm: true, ufCrm: true, especialidade: true, clinica: true } } },
+      }),
+      prisma.$queryRawUnsafe(
+        `SELECT tipo, criado_em FROM eventos_medico WHERE medico_id = $1 ORDER BY criado_em DESC LIMIT 1`,
+        medicoId
+      ).catch(() => []),
+      prisma.$queryRawUnsafe(
+        `SELECT COUNT(*)::int AS n FROM eventos_medico WHERE medico_id = $1 AND criado_em > NOW() - INTERVAL '24 hours'`,
+        medicoId
+      ).catch(() => [{ n: 0 }]),
+      prisma.$queryRawUnsafe(
+        `SELECT tipo, COUNT(*)::int AS n FROM eventos_medico WHERE medico_id = $1 AND criado_em > NOW() - INTERVAL '24 hours' GROUP BY tipo ORDER BY n DESC`,
+        medicoId
+      ).catch(() => []),
+      prisma.$queryRawUnsafe(
+        `SELECT tipo, rota, criado_em FROM eventos_medico WHERE medico_id = $1 ORDER BY criado_em DESC LIMIT 5`,
+        medicoId
+      ).catch(() => []),
+    ]);
+
+    const ultimaAtividade = ultimo[0]?.criado_em || null;
+    const segundosDesdeUltimo = ultimaAtividade
+      ? Math.floor((Date.now() - new Date(ultimaAtividade).getTime()) / 1000)
+      : null;
+    const online = segundosDesdeUltimo !== null && segundosDesdeUltimo <= ONLINE_TTL_SEC;
+
+    res.json({
+      usuario,
+      online,
+      online_ttl_segundos: ONLINE_TTL_SEC,
+      ultima_atividade: ultimaAtividade,
+      segundos_desde_ultima: segundosDesdeUltimo,
+      acoes_24h: stats24h[0]?.n || 0,
+      por_tipo_24h: porTipo24h,
+      ultimos_5: ultimos5,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 // ── GET /admin/audit — ultimas N aberturas de briefing (LGPD) ──
 router.get('/audit', exigirAdmin, async (req, res, next) => {
   try {
