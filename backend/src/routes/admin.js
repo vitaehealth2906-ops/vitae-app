@@ -98,6 +98,40 @@ router.get('/stats', exigirAdmin, async (req, res, next) => {
   }
 });
 
+// ── GET /admin/medicos-recentes — ultimos N medicos cadastrados ─
+// Uso: acompanhar beta. Retorna email/nome/CRM dos N mais recentes.
+// Query: ?limit=N (default 10, max 50), ?desde=YYYY-MM-DD (opcional)
+router.get('/medicos-recentes', exigirAdmin, async (req, res, next) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+    const desde = req.query.desde ? new Date(req.query.desde) : null;
+    const where = { tipo: 'MEDICO' };
+    if (desde && !isNaN(desde.getTime())) {
+      where.criadoEm = { gte: desde };
+    }
+    const medicos = await prisma.usuario.findMany({
+      where,
+      orderBy: { criadoEm: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        email: true,
+        nome: true,
+        celular: true,
+        status: true,
+        criadoEm: true,
+        ultimoLogin: true,
+        medico: {
+          select: { crm: true, ufCrm: true, especialidade: true, clinica: true, criadoEm: true },
+        },
+      },
+    });
+    res.json({ total: medicos.length, medicos });
+  } catch (e) {
+    next(e);
+  }
+});
+
 // ── GET /admin/audit — ultimas N aberturas de briefing (LGPD) ──
 router.get('/audit', exigirAdmin, async (req, res, next) => {
   try {
