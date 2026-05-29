@@ -609,6 +609,69 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 34 — 28-29/05/2026 — Painel beta do medico + heartbeat (entrega completa)
+
+**Contexto:** 1o medico beta REAL cadastrou 28/05 07:40 BRT — Jose Eduardo Tambor Bueno (`acupuntura.bueno@gmail.com`, CRM 12345678/SP, Acupuntura, Clinica Sao Luis). Logou 07:45. Lucas pediu "painel de espionagem" pra acompanhar uso do medico sem precisar perguntar.
+
+**O que foi feito (3 commits, todos em main):**
+
+**Commit `4d29f4e` — `GET /admin/medicos-recentes`:**
+Endpoint admin protegido por `x-admin-token` pra listar ultimos N medicos (email/CRM/data). Resolveu o problema "como saber qual email do medico cadastrou hoje" — banco PostgreSQL 5432 do Supabase pooler nao responde do PC do Lucas (firewall/ISP).
+
+**Commit `c9b0465` — painel beta completo:**
+
+Backend:
+- Schema `EventoMedico` (+ migration `20260528_eventos_medico`) + auto-migration ETAPA 9 no `index.js` (idempotente, `CREATE TABLE IF NOT EXISTS`, mesmo padrao das etapas 5-8)
+- `services/eventosMedico.js`: registrar fire-and-forget + cache de `tipo` do usuario (Map em memoria, 10min TTL) + `inferirTipoEvento(metodo, url, params)` com 40+ rotas mapeadas (LOGIN, HEARTBEAT, CRIAR_TEMPLATE, IA_COLLAB, EXPORTAR_PRONTUARIO, PROPOR_RETORNO etc)
+- `middleware/trackerMedico.js`: hook `res.on('finish')`, ZERO latencia na resposta, bypass se rota `/admin` ou sem `req.user`. Registrado globalmente em `index.js` antes das rotas.
+- `routes/eventos.js`: `POST /eventos/ping` (heartbeat) + `POST /eventos/view` (opcional com payload)
+- `routes/admin.js`: `GET /admin/eventos-medico/:id` (filtros desde/ate/tipo/limit) + `GET /admin/medico-status/:id` (online?, contagens 24h, top tipos, ultimos 5)
+
+Frontend admin (Lucas):
+- `dashboard-medico-beta.html` na raiz. Dropdown popula via `/admin/medicos-recentes`, card hero com badge ONLINE pulsante (verde) ou OFFLINE (cinza, threshold 90s), stats 24h, ranking por tipo, timeline com 7 filtros (Sessao/Templates/PC/Pacientes/Agenda/Exportar/Todos), auto-refresh 15s pausavel.
+
+Frontend medico (`desktop/app-v2.html`):
+- Bloco de heartbeat dentro do DOMContentLoaded existente. `setInterval(ping, 30000)` + primeiro ping em 2s. Pausa se `document.hidden`. Fire-and-forget. **ZERO mudanca visual.**
+
+`ADMIN_TOKEN` gerado e setado no Railway pela primeira vez (era pendencia desde Fase 2 da observabilidade, 04/05). Salvo em `.admin-token.local` (gitignored).
+
+**Commit `c2c53bb` — fix CORS:**
+Bug latente desde 04/05: `index.js` so liberava `Content-Type, Authorization` no preflight CORS. Painel mandava `x-admin-token` → "Failed to fetch" no browser. Nao foi pego antes porque `ADMIN_TOKEN` nunca tinha sido setado em prod ate 28/05. Fix: adicionar `'x-admin-token'` em `allowedHeaders`. Validado via curl preflight retornando `Access-Control-Allow-Headers: Content-Type,Authorization,x-admin-token`.
+
+**Estado do beta no momento do handoff:**
+- Jose Eduardo nao voltou a logar desde 07:45 do dia 28/05
+- Heartbeat so passou a existir horas depois — entao 0 eventos registrados pra ele ainda
+- Painel funcionando, pronto pra mostrar tudo assim que ele voltar
+
+**Memorias persistentes salvas em `C:/Users/valve/.claude/projects/d--/memory/`:**
+- `reference_medico_beta.md` — identificacao do Jose Eduardo
+- `reference_admin_token.md` — onde mora o token + como rotacionar
+- `project_painel_beta_medico.md` — arquitetura completa do sistema
+
+**Handoff pro PC de casa criado em 29/05 manha:**
+- `Obsidian Vault/HANDOFF-PC-CASA-29-MAI-2026.md` — detalhado
+- `Obsidian Vault/MEGA-PROMPT-PC-CASA-29-MAI-2026.md` — prompt pronto pra colar no Claude do PC de casa
+
+**Skills usadas:**
+- TodoWrite intensivo (9 tarefas)
+- AskUserQuestion (2 decisoes: schema change OK? heartbeat sim/nao?)
+- Railway CLI (CRUD env vars + railway run pra acessar DATABASE_URL e ADMIN_TOKEN)
+- Edit/Write em ~10 arquivos
+- Smoke test direto via Node + fetch nativo
+
+**Pendente proxima sessao (PC de casa):**
+1. Pull dos 3 commits
+2. Copiar `.admin-token.local` pro PC de casa (Opcao A/B/C do handoff)
+3. Validar painel abre
+4. Acompanhar se Jose Eduardo volta a logar
+5. (Opcional) push notification pro Lucas quando ele logar
+6. (Opcional) PostHog/Clarity pra cliques/scroll
+7. Pendente da Sessao 32 (22/05): aplicar migration `20260522_flags_app_onboarding` ainda nao aplicada manualmente
+
+**Aviso seguranca:** senha do banco apareceu no transcript via `railway variables` (igual Sessao 19) — rotacionar quando puder no Supabase Dashboard.
+
+---
+
 ### Sessao 33 — 24-25/05/2026 — Site marketing: Hero + Pilares estilo Maia (autonomo)
 
 **Foco:** site marketing institucional. Zero alteracao funcional no app (excecao: 1 copy).
