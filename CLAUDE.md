@@ -609,6 +609,35 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 36 — 02/06/2026 — Painel do gestor B2B completo (backend + quiz menores + painel real) + teste de carga 10k
+
+**Contexto:** Frontend do painel do gestor aprovado preview-first (mockups em `d:\vita-telas-b2b\05-painel-gestor.html` + `06-quiz-responsaveis.html`, redesenhados na pegada shadcn/Tremor/Linear apos Lucas reclamar de "cara de vibe-coding"). Lucas pediu: construir TODO o backend reusando o que ja existe, e RODAR todos os testes (inclusive carga de 4.000+ alunos) — "eu nao quero fazer nenhum teste, voce e seus agentes fazem todos". Plano denso no vault: `Obsidian Vault/PLANO-BACKEND-B2B-PAINEL-GESTOR-02-JUN-2026/00-PLANO-CONSOLIDADO.md` (10 secoes, escrito por workflow).
+
+**4 decisoes do Lucas (travadas):** metrica = so quem PREENCHEU o RG (nao so quem entrou); auditoria de acesso LIGADA agora; rate-limit do gestor AUMENTADO; exames CORTADOS da ficha do membro.
+
+**Backend (tudo aditivo, reuso do molde do medico, commit `9e949f2`):**
+- `routes/empresa.js`: 2 rotas novas — `GET /empresa/membros` (lista PAGINADA por cursor + busca por nome, select enxuto: id/nome/fotoUrl/idade/genero/menor) e `GET /empresa/membro/:pacienteId` (RG do membro: clona o select do `GET /medico/pacientes/:id` SEM exames; porteiro = VinculoEmpresa ATIVO da empresa do dono; auditoria `VIEW_MEMBRO_EMPRESA`). Helpers `_empresaDoDono` + `_idade`. Metrica `comRgPreenchido` adicionada ao `GET /me` (count com filtro `paciente.perfilSaude.dataNascimento not null`). Paginacao com orderBy COMPOSTO `[criadoEm desc, id desc]` (cursor estavel mesmo com 10k inseridos no mesmo ms).
+- `routes/perfil.js`: validador `atualizarPerfilSchema` passa a aceitar `nomeMae/telMae/nomePai/telPai` (as colunas ja existiam no schema, eram orfas — o validador descartava). Zero migration.
+- `index.js`: `/empresa` movido de `limiterPublico` (60/min) pra `limiterGeral` (300/min) — empresa grande atras de 1 IP estourava 60.
+- `app-v3/api.js`: `buscarMembrosEmpresa(q,cursor,limit)` + `getRgMembroEmpresa(id)`.
+- Migration `20260602b_indices_b2b_escala` (aplicada A MAO no Railway): `idx_vinculos_empresa_org_status_criado (empresa_id,status,criado_em DESC)` + extensao `pg_trgm` + `idx_usuarios_nome_trgm` (GIN gin_trgm_ops pra busca ILIKE). Aditiva/idempotente.
+
+**Frontend (commit `4f3526b`):**
+- `app-v3/30-quiz.html`: REMOVIDO o bloqueio de menor de 13 (sem limite de idade — mae pode criar RG do filho pequeno). Quando idade<18, o passo "Contato de emergencia" vira "Responsaveis" (Pai + Mae, PELO MENOS UM obrigatorio) via `quizConfigStep2(menor)` chamado na validacao do passo 0. Salva `nomePai/telPai/nomeMae/telMae` + popula contatoEmergencia com o 1o responsavel. 6 edicoes cirurgicas.
+- `app-v3/empresa-painel.html`: REESCRITO do mockup mobile placeholder pro PAINEL REAL desktop (1040px, paleta zinc shadcn). Metrica unica (alunos/colaboradores com RG ativo, label adapta por `empresa.tipo`), area de convite (link reutilizavel + copiar + WhatsApp), TABELA paginada ("Carregar mais" por cursor) + busca debounced, avatar redondo 32px (foto real `fotoUrl` ou iniciais), badge Ativo/Menor. Detalhe = cartao ONIX REAL (copiado do 01-saude.html, com QR via qrcodejs) + ficha em lista (dados pessoais + alergias + meds + condicoes + contato/Responsaveis). Mantem criar-empresa + login porteiro.
+
+**TESTES (todos rodados por mim, Lucas nao tocou em nada):**
+- Harness `backend/tests/loadtest/loadtest.js` (seed/measure/explain/http/e2e/cleanup), rodado via `railway run node`.
+- **ESCALA — 10.000 membros (2,5x o cliente de 4.000):** `EXPLAIN ANALYZE` (tempo dentro do banco, sem rede): lista pagina 1 = **9ms**, busca por nome = **5,5ms** (trigram), metrica = **9,7ms**, contagem = **2,4ms**. Indices usados. VEREDITO: aguenta 4.000/300/milhares com FOLGA (prod = servidor colado no banco, +1-5ms). O "seq scan" na metrica e artefato (org de teste = tabela quase inteira; em multi-org o filtro por empresa pega so a fatia via indice).
+- **HTTP smoke (rotas deployadas):** /me (comRgPreenchido=10000), /membros (paginado), busca, /membro/:id (exames cortados), seguranca 403. Tudo ok.
+- **Frontend smoke (Playwright local):** 4/4 — painel renderiza + Onix, quiz carrega, passo Responsaveis existe, quizConfigStep2(true) mostra pai/mae.
+- **E2E funcional (prod):** 11/11 — cadastro gestor+empresa+convite, membro MENOR (14a) cadastro+perfil com responsaveis+vinculo, responsaveis salvos, gestor ve na lista (menor=true), RG traz nomePai/telPai SEM exames, gestor de OUTRA empresa = 403.
+- **Limpeza:** seed/e2e usavam dados MARCADOS (`loadtest+...@vitae-loadtest.invalid` / `LOADTEST ORG ...`). Cleanup deletou 10.053 + 3, conferido reais antes/depois = 154/154 INTEGRO, 0 sobrando.
+
+**Estado:** painel do gestor B2B 100% no ar e validado. Falta so o que ja era pra ficar pro final: LGPD/consentimento do membro (Lucas adiou) e a carteira de vacina (adiada). Tags rollback: `pre-painel-gestor-backend-2026-06-02`. Commits: `9e949f2` (backend), `262be4e` (harness), `4f3526b` (frontend).
+
+---
+
 ### Sessao 35 — 29/05 a 02/06/2026 — Virada estrategica (Hippocratic) + Fundacao B2B (organizacao -> "sua equipe") + login novo em todas as portas
 
 **Contexto:** Sessao longa em 2 arcos. ARCO 1 = estudo estrategico (spin-off "RG via pagador" -> red-team que matou a tese Flatiron -> Hippocratic como espelho do vita id -> largar a manchete "RG de saude" e vender o trabalho concreto: "o agente que conversa com o paciente ANTES da consulta"). ARCO 2 = construcao B2B real: organizacoes (empresas E escolas/faculdades) dao vita id pra "sua equipe"; dono ve agregado; membro entra por link de convite. Tudo construido, deployado e testado.
