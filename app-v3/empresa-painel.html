@@ -4,235 +4,344 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>vita id Empresas — Painel do gestor</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
-  :root{--green:#00E5A0;--cyan:#00B4D8;--grad:linear-gradient(120deg,#00E5A0,#00B4D8);--bg:#F4F6FA;--ink:#0D0F14;--muted:#9CA3AF;--line:#E6E9F0;--body:#4B5563}
+  :root{--green:#00E5A0;--cyan:#00B4D8;--grad:linear-gradient(120deg,#00E5A0,#00B4D8);--fg:#18181B;--emph:#3F3F46;--muted:#71717A;--border:#E4E4E7;--hover:#F4F4F5;--subtle:#FAFAFA;--ring:#A1A1AA;--ok-bg:#ECFDF5;--ok-fg:#047857;--ok-bd:#A7F3D0;--kid-bg:#F5F3FF;--kid-fg:#6D28D9;--kid-bd:#DDD6FE;--ease:cubic-bezier(.2,.8,.2,1)}
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif}
-  body{background:var(--bg);min-height:100vh;color:var(--ink)}
-  .top{background:#fff;border-bottom:1px solid var(--line);padding:18px 22px;display:flex;align-items:center;justify-content:space-between}
-  .brand{display:flex;align-items:center;font-size:21px;font-weight:800;color:var(--ink)}
-  .brand .id{background:var(--grad);color:#fff;border-radius:9px;padding:1px 9px;margin-left:6px}
-  .top .badge{font-size:10.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
-  .container{max-width:560px;margin:0 auto;padding:28px 22px 60px}
-  .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px}
-  h1{font-size:26px;font-weight:900;letter-spacing:-.8px;line-height:1.2;margin-bottom:8px}
-  h1 em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:.08em}
-  .sub{font-size:14.5px;font-weight:500;color:var(--body);line-height:1.55;margin-bottom:24px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 1px 12px rgba(0,0,0,.06);margin-bottom:18px}
-  /* hero empresa */
-  .hero{background:var(--grad);color:#fff;border:0;box-shadow:0 14px 30px rgba(0,180,216,.26)}
-  .hero small{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.9}
-  .hero h2{font-size:24px;font-weight:900;letter-spacing:-.6px;margin:4px 0 16px}
-  .hero .count{display:flex;align-items:baseline;gap:8px}
-  .hero .count b{font-size:38px;font-weight:900;line-height:1}
-  .hero .count span{font-size:13.5px;font-weight:600;opacity:.95}
-  label{display:block;font-size:13.5px;font-weight:700;color:var(--ink);margin:0 0 9px 2px}
-  .field{display:flex;align-items:center;gap:12px;background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:0 15px;height:56px;margin-bottom:18px}
-  .field:focus-within{border-color:var(--cyan);box-shadow:0 0 0 4px rgba(0,180,216,.12);background:#fff}
-  .field svg{flex:none;color:var(--muted)}
-  .field input{border:0;outline:0;flex:1;font-size:15px;font-weight:500;color:var(--ink);background:transparent}
-  .field input::placeholder{color:#B9C0CC}
-  .btn{width:100%;height:56px;border:0;border-radius:14px;background:var(--grad);color:#fff;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 12px 26px rgba(0,180,216,.28)}
-  .btn:disabled{opacity:.55;pointer-events:none}
-  .btn-sec{width:100%;height:52px;border:1.5px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);font-size:15px;font-weight:800;cursor:pointer}
-  .linkbox{display:flex;gap:8px;margin-top:14px}
-  .linkbox input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:0 14px;height:48px;font-size:13px;font-weight:500;color:var(--body);background:var(--bg)}
-  .icbtn{width:48px;height:48px;border:1.5px solid var(--line);border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);flex:none}
-  .wa{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border:0;border-radius:12px;background:#25D366;color:#fff;font-size:14.5px;font-weight:800;cursor:pointer;margin-top:10px;text-decoration:none}
-  .soon{display:flex;align-items:center;gap:13px;opacity:.85}
-  .soon .ic{width:44px;height:44px;border-radius:12px;background:rgba(0,180,216,.10);display:flex;align-items:center;justify-content:center;color:var(--cyan);flex:none}
-  .soon b{font-size:14.5px;font-weight:800;display:block;margin-bottom:2px}
-  .soon p{font-size:12.5px;font-weight:500;color:var(--muted)}
-  .err{font-size:13px;font-weight:600;color:#EF4444;margin:-6px 0 14px 2px;min-height:0}
+  body{background:#F4F4F5;min-height:100vh;color:var(--fg);padding:22px 18px 60px;display:flex;flex-direction:column;align-items:center}
+  .app{width:1040px;max-width:100%;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.05);overflow:hidden}
+  .top{height:56px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+  .top .l{display:flex;align-items:center;gap:12px}
+  .wm{font-size:16px;font-weight:700;color:var(--fg);letter-spacing:-.01em}.wm b{font-weight:800;color:#fff;background:var(--grad);border-radius:5px;padding:1px 6px;margin-left:3px}
+  .vdiv{width:1px;height:16px;background:var(--border)}
+  .gbadge{font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--hover);border:1px solid var(--border);padding:3px 8px;border-radius:6px}
+  .orgname{font-size:14px;font-weight:500;color:var(--fg)}
+  .gava{width:32px;height:32px;border-radius:9999px;background:var(--hover);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer}
+  .wrap{padding:24px}
   .hidden{display:none}
-  .priv{display:flex;align-items:flex-start;gap:11px;font-size:12.3px;font-weight:500;color:var(--body);line-height:1.5;margin-top:6px}
-  .priv svg{flex:none;color:var(--cyan);margin-top:1px}
+  /* metrica */
+  .metric{margin-bottom:24px}
+  .metric .lab{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+  .metric .num{font-size:30px;line-height:36px;font-weight:600;color:var(--fg);font-variant-numeric:tabular-nums}
+  .metric .bar{width:64px;height:3px;border-radius:9999px;background:var(--grad);margin-top:10px}
+  /* convite */
+  .invite{border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px}
+  .invite h3{font-size:14px;font-weight:600;color:var(--fg)}
+  .invite p{font-size:13px;font-weight:400;color:var(--muted);margin-top:4px;line-height:1.5}
+  .invrow{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .linkin{flex:1;min-width:200px;height:36px;display:flex;align-items:center;padding:0 12px;font-size:13px;color:var(--emph);background:var(--subtle);border:1px solid var(--border);border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .btn-out{height:36px;padding:0 14px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--fg);background:#fff;border:1px solid var(--border);border-radius:6px;cursor:pointer;white-space:nowrap}
+  .btn-out:hover{background:var(--hover)}.btn-out svg{color:var(--muted)}
+  .btn-out:disabled{opacity:.55;pointer-events:none}
+  .btn-pri{height:40px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:600;color:#0A1F1A;background:var(--grad);border:0;border-radius:8px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .btn-pri:hover{filter:brightness(.97)}.btn-pri:disabled{opacity:.6;pointer-events:none}
+  /* tabela */
+  .tcard{border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .tcard .th{padding:18px 24px;display:flex;align-items:center;justify-content:space-between}
+  .tcard .th .tt{font-size:16px;font-weight:600;color:var(--fg)}.tcard .th .cnt{font-size:14px;font-weight:400;color:var(--muted);margin-left:8px}
+  .toolbar{padding:14px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .search{position:relative;max-width:300px}
+  .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
+  .search input{width:100%;height:36px;padding:0 12px 0 34px;font-size:14px;color:var(--fg);background:#fff;border:1px solid var(--border);border-radius:6px;outline:none;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .search input::placeholder{color:var(--muted)}.search input:focus{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--ring)}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 150px 132px 44px;align-items:center;column-gap:12px}
+  .thr{padding:0 24px;height:44px;border-bottom:1px solid var(--border)}
+  .thr .hc{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .trow{padding:0 24px;min-height:52px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s var(--ease)}
+  .trow:hover{background:var(--hover)}
+  .cmem{display:flex;align-items:center;gap:10px;min-width:0}
+  .rav{width:32px;height:32px;border-radius:9999px;overflow:hidden;flex:none;background:var(--hover)}
+  .rav img{width:100%;height:100%;object-fit:cover;display:block}
+  .rav .ini{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--muted)}
+  .nm{font-size:14px;font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cage{font-size:13px;font-weight:400;color:var(--muted)}
+  .badge{display:inline-flex;align-items:center;padding:2px 10px;font-size:12px;font-weight:600;border-radius:9999px;border:1px solid transparent}
+  .badge.ok{background:var(--ok-bg);color:var(--ok-fg);border-color:var(--ok-bd)}.badge.kid{background:var(--kid-bg);color:var(--kid-fg);border-color:var(--kid-bd)}
+  .cact{display:flex;justify-content:flex-end}.cact .gh{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;color:var(--muted)}.trow:hover .cact .gh{background:#fff}
+  .cap{padding:13px 24px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+  .empty{padding:44px 24px;text-align:center}
+  .empty .ic{width:38px;height:38px;border-radius:9px;background:var(--hover);display:flex;align-items:center;justify-content:center;color:var(--muted);margin:0 auto 14px}
+  .empty h4{font-size:15px;font-weight:600;color:var(--fg);margin-bottom:6px}.empty p{font-size:13px;color:var(--muted);max-width:380px;margin:0 auto;line-height:1.6}
+  /* criar */
+  .criar{max-width:460px;margin:8px auto}
+  .criar h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin-bottom:6px}
+  .criar h1 em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:.06em}
+  .criar .s{font-size:14px;color:var(--muted);margin-bottom:22px;line-height:1.5}
+  .criar label{display:block;font-size:13px;font-weight:500;color:var(--fg);margin:0 0 7px 2px}
+  .criar label span{color:var(--muted);font-weight:400}
+  .criar .f{height:40px;display:flex;align-items:center;padding:0 12px;background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:16px}
+  .criar .f:focus-within{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--ring)}
+  .criar .f input{border:0;outline:0;flex:1;font-size:14px;color:var(--fg);background:transparent}
+  .criar .err{font-size:13px;color:#DC2626;margin:-8px 0 14px 2px;min-height:0}
+  /* detalhe */
+  .back{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--muted);background:none;border:0;cursor:pointer;margin-bottom:22px}.back:hover{color:var(--fg)}
+  .dgrid{display:grid;grid-template-columns:360px 1fr;gap:28px;align-items:start}
+  @media(max-width:820px){.dgrid{grid-template-columns:1fr}}
+  .rgonix{position:relative;width:100%;max-width:340px;aspect-ratio:1.586/1;margin:0 auto 14px;border-radius:16px;padding:18px 20px;color:#FAFAF7;user-select:none;overflow:hidden;background:radial-gradient(ellipse at 18% -10%,rgba(255,255,255,0.045),transparent 55%),radial-gradient(ellipse at 95% 110%,rgba(255,255,255,0.025),transparent 50%),linear-gradient(135deg,#050507 0%,#0e0e10 50%,#050507 100%);box-shadow:0 24px 60px rgba(0,0,0,0.55),0 6px 18px rgba(0,0,0,0.35),0 0 0 0.5px rgba(255,255,255,0.06) inset,0 1px 0 rgba(255,255,255,0.05) inset,0 -1px 0 rgba(0,0,0,0.4) inset;font-family:'Plus Jakarta Sans',system-ui,sans-serif}
+  .rgonix-noise{position:absolute;inset:0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence baseFrequency='0.85' seed='4'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");pointer-events:none;z-index:1;mix-blend-mode:overlay;opacity:0.6}
+  .rgonix-watermark{position:absolute;bottom:-14%;right:-4%;font-size:110px;font-weight:900;letter-spacing:-0.07em;line-height:0.78;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,0.05);z-index:1;pointer-events:none;text-transform:lowercase;font-style:italic}
+  .rgonix-spec{position:absolute;inset:0;background:linear-gradient(112deg,transparent 36%,rgba(255,255,255,0.05) 48%,rgba(255,255,255,0.02) 52%,transparent 64%);pointer-events:none;z-index:2;mix-blend-mode:overlay}
+  .rgonix-micro{position:absolute;bottom:4px;left:6%;right:6%;font-family:'JetBrains Mono',monospace;font-size:4.5px;letter-spacing:0.06em;line-height:1;color:rgba(255,255,255,0.16);font-weight:500;text-transform:uppercase;white-space:nowrap;overflow:hidden;z-index:2;pointer-events:none}
+  .rgonix-top{position:relative;z-index:3;display:flex}
+  .rgonix-bottom{position:absolute;left:20px;right:20px;bottom:18px;z-index:3;display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
+  .rgonix-data{flex:1;min-width:0}
+  .rgonix-l{font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:0.32em;text-transform:uppercase;color:rgba(255,255,255,0.42);font-weight:600;margin-bottom:5px;line-height:1}
+  .rgonix-name{font-size:13.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#FAFAF7;line-height:1.05;text-shadow:0 1px 0 rgba(0,0,0,0.55),0 2px 2px rgba(0,0,0,0.3);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+  .rgonix-cpf-wrap{margin-top:10px}
+  .rgonix-cpf{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;letter-spacing:0.04em;color:#FAFAF7;line-height:1;text-shadow:0 1px 0 rgba(0,0,0,0.55);white-space:nowrap}
+  .rgonix-qr{width:64px;height:64px;background:#FAFAF7;border-radius:6px;padding:4px;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center}
+  .rgonix-qr canvas,.rgonix-qr img{width:100%!important;height:100%!important;display:block;image-rendering:pixelated}
+  .ficha{display:flex;flex-direction:column;gap:16px}
+  .grp{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .grp .gh{font-size:12px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);padding:14px 18px 10px;display:flex;align-items:center;gap:8px}.grp .gh svg{color:var(--muted)}
+  .li{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:11px 18px;border-top:1px solid var(--border)}
+  .li .k{font-size:13px;font-weight:400;color:var(--muted);flex:none}
+  .li .v{font-size:14px;font-weight:500;color:var(--fg);text-align:right}.li .v.red{color:#B91C1C}.li .v.dim{color:var(--muted);font-weight:400}
+  .li.col{flex-direction:column;align-items:flex-start;gap:2px}.li.col .v{text-align:left}.li .sub{font-size:13px;color:var(--muted)}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--fg);color:#fff;font-size:13px;font-weight:600;padding:10px 16px;border-radius:8px;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 </style>
 </head>
 <body>
-  <div class="top">
-    <div class="brand">vita<span class="id">id</span></div>
-    <span class="badge">Empresas · Gestor</span>
-  </div>
+  <div class="app">
+    <div class="top">
+      <div class="l">
+        <span class="wm">vita<b>id</b></span>
+        <span class="vdiv"></span>
+        <span class="gbadge">Gestor</span>
+        <span class="orgname" id="topOrg"></span>
+      </div>
+      <div class="gava" onclick="sair()" title="Sair"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></div>
+    </div>
 
-  <div class="container">
-
-    <!-- Estado: ainda nao tem empresa -> form criar -->
-    <div id="criarView" class="hidden">
-      <div class="label">Comece aqui</div>
-      <h1>Crie a <em>sua organização</em></h1>
-      <p class="sub">É o primeiro passo pra oferecer o vita id pra sua equipe. Leva menos de um minuto.</p>
-
-      <div class="card">
+    <!-- CRIAR -->
+    <div class="wrap hidden" id="criarView">
+      <div class="criar">
+        <h1>Crie a <em>sua organização</em></h1>
+        <p class="s">É o primeiro passo pra oferecer o vita id pra sua equipe. Leva menos de um minuto.</p>
         <label>Nome da organização</label>
-        <div class="field">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>
-          <input id="inpNome" type="text" placeholder="Ex.: Padaria Silva">
-        </div>
-        <label>CNPJ <span style="color:var(--muted);font-weight:600">(opcional)</span></label>
-        <div class="field">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h4M7 13h10M7 17h6"/></svg>
-          <input id="inpCnpj" type="text" placeholder="00.000.000/0000-00" inputmode="numeric">
-        </div>
-        <label>Tipo de organização <span style="color:var(--muted);font-weight:600">(opcional)</span></label>
-        <div class="field">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21h20"/><path d="M4 21V7l8-4 8 4v14"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01M9 17h.01M15 17h.01"/></svg>
-          <input id="inpTipo" type="text" placeholder="Ex.: Empresa, Escola, Faculdade…">
-        </div>
-        <label>Quantas pessoas <span style="color:var(--muted);font-weight:600">(opcional)</span></label>
-        <div class="field">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          <input id="inpQtd" type="number" min="1" inputmode="numeric" placeholder="Ex.: 120">
-        </div>
+        <div class="f"><input id="inpNome" type="text" placeholder="Ex.: Colégio Vita Nova"></div>
+        <label>CNPJ <span>(opcional)</span></label>
+        <div class="f"><input id="inpCnpj" type="text" placeholder="00.000.000/0000-00" inputmode="numeric"></div>
+        <label>Tipo de organização <span>(opcional)</span></label>
+        <div class="f"><input id="inpTipo" type="text" placeholder="Ex.: Empresa, Escola, Faculdade…"></div>
+        <label>Quantas pessoas <span>(opcional)</span></label>
+        <div class="f"><input id="inpQtd" type="number" min="1" inputmode="numeric" placeholder="Ex.: 120"></div>
         <div class="err" id="criarErr"></div>
-        <button class="btn" id="btnCriar" onclick="criar()">Criar organização</button>
+        <button class="btn-pri" style="width:100%" id="btnCriar" onclick="criar()">Criar organização</button>
       </div>
     </div>
 
-    <!-- Estado: ja tem empresa -> painel -->
-    <div id="painelView" class="hidden">
-      <div class="card hero">
-        <small>Sua organização</small>
-        <h2 id="empNome">—</h2>
-        <div class="count"><b id="empCount">0</b><span>pessoas da sua equipe no vita id</span></div>
+    <!-- PAINEL -->
+    <div class="wrap hidden" id="painelView">
+      <div class="metric">
+        <div class="lab" id="mLabel">com o RG ativo</div>
+        <div class="num" id="mCount">—</div>
+        <div class="bar"></div>
       </div>
 
-      <div class="card">
-        <div class="label">Convidar a equipe</div>
-        <p class="sub" style="margin-bottom:16px">Gere um link único e compartilhe com seus colaboradores. Cada um ativa o próprio vita id em segundos.</p>
-        <button class="btn" id="btnGerar" onclick="gerar()">Gerar link de convite</button>
-
-        <div id="linkArea" class="hidden">
-          <div class="linkbox">
-            <input id="linkInp" type="text" readonly>
-            <button class="icbtn" onclick="copiar()" title="Copiar">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>
-            </button>
-          </div>
-          <a id="waBtn" class="wa" target="_blank" rel="noopener">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-2.9.8.8-2.8-.2-.3A8 8 0 1 1 12 20zm4.4-5.6c-.2-.1-1.4-.7-1.6-.8s-.4-.1-.5.1-.6.8-.8.9-.3.2-.5 0a6.6 6.6 0 0 1-3.2-2.8c-.2-.4.2-.4.6-1.2.1-.2 0-.3 0-.5l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.6 4 5.3 5.3 0 0 0 3.2.7 2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>
-            Enviar pelo WhatsApp
-          </a>
+      <div class="invite">
+        <h3>Convide sua equipe</h3>
+        <p>Um link só, para todo mundo. Cole no grupo do WhatsApp ou no comunicado — cada pessoa ativa o próprio RG.</p>
+        <div class="invrow">
+          <div class="linkin" id="linkInp">Gere o link de convite ao lado →</div>
+          <button class="btn-out" id="btnGerar" onclick="gerar()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>Gerar link</button>
+          <button class="btn-out hidden" id="btnCopiar" onclick="copiar()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Copiar</button>
+          <a class="btn-out hidden" id="waBtn" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5Z"/></svg>WhatsApp</a>
         </div>
       </div>
 
-      <div class="card">
-        <div class="soon">
-          <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/></svg></span>
-          <div>
-            <b>Painel de saúde da equipe — em breve</b>
-            <p>Adesão, exames em dia e engajamento, sempre em números gerais.</p>
+      <div class="tcard">
+        <div class="th"><div><span class="tt">Equipe</span><span class="cnt" id="tCount"></span></div></div>
+        <div class="toolbar" id="toolbar">
+          <div class="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input id="q" type="text" placeholder="Buscar membro" oninput="onSearch()">
           </div>
         </div>
-      </div>
-
-      <div class="priv">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="3"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
-        <span>Você nunca enxerga a saúde individual de um colaborador — só o total da equipe.</span>
+        <div class="grid thr" id="thr">
+          <div class="hc">Membro</div><div class="hc">Idade · Sexo</div><div class="hc">Status</div><div class="hc"></div>
+        </div>
+        <div id="list"></div>
+        <div class="cap hidden" id="cap"></div>
       </div>
     </div>
 
-    <!-- Estado: carregando -->
-    <div id="loadView">
-      <p class="sub" style="text-align:center;margin-top:40px">Carregando seu painel…</p>
+    <!-- DETALHE -->
+    <div class="wrap hidden" id="detailView">
+      <button class="back" onclick="voltar()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Voltar para a equipe</button>
+      <div class="dgrid">
+        <div>
+          <div class="rgonix">
+            <div class="rgonix-noise"></div><div class="rgonix-watermark">vita id</div><div class="rgonix-spec"></div>
+            <div class="rgonix-top"><svg viewBox="0 0 400 200" style="height:32px;width:auto;display:block" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#00E5A0"/><stop offset="1" stop-color="#00B4D8"/></linearGradient></defs><text x="115" y="50%" dominant-baseline="central" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="96" letter-spacing="-5" fill="#FFFFFF">vita</text><rect x="225" y="28" width="165" height="144" rx="24" fill="url(#g)"/><text x="307" y="50%" dominant-baseline="central" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="96" letter-spacing="-5" fill="#0D0F14">id</text></svg></div>
+            <div class="rgonix-bottom">
+              <div class="rgonix-data">
+                <div class="rgonix-l">titular</div><div class="rgonix-name" id="rgNome">&nbsp;</div>
+                <div class="rgonix-cpf-wrap"><div class="rgonix-l">cpf</div><div class="rgonix-cpf" id="rgCpf">···.···.···-··</div></div>
+              </div>
+              <div class="rgonix-qr" id="rgQr"></div>
+            </div>
+            <div class="rgonix-micro">VITA·ID · DOCUMENTO·DE·SAÚDE · VITA·ID · DOCUMENTO·DE·SAÚDE · VITA·ID · DOCUMENTO·DE·SAÚDE</div>
+          </div>
+        </div>
+        <div class="ficha">
+          <div class="grp">
+            <div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Dados pessoais</div>
+            <div class="li"><span class="k">Data de nascimento</span><span class="v" id="dNasc">—</span></div>
+            <div class="li"><span class="k">CPF</span><span class="v" id="dCpf">—</span></div>
+            <div class="li"><span class="k">E-mail</span><span class="v" id="dEmail">—</span></div>
+            <div class="li"><span class="k">Celular</span><span class="v" id="dCel">—</span></div>
+            <div class="li"><span class="k">Peso</span><span class="v" id="dPeso">—</span></div>
+            <div class="li"><span class="k">Altura</span><span class="v" id="dAlt">—</span></div>
+            <div class="li"><span class="k">Tipo sanguíneo</span><span class="v" id="dSangue">—</span></div>
+            <div class="li"><span class="k">Plano de saúde</span><span class="v" id="dPlano">—</span></div>
+          </div>
+          <div class="grp"><div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 17a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg> Alergias</div><div id="dAlergias"></div></div>
+          <div class="grp"><div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 9-9a4.95 4.95 0 0 0-7-7l-9 9a4.95 4.95 0 0 0 7 7Z"/></svg> Medicamentos em uso</div><div id="dMeds"></div></div>
+          <div class="grp"><div class="gh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-6 4 12 2-6h4"/></svg> Condições de saúde</div><div id="dCond"></div></div>
+          <div class="grp"><div class="gh" id="dContatoLabel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L14 14l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 2 6a2 2 0 0 1 2-2Z"/></svg> Contato de emergência</div><div id="dContato"></div></div>
+        </div>
+      </div>
     </div>
 
+    <div class="wrap" id="loadView"><p style="text-align:center;color:var(--muted);font-size:14px;padding:30px">Carregando seu painel…</p></div>
   </div>
 
 <script src="api.js"></script>
 <script>
-  function _show(id) {
-    ['criarView','painelView','loadView'].forEach(v => {
-      document.getElementById(v).classList.toggle('hidden', v !== id);
-    });
-  }
+  const SANGUE = {A_POS:'A+',A_NEG:'A−',B_POS:'B+',B_NEG:'B−',AB_POS:'AB+',AB_NEG:'AB−',O_POS:'O+',O_NEG:'O−'};
+  const GEN = {MASCULINO:'M',FEMININO:'F',OUTRO:'Outro',NAO_INFORMADO:'—'};
+  const ini = (n) => String(n||'').split(' ').filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase();
+  function fmtCpf(c){ const d=String(c||'').replace(/\D/g,''); return d.length===11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4') : (c||'—'); }
+  function fmtData(v){ if(!v) return '—'; const s=String(v).slice(0,10); const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); return m? `${m[3]}/${m[2]}/${m[1]}` : '—'; }
+  function idadeDe(v){ if(!v) return null; const d=new Date(v); if(isNaN(d.getTime())) return null; const h=new Date(); let i=h.getFullYear()-d.getFullYear(); const mm=h.getMonth()-d.getMonth(); if(mm<0||(mm===0&&h.getDate()<d.getDate()))i--; return i; }
+  function show(id){ ['criarView','painelView','detailView','loadView'].forEach(v=>document.getElementById(v).classList.toggle('hidden', v!==id)); }
+  function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),1900); }
+  function sair(){ try{ vitaeAPI.logout && vitaeAPI.logout(); }catch(_){} window.location.href='empresa-login.html'; }
 
-  function _toast(msg) {
-    let t = document.createElement('div');
-    t.textContent = msg;
-    t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#0D0F14;color:#fff;font-size:13.5px;font-weight:700;padding:12px 18px;border-radius:14px;z-index:99;box-shadow:0 10px 30px rgba(0,0,0,.3)';
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 1900);
-  }
+  let LINK='', ORG=null, EH_ESCOLA=false;
+  const PG = { q:'', cursor:null, done:false, loading:false };
 
-  let _link = '';
-
-  async function carregar() {
-    if (typeof vitaeAPI === 'undefined' || !vitaeAPI.isLoggedIn || !vitaeAPI.isLoggedIn()) {
-      window.location.href = 'empresa-login.html';
-      return;
-    }
+  async function carregar(){
+    if (typeof vitaeAPI==='undefined' || !vitaeAPI.isLoggedIn || !vitaeAPI.isLoggedIn()){ window.location.href='empresa-login.html'; return; }
     try {
       const r = await vitaeAPI.getMinhaEmpresa();
-      if (r && r.empresa) {
-        document.getElementById('empNome').textContent = r.empresa.nome || 'Sua organização';
-        document.getElementById('empCount').textContent = (r.funcionariosAtivos != null ? r.funcionariosAtivos : 0);
-        _show('painelView');
-      } else {
-        _show('criarView');
+      if (r && r.empresa){
+        ORG = r.empresa;
+        EH_ESCOLA = /escola|col[eé]gio|faculdade|universidade|ensino/i.test(ORG.tipo||'');
+        const termo = EH_ESCOLA ? 'alunos' : 'colaboradores';
+        document.getElementById('topOrg').textContent = ORG.nome || '';
+        document.getElementById('mLabel').textContent = `${termo} com o RG ativo`;
+        document.getElementById('mCount').textContent = (r.comRgPreenchido != null ? r.comRgPreenchido : (r.funcionariosAtivos||0));
+        document.getElementById('tCount').textContent = (r.funcionariosAtivos||0) + ' ' + (r.funcionariosAtivos===1?'membro':'membros');
+        show('painelView');
+        recarregarLista();
+      } else { show('criarView'); }
+    } catch(e){ show('criarView'); }
+  }
+
+  // ---- lista ----
+  let _searchTimer=null;
+  function onSearch(){ clearTimeout(_searchTimer); _searchTimer=setTimeout(()=>{ PG.q=document.getElementById('q').value.trim(); recarregarLista(); }, 280); }
+  function avatar(m){ return `<div class="rav">${m.fotoUrl?`<img src="${m.fotoUrl}" alt="">`:`<span class="ini">${ini(m.nome)}</span>`}</div>`; }
+  function rowHtml(m){
+    const badge = m.menor ? '<span class="badge kid">Menor</span>' : '<span class="badge ok">Ativo</span>';
+    const meta = (m.idade!=null?m.idade+' anos':'—') + ' · ' + (GEN[m.genero]||'—');
+    return `<div class="grid trow" onclick="abrir('${m.id}')"><div class="cmem">${avatar(m)}<span class="nm">${m.nome||'—'}</span></div><div class="cage">${meta}</div><div>${badge}</div><div class="cact"><span class="gh"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span></div></div>`;
+  }
+  function recarregarLista(){ PG.cursor=null; PG.done=false; document.getElementById('list').innerHTML=''; document.getElementById('cap').classList.add('hidden'); carregarPagina(); }
+  async function carregarPagina(){
+    if (PG.loading || PG.done) return;
+    PG.loading=true;
+    const cap=document.getElementById('cap');
+    try{
+      const r = await vitaeAPI.buscarMembrosEmpresa(PG.q, PG.cursor, 50);
+      const arr = (r && r.membros) || [];
+      const list=document.getElementById('list');
+      if (PG.cursor===null && !arr.length){
+        list.innerHTML = `<div class="empty"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M18 7v6M21 10h-6"/></svg></div><h4>${PG.q?'Ninguém encontrado':'Ninguém ativou ainda'}</h4><p>${PG.q?'Tente outro nome.':'Compartilhe o link acima — conforme ativam o RG, eles aparecem aqui.'}</p></div>`;
+        cap.classList.add('hidden'); PG.done=true; PG.loading=false; return;
       }
-    } catch (e) {
-      // Sem empresa ainda ou modulo indisponivel: deixa criar.
-      _show('criarView');
-    }
+      list.insertAdjacentHTML('beforeend', arr.map(rowHtml).join(''));
+      PG.cursor = r.nextCursor || null;
+      PG.done = !PG.cursor;
+      if (!PG.done){ cap.classList.remove('hidden'); cap.innerHTML = `<button class="btn-out" onclick="carregarPagina()">Carregar mais</button>`; }
+      else { cap.classList.add('hidden'); }
+    }catch(e){ toast('Não foi possível carregar a lista.'); }
+    PG.loading=false;
   }
 
-  async function criar() {
-    const nome = document.getElementById('inpNome').value.trim();
-    const cnpj = document.getElementById('inpCnpj').value.trim();
-    // Campos opcionais (guarda defensiva: elementos podem nao existir em versoes antigas do HTML)
-    const tipoEl = document.getElementById('inpTipo');
-    const qtdEl = document.getElementById('inpQtd');
-    const tipo = tipoEl ? tipoEl.value.trim() : '';
-    const qtdRaw = qtdEl ? qtdEl.value.trim() : '';
-    const quantidade = qtdRaw ? parseInt(qtdRaw, 10) : null;
-    const err = document.getElementById('criarErr');
-    err.textContent = '';
-    if (nome.length < 2) { err.textContent = 'Digite o nome da organização.'; return; }
-    const btn = document.getElementById('btnCriar');
-    btn.disabled = true; btn.textContent = 'Criando…';
-    try {
-      await vitaeAPI.criarEmpresa(nome, cnpj || null, tipo || null, (quantidade != null && !isNaN(quantidade)) ? quantidade : null);
-      // Atualiza o tipo local pra EMPRESA (sem rebaixar nada do servidor)
-      try {
-        const u = vitaeAPI.getUsuario && vitaeAPI.getUsuario();
-        if (u) { u.tipo = 'EMPRESA'; vitaeAPI.setUsuario && vitaeAPI.setUsuario(u); }
-      } catch (_) {}
+  // ---- detalhe ----
+  function liVal(arr,red){ return arr && arr.length ? arr.map(x=>`<div class="li"><span class="v ${red?'red':''}">${x}</span></div>`).join('') : '<div class="li"><span class="v dim">Nenhum registro</span></div>'; }
+  async function abrir(id){
+    show('detailView'); window.scrollTo(0,0);
+    document.getElementById('rgNome').textContent='Carregando…'; document.getElementById('rgCpf').textContent='···.···.···-··';
+    try{
+      const r = await vitaeAPI.getRgMembroEmpresa(id);
+      const m = (r && r.membro) || {}; const p = m.perfilSaude || {};
+      const idade = idadeDe(p.dataNascimento); const menor = idade!=null && idade<18;
+      document.getElementById('rgNome').textContent = m.nome || '—';
+      document.getElementById('rgCpf').textContent = fmtCpf(p.cpf);
+      const q=document.getElementById('rgQr'); q.innerHTML='';
+      try{ new QRCode(q,{text:window.location.origin+'/app-v3/14-rg-publico.html?id='+id,width:120,height:120,colorDark:'#0B0E13',colorLight:'#FAFAF7',correctLevel:QRCode.CorrectLevel.M}); }catch(_){ q.textContent='QR'; }
+      document.getElementById('dNasc').textContent = fmtData(p.dataNascimento) + (idade!=null?` (${idade} anos)`:'');
+      document.getElementById('dCpf').textContent = fmtCpf(p.cpf);
+      document.getElementById('dEmail').textContent = m.email || '—';
+      document.getElementById('dCel').textContent = m.celular || '—';
+      document.getElementById('dPeso').textContent = p.pesoKg ? (p.pesoKg+' kg') : '—';
+      document.getElementById('dAlt').textContent = p.alturaCm ? ((p.alturaCm/100).toFixed(2).replace('.',',')+' m') : '—';
+      document.getElementById('dSangue').textContent = SANGUE[p.tipoSanguineo] || '—';
+      document.getElementById('dPlano').textContent = p.planoSaude || '—';
+      document.getElementById('dAlergias').innerHTML = liVal((m.alergias||[]).map(a=>a.nome), true);
+      document.getElementById('dMeds').innerHTML = (m.medicamentos||[]).length ? (m.medicamentos||[]).map(md=>`<div class="li col"><span class="v">${md.nome}</span>${md.dosagem||md.frequencia?`<span class="sub">${[md.dosagem,md.frequencia].filter(Boolean).join(' · ')}</span>`:''}</div>`).join('') : '<div class="li"><span class="v dim">Nenhum medicamento em uso</span></div>';
+      const cond = (p.condicoes||'').split(',').map(s=>s.trim()).filter(Boolean);
+      document.getElementById('dCond').innerHTML = liVal(cond,false);
+      const lbl=document.getElementById('dContatoLabel');
+      if (menor){
+        lbl.lastChild.textContent=' Responsáveis';
+        const c=[];
+        if (p.nomePai||p.telPai) c.push(`<div class="li"><span class="k">Pai</span><span class="v">${[p.nomePai,p.telPai].filter(Boolean).join(' · ')||'—'}</span></div>`);
+        if (p.nomeMae||p.telMae) c.push(`<div class="li"><span class="k">Mãe</span><span class="v">${[p.nomeMae,p.telMae].filter(Boolean).join(' · ')||'—'}</span></div>`);
+        if (!c.length && (p.contatoEmergenciaNome||p.contatoEmergenciaTel)) c.push(`<div class="li"><span class="k">Responsável</span><span class="v">${[p.contatoEmergenciaNome,p.contatoEmergenciaTel].filter(Boolean).join(' · ')}</span></div>`);
+        document.getElementById('dContato').innerHTML = c.length?c.join(''):'<div class="li"><span class="v dim">Nenhum responsável registrado</span></div>';
+      } else {
+        lbl.lastChild.textContent=' Contato de emergência';
+        document.getElementById('dContato').innerHTML = (p.contatoEmergenciaNome||p.contatoEmergenciaTel) ? `<div class="li"><span class="k">Contato</span><span class="v">${[p.contatoEmergenciaNome,p.contatoEmergenciaTel].filter(Boolean).join(' · ')}</span></div>` : '<div class="li"><span class="v dim">Nenhum contato registrado</span></div>';
+      }
+    }catch(e){ toast('Não foi possível abrir a ficha.'); voltar(); }
+  }
+  function voltar(){ show('painelView'); window.scrollTo(0,0); }
+
+  // ---- criar / convite ----
+  async function criar(){
+    const nome=document.getElementById('inpNome').value.trim();
+    const cnpj=document.getElementById('inpCnpj').value.trim();
+    const tipo=document.getElementById('inpTipo').value.trim();
+    const qtdRaw=document.getElementById('inpQtd').value.trim();
+    const quantidade=qtdRaw?parseInt(qtdRaw,10):null;
+    const err=document.getElementById('criarErr'); err.textContent='';
+    if(nome.length<2){ err.textContent='Digite o nome da organização.'; return; }
+    const b=document.getElementById('btnCriar'); b.disabled=true; b.textContent='Criando…';
+    try{
+      await vitaeAPI.criarEmpresa(nome, cnpj||null, tipo||null, (quantidade!=null&&!isNaN(quantidade))?quantidade:null);
+      try{ const u=vitaeAPI.getUsuario&&vitaeAPI.getUsuario(); if(u){u.tipo='EMPRESA'; vitaeAPI.setUsuario&&vitaeAPI.setUsuario(u);} }catch(_){}
       await carregar();
-    } catch (e) {
-      err.textContent = (e && e.message) ? e.message : 'Não foi possível criar agora. Tente de novo.';
-      btn.disabled = false; btn.textContent = 'Criar organização';
-    }
+    }catch(e){ err.textContent=(e&&e.message)||'Não foi possível criar agora.'; b.disabled=false; b.textContent='Criar organização'; }
   }
-
-  async function gerar() {
-    const btn = document.getElementById('btnGerar');
-    btn.disabled = true; btn.textContent = 'Gerando…';
-    try {
-      const r = await vitaeAPI.gerarConvite();
-      _link = (r && r.link) || '';
-      document.getElementById('linkInp').value = _link;
-      const msg = encodeURIComponent('Oi! Ative seu vita id por aqui — é seu, gratuito e leva 1 minuto: ' + _link);
-      document.getElementById('waBtn').href = 'https://wa.me/?text=' + msg;
-      document.getElementById('linkArea').classList.remove('hidden');
-      btn.textContent = 'Gerar outro link';
-      btn.disabled = false;
-    } catch (e) {
-      btn.disabled = false; btn.textContent = 'Gerar link de convite';
-      _toast((e && e.message) ? e.message : 'Não foi possível gerar o link.');
-    }
+  async function gerar(){
+    const b=document.getElementById('btnGerar'); b.disabled=true;
+    try{
+      const r=await vitaeAPI.gerarConvite(); LINK=(r&&r.link)||'';
+      document.getElementById('linkInp').textContent=LINK;
+      const msg=encodeURIComponent('Oi! Ative seu vita id por aqui — é seu, gratuito e leva 1 minuto: '+LINK);
+      const wa=document.getElementById('waBtn'); wa.href='https://wa.me/?text='+msg; wa.classList.remove('hidden');
+      document.getElementById('btnCopiar').classList.remove('hidden');
+      b.classList.add('hidden');
+    }catch(e){ toast((e&&e.message)||'Não foi possível gerar o link.'); b.disabled=false; }
   }
-
-  function copiar() {
-    if (!_link) return;
-    const inp = document.getElementById('linkInp');
-    inp.select(); inp.setSelectionRange(0, 99999);
-    try {
-      if (navigator.clipboard) navigator.clipboard.writeText(_link);
-      else document.execCommand('copy');
-      _toast('Link copiado');
-    } catch (_) { _toast('Link copiado'); }
-  }
+  function copiar(){ if(!LINK) return; try{ navigator.clipboard?navigator.clipboard.writeText(LINK):0; toast('Link copiado'); }catch(_){ toast('Link copiado'); } }
 
   carregar();
 </script>

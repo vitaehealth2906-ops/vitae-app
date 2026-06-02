@@ -162,9 +162,50 @@ async function http() {
   console.log(`      -> esperado 403, veio ${sec.r.status} ${sec.r.status === 403 ? '(porteiro bloqueou ok)' : '(ATENCAO)'}`);
 }
 
+// E2E FUNCIONAL na produção: fluxo do menor (responsáveis) + porteiro de segurança.
+// Cria tudo MARCADO (loadtest+...@MARK / LOADTEST ORG ...) -> o cleanup remove.
+async function e2e() {
+  const ts = Date.now();
+  let pass = 0, fail = 0;
+  const ok = (n, cond, x = '') => { console.log((cond ? 'PASS ' : 'FALHA') + ' | ' + n + (x ? '  -> ' + x : '')); cond ? pass++ : fail++; };
+  const J = async (r) => { try { return await r.json(); } catch (e) { return {}; } };
+  const post = (p, b, t) => fetch(API + p, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: 'Bearer ' + t } : {}) }, body: JSON.stringify(b) });
+  const put = (p, b, t) => fetch(API + p, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify(b) });
+  const get = (p, t) => fetch(API + p, { headers: { Authorization: 'Bearer ' + t } });
+
+  const gj = await J(await post('/auth/cadastro', { nome: 'E2E Gestor', email: `loadtest+e2eg-${ts}@${MARK}`, celular: '+5519' + String(ts).slice(-9), senha: 'LoadTest@123', tipo: 'EMPRESA' }));
+  ok('cadastro gestor', !!gj.token); const G = gj.token;
+  const ej = await J(await post('/empresa', { nome: `LOADTEST ORG e2e ${ts}`, tipo: 'Escola' }, G));
+  ok('criar empresa (escola)', !!(ej.empresa && ej.empresa.id));
+  const cj = await J(await post('/empresa/convite', {}, G));
+  ok('gerar convite', !!cj.token);
+  const mj = await J(await post('/auth/cadastro', { nome: 'E2E Aluno Menor', email: `loadtest+e2em-${ts}@${MARK}`, celular: '+5518' + String(ts).slice(-9), senha: 'LoadTest@123', tipo: 'PACIENTE' }));
+  ok('cadastro membro menor', !!mj.token); const M = mj.token, mid = mj.usuario && mj.usuario.id;
+  await put('/perfil', { dataNascimento: '2012-05-10', tipoSanguineo: 'O_POS', pesoKg: 48, alturaCm: 158, planoSaude: 'Unimed', condicoes: 'Asma', nomePai: 'Carlos Pai', telPai: '(19) 99111-2233', nomeMae: 'Ana Mae', telMae: '(19) 99444-5566' }, M);
+  const vj = await J(await post('/empresa/vincular', { token: cj.token }, M));
+  ok('vincular membro a empresa', !!(vj.vinculado || vj.duplicate));
+  const gp = await J(await get('/perfil', M));
+  ok('responsaveis SALVOS no perfil (validador aceita pai/mae)', !!(gp.perfil && gp.perfil.nomePai === 'Carlos Pai' && gp.perfil.telPai && gp.perfil.nomeMae === 'Ana Mae'), 'nomePai=' + (gp.perfil && gp.perfil.nomePai));
+  const lj = await J(await get('/empresa/membros', G));
+  const naLista = (lj.membros || []).find((x) => x.id === mid);
+  ok('gestor ve o membro na lista', !!naLista, naLista ? ('idade=' + naLista.idade + ' menor=' + naLista.menor) : 'nao achou');
+  ok('membro marcado como MENOR na lista', !!(naLista && naLista.menor === true));
+  const rj = await J(await get('/empresa/membro/' + mid, G));
+  const ps = rj.membro && rj.membro.perfilSaude;
+  ok('RG do membro traz responsaveis (nomePai/telPai)', !!(ps && ps.nomePai === 'Carlos Pai' && ps.telPai), 'nomePai=' + (ps && ps.nomePai));
+  ok('RG do membro com alergias/meds e SEM exames (escopo)', !!(rj.membro && rj.membro.exames === undefined && Array.isArray(rj.membro.alergias)), 'exames=' + (rj.membro && rj.membro.exames));
+  const g2 = await J(await post('/auth/cadastro', { nome: 'E2E Gestor2', email: `loadtest+e2eg2-${ts}@${MARK}`, celular: '+5517' + String(ts).slice(-9), senha: 'LoadTest@123', tipo: 'EMPRESA' }));
+  await post('/empresa', { nome: `LOADTEST ORG e2e2 ${ts}`, tipo: 'Empresa' }, g2.token);
+  const secR = await get('/empresa/membro/' + mid, g2.token);
+  ok('SEGURANCA: gestor de OUTRA empresa nao acessa (403)', secR.status === 403, 'status=' + secR.status);
+  console.log(`\n=== E2E FUNCIONAL: ${pass} PASS / ${fail} FALHA ===`);
+  if (fail) process.exitCode = 1;
+}
+
 (async () => {
   try {
-    if (cmd === 'seed') await seed(parseInt(process.argv[3] || '10000', 10));
+    if (cmd === 'e2e') await e2e();
+    else if (cmd === 'seed') await seed(parseInt(process.argv[3] || '10000', 10));
     else if (cmd === 'measure') await measure();
     else if (cmd === 'explain') await explain();
     else if (cmd === 'http') await http();

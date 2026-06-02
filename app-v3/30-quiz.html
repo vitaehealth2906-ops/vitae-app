@@ -527,19 +527,36 @@
             <button class="btn-next" onclick="validateAndGoNext(2)">Próximo</button>
         </div>
 
-        <!-- STEP 2: Emergency Contact -->
+        <!-- STEP 2: Contato de emergência (adulto) OU Responsáveis (menor de idade) -->
         <div class="step" id="step2">
-            <div class="step-title">Contato de <span>emergência</span></div>
-            <div class="step-subtitle">Para quem devemos ligar em caso de emergência?</div>
+            <div class="step-title" id="step2Title">Contato de <span>emergência</span></div>
+            <div class="step-subtitle" id="step2Subtitle">Para quem devemos ligar em caso de emergência?</div>
 
-            <div class="field">
-                <div class="field-label">Nome do contato</div>
-                <input class="field-input" type="text" id="emergenciaNome" placeholder="Nome completo">
+            <!-- ADULTO: contato único -->
+            <div id="step2Adulto">
+                <div class="field">
+                    <div class="field-label">Nome do contato</div>
+                    <input class="field-input" type="text" id="emergenciaNome" placeholder="Nome completo">
+                </div>
+                <div class="field">
+                    <div class="field-label">Telefone do contato</div>
+                    <input class="field-input" type="tel" id="emergenciaTel" inputmode="numeric" maxlength="15" placeholder="(11) 99999-9999" oninput="maskTelEmergencia(this)">
+                </div>
             </div>
 
-            <div class="field">
-                <div class="field-label">Telefone do contato</div>
-                <input class="field-input" type="tel" id="emergenciaTel" inputmode="numeric" maxlength="15" placeholder="(11) 99999-9999" oninput="maskTelEmergencia(this)">
+            <!-- MENOR: responsáveis (pai e mãe, pelo menos um) -->
+            <div id="step2Menor" style="display:none">
+                <div class="field" style="background:rgba(0,180,216,0.05);border:1px solid rgba(0,180,216,0.18);border-radius:12px;padding:12px">
+                    <div class="field-label" style="color:#0284C7">Pai</div>
+                    <input class="field-input" type="text" id="paiNome" placeholder="Nome do pai" style="margin-bottom:8px">
+                    <input class="field-input" type="tel" id="paiTel" inputmode="numeric" maxlength="15" placeholder="(11) 99999-9999" oninput="maskTelEmergencia(this)">
+                </div>
+                <div class="field" style="background:rgba(0,180,216,0.05);border:1px solid rgba(0,180,216,0.18);border-radius:12px;padding:12px">
+                    <div class="field-label" style="color:#0284C7">Mãe</div>
+                    <input class="field-input" type="text" id="maeNome" placeholder="Nome da mãe" style="margin-bottom:8px">
+                    <input class="field-input" type="tel" id="maeTel" inputmode="numeric" maxlength="15" placeholder="(11) 99999-9999" oninput="maskTelEmergencia(this)">
+                </div>
+                <div style="font-size:11px;color:#6B7280;margin:-2px 2px 4px">Preencha pelo menos um responsável — numa emergência, é pra ele que a gente liga.</div>
             </div>
 
             <button class="btn-next" onclick="validateAndGoNext(3)">Próximo</button>
@@ -909,6 +926,26 @@
         return true;
     }
 
+    // Configura o passo 2: contato de emergência (adulto) OU responsáveis (menor).
+    function quizConfigStep2(menor) {
+        var t = document.getElementById('step2Title');
+        var s = document.getElementById('step2Subtitle');
+        var ad = document.getElementById('step2Adulto');
+        var me = document.getElementById('step2Menor');
+        if (!t || !ad || !me) return;
+        if (menor) {
+            t.innerHTML = 'Seus <span>responsáveis</span>';
+            if (s) s.textContent = 'Numa emergência, é pra eles que a gente liga.';
+            ad.style.display = 'none';
+            me.style.display = 'block';
+        } else {
+            t.innerHTML = 'Contato de <span>emergência</span>';
+            if (s) s.textContent = 'Para quem devemos ligar em caso de emergência?';
+            ad.style.display = 'block';
+            me.style.display = 'none';
+        }
+    }
+
     function quizCalcularIdade(dataISO) {
         if (!dataISO) return null;
         const hoje = new Date();
@@ -1061,13 +1098,14 @@
                 } else if (idade < 0) {
                     quizShowError('nascimentoInput', 'Não dá pra nascer no futuro');
                     valid = false;
-                } else if (idade < 13) {
-                    quizShowError('nascimentoInput', 'Você precisa ter pelo menos 13 anos');
-                    quizToast('Pra criar conta vita id é preciso ter 13+ anos (LGPD)', 'danger', 5000);
-                    valid = false;
                 } else if (idade > 120) {
                     quizShowError('nascimentoInput', 'Confira o ano de nascimento');
                     valid = false;
+                } else {
+                    // SEM limite mínimo de idade (uma mãe pode criar o RG do filho pequeno).
+                    // Menor de 18 → o passo do contato vira "Responsáveis" (pai/mãe).
+                    window._quizMenor = idade < 18;
+                    quizConfigStep2(window._quizMenor);
                 }
             }
 
@@ -1137,34 +1175,54 @@
             document.getElementById('planoField').style.borderColor = '';
         }
 
-        // STEP 2 — Contato emergência
+        // STEP 2 — Contato de emergência (adulto) OU Responsáveis (menor)
         if (currentStep === 2) {
-            let valid = true;
-            quizClearError('emergenciaNome');
-            quizClearError('emergenciaTel');
+            if (window._quizMenor) {
+                // Menor: pelo menos UM responsável (pai OU mãe) com nome + telefone válidos.
+                const pn = (document.getElementById('paiNome').value || '').trim();
+                const pt = (document.getElementById('paiTel').value || '').replace(/\D/g, '');
+                const mn = (document.getElementById('maeNome').value || '').trim();
+                const mt = (document.getElementById('maeTel').value || '').replace(/\D/g, '');
+                const paiOk = pn.length >= 2 && pt.length >= 10 && pt.length <= 11;
+                const maeOk = mn.length >= 2 && mt.length >= 10 && mt.length <= 11;
+                const paiParcial = (pn || pt) && !paiOk;
+                const maeParcial = (mn || mt) && !maeOk;
+                if (!paiOk && !maeOk) {
+                    quizToast('Preencha o nome e o telefone de pelo menos um responsável', 'warn');
+                    return;
+                }
+                if (paiParcial || maeParcial) {
+                    quizToast('Complete o nome e o telefone do responsável que você começou', 'warn');
+                    return;
+                }
+            } else {
+                let valid = true;
+                quizClearError('emergenciaNome');
+                quizClearError('emergenciaTel');
 
-            const nome = (document.getElementById('emergenciaNome').value || '').trim();
-            if (!nome || nome.length < 2) {
-                quizShowError('emergenciaNome', 'Quem podemos avisar em uma emergência?');
-                valid = false;
-            }
+                const nome = (document.getElementById('emergenciaNome').value || '').trim();
+                if (!nome || nome.length < 2) {
+                    quizShowError('emergenciaNome', 'Quem podemos avisar em uma emergência?');
+                    valid = false;
+                }
 
-            const tel = (document.getElementById('emergenciaTel').value || '').replace(/\D/g, '');
-            if (!tel) {
-                quizShowError('emergenciaTel', 'Telefone do contato é obrigatório');
-                valid = false;
-            } else if (tel.length < 10 || tel.length > 11) {
-                quizShowError('emergenciaTel', 'Telefone parece incompleto');
-                valid = false;
-            }
+                const tel = (document.getElementById('emergenciaTel').value || '').replace(/\D/g, '');
+                if (!tel) {
+                    quizShowError('emergenciaTel', 'Telefone do contato é obrigatório');
+                    valid = false;
+                } else if (tel.length < 10 || tel.length > 11) {
+                    quizShowError('emergenciaTel', 'Telefone parece incompleto');
+                    valid = false;
+                }
 
-            if (!valid) {
-                quizScrollToFirstError();
-                const erros = document.querySelectorAll('.step.active [id$="_err"]');
-                const errosVisiveis = Array.from(erros).filter(e => e.style.display !== 'none');
-                if (errosVisiveis.length === 1) quizToast(errosVisiveis[0].textContent, 'warn');
-                else quizToast('Preencha o contato de emergência', 'warn');
-                return;
+                if (!valid) {
+                    quizScrollToFirstError();
+                    const erros = document.querySelectorAll('.step.active [id$="_err"]');
+                    const errosVisiveis = Array.from(erros).filter(e => e.style.display !== 'none');
+                    if (errosVisiveis.length === 1) quizToast(errosVisiveis[0].textContent, 'warn');
+                    else quizToast('Preencha o contato de emergência', 'warn');
+                    return;
+                }
             }
         }
 
@@ -1611,6 +1669,11 @@
         const carteirinha = document.getElementById('carteirinhaInput').value.trim();
         const emergNome = document.getElementById('emergenciaNome').value.trim();
         const emergTel = document.getElementById('emergenciaTel').value.trim();
+        // Responsáveis (preenchidos só quando menor de idade)
+        const _paiNome = ((document.getElementById('paiNome') || {}).value || '').trim();
+        const _paiTel = ((document.getElementById('paiTel') || {}).value || '').trim();
+        const _maeNome = ((document.getElementById('maeNome') || {}).value || '').trim();
+        const _maeTel = ((document.getElementById('maeTel') || {}).value || '').trim();
 
         // Family history
         const famHistory = [];
@@ -1656,8 +1719,21 @@
         if (formData.planoSaude && formData.planoSaude !== 'Nenhum') profileData.planoSaude = formData.planoSaude;
         if (carteirinha) profileData.carteirinhaPlano = carteirinha;
         if (famHistory.length > 0) profileData.historicoFamiliar = famHistory;
-        if (emergNome) profileData.contatoEmergenciaNome = emergNome;
-        if (emergTel) profileData.contatoEmergenciaTel = emergTel;
+        if (window._quizMenor) {
+            // Menor: salva pai/mãe nos campos de responsável.
+            if (_paiNome) profileData.nomePai = _paiNome;
+            if (_paiTel) profileData.telPai = _paiTel;
+            if (_maeNome) profileData.nomeMae = _maeNome;
+            if (_maeTel) profileData.telMae = _maeTel;
+            // Também popula o contato de emergência com o primeiro responsável preenchido.
+            const _rn = _paiNome || _maeNome;
+            const _rt = _paiTel || _maeTel;
+            if (_rn) profileData.contatoEmergenciaNome = _rn;
+            if (_rt) profileData.contatoEmergenciaTel = _rt;
+        } else {
+            if (emergNome) profileData.contatoEmergenciaNome = emergNome;
+            if (emergTel) profileData.contatoEmergenciaTel = emergTel;
+        }
 
         // Save to backend — wait for confirmation before redirecting
         let saveSuccess = false;
