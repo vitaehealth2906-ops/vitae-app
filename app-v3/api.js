@@ -1368,6 +1368,21 @@ const vitaeAPI = {
     return apiRequest('/empresa/me', { noCache: true });
   },
 
+  // Painel do gestor: lista paginada + busca por nome.
+  async buscarMembrosEmpresa(q, cursor, limit) {
+    const p = new URLSearchParams();
+    if (q) p.set('q', q);
+    if (cursor) p.set('cursor', cursor);
+    if (limit) p.set('limit', String(limit));
+    const qs = p.toString();
+    return apiRequest('/empresa/membros' + (qs ? '?' + qs : ''), { noCache: true });
+  },
+
+  // Painel do gestor: RG (cartao + ficha) de um membro da equipe.
+  async getRgMembroEmpresa(pacienteId) {
+    return apiRequest('/empresa/membro/' + encodeURIComponent(pacienteId), { noCache: true });
+  },
+
   // Helpers
   getToken,
   getUsuario,

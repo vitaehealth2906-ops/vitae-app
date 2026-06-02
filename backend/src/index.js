@@ -177,8 +177,10 @@ app.use('/agenda', limiterGeral, agendaRoutes);
 app.use('/audit', limiterGeral, auditRoutes);
 // Eventos comportamentais (heartbeat + view) — autenticado
 app.use('/eventos', limiterGeral, eventosRoutes);
-// Empresas (Fundacao B2B) — tem rota publica por token (GET /convite/:token) — limite publico
-app.use('/empresa', limiterPublico, empresaRoutes);
+// Empresas (Fundacao B2B) — painel do gestor precisa de mais folga: empresa/escola
+// grande atras de UMA internet so compartilha o IP e estoura 60/min facil.
+// Limite geral (300/min). A rota publica /convite/:token e um read barato, ok no mesmo teto.
+app.use('/empresa', limiterGeral, empresaRoutes);
 
 // ── 404 para rotas nao encontradas ────────────────────
 app.use((_req, res) => {

@@ -32,6 +32,26 @@ function _moduloIndisponivel(err, res) {
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://vitae-app.vercel.app';
 
+// Acha a empresa do dono logado (1 dono = 1 empresa por enquanto; pega a mais antiga).
+async function _empresaDoDono(req) {
+  return prisma.empresa.findFirst({
+    where: { donoId: req.usuario.id },
+    orderBy: { criadoEm: 'asc' },
+  });
+}
+
+// Idade em anos a partir da data de nascimento (null se faltar/invalida).
+function _idade(dataNascimento) {
+  if (!dataNascimento) return null;
+  const d = new Date(dataNascimento);
+  if (isNaN(d.getTime())) return null;
+  const h = new Date();
+  let i = h.getFullYear() - d.getFullYear();
+  const m = h.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && h.getDate() < d.getDate())) i--;
+  return i;
+}
+
 // ---------------------------------------------------------------------------
 // GET /convite/:token — Valida convite (PUBLICO, sem auth)
 // Antes do router.use(verificarAuth) pra nao exigir login.
@@ -235,7 +255,139 @@ router.get('/me', async (req, res, next) => {
       where: { empresaId: empresa.id, status: 'ATIVO' },
     });
 
-    return res.status(200).json({ empresa, funcionariosAtivos });
+    // Metrica do painel (decisao Lucas): conta so quem JA PREENCHEU o RG
+    // (tem data de nascimento no perfil), nao so quem entrou no time.
+    const comRgPreenchido = await prisma.vinculoEmpresa.count({
+      where: {
+        empresaId: empresa.id,
+        status: 'ATIVO',
+        paciente: { perfilSaude: { dataNascimento: { not: null } } },
+      },
+    });
+
+    return res.status(200).json({ empresa, funcionariosAtivos, comRgPreenchido });
+  } catch (err) {
+    if (_moduloIndisponivel(err, res)) return;
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /membros — Lista PAGINADA + busca por nome (painel do gestor)
+// Leve de proposito (so o essencial da linha). Paginacao por CURSOR pra escalar
+// pra milhares de membros. Query: ?q=nome&limit=50&cursor=<vinculoId>
+// ---------------------------------------------------------------------------
+
+router.get('/membros', async (req, res, next) => {
+  try {
+    const empresa = await _empresaDoDono(req);
+    if (!empresa) return res.status(404).json({ erro: 'Voce ainda nao tem uma empresa' });
+
+    const q = String(req.query.q || '').trim();
+    let limit = parseInt(req.query.limit, 10);
+    if (!Number.isFinite(limit) || limit < 1) limit = 50;
+    if (limit > 100) limit = 100;
+    const cursor = String(req.query.cursor || '');
+
+    const where = { empresaId: empresa.id, status: 'ATIVO' };
+    if (q) where.paciente = { nome: { contains: q, mode: 'insensitive' } };
+
+    const args = {
+      where,
+      // Ordenacao COMPOSTA (criadoEm + id) pra cursor estavel mesmo se varios
+      // vinculos tiverem o mesmo timestamp (ex.: 10k semeados em lote no teste).
+      orderBy: [{ criadoEm: 'desc' }, { id: 'desc' }],
+      take: limit + 1, // 1 a mais pra saber se ha proxima pagina
+      select: {
+        id: true,
+        paciente: {
+          select: {
+            id: true,
+            nome: true,
+            fotoUrl: true,
+            perfilSaude: { select: { dataNascimento: true, genero: true } },
+          },
+        },
+      },
+    };
+    if (cursor) { args.cursor = { id: cursor }; args.skip = 1; }
+
+    const rows = await prisma.vinculoEmpresa.findMany(args);
+    const temMais = rows.length > limit;
+    const pagina = temMais ? rows.slice(0, limit) : rows;
+    const nextCursor = temMais ? pagina[pagina.length - 1].id : null;
+
+    const membros = pagina
+      .filter((r) => r.paciente)
+      .map((r) => {
+        const ps = r.paciente.perfilSaude;
+        const idade = _idade(ps && ps.dataNascimento);
+        return {
+          id: r.paciente.id,
+          nome: r.paciente.nome,
+          fotoUrl: r.paciente.fotoUrl || null,
+          idade,
+          genero: (ps && ps.genero) || null,
+          menor: idade != null && idade < 18,
+        };
+      });
+
+    return res.status(200).json({ membros, nextCursor });
+  } catch (err) {
+    if (_moduloIndisponivel(err, res)) return;
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /membro/:pacienteId — RG do membro (cartao + ficha) pro gestor
+// PORTEIRO: o membro PRECISA pertencer (ATIVO) a empresa desse dono.
+// Mesmo molde do medico (GET /medico/pacientes/:id), SEM exames (escopo B2B).
+// Registra auditoria do acesso (rastro pro LGPD).
+// ---------------------------------------------------------------------------
+
+router.get('/membro/:pacienteId', async (req, res, next) => {
+  try {
+    const empresa = await _empresaDoDono(req);
+    if (!empresa) return res.status(404).json({ erro: 'Voce ainda nao tem uma empresa' });
+
+    const { pacienteId } = req.params;
+
+    const vinculo = await prisma.vinculoEmpresa.findFirst({
+      where: { empresaId: empresa.id, pacienteId, status: 'ATIVO' },
+      select: { id: true },
+    });
+    if (!vinculo) {
+      return res.status(403).json({ erro: 'Esse membro nao e da sua equipe' });
+    }
+
+    auditar(req, {
+      acao: 'VIEW_MEMBRO_EMPRESA',
+      atorTipo: 'EMPRESA',
+      recursoTipo: 'PACIENTE',
+      recursoId: pacienteId,
+      alvoId: pacienteId,
+      metadata: { empresaId: empresa.id },
+    });
+
+    const membro = await prisma.usuario.findUnique({
+      where: { id: pacienteId },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        celular: true,
+        fotoUrl: true,
+        perfilSaude: true,
+        medicamentos: { orderBy: { criadoEm: 'desc' } },
+        alergias: { orderBy: { criadoEm: 'desc' } },
+        // SEM exames de proposito (escopo aprovado: ficha de emergencia/dados,
+        // nao laudos) — e tambem mais leve por clique em escala.
+      },
+    });
+    if (!membro) return res.status(404).json({ erro: 'Membro nao encontrado' });
+
+    return res.status(200).json({ membro });
   } catch (err) {
     if (_moduloIndisponivel(err, res)) return;
     next(err);

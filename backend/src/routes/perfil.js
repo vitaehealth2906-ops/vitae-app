@@ -53,6 +53,12 @@ const atualizarPerfilSchema = z.object({
   condicoes: z.string().optional(),
   contatoEmergenciaNome: z.string().optional(),
   contatoEmergenciaTel: z.string().optional(),
+  // Responsaveis (menor de idade) — pai/mae. As colunas ja existem no schema;
+  // aqui o validador passa a aceita-las pra elas pararem de ser descartadas.
+  nomeMae: z.string().optional(),
+  telMae: z.string().optional(),
+  nomePai: z.string().optional(),
+  telPai: z.string().optional(),
   apelido: z.string().optional(),
   nomeSocial: z.string().optional(),
   estadoCivil: z.enum(['SOLTEIRO', 'CASADO', 'DIVORCIADO', 'VIUVO', 'UNIAO_ESTAVEL', 'OUTRO']).optional(),
