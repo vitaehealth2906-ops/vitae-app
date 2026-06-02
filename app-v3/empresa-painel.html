@@ -60,11 +60,11 @@
     <!-- Estado: ainda nao tem empresa -> form criar -->
     <div id="criarView" class="hidden">
       <div class="label">Comece aqui</div>
-      <h1>Crie a <em>sua empresa</em></h1>
+      <h1>Crie a <em>sua organização</em></h1>
       <p class="sub">É o primeiro passo pra oferecer o vita id pra sua equipe. Leva menos de um minuto.</p>
 
       <div class="card">
-        <label>Nome da empresa</label>
+        <label>Nome da organização</label>
         <div class="field">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>
           <input id="inpNome" type="text" placeholder="Ex.: Padaria Silva">
@@ -74,17 +74,27 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h4M7 13h10M7 17h6"/></svg>
           <input id="inpCnpj" type="text" placeholder="00.000.000/0000-00" inputmode="numeric">
         </div>
+        <label>Tipo de organização <span style="color:var(--muted);font-weight:600">(opcional)</span></label>
+        <div class="field">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21h20"/><path d="M4 21V7l8-4 8 4v14"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01M9 17h.01M15 17h.01"/></svg>
+          <input id="inpTipo" type="text" placeholder="Ex.: Empresa, Escola, Faculdade…">
+        </div>
+        <label>Quantas pessoas <span style="color:var(--muted);font-weight:600">(opcional)</span></label>
+        <div class="field">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <input id="inpQtd" type="number" min="1" inputmode="numeric" placeholder="Ex.: 120">
+        </div>
         <div class="err" id="criarErr"></div>
-        <button class="btn" id="btnCriar" onclick="criar()">Criar empresa</button>
+        <button class="btn" id="btnCriar" onclick="criar()">Criar organização</button>
       </div>
     </div>
 
     <!-- Estado: ja tem empresa -> painel -->
     <div id="painelView" class="hidden">
       <div class="card hero">
-        <small>Sua empresa</small>
+        <small>Sua organização</small>
         <h2 id="empNome">—</h2>
-        <div class="count"><b id="empCount">0</b><span>colaboradores ativos no vita id</span></div>
+        <div class="count"><b id="empCount">0</b><span>pessoas da sua equipe no vita id</span></div>
       </div>
 
       <div class="card">
@@ -155,7 +165,7 @@
     try {
       const r = await vitaeAPI.getMinhaEmpresa();
       if (r && r.empresa) {
-        document.getElementById('empNome').textContent = r.empresa.nome || 'Sua empresa';
+        document.getElementById('empNome').textContent = r.empresa.nome || 'Sua organização';
         document.getElementById('empCount').textContent = (r.funcionariosAtivos != null ? r.funcionariosAtivos : 0);
         _show('painelView');
       } else {
@@ -170,13 +180,19 @@
   async function criar() {
     const nome = document.getElementById('inpNome').value.trim();
     const cnpj = document.getElementById('inpCnpj').value.trim();
+    // Campos opcionais (guarda defensiva: elementos podem nao existir em versoes antigas do HTML)
+    const tipoEl = document.getElementById('inpTipo');
+    const qtdEl = document.getElementById('inpQtd');
+    const tipo = tipoEl ? tipoEl.value.trim() : '';
+    const qtdRaw = qtdEl ? qtdEl.value.trim() : '';
+    const quantidade = qtdRaw ? parseInt(qtdRaw, 10) : null;
     const err = document.getElementById('criarErr');
     err.textContent = '';
-    if (nome.length < 2) { err.textContent = 'Digite o nome da empresa.'; return; }
+    if (nome.length < 2) { err.textContent = 'Digite o nome da organização.'; return; }
     const btn = document.getElementById('btnCriar');
     btn.disabled = true; btn.textContent = 'Criando…';
     try {
-      await vitaeAPI.criarEmpresa(nome, cnpj || null);
+      await vitaeAPI.criarEmpresa(nome, cnpj || null, tipo || null, (quantidade != null && !isNaN(quantidade)) ? quantidade : null);
       // Atualiza o tipo local pra EMPRESA (sem rebaixar nada do servidor)
       try {
         const u = vitaeAPI.getUsuario && vitaeAPI.getUsuario();
@@ -185,7 +201,7 @@
       await carregar();
     } catch (e) {
       err.textContent = (e && e.message) ? e.message : 'Não foi possível criar agora. Tente de novo.';
-      btn.disabled = false; btn.textContent = 'Criar empresa';
+      btn.disabled = false; btn.textContent = 'Criar organização';
     }
   }
 

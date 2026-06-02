@@ -1348,8 +1348,8 @@ const vitaeAPI = {
   },
 
   // Empresa (Fundacao B2B)
-  async criarEmpresa(nome, cnpj) {
-    return apiRequest('/empresa', { method: 'POST', body: { nome, cnpj } });
+  async criarEmpresa(nome, cnpj, tipo, quantidade) {
+    return apiRequest('/empresa', { method: 'POST', body: { nome, cnpj, tipo, quantidade } });
   },
 
   async gerarConvite() {

@@ -73,13 +73,19 @@ router.use(verificarAuth);
 
 router.post('/', async (req, res, next) => {
   try {
-    const { nome, cnpj } = req.body || {};
+    const { nome, cnpj, tipo, quantidade } = req.body || {};
     if (!nome || String(nome).trim().length < 2) {
       return res.status(400).json({ erro: 'Nome da empresa obrigatorio' });
     }
 
     const empresa = await prisma.empresa.create({
-      data: { nome: String(nome).trim(), cnpj: cnpj || null, donoId: req.usuario.id },
+      data: {
+        nome: String(nome).trim(),
+        cnpj: cnpj || null,
+        donoId: req.usuario.id,
+        tipo: tipo || null,
+        quantidade: Number.isFinite(+quantidade) ? parseInt(quantidade, 10) : null,
+      },
     });
 
     // Promove pra EMPRESA SEM rebaixar quem ja e MEDICO.
