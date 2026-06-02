@@ -106,9 +106,21 @@
     _show('badView');
   }
 
-  function ativar() {
+  async function ativar() {
     if (!_token) return;
     localStorage.setItem('vitae_convite_empresa', _token);
+    // Ja tem vita id (logado)? Vincula na hora e vai pra home — sem passar pelo cadastro (sem "pisca").
+    try {
+      if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn && vitaeAPI.isLoggedIn()) {
+        const btn = document.getElementById('btnAtivar');
+        if (btn) { btn.disabled = true; btn.textContent = 'Ativando…'; }
+        try { await vitaeAPI.vincularEmpresa(_token); } catch (_) {}
+        localStorage.removeItem('vitae_convite_empresa');
+        window.location.href = '01-saude.html';
+        return;
+      }
+    } catch (_) {}
+    // Novo: vai pro cadastro (e o quiz, sem slides, pula pra frente).
     window.location.href = '26-cadastro.html?c=' + encodeURIComponent(_token);
   }
 
