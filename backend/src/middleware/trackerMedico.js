@@ -23,6 +23,7 @@ const ROTAS_IGNORADAS = [
   '/healthz',
   '/favicon.ico',
   '/audit/view-cached', // audit interna, ja tem registro proprio
+  '/empresa',           // painel do gestor (tipo EMPRESA) — nunca gera evento de medico
 ];
 
 function deveIgnorar(url) {

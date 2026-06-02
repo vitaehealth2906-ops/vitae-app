@@ -283,13 +283,15 @@ router.get('/membros', async (req, res, next) => {
     const empresa = await _empresaDoDono(req);
     if (!empresa) return res.status(404).json({ erro: 'Voce ainda nao tem uma empresa' });
 
-    const q = String(req.query.q || '').trim();
+    const qRaw = String(req.query.q || '').trim();
+    const q = qRaw.length >= 2 ? qRaw : ''; // busca exige >=2 chars (1 char = sem filtro)
     let limit = parseInt(req.query.limit, 10);
     if (!Number.isFinite(limit) || limit < 1) limit = 50;
-    if (limit > 100) limit = 100;
+    if (limit > 50) limit = 50; // teto duro: protege payload e banco em escala
     const cursor = String(req.query.cursor || '');
 
-    const where = { empresaId: empresa.id, status: 'ATIVO' };
+    // pacienteId NOT NULL: vinculo sem paciente (convidado sem conta) nao entra na lista.
+    const where = { empresaId: empresa.id, status: 'ATIVO', pacienteId: { not: null } };
     if (q) where.paciente = { nome: { contains: q, mode: 'insensitive' } };
 
     const args = {
