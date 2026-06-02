@@ -28,6 +28,7 @@ const documentosRoutes = require('./routes/documentos');
 const contatoRoutes = require('./routes/contato');
 const auditRoutes = require('./routes/audit');
 const eventosRoutes = require('./routes/eventos');
+const empresaRoutes = require('./routes/empresa');
 
 // Observabilidade — inicializa Sentry se SENTRY_DSN setado
 require('./services/observability');
@@ -176,6 +177,8 @@ app.use('/agenda', limiterGeral, agendaRoutes);
 app.use('/audit', limiterGeral, auditRoutes);
 // Eventos comportamentais (heartbeat + view) — autenticado
 app.use('/eventos', limiterGeral, eventosRoutes);
+// Empresas (Fundacao B2B) — tem rota publica por token (GET /convite/:token) — limite publico
+app.use('/empresa', limiterPublico, empresaRoutes);
 
 // ── 404 para rotas nao encontradas ────────────────────
 app.use((_req, res) => {

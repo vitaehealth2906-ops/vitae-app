@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id Empresas — Painel do gestor</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--green:#00E5A0;--cyan:#00B4D8;--grad:linear-gradient(120deg,#00E5A0,#00B4D8);--bg:#F4F6FA;--ink:#0D0F14;--muted:#9CA3AF;--line:#E6E9F0;--body:#4B5563}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif}
+  body{background:var(--bg);min-height:100vh;color:var(--ink)}
+  .top{background:#fff;border-bottom:1px solid var(--line);padding:18px 22px;display:flex;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;font-size:21px;font-weight:800;color:var(--ink)}
+  .brand .id{background:var(--grad);color:#fff;border-radius:9px;padding:1px 9px;margin-left:6px}
+  .top .badge{font-size:10.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+  .container{max-width:560px;margin:0 auto;padding:28px 22px 60px}
+  .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px}
+  h1{font-size:26px;font-weight:900;letter-spacing:-.8px;line-height:1.2;margin-bottom:8px}
+  h1 em{font-style:italic;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:.08em}
+  .sub{font-size:14.5px;font-weight:500;color:var(--body);line-height:1.55;margin-bottom:24px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 1px 12px rgba(0,0,0,.06);margin-bottom:18px}
+  /* hero empresa */
+  .hero{background:var(--grad);color:#fff;border:0;box-shadow:0 14px 30px rgba(0,180,216,.26)}
+  .hero small{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.9}
+  .hero h2{font-size:24px;font-weight:900;letter-spacing:-.6px;margin:4px 0 16px}
+  .hero .count{display:flex;align-items:baseline;gap:8px}
+  .hero .count b{font-size:38px;font-weight:900;line-height:1}
+  .hero .count span{font-size:13.5px;font-weight:600;opacity:.95}
+  label{display:block;font-size:13.5px;font-weight:700;color:var(--ink);margin:0 0 9px 2px}
+  .field{display:flex;align-items:center;gap:12px;background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:0 15px;height:56px;margin-bottom:18px}
+  .field:focus-within{border-color:var(--cyan);box-shadow:0 0 0 4px rgba(0,180,216,.12);background:#fff}
+  .field svg{flex:none;color:var(--muted)}
+  .field input{border:0;outline:0;flex:1;font-size:15px;font-weight:500;color:var(--ink);background:transparent}
+  .field input::placeholder{color:#B9C0CC}
+  .btn{width:100%;height:56px;border:0;border-radius:14px;background:var(--grad);color:#fff;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 12px 26px rgba(0,180,216,.28)}
+  .btn:disabled{opacity:.55;pointer-events:none}
+  .btn-sec{width:100%;height:52px;border:1.5px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);font-size:15px;font-weight:800;cursor:pointer}
+  .linkbox{display:flex;gap:8px;margin-top:14px}
+  .linkbox input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:0 14px;height:48px;font-size:13px;font-weight:500;color:var(--body);background:var(--bg)}
+  .icbtn{width:48px;height:48px;border:1.5px solid var(--line);border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);flex:none}
+  .wa{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border:0;border-radius:12px;background:#25D366;color:#fff;font-size:14.5px;font-weight:800;cursor:pointer;margin-top:10px;text-decoration:none}
+  .soon{display:flex;align-items:center;gap:13px;opacity:.85}
+  .soon .ic{width:44px;height:44px;border-radius:12px;background:rgba(0,180,216,.10);display:flex;align-items:center;justify-content:center;color:var(--cyan);flex:none}
+  .soon b{font-size:14.5px;font-weight:800;display:block;margin-bottom:2px}
+  .soon p{font-size:12.5px;font-weight:500;color:var(--muted)}
+  .err{font-size:13px;font-weight:600;color:#EF4444;margin:-6px 0 14px 2px;min-height:0}
+  .hidden{display:none}
+  .priv{display:flex;align-items:flex-start;gap:11px;font-size:12.3px;font-weight:500;color:var(--body);line-height:1.5;margin-top:6px}
+  .priv svg{flex:none;color:var(--cyan);margin-top:1px}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand">vita<span class="id">id</span></div>
+    <span class="badge">Empresas · Gestor</span>
+  </div>
+
+  <div class="container">
+
+    <!-- Estado: ainda nao tem empresa -> form criar -->
+    <div id="criarView" class="hidden">
+      <div class="label">Comece aqui</div>
+      <h1>Crie a <em>sua empresa</em></h1>
+      <p class="sub">É o primeiro passo pra oferecer o vita id pra sua equipe. Leva menos de um minuto.</p>
+
+      <div class="card">
+        <label>Nome da empresa</label>
+        <div class="field">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>
+          <input id="inpNome" type="text" placeholder="Ex.: Padaria Silva">
+        </div>
+        <label>CNPJ <span style="color:var(--muted);font-weight:600">(opcional)</span></label>
+        <div class="field">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h4M7 13h10M7 17h6"/></svg>
+          <input id="inpCnpj" type="text" placeholder="00.000.000/0000-00" inputmode="numeric">
+        </div>
+        <div class="err" id="criarErr"></div>
+        <button class="btn" id="btnCriar" onclick="criar()">Criar empresa</button>
+      </div>
+    </div>
+
+    <!-- Estado: ja tem empresa -> painel -->
+    <div id="painelView" class="hidden">
+      <div class="card hero">
+        <small>Sua empresa</small>
+        <h2 id="empNome">—</h2>
+        <div class="count"><b id="empCount">0</b><span>colaboradores ativos no vita id</span></div>
+      </div>
+
+      <div class="card">
+        <div class="label">Convidar a equipe</div>
+        <p class="sub" style="margin-bottom:16px">Gere um link único e compartilhe com seus colaboradores. Cada um ativa o próprio vita id em segundos.</p>
+        <button class="btn" id="btnGerar" onclick="gerar()">Gerar link de convite</button>
+
+        <div id="linkArea" class="hidden">
+          <div class="linkbox">
+            <input id="linkInp" type="text" readonly>
+            <button class="icbtn" onclick="copiar()" title="Copiar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>
+            </button>
+          </div>
+          <a id="waBtn" class="wa" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-2.9.8.8-2.8-.2-.3A8 8 0 1 1 12 20zm4.4-5.6c-.2-.1-1.4-.7-1.6-.8s-.4-.1-.5.1-.6.8-.8.9-.3.2-.5 0a6.6 6.6 0 0 1-3.2-2.8c-.2-.4.2-.4.6-1.2.1-.2 0-.3 0-.5l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.6 4 5.3 5.3 0 0 0 3.2.7 2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>
+            Enviar pelo WhatsApp
+          </a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="soon">
+          <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/></svg></span>
+          <div>
+            <b>Painel de saúde da equipe — em breve</b>
+            <p>Adesão, exames em dia e engajamento, sempre em números gerais.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="priv">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="3"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+        <span>Você nunca enxerga a saúde individual de um colaborador — só o total da equipe.</span>
+      </div>
+    </div>
+
+    <!-- Estado: carregando -->
+    <div id="loadView">
+      <p class="sub" style="text-align:center;margin-top:40px">Carregando seu painel…</p>
+    </div>
+
+  </div>
+
+<script src="api.js"></script>
+<script>
+  function _show(id) {
+    ['criarView','painelView','loadView'].forEach(v => {
+      document.getElementById(v).classList.toggle('hidden', v !== id);
+    });
+  }
+
+  function _toast(msg) {
+    let t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#0D0F14;color:#fff;font-size:13.5px;font-weight:700;padding:12px 18px;border-radius:14px;z-index:99;box-shadow:0 10px 30px rgba(0,0,0,.3)';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 1900);
+  }
+
+  let _link = '';
+
+  async function carregar() {
+    if (typeof vitaeAPI === 'undefined' || !vitaeAPI.isLoggedIn || !vitaeAPI.isLoggedIn()) {
+      window.location.href = 'empresa-login.html';
+      return;
+    }
+    try {
+      const r = await vitaeAPI.getMinhaEmpresa();
+      if (r && r.empresa) {
+        document.getElementById('empNome').textContent = r.empresa.nome || 'Sua empresa';
+        document.getElementById('empCount').textContent = (r.funcionariosAtivos != null ? r.funcionariosAtivos : 0);
+        _show('painelView');
+      } else {
+        _show('criarView');
+      }
+    } catch (e) {
+      // Sem empresa ainda ou modulo indisponivel: deixa criar.
+      _show('criarView');
+    }
+  }
+
+  async function criar() {
+    const nome = document.getElementById('inpNome').value.trim();
+    const cnpj = document.getElementById('inpCnpj').value.trim();
+    const err = document.getElementById('criarErr');
+    err.textContent = '';
+    if (nome.length < 2) { err.textContent = 'Digite o nome da empresa.'; return; }
+    const btn = document.getElementById('btnCriar');
+    btn.disabled = true; btn.textContent = 'Criando…';
+    try {
+      await vitaeAPI.criarEmpresa(nome, cnpj || null);
+      // Atualiza o tipo local pra EMPRESA (sem rebaixar nada do servidor)
+      try {
+        const u = vitaeAPI.getUsuario && vitaeAPI.getUsuario();
+        if (u) { u.tipo = 'EMPRESA'; vitaeAPI.setUsuario && vitaeAPI.setUsuario(u); }
+      } catch (_) {}
+      await carregar();
+    } catch (e) {
+      err.textContent = (e && e.message) ? e.message : 'Não foi possível criar agora. Tente de novo.';
+      btn.disabled = false; btn.textContent = 'Criar empresa';
+    }
+  }
+
+  async function gerar() {
+    const btn = document.getElementById('btnGerar');
+    btn.disabled = true; btn.textContent = 'Gerando…';
+    try {
+      const r = await vitaeAPI.gerarConvite();
+      _link = (r && r.link) || '';
+      document.getElementById('linkInp').value = _link;
+      const msg = encodeURIComponent('Oi! Ative seu vita id por aqui — é seu, gratuito e leva 1 minuto: ' + _link);
+      document.getElementById('waBtn').href = 'https://wa.me/?text=' + msg;
+      document.getElementById('linkArea').classList.remove('hidden');
+      btn.textContent = 'Gerar outro link';
+      btn.disabled = false;
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Gerar link de convite';
+      _toast((e && e.message) ? e.message : 'Não foi possível gerar o link.');
+    }
+  }
+
+  function copiar() {
+    if (!_link) return;
+    const inp = document.getElementById('linkInp');
+    inp.select(); inp.setSelectionRange(0, 99999);
+    try {
+      if (navigator.clipboard) navigator.clipboard.writeText(_link);
+      else document.execCommand('copy');
+      _toast('Link copiado');
+    } catch (_) { _toast('Link copiado'); }
+  }
+
+  carregar();
+</script>
+</body>
+</html>

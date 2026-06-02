@@ -53,6 +53,10 @@ model Usuario {
   // ---- Fase 3: Contato Direto WhatsApp ----
   permissoesContatoMedicos PermissaoContatoPaciente[] @relation("paciente_permissao_contato")
 
+  // ---- Fundacao B2B: Empresas ----
+  empresasComoDono Empresa[]        @relation("empresa_dono")
+  vinculosEmpresa  VinculoEmpresa[] @relation("paciente_vinculos_empresa")
+
   @@map("usuarios")
 }
 
@@ -924,4 +928,41 @@ model PermissaoContatoPaciente {
   @@unique([medicoId, pacienteId])
   @@index([medicoId, habilitado])
   @@map("permissao_contato_paciente")
+}
+
+// ---- EMPRESA (Fundacao B2B: dono cria empresa, convida funcionarios por token) ----
+model Empresa {
+  id           String   @id @default(uuid())
+  nome         String
+  cnpj         String?  @unique
+  donoId       String   @map("dono_id")
+  status       String   @default("ATIVA")
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  dono     Usuario          @relation("empresa_dono", fields: [donoId], references: [id], onDelete: Cascade)
+  vinculos VinculoEmpresa[]
+
+  @@index([donoId])
+  @@map("empresas")
+}
+
+// ---- VINCULO EMPRESA-PACIENTE (convite por token, idempotente via @@unique) ----
+model VinculoEmpresa {
+  id              String    @id @default(uuid())
+  empresaId       String    @map("empresa_id")
+  pacienteId      String?   @map("paciente_id")
+  status          String    @default("CONVIDADO")
+  conviteToken    String    @unique @map("convite_token")
+  conviteExpiraEm DateTime? @map("convite_expira_em")
+  entrouEm        DateTime? @map("entrou_em")
+  saiuEm          DateTime? @map("saiu_em")
+  criadoEm        DateTime  @default(now()) @map("criado_em")
+
+  empresa  Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  paciente Usuario? @relation("paciente_vinculos_empresa", fields: [pacienteId], references: [id], onDelete: SetNull)
+
+  @@unique([empresaId, pacienteId])
+  @@index([conviteToken])
+  @@map("vinculos_empresa")
 }

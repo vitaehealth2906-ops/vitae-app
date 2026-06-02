@@ -269,6 +269,9 @@
       const params = new URLSearchParams(window.location.search);
       const retornoToken = params.get('retorno') || params.get('token');
       if (retornoToken) localStorage.setItem('vitae_quiz_retorno', retornoToken);
+      // Convite de empresa (Fundacao B2B): guarda o token pra colar a etiqueta no fim do quiz.
+      const c = params.get('c');
+      if (c) localStorage.setItem('vitae_convite_empresa', c);
     })();
 
     // Helpers de redirecionamento: respeitam o token de retorno se existir.
@@ -377,7 +380,9 @@
             if (isLogin) {
                 const loginResult = await vitaeAPI.login(emailInput.value.trim(), senhaInput.value);
                 const u = loginResult.usuario || {};
-                if (u.tipo === 'MEDICO') {
+                if (u.tipo === 'EMPRESA') {
+                    window.location.href = 'empresa-painel.html';
+                } else if (u.tipo === 'MEDICO') {
                     window.location.href = '20-medico-dashboard.html';
                 } else {
                     // Verificar se perfil tem dados — se vazio, vai pro quiz
@@ -410,7 +415,9 @@
                     if (result.refreshToken) localStorage.setItem('vitae_refresh_token', result.refreshToken);
                     if (result.usuario) localStorage.setItem('vitae_usuario', JSON.stringify(result.usuario));
                 }
-                if (tipoEscolhido === 'MEDICO') {
+                if (tipoEscolhido === 'EMPRESA') {
+                    window.location.href = 'empresa-painel.html';
+                } else if (tipoEscolhido === 'MEDICO') {
                     window.location.href = '20-medico-cadastro.html';
                 } else {
                     window.location.href = _redirectAfterAuth_quizVazio();
@@ -528,7 +535,9 @@
                         }
                         console.log('[GoogleAuth] Backend OK:', result);
 
-                        if (tipoEscolhido === 'MEDICO' || (result.usuario && result.usuario.tipo === 'MEDICO')) {
+                        if (tipoEscolhido === 'EMPRESA' || (result.usuario && result.usuario.tipo === 'EMPRESA')) {
+                            window.location.href = 'empresa-painel.html';
+                        } else if (tipoEscolhido === 'MEDICO' || (result.usuario && result.usuario.tipo === 'MEDICO')) {
                             window.location.href = '20-medico-dashboard.html';
                         } else {
                             try {

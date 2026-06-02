@@ -23,7 +23,7 @@ const cadastroSchema = z.object({
     'Celular deve estar no formato +55DDXXXXXXXXX',
   ),
   senha: z.string().min(8, 'Senha deve ter no minimo 8 caracteres'),
-  tipo: z.enum(['PACIENTE', 'MEDICO']).optional(),
+  tipo: z.enum(['PACIENTE', 'MEDICO', 'EMPRESA']).optional(),
 });
 
 const verificarSmsSchema = z.object({

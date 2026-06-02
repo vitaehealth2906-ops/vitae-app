@@ -1347,6 +1347,27 @@ const vitaeAPI = {
     return apiRequest('/timeline');
   },
 
+  // Empresa (Fundacao B2B)
+  async criarEmpresa(nome, cnpj) {
+    return apiRequest('/empresa', { method: 'POST', body: { nome, cnpj } });
+  },
+
+  async gerarConvite() {
+    return apiRequest('/empresa/convite', { method: 'POST' });
+  },
+
+  async validarConvite(token) {
+    return apiRequest(`/empresa/convite/${encodeURIComponent(token)}`, { noCache: true });
+  },
+
+  async vincularEmpresa(token) {
+    return apiRequest('/empresa/vincular', { method: 'POST', body: { token } });
+  },
+
+  async getMinhaEmpresa() {
+    return apiRequest('/empresa/me', { noCache: true });
+  },
+
   // Helpers
   getToken,
   getUsuario,

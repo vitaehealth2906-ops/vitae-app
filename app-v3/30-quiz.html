@@ -1787,6 +1787,13 @@
         // — keepalive=true garante entrega mesmo apos unload pra requests pequenos.
         if (saveSuccess) {
             localStorage.setItem('vitae_quiz_completo', '1');
+            // Fundacao B2B: se veio de um convite de empresa, cola a etiqueta agora.
+            // Fire-and-forget — nao bloqueia nem quebra o fluxo se falhar.
+            const _cv = localStorage.getItem('vitae_convite_empresa');
+            if (_cv && typeof vitaeAPI !== 'undefined' && vitaeAPI.vincularEmpresa) {
+                vitaeAPI.vincularEmpresa(_cv).catch(() => {});
+                localStorage.removeItem('vitae_convite_empresa');
+            }
             if (preConsultaToken) {
                 localStorage.removeItem('vitae_pre_consulta_token');
                 localStorage.removeItem('vitae_quiz_retorno');
