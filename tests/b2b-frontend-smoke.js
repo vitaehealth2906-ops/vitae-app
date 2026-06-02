@@ -45,6 +45,27 @@ const check = (n, ok, x = '') => { results.push({ n, ok: !!ok }); console.log((o
     await ctx.close();
   }
 
+  // 3) Mascaras ao vivo (CNPJ + quantidade no painel; celular do gestor no login)
+  {
+    const init = () => { localStorage.setItem('vitae_token', 'fake'); localStorage.setItem('vitae_usuario', '{"id":"x","nome":"G","tipo":"EMPRESA"}'); };
+    const { p, ctx } = await abrir('empresa-painel.html', init);
+    await p.fill('#inpCnpj', ''); await p.type('#inpCnpj', '11222333000181');
+    const cnpj = await p.inputValue('#inpCnpj').catch(() => '');
+    check('mascara CNPJ (criar org)', cnpj === '11.222.333/0001-81', 'cnpj=' + cnpj);
+    await p.fill('#inpQtd', ''); await p.type('#inpQtd', '99999999');
+    const qtd = await p.inputValue('#inpQtd').catch(() => '');
+    check('quantidade limitada a 6 digitos', qtd === '999999', 'qtd=' + qtd);
+    await ctx.close();
+  }
+  {
+    const { p, ctx } = await abrir('empresa-login.html');
+    await p.evaluate(() => { if (typeof trocar === 'function') trocar('cadastro'); });
+    await p.fill('#cadCelular', ''); await p.type('#cadCelular', '11987654321');
+    const cel = await p.inputValue('#cadCelular').catch(() => '');
+    check('mascara celular do gestor (cadastro)', cel === '(11) 98765-4321', 'cel=' + cel);
+    await ctx.close();
+  }
+
   await browser.close();
   const pass = results.filter((x) => x.ok).length;
   console.log(`\n=== FRONTEND SMOKE: ${pass}/${results.length} ===`);

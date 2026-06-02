@@ -123,11 +123,11 @@
         <label>Nome da organização</label>
         <div class="f"><input id="inpNome" type="text" placeholder="Ex.: Colégio Vita Nova"></div>
         <label>CNPJ <span>(opcional)</span></label>
-        <div class="f"><input id="inpCnpj" type="text" placeholder="00.000.000/0000-00" inputmode="numeric"></div>
+        <div class="f"><input id="inpCnpj" type="text" placeholder="00.000.000/0000-00" inputmode="numeric" maxlength="18" oninput="maskCnpj(this)"></div>
         <label>Tipo de organização <span>(opcional)</span></label>
         <div class="f"><input id="inpTipo" type="text" placeholder="Ex.: Empresa, Escola, Faculdade…"></div>
         <label>Quantas pessoas <span>(opcional)</span></label>
-        <div class="f"><input id="inpQtd" type="number" min="1" inputmode="numeric" placeholder="Ex.: 120"></div>
+        <div class="f"><input id="inpQtd" type="number" min="1" max="999999" inputmode="numeric" placeholder="Ex.: 120" oninput="maskQtd(this)"></div>
         <div class="err" id="criarErr"></div>
         <button class="btn-pri" style="width:100%" id="btnCriar" onclick="criar()">Criar organização</button>
       </div>
@@ -220,6 +220,17 @@
   function show(id){ ['criarView','painelView','detailView','loadView'].forEach(v=>document.getElementById(v).classList.toggle('hidden', v!==id)); }
   function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),1900); }
   function sair(){ try{ vitaeAPI.logout && vitaeAPI.logout(); }catch(_){} window.location.href='empresa-login.html'; }
+  // Mascaras ao vivo do formulario de criar organizacao
+  function maskCnpj(el){
+    const d = el.value.replace(/\D/g,'').slice(0,14);
+    let o = d.slice(0,2);
+    if (d.length>2) o += '.'+d.slice(2,5);
+    if (d.length>5) o += '.'+d.slice(5,8);
+    if (d.length>8) o += '/'+d.slice(8,12);
+    if (d.length>12) o += '-'+d.slice(12,14);
+    el.value = o;
+  }
+  function maskQtd(el){ el.value = el.value.replace(/\D/g,'').slice(0,6); }
 
   let LINK='', ORG=null, EH_ESCOLA=false;
   const PG = { q:'', cursor:null, done:false, loading:false };
