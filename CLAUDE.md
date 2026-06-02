@@ -609,6 +609,55 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 35 — 29/05 a 02/06/2026 — Virada estrategica (Hippocratic) + Fundacao B2B (organizacao -> "sua equipe") + login novo em todas as portas
+
+**Contexto:** Sessao longa em 2 arcos. ARCO 1 = estudo estrategico (spin-off "RG via pagador" -> red-team que matou a tese Flatiron -> Hippocratic como espelho do vita id -> largar a manchete "RG de saude" e vender o trabalho concreto: "o agente que conversa com o paciente ANTES da consulta"). ARCO 2 = construcao B2B real: organizacoes (empresas E escolas/faculdades) dao vita id pra "sua equipe"; dono ve agregado; membro entra por link de convite. Tudo construido, deployado e testado.
+
+**Decisoes estrategicas (ARCO 1):**
+- Largar "RG de saude" como manchete (concordancia 100% do Lucas).
+- Copiar o POSICIONAMENTO da Hippocratic: vender trabalho concreto, nao conceito abstrato.
+- vita id = "o agente que conversa com o paciente ANTES da consulta (via WhatsApp)".
+- A tese "vender dado pra farma como a Flatiron" tem FURO: dado de captura cronico != dado de valor oncologico regulatory-grade. Versao que sobrevive = infra de gestao de saude.
+- NAO se constroi um Polaris/OpenEvidence do zero — e cerebro alugado (RAG) + nicho do "antes".
+- Docs no vault: `ESTUDO-PROFUNDO-TROCA-DE-VALOR-2026/` (00 a 05) + `05 — ROADMAP/TESE-OPERADORA-RASTREABILIDADE-2026-05-29.md`.
+
+**Construido + deployado + testado (ARCO 2) — tudo em prod, 4 commits na main:**
+
+Backend (`backend/`, additive-only, migrations aplicadas A MAO no Railway):
+- Models novos: `Empresa` (nome, cnpj, donoId, status, **tipo String?**, **quantidade Int?**), `ConviteEmpresa` (token unico = link REUTILIZAVEL do time), `VinculoEmpresa` (pacienteId, conviteId, status, entrouEm — 1 por membro). Reverse relations em Usuario. `Usuario.tipo` aceita `EMPRESA` (promove via updateMany where tipo in ['PACIENTE','PENDENTE'] — NUNCA rebaixa MEDICO).
+- Rota `backend/src/routes/empresa.js`: `POST /empresa` (cria + le tipo/quantidade), `POST /empresa/convite` (link reutilizavel, reusa ativo ou cria), `GET /empresa/convite/:token` (publico, valida), `POST /empresa/vincular` (idempotente via `@@unique([empresaId,pacienteId])` + P2002), `GET /empresa/me` (so contagem `funcionariosAtivos` — parede de privacidade). Guard `_moduloIndisponivel` (P2021/P2022 -> 503).
+- `auth.js`: `tipo: z.enum(['PACIENTE','MEDICO','EMPRESA']).optional()`.
+- `index.js`: `app.use('/empresa', limiterPublico, empresaRoutes)`.
+- Migrations aplicadas: `20260601_b2b_empresas`, `20260601b_b2b_convites_reutilizaveis`, `20260602_org_tipo_quantidade` (ALTER ADD tipo TEXT + quantidade INTEGER). Padrao: `railway run npx prisma db execute --file ... --schema prisma/schema.prisma` (psql nao disponivel).
+
+Frontend (`app-v3/`):
+- Telas novas: `convite.html` (landing co-branded, copy neutra; `ativar()` async: logado -> vincula + home sem "pisca"; novo -> 26-cadastro?c=token), `empresa-login.html` (porta do dono), `empresa-painel.html` (dono cria org com **tipo campo livre + quantidade numero aberto**, copy "sua equipe", placeholder "Painel de saude da equipe — em breve").
+- `api.js`: `criarEmpresa(nome,cnpj,tipo,quantidade)`, `gerarConvite`, `validarConvite`, `vincularEmpresa`, `getMinhaEmpresa`.
+- `30-quiz.html`: no saveSuccess vincula se `vitae_convite_empresa` no localStorage.
+- **Login novo (visual do preview "01" que o Lucas amou) aplicado em TODAS as portas SEM mexer no JS:** `26-cadastro.html` (+ pula slides educativos so no fluxo de empresa), `pre-consulta.html` (login embutido `.lg-*`), `24-esqueci-senha.html`, `25-nova-senha.html`.
+
+**Mockups (fora do repo):** `d:\vita-telas-b2b\` (01-login-app = o aprovado, 02-convite, 04-portal, fluxo-b2b). Nao vao pro GitHub — ja integrados ao app.
+
+**Testes (todos verdes):** Etapa 1 local (reskin nao quebrou JS) 9/9; deploy Vercel confirmado; Etapa 2 prod 6/6 (org salva tipo=Escola/qtd=250, regressao cadastro 201, link reutilizavel 2 funcionarios, privacidade so contagem). Link reutilizavel 7/7. Dados de teste limpos (152 usuarios reais restantes). Scripts: `tests/b2b-api-e2e.js`, `b2b-ui-e2e.js`, `b2b-ui-full.js`, `b2b-reskin-check.js`.
+
+**Commits (origin/main):** `8291311` (fundacao), `d9a6e9f` (link reutilizavel + rastreio), `d19c5df` (fluxo funcionario sem slides/sem pisca), `e1316a4` (login preview em todas as portas + tipo/qtd + "sua equipe").
+**Tags rollback:** `pre-b2b-fundacao-2026-06-01`, `pre-login-redesign-2026-06-02`.
+
+**Bugs achados e corrigidos no caminho:**
+- Link de convite era de uso UNICO (2o funcionario tomava 409). Fix: tabela `ConviteEmpresa` reutilizavel + cada membro cria proprio vinculo.
+- "Pisca de 1s" + slides educativos no fluxo do funcionario. Fix: convite logado vincula direto; 26-cadastro pula slides so no fluxo de empresa.
+- P1001 transiente na migration (porta 5432 firewall) -> retry no pooler resolve.
+
+**Regras reforcadas nesta sessao:** copy NEUTRA "sua equipe" (serve escola/aluno, nao so empresa/funcionario); parede de privacidade (dono so ve contagem); preview-first (visual aprovado antes de construir); DB additive-only aplicada a mao; `.admin-token.local` gitignored.
+
+**PROXIMA PECA (a ultima): DASHBOARD DO DONO.** Plano: preview visual primeiro, Lucas aprova, depois constroi. 2 decisoes pendentes do Lucas: (1) painel do DONO vs admin interno do vita id (ligado a "dados valiosos"); (2) regra de grupos pequenos (esconder medias de saude abaixo de N pessoas; recomendado 5). Fio solto anotado: "dados valiosos" = dado ocupacional/ASO que a organizacao ja tem por lei.
+
+**Handoff completo (Lucas indo pro PC da faculdade):** pasta `Obsidian Vault/HANDOFF-PC-FACULDADE-02-JUN-2026/` com `00-MEGA-PROMPT.md`, `01-ESTADO-ATUAL.md`, `02-PERGUNTAS-RESPOSTAS-COMPLETO.md` (todas as ~40 perguntas/respostas do chat). Codigo 100% no `origin/main` — `git pull` no notebook traz tudo.
+
+**Skills usadas:** Agent/Workflow (estudo do sistema + fundacao), Playwright real contra prod, Railway CLI (migrations manuais), AskUserQuestion (decisoes de produto), Edit cirurgico preservando JS.
+
+---
+
 ### Sessao 34 — 28-29/05/2026 — Painel beta do medico + heartbeat (entrega completa)
 
 **Contexto:** 1o medico beta REAL cadastrou 28/05 07:40 BRT — Jose Eduardo Tambor Bueno (`acupuntura.bueno@gmail.com`, CRM 12345678/SP, Acupuntura, Clinica Sao Luis). Logou 07:45. Lucas pediu "painel de espionagem" pra acompanhar uso do medico sem precisar perguntar.
