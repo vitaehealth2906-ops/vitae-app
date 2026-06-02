@@ -1,9 +1,14 @@
 // ============================================================
 // Fundacao B2B — Empresas (dono cria empresa, convida funcionarios)
 //
-// TODO (borda conhecida): funcionario que JA tem conta + perfil pronto
-// nao passa pelo quiz, entao a colagem da etiqueta nao roda automatica.
-// Mitigacao futura: chamar vincularEmpresa no boot de 01-saude.html quando
+// Link de convite REUTILIZAVEL: 1 link serve pro time todo. Cada funcionario
+// que abre cria a PROPRIA etiqueta (VinculoEmpresa), idempotente via
+// @@unique([empresaId, pacienteId]). Rastreio: cada etiqueta guarda QUEM
+// (pacienteId), QUANDO (entrouEm) e POR QUAL LINK (conviteId) a pessoa veio.
+//
+// TODO (borda conhecida): funcionario que JA tem conta + perfil pronto nao
+// passa pelo quiz, entao a colagem nao roda automatica. Mitigacao futura:
+// chamar vincularEmpresa no boot de 01-saude.html quando
 // localStorage.vitae_convite_empresa existir.
 // ============================================================
 
@@ -34,22 +39,25 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'https://vitae-app.vercel.app';
 
 router.get('/convite/:token', async (req, res, next) => {
   try {
-    const vinculo = await prisma.vinculoEmpresa.findUnique({
-      where: { conviteToken: req.params.token },
+    const convite = await prisma.conviteEmpresa.findUnique({
+      where: { token: req.params.token },
       include: { empresa: true },
     });
 
-    if (!vinculo || !vinculo.empresa) {
+    if (!convite || !convite.empresa) {
       return res.status(404).json({ erro: 'Convite nao encontrado' });
     }
-    if (vinculo.conviteExpiraEm && vinculo.conviteExpiraEm < new Date()) {
+    if (!convite.ativo) {
+      return res.status(410).json({ erro: 'Convite desativado' });
+    }
+    if (convite.expiraEm && convite.expiraEm < new Date()) {
       return res.status(410).json({ erro: 'Convite expirado' });
     }
-    if (vinculo.empresa.status !== 'ATIVA') {
+    if (convite.empresa.status !== 'ATIVA') {
       return res.status(410).json({ erro: 'Empresa indisponivel' });
     }
 
-    return res.status(200).json({ empresaNome: vinculo.empresa.nome });
+    return res.status(200).json({ empresaNome: convite.empresa.nome });
   } catch (err) {
     if (_moduloIndisponivel(err, res)) return;
     next(err);
@@ -95,11 +103,13 @@ router.post('/', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /convite — Dono gera um link de convite (token + link)
+// POST /convite — Dono pega o link REUTILIZAVEL da empresa (cria se nao existe)
+// Body opcional: { novo: true, label: "Grupo WhatsApp" } pra gerar um link extra (rastreio de origem).
 // ---------------------------------------------------------------------------
 
 router.post('/convite', async (req, res, next) => {
   try {
+    const { novo, label } = req.body || {};
     const empresa = await prisma.empresa.findFirst({
       where: { donoId: req.usuario.id },
       orderBy: { criadoEm: 'asc' },
@@ -108,19 +118,26 @@ router.post('/convite', async (req, res, next) => {
       return res.status(404).json({ erro: 'Voce ainda nao tem uma empresa' });
     }
 
-    const token = crypto.randomBytes(24).toString('hex');
-    const conviteExpiraEm = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    // 1 link reutilizavel por empresa: reaproveita o ativo (a menos que peca um novo).
+    let convite = null;
+    if (!novo) {
+      convite = await prisma.conviteEmpresa.findFirst({
+        where: { empresaId: empresa.id, ativo: true },
+        orderBy: { criadoEm: 'desc' },
+      });
+    }
+    if (!convite) {
+      convite = await prisma.conviteEmpresa.create({
+        data: {
+          empresaId: empresa.id,
+          token: crypto.randomBytes(24).toString('hex'),
+          label: label ? String(label).slice(0, 60) : null,
+          ativo: true,
+        },
+      });
+    }
 
-    await prisma.vinculoEmpresa.create({
-      data: {
-        empresaId: empresa.id,
-        status: 'CONVIDADO',
-        conviteToken: token,
-        conviteExpiraEm,
-      },
-    });
-
-    const link = `${FRONTEND_URL}/app-v3/convite.html?c=${token}`;
+    const link = `${FRONTEND_URL}/app-v3/convite.html?c=${convite.token}`;
 
     auditar(req, {
       acao: 'GERAR_CONVITE_EMPRESA',
@@ -129,7 +146,7 @@ router.post('/convite', async (req, res, next) => {
       recursoId: empresa.id,
     });
 
-    return res.status(201).json({ token, link });
+    return res.status(201).json({ token: convite.token, link, label: convite.label || null });
   } catch (err) {
     if (_moduloIndisponivel(err, res)) return;
     next(err);
@@ -137,7 +154,8 @@ router.post('/convite', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /vincular — Paciente cola a etiqueta (IDEMPOTENTE)
+// POST /vincular — Funcionario cola a PROPRIA etiqueta (REUTILIZAVEL + IDEMPOTENTE)
+// O mesmo link serve pra varios funcionarios. Guarda o rastreio (conviteId, entrouEm).
 // ---------------------------------------------------------------------------
 
 router.post('/vincular', async (req, res, next) => {
@@ -145,45 +163,48 @@ router.post('/vincular', async (req, res, next) => {
     const { token } = req.body || {};
     if (!token) return res.status(400).json({ erro: 'token obrigatorio' });
 
-    const vinculo = await prisma.vinculoEmpresa.findUnique({
-      where: { conviteToken: token },
-    });
-    if (!vinculo) return res.status(404).json({ erro: 'Convite nao encontrado' });
-    if (vinculo.conviteExpiraEm && vinculo.conviteExpiraEm < new Date()) {
+    const convite = await prisma.conviteEmpresa.findUnique({ where: { token } });
+    if (!convite) return res.status(404).json({ erro: 'Convite nao encontrado' });
+    if (!convite.ativo) return res.status(410).json({ erro: 'Convite desativado' });
+    if (convite.expiraEm && convite.expiraEm < new Date()) {
       return res.status(410).json({ erro: 'Convite expirado' });
     }
 
-    // Ja existe vinculo ATIVO desse paciente nessa empresa? Idempotente.
-    const jaAtivo = await prisma.vinculoEmpresa.findFirst({
-      where: { empresaId: vinculo.empresaId, pacienteId: req.usuario.id, status: 'ATIVO' },
+    // Ja e membro dessa empresa? Idempotente (nao duplica; reativa se tinha saido).
+    const ja = await prisma.vinculoEmpresa.findFirst({
+      where: { empresaId: convite.empresaId, pacienteId: req.usuario.id },
     });
-    if (jaAtivo) {
+    if (ja) {
+      if (ja.status !== 'ATIVO') {
+        await prisma.vinculoEmpresa.update({
+          where: { id: ja.id },
+          data: { status: 'ATIVO', entrouEm: ja.entrouEm || new Date(), saiuEm: null, conviteId: convite.id },
+        });
+      }
       return res.status(200).json({ duplicate: true });
     }
 
-    const r = await prisma.vinculoEmpresa.updateMany({
-      where: { conviteToken: token, pacienteId: null },
-      data: { pacienteId: req.usuario.id, status: 'ATIVO', entrouEm: new Date() },
+    await prisma.vinculoEmpresa.create({
+      data: {
+        empresaId: convite.empresaId,
+        pacienteId: req.usuario.id,
+        conviteId: convite.id,
+        status: 'ATIVO',
+        entrouEm: new Date(),
+      },
     });
-
-    if (r.count === 0) {
-      // Token ja foi usado por outra pessoa (ou ja vinculado). Confere de novo.
-      const recheck = await prisma.vinculoEmpresa.findFirst({
-        where: { empresaId: vinculo.empresaId, pacienteId: req.usuario.id, status: 'ATIVO' },
-      });
-      if (recheck) return res.status(200).json({ duplicate: true });
-      return res.status(409).json({ erro: 'Convite ja utilizado' });
-    }
 
     auditar(req, {
       acao: 'VINCULAR_EMPRESA',
       atorTipo: 'PACIENTE',
       recursoTipo: 'EMPRESA',
-      recursoId: vinculo.empresaId,
+      recursoId: convite.empresaId,
     });
 
     return res.status(200).json({ vinculado: true });
   } catch (err) {
+    // Corrida de 2 requests do mesmo paciente: @@unique([empresaId, pacienteId]) -> P2002.
+    if (err && err.code === 'P2002') return res.status(200).json({ duplicate: true });
     if (_moduloIndisponivel(err, res)) return;
     next(err);
   }
@@ -191,7 +212,7 @@ router.post('/vincular', async (req, res, next) => {
 
 // ---------------------------------------------------------------------------
 // GET /me — Dono ve a empresa + contagem de funcionarios ativos
-// NENHUM dado individual de funcionario.
+// NENHUM dado individual de funcionario. (A lista detalhada fica pro painel.)
 // ---------------------------------------------------------------------------
 
 router.get('/me', async (req, res, next) => {

@@ -942,25 +942,45 @@ model Empresa {
 
   dono     Usuario          @relation("empresa_dono", fields: [donoId], references: [id], onDelete: Cascade)
   vinculos VinculoEmpresa[]
+  convites ConviteEmpresa[]
 
   @@index([donoId])
   @@map("empresas")
 }
 
-// ---- VINCULO EMPRESA-PACIENTE (convite por token, idempotente via @@unique) ----
+// ---- CONVITE EMPRESA (link REUTILIZAVEL: 1 link = time todo; label = rastreio de origem) ----
+model ConviteEmpresa {
+  id        String    @id @default(uuid())
+  empresaId String    @map("empresa_id")
+  token     String    @unique
+  label     String?   // nome opcional do link (ex.: "Grupo WhatsApp", "Email RH")
+  ativo     Boolean   @default(true)
+  expiraEm  DateTime? @map("expira_em")
+  criadoEm  DateTime  @default(now()) @map("criado_em")
+
+  empresa  Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  vinculos VinculoEmpresa[]
+
+  @@index([empresaId])
+  @@map("convites_empresa")
+}
+
+// ---- VINCULO EMPRESA-PACIENTE (etiqueta de cada funcionario; rastreia de qual link veio) ----
 model VinculoEmpresa {
   id              String    @id @default(uuid())
   empresaId       String    @map("empresa_id")
   pacienteId      String?   @map("paciente_id")
+  conviteId       String?   @map("convite_id") // de qual link a pessoa veio (rastreio)
   status          String    @default("CONVIDADO")
-  conviteToken    String    @unique @map("convite_token")
+  conviteToken    String?   @unique @map("convite_token") // legado (vestigial, agora opcional)
   conviteExpiraEm DateTime? @map("convite_expira_em")
   entrouEm        DateTime? @map("entrou_em")
   saiuEm          DateTime? @map("saiu_em")
   criadoEm        DateTime  @default(now()) @map("criado_em")
 
-  empresa  Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  paciente Usuario? @relation("paciente_vinculos_empresa", fields: [pacienteId], references: [id], onDelete: SetNull)
+  empresa  Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  paciente Usuario?        @relation("paciente_vinculos_empresa", fields: [pacienteId], references: [id], onDelete: SetNull)
+  convite  ConviteEmpresa? @relation(fields: [conviteId], references: [id], onDelete: SetNull)
 
   @@unique([empresaId, pacienteId])
   @@index([conviteToken])
