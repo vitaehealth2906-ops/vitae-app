@@ -136,7 +136,13 @@ router.put('/', async (req, res, next) => {
     // sumiu entre o POST e o PUT (banco limpo, sessao velha, etc), update lanca
     // P2025 → errorHandler mapeia pra 404 → frontend mostra "Recurso nao
     // encontrado". Em vez disso, fazer upsert garante idempotencia.
+    // crm/ufCrm tambem sao editaveis pelo perfil — precisam entrar no UPDATE
+    // (antes so eram lidos pro CREATE, entao editar o CRM nao salvava nada).
+    const { crm, ufCrm } = req.body;
+
     const dataUpdate = {
+      ...(crm !== undefined && crm !== null && { crm: String(crm).trim() }),
+      ...(ufCrm !== undefined && ufCrm !== null && { ufCrm: String(ufCrm).toUpperCase().trim() }),
       ...(especialidade && { especialidade }),
       ...(clinica !== undefined && { clinica }),
       ...(enderecoClinica !== undefined && { enderecoClinica, ...geoPatch }),
@@ -153,22 +159,22 @@ router.put('/', async (req, res, next) => {
       ...(modoSUS !== undefined && { modoSUS: !!modoSUS }),
     };
 
-    // Pra criar, precisamos de campos obrigatorios (crm, ufCrm) que o PUT
-    // normalmente nao recebe. Lemos do payload OU lancamos 400 explicativo.
-    const { crm, ufCrm } = req.body;
-
+    // CREATE (caso o medico ainda nao tenha ficha). Campos obrigatorios do
+    // schema (clinica/endereco/telefone/valor) NAO podem ir como null — o Prisma
+    // valida o bloco CREATE mesmo quando so o UPDATE sera executado, entao um
+    // null aqui derrubava TODA edicao de campo unico. Usamos placeholders.
     const medico = await prisma.medico.upsert({
       where: { usuarioId: req.usuario.id },
       update: dataUpdate,
       create: {
-        usuarioId: req.usuario.id,
-        crm: crm || 'PENDENTE',
-        ufCrm: (ufCrm || 'SP').toUpperCase(),
+        usuario: { connect: { id: req.usuario.id } },
+        crm: (crm && String(crm).trim()) || 'PENDENTE',
+        ufCrm: (ufCrm ? String(ufCrm).toUpperCase().trim() : 'SP'),
         especialidade: especialidade || 'Nao informado',
-        clinica: clinica || null,
-        enderecoClinica: enderecoClinica || null,
-        telefoneClinica: telefoneClinica || null,
-        valorConsulta: valorConsulta != null ? Number(valorConsulta) : null,
+        clinica: clinica || 'A definir',
+        enderecoClinica: enderecoClinica || 'A definir',
+        telefoneClinica: telefoneClinica || 'A definir',
+        valorConsulta: valorConsulta != null ? Number(valorConsulta) : 0,
         ...geoPatch,
         ...(tempoMedioConsulta !== undefined && { tempoMedioConsulta: Number(tempoMedioConsulta) }),
         ...(tempoAnamneseAtual !== undefined && { tempoAnamneseAtual: Number(tempoAnamneseAtual) }),
