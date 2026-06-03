@@ -636,6 +636,14 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 **Estado:** painel do gestor B2B 100% no ar e validado. Falta so o que ja era pra ficar pro final: LGPD/consentimento do membro (Lucas adiou) e a carteira de vacina (adiada). Tags rollback: `pre-painel-gestor-backend-2026-06-02`. Commits: `9e949f2` (backend), `262be4e` (harness), `4f3526b` (frontend).
 
+**Continuacao 02-03/jun (mesma sessao):**
+- Fechamento de gaps do plano (commit `cb64e27`): @@index espelho no schema, tracker ignora /empresa, busca q>=2 + pageSize<=50 + pacienteId NOT NULL, onerror fallback da foto.
+- Mascaras ao vivo (commit `7d37e28`): celular do gestor + CNPJ + limite no campo "quantas pessoas" (as outras telas — CPF, celular paciente, tels — ja tinham).
+- Copy do portal do gestor (commit `696bbf6`): hero focado em cuidado + emergencia, sem numeros/% inventados.
+- **BRAINSTORM ESTRATEGICO (workflow 10 agentes, Vale simulado):** decidido o GANCHO do produto = **"O DECODER"** (foto do exame de sangue -> veredito em portugues de gente em 3s, tipo Cal AI da saude; enche o RG de dado de brinde; trava de retencao = comparativo no tempo "seu colesterol caiu desde marco"; aprofundador = "Antidoto" foto do remedio->conflito; B2B = esteira por baixo; regra Flo: + privacidade = + dado). Destino = "second brain" da saude. Doc: `Obsidian Vault/BRAINSTORM-GANCHO-SECOND-BRAIN-2026-06-02/00-DECISAO-E-CAMINHO.md`. Proximo passo provavel: plano concreto do Decoder.
+- **PENDENCIA (loose end):** `backend/src/routes/medico.js` tem mudanca NAO-COMMITADA (edicao de CRM no PUT /medico) que NAO foi feita por esta sessao — provavel sessao paralela. Decidir commitar/reverter (nao subir as cegas).
+- Handoff pro PC da escola: `Obsidian Vault/HANDOFF-PC-ESCOLA-03-JUN-2026/` (mega-prompt + estado).
+
 ---
 
 ### Sessao 35 — 29/05 a 02/06/2026 — Virada estrategica (Hippocratic) + Fundacao B2B (organizacao -> "sua equipe") + login novo em todas as portas
