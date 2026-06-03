@@ -305,10 +305,12 @@
       document.getElementById('dAlt').textContent = p.alturaCm ? ((p.alturaCm/100).toFixed(2).replace('.',',')+' m') : '—';
       document.getElementById('dSangue').textContent = SANGUE[p.tipoSanguineo] || '—';
       document.getElementById('dPlano').textContent = p.planoSaude || '—';
-      document.getElementById('dAlergias').innerHTML = liVal((m.alergias||[]).map(a=>a.nome), true);
-      document.getElementById('dMeds').innerHTML = (m.medicamentos||[]).length ? (m.medicamentos||[]).map(md=>`<div class="li col"><span class="v">${md.nome}</span>${md.dosagem||md.frequencia?`<span class="sub">${[md.dosagem,md.frequencia].filter(Boolean).join(' · ')}</span>`:''}</div>`).join('') : '<div class="li"><span class="v dim">Nenhum medicamento em uso</span></div>';
+      document.getElementById('dAlergias').innerHTML = (m.alergias||[]).length ? (m.alergias||[]).map(a=>`<div class="li col"><span class="v red">${a.nome}</span>${a.reacao?`<span class="sub">Reação: ${a.reacao}</span>`:''}</div>`).join('') : '<div class="li"><span class="v dim">Nenhuma alergia registrada</span></div>';
+      document.getElementById('dMeds').innerHTML = (m.medicamentos||[]).length ? (m.medicamentos||[]).map(md=>`<div class="li col"><span class="v">${md.nome}</span>${md.dosagem||md.frequencia?`<span class="sub">${[md.dosagem,md.frequencia].filter(Boolean).join(' · ')}</span>`:''}${md.motivo?`<span class="sub">Finalidade: ${md.motivo}</span>`:''}</div>`).join('') : '<div class="li"><span class="v dim">Nenhum medicamento em uso</span></div>';
       const cond = (p.condicoes||'').split(',').map(s=>s.trim()).filter(Boolean);
-      document.getElementById('dCond').innerHTML = liVal(cond,false);
+      let condHtml = cond.length ? cond.map(x=>`<div class="li"><span class="v">${x}</span></div>`).join('') : '';
+      if (p.implantes) condHtml += `<div class="li"><span class="k">Implantes</span><span class="v">${p.implantes}</span></div>`;
+      document.getElementById('dCond').innerHTML = condHtml || '<div class="li"><span class="v dim">Nenhuma condição registrada</span></div>';
       const lbl=document.getElementById('dContatoLabel');
       if (menor){
         lbl.lastChild.textContent=' Responsáveis';
@@ -319,7 +321,10 @@
         document.getElementById('dContato').innerHTML = c.length?c.join(''):'<div class="li"><span class="v dim">Nenhum responsável registrado</span></div>';
       } else {
         lbl.lastChild.textContent=' Contato de emergência';
-        document.getElementById('dContato').innerHTML = (p.contatoEmergenciaNome||p.contatoEmergenciaTel) ? `<div class="li"><span class="k">Contato</span><span class="v">${[p.contatoEmergenciaNome,p.contatoEmergenciaTel].filter(Boolean).join(' · ')}</span></div>` : '<div class="li"><span class="v dim">Nenhum contato registrado</span></div>';
+        const ct=[];
+        if (p.contatoEmergenciaNome||p.contatoEmergenciaTel) ct.push(`<div class="li col"><span class="v">${[p.contatoEmergenciaNome,p.parentescoEmergencia].filter(Boolean).join(' · ')||'—'}</span>${p.contatoEmergenciaTel?`<span class="sub">${p.contatoEmergenciaTel}</span>`:''}</div>`);
+        if (p.contatoEmergenciaNome2||p.contatoEmergenciaTel2) ct.push(`<div class="li col"><span class="v">${[p.contatoEmergenciaNome2,p.parentescoEmergencia2].filter(Boolean).join(' · ')||'—'} <span style="font-size:11px;color:var(--muted)">(2º contato)</span></span>${p.contatoEmergenciaTel2?`<span class="sub">${p.contatoEmergenciaTel2}</span>`:''}</div>`);
+        document.getElementById('dContato').innerHTML = ct.length ? ct.join('') : '<div class="li"><span class="v dim">Nenhum contato registrado</span></div>';
       }
     }catch(e){ toast('Não foi possível abrir a ficha.'); voltar(); }
   }
