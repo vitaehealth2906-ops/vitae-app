@@ -10,6 +10,9 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..', 'app-v3');
 const PORT = 3001; // backend CORS libera localhost:3000/3001/3002
 const API = 'https://vitae-app-production.up.railway.app';
+// QBASE=https://vitae-app.vercel.app/app-v3 → testa a PRODUÇÃO deployada (senão, frontend local)
+const BASE = process.env.QBASE || ('http://localhost:' + PORT);
+const USE_LOCAL = !process.env.QBASE;
 
 // ---- servidor estático simples p/ app-v3 ----
 const MIME = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css', '.png':'image/png', '.svg':'image/svg+xml', '.json':'application/json', '.ico':'image/x-icon' };
@@ -113,9 +116,9 @@ async function cenarioAdulto(browser) {
       log(`   [API] ${r.request().method()} ${u.split('.app')[1]||u} → ${r.status()} ${body}`);
     }
   });
-  await page.goto(`http://localhost:${PORT}/01-saude.html`, { waitUntil:'domcontentloaded' }).catch(()=>{});
+  await page.goto(`${BASE}/01-saude.html`, { waitUntil:'domcontentloaded' }).catch(()=>{});
   await setToken(page, conta);
-  await page.goto(`http://localhost:${PORT}/30-quiz.html`, { waitUntil:'domcontentloaded' });
+  await page.goto(`${BASE}/30-quiz.html`, { waitUntil:'domcontentloaded' });
   await page.waitForTimeout(800);
 
   const cpf = cpfValido();
@@ -195,9 +198,9 @@ async function cenarioMenor(browser) {
   log('\n══ CENÁRIO 2: MENOR / ESCOLA (responsáveis) ══');
   const conta = await criarConta('menor');
   const page = await browser.newPage();
-  await page.goto(`http://localhost:${PORT}/01-saude.html`, { waitUntil:'domcontentloaded' }).catch(()=>{});
+  await page.goto(`${BASE}/01-saude.html`, { waitUntil:'domcontentloaded' }).catch(()=>{});
   await setToken(page, conta);
-  await page.goto(`http://localhost:${PORT}/30-quiz.html`, { waitUntil:'domcontentloaded' });
+  await page.goto(`${BASE}/30-quiz.html`, { waitUntil:'domcontentloaded' });
   await page.waitForTimeout(800);
   const cpf = cpfValido();
   await page.fill('#nascimentoInput','10/05/2015'); await page.waitForTimeout(100); // ~10 anos
@@ -219,7 +222,7 @@ async function cenarioMenor(browser) {
 }
 
 (async () => {
-  const server = serve();
+  const server = USE_LOCAL ? serve() : null;
   log('Servidor local em http://localhost:'+PORT);
   const browser = await chromium.launch({ headless:true });
   const contas = [];
@@ -230,7 +233,7 @@ async function cenarioMenor(browser) {
     FAIL++; log('  ❌ ERRO FATAL:', e.message);
   } finally {
     await browser.close();
-    server.close();
+    if(server) server.close();
     try { fs.unlinkSync(path.join(__dirname,'_tmp-foto.png')); } catch(_){}
     log(`\n═══ RESULTADO: ${PASS} ✅  /  ${FAIL} ❌ ═══`);
     log('Contas de teste criadas (limpar depois):', contas.map(c=>c&&c.email).filter(Boolean).join(', '));

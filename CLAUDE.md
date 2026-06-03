@@ -609,6 +609,24 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 37 — 03/06/2026 — Reforma do quiz do RG (8 slides AZUL) + ciclo do dado ponta-a-ponta (alergia/cartao RG, painel do dono, pre-consulta) — TUDO NO AR E TESTADO
+
+**O QUE FOI FEITO (tudo deployado + robô 20/20 em produção):**
+- **Banco (aditivo, à mão no Railway):** +6 colunas em `perfil_saude` (parentesco_emergencia, contato_emergencia_nome2/tel2, parentesco_emergencia2, implantes) + `reacao` em `alergias`. Migration `20260603_quiz_campos_novos` (ADD COLUMN IF NOT EXISTS). Backend valida+salva (perfil.js via ...dados; alergias.js reacao). api.js repassa sem filtro. empresa.js já devolve tudo (perfilSaude:true + alergias).
+- **Quiz reconstruído** `app-v3/30-quiz.html`: de 7 passos VERDE → **8 slides AZUL** (gradiente ciano #00B4D8→azul #2563EB, botões texto branco). Ordem: Identidade(nasc/cpf/sexo) · Contato(+parentesco+2º contato) · Tipo sanguíneo · Alergias(substância/tipo/REAÇÃO) · Medicamentos(nome/dose/finalidade) · Histórico(condições/cirurgias/IMPLANTES) · Plano(opcional) · Foto. SAIU: altura, peso, exames. Menor/responsáveis mantido. Robô Playwright `tests/smoke-quiz-8slides.js` = **20/20** (adulto + menor) local E em produção.
+- **Alergia: sai gravidade (leve/moderada/grave), entra REAÇÃO** em TODAS as telas. App (06/07/08/01-saude) mostra reação, cor vermelha fixa de alerta. **Cartão do RG (14-rg-publico) mostra SÓ O NOME** (tags separadas, sem ⚠, sem gravidade). Coluna `gravidade` NÃO foi dropada (só o front parou de ler). Cruzamento Dipirona intacto (usa nome).
+- **Painel do dono** (`empresa-painel.html`, render `abrir()`): ficha do membro passou a mostrar reação por alergia, finalidade(motivo) por remédio, parentesco + 2º contato, e linha Implantes. Zero mudança de backend.
+- **Pré-consulta unificada:** os 3 redirects (pre-consulta.html, 27-sms.html, 26-cadastro.html) apontam agora pro `30-quiz.html?retorno=`; `quiz-preconsulta.html` aposentado em `app-v3/legacy/`. Sem exames na pré-consulta (decisão do Lucas). Handshake de retorno (?voltei=quizvid) preservado.
+- **Deploy:** tag rollback `pre-quiz-rg-ciclo-dados-2026-06-03` + 4 commits atômicos (quiz/alergia/painel/pre-consulta) `c77e028..1fc21ad` → push main → Vercel. Verificado no ar (curl: "de 8", azul, "Finalidade:", 0× a.gravidade). Contas de teste limpas (LIKE '%@vitae-test.invalid').
+
+**DECISÕES TRAVADAS (Lucas):** alergia=reação (sem gravidade na UI); reação NÃO aparece no cartão do RG (só nome, tags separadas); cor vermelha fixa de alerta; só o quiz é AZUL (resto verde); pré-consulta unificada sem exames; aposentar quiz antigo.
+
+**ESTUDO:** 36 agentes (workflow) + 2 previews construídos copiando telas reais (`vita-telas-b2b/PREVIEW-painel-ficha.html`, `PREVIEW-alergia-rg.html`). Plano: `Obsidian/PLANO-QUIZ-RG-CICLO-DADOS-2026-06-03/` (00-CONSOLIDADO + 01-PLANO-4-TOPICOS-FINAL).
+
+**PENDÊNCIAS:** rodar o resto da matriz de testes (T6-T16 painel/pré-consulta dinâmicos) se quiser cobertura total; CSS órfão `.tag.allergy-grave` em 14-rg-publico (inofensivo). Próximo provável: plano do "Decoder".
+
+---
+
 ### Sessao 36 — 02/06/2026 — Painel do gestor B2B completo (backend + quiz menores + painel real) + teste de carga 10k
 
 **Contexto:** Frontend do painel do gestor aprovado preview-first (mockups em `d:\vita-telas-b2b\05-painel-gestor.html` + `06-quiz-responsaveis.html`, redesenhados na pegada shadcn/Tremor/Linear apos Lucas reclamar de "cara de vibe-coding"). Lucas pediu: construir TODO o backend reusando o que ja existe, e RODAR todos os testes (inclusive carga de 4.000+ alunos) — "eu nao quero fazer nenhum teste, voce e seus agentes fazem todos". Plano denso no vault: `Obsidian Vault/PLANO-BACKEND-B2B-PAINEL-GESTOR-02-JUN-2026/00-PLANO-CONSOLIDADO.md` (10 secoes, escrito por workflow).
