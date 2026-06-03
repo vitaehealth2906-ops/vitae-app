@@ -42,6 +42,7 @@ const criarAlergiaSchema = z.object({
       }),
     })
     .optional(),
+  reacao: z.string().max(200).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -70,7 +71,7 @@ router.get('/', async (req, res, next) => {
 router.post('/', validate(criarAlergiaSchema), async (req, res, next) => {
   try {
     const usuarioId = req.usuario.id;
-    const { nome, tipo, gravidade } = req.body;
+    const { nome, tipo, gravidade, reacao } = req.body;
 
     // Verificar se ja existe alergia com mesmo nome para o usuario
     const existente = await prisma.alergia.findFirst({
@@ -88,6 +89,7 @@ router.post('/', validate(criarAlergiaSchema), async (req, res, next) => {
         data: {
           tipo: tipo || existente.tipo,
           gravidade: gravidade || existente.gravidade,
+          reacao: reacao || existente.reacao,
         },
       });
       // Fase 5 perf — invalida summary das PCs ativas (sem bloquear resposta)
@@ -101,6 +103,7 @@ router.post('/', validate(criarAlergiaSchema), async (req, res, next) => {
         nome,
         tipo: tipo || null,
         gravidade: gravidade || null,
+        reacao: reacao || null,
       },
     });
 

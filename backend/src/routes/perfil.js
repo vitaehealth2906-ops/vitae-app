@@ -51,8 +51,14 @@ const atualizarPerfilSchema = z.object({
   planoSaude: z.string().optional(),
   carteirinhaPlano: z.string().optional(),
   condicoes: z.string().optional(),
+  implantes: z.string().optional(),
   contatoEmergenciaNome: z.string().optional(),
   contatoEmergenciaTel: z.string().optional(),
+  parentescoEmergencia: z.string().optional(),
+  // 2o contato de emergencia (opcional)
+  contatoEmergenciaNome2: z.string().optional(),
+  contatoEmergenciaTel2: z.string().optional(),
+  parentescoEmergencia2: z.string().optional(),
   // Responsaveis (menor de idade) — pai/mae. As colunas ja existem no schema;
   // aqui o validador passa a aceita-las pra elas pararem de ser descartadas.
   nomeMae: z.string().optional(),

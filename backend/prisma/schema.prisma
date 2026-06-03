@@ -48,7 +48,7 @@ model Usuario {
   secretariaVinculos SecretariaVinculo[] @relation("secretaria_usuario")
 
   // ---- Fase 2: Documentos Medicos ----
-  documentosRecebidos DocumentoMedico[]   @relation("paciente_documentos")
+  documentosRecebidos DocumentoMedico[] @relation("paciente_documentos")
 
   // ---- Fase 3: Contato Direto WhatsApp ----
   permissoesContatoMedicos PermissaoContatoPaciente[] @relation("paciente_permissao_contato")
@@ -76,11 +76,16 @@ model PerfilSaude {
   alcool                   String?
   contatoEmergenciaNome    String?   @map("contato_emergencia_nome")
   contatoEmergenciaTel     String?   @map("contato_emergencia_tel")
+  parentescoEmergencia     String?   @map("parentesco_emergencia")
+  contatoEmergenciaNome2   String?   @map("contato_emergencia_nome2")
+  contatoEmergenciaTel2    String?   @map("contato_emergencia_tel2")
+  parentescoEmergencia2    String?   @map("parentesco_emergencia2")
   nomeMae                  String?   @map("nome_mae")
   telMae                   String?   @map("tel_mae")
   nomePai                  String?   @map("nome_pai")
   telPai                   String?   @map("tel_pai")
   condicoes                String?
+  implantes                String?
   cpf                      String?   @unique
   cirurgias                String[]  @default([])
   planoSaude               String?   @map("plano_saude")
@@ -182,6 +187,7 @@ model Alergia {
   nome      String
   tipo      String?
   gravidade String?
+  reacao    String?
   fonte     String   @default("manual")
   criadoEm  DateTime @default(now()) @map("criado_em")
 
@@ -304,11 +310,11 @@ model Medico {
   secretarias       SecretariaVinculo[]
 
   // ---- Fase 2: Documentos Medicos ----
-  documentosAnexados DocumentoMedico[]   @relation("medico_documentos")
+  documentosAnexados DocumentoMedico[] @relation("medico_documentos")
 
   // ---- Fase 3: Contato Direto WhatsApp ----
-  configContato      ConfigContatoMedico?
-  permissoesContato  PermissaoContatoPaciente[] @relation("medico_permissao_contato")
+  configContato     ConfigContatoMedico?
+  permissoesContato PermissaoContatoPaciente[] @relation("medico_permissao_contato")
 
   // Google Calendar OAuth (read-only). AES-256-GCM.
   googleTokenEnc    String?   @map("google_token_enc") @db.Text
@@ -326,16 +332,16 @@ model Medico {
   pausadoAte        DateTime? @map("pausado_ate")
 
   // ---- Fase 7 (2026-05-05) — Configurações pessoais e modos persona ----
-  tempoMedioConsulta     Int      @default(30) @map("tempo_medio_consulta")
-  tempoAnamneseAtual     Int      @default(7)  @map("tempo_anamnese_atual")
-  mensagemLembretePadrao String   @default("Olá {{nome}}, aqui é {{medico}}. Sua consulta está marcada para {{data}} às {{hora}}. Por favor, responda sua pré-consulta antes pelo link: {{link}}") @map("mensagem_lembrete_padrao") @db.Text
-  iaCollabAtivado        Boolean  @default(false) @map("ia_collab_ativado")
-  analiseProsodicaAtivada Boolean @default(false) @map("analise_prosodica_ativada")
-  modoSimples            Boolean  @default(false) @map("modo_simples")
-  modoVolume             Boolean  @default(false) @map("modo_volume")
-  modoSUS                Boolean  @default(false) @map("modo_sus")
-  excluidoEm             DateTime? @map("excluido_em")
-  exclusaoAgendadaPara   DateTime? @map("exclusao_agendada_para")
+  tempoMedioConsulta      Int       @default(30) @map("tempo_medio_consulta")
+  tempoAnamneseAtual      Int       @default(7) @map("tempo_anamnese_atual")
+  mensagemLembretePadrao  String    @default("Olá {{nome}}, aqui é {{medico}}. Sua consulta está marcada para {{data}} às {{hora}}. Por favor, responda sua pré-consulta antes pelo link: {{link}}") @map("mensagem_lembrete_padrao") @db.Text
+  iaCollabAtivado         Boolean   @default(false) @map("ia_collab_ativado")
+  analiseProsodicaAtivada Boolean   @default(false) @map("analise_prosodica_ativada")
+  modoSimples             Boolean   @default(false) @map("modo_simples")
+  modoVolume              Boolean   @default(false) @map("modo_volume")
+  modoSUS                 Boolean   @default(false) @map("modo_sus")
+  excluidoEm              DateTime? @map("excluido_em")
+  exclusaoAgendadaPara    DateTime? @map("exclusao_agendada_para")
 
   // ---- Sessao 22 (2026-05-09) — Metricas honestas ----
   // JSON com os 5 inputs declarados pelo medico no setup do dashboard:
@@ -346,10 +352,10 @@ model Medico {
   //   taxaNoShow (0-50) — % de pacientes que faltam
   //   setupConcluido (bool) — true quando os 5 inputs estao preenchidos
   //   calibradoEm (ISO date) — ultima vez que medico confirmou na calibracao mensal
-  metricasConfig         Json?    @map("metricas_config")
+  metricasConfig Json? @map("metricas_config")
 
   // ---- Fase 9 (2026-05-05) — Análise prosódica e disparos ----
-  analisesProsodicas AnaliseProsodicaArquive[]
+  analisesProsodicas  AnaliseProsodicaArquive[]
   notificacaoDisparos NotificacaoDisparo[]
 
   @@map("medicos")
@@ -357,19 +363,19 @@ model Medico {
 
 // ---- ANÁLISE PROSÓDICA (Fase 9 — CFM 2.314/2022, retenção 20 anos) ----
 model AnaliseProsodicaArquive {
-  id              String    @id @default(uuid())
-  preConsultaId   String?   @map("pre_consulta_id")
-  medicoId        String    @map("medico_id")
-  pacienteId      String    @map("paciente_id")
-  criadoEm        DateTime  @default(now()) @map("criado_em")
-  features        Json
-  thresholds      Json
-  trechoInicioMs  Int       @map("trecho_inicio_ms")
-  trechoFimMs     Int       @map("trecho_fim_ms")
-  hashAudio       String    @map("hash_audio")
-  retencaoAte     DateTime  @map("retencao_ate")
-  alertaSeveridade String?  @map("alerta_severidade")
-  alertaMensagem   String?  @map("alerta_mensagem")
+  id               String    @id @default(uuid())
+  preConsultaId    String?   @map("pre_consulta_id")
+  medicoId         String    @map("medico_id")
+  pacienteId       String    @map("paciente_id")
+  criadoEm         DateTime  @default(now()) @map("criado_em")
+  features         Json
+  thresholds       Json
+  trechoInicioMs   Int       @map("trecho_inicio_ms")
+  trechoFimMs      Int       @map("trecho_fim_ms")
+  hashAudio        String    @map("hash_audio")
+  retencaoAte      DateTime  @map("retencao_ate")
+  alertaSeveridade String?   @map("alerta_severidade")
+  alertaMensagem   String?   @map("alerta_mensagem")
   auditadoEm       DateTime? @map("auditado_em")
   auditadoPor      String?   @map("auditado_por")
 
@@ -384,21 +390,21 @@ model AnaliseProsodicaArquive {
 
 // ---- HISTÓRICO DE DISPAROS WHATSAPP (Fase 10) ----
 model NotificacaoDisparo {
-  id            String    @id @default(uuid())
-  medicoId      String    @map("medico_id")
-  pacienteId    String?   @map("paciente_id")
-  destinatario  String
-  canal         String    @default("whatsapp")
-  mensagem      String    @db.Text
-  templateSid   String?   @map("template_sid")
-  status        String    @default("enfileirado")
-  modo          String    @default("simulacao")
-  agendadoPara  DateTime? @map("agendado_para")
-  enviadoEm     DateTime? @map("enviado_em")
-  entregueEm    DateTime? @map("entregue_em")
-  erro          String?
-  twilioSid     String?   @map("twilio_sid")
-  criadoEm      DateTime  @default(now()) @map("criado_em")
+  id           String    @id @default(uuid())
+  medicoId     String    @map("medico_id")
+  pacienteId   String?   @map("paciente_id")
+  destinatario String
+  canal        String    @default("whatsapp")
+  mensagem     String    @db.Text
+  templateSid  String?   @map("template_sid")
+  status       String    @default("enfileirado")
+  modo         String    @default("simulacao")
+  agendadoPara DateTime? @map("agendado_para")
+  enviadoEm    DateTime? @map("enviado_em")
+  entregueEm   DateTime? @map("entregue_em")
+  erro         String?
+  twilioSid    String?   @map("twilio_sid")
+  criadoEm     DateTime  @default(now()) @map("criado_em")
 
   medico Medico @relation(fields: [medicoId], references: [id], onDelete: Cascade)
 
@@ -530,7 +536,7 @@ model Agendamento {
   contadorTrocas  Int       @default(0) @map("contador_trocas") // anti-ciclo: incrementa a cada proposta/contraproposta
   propostasAtuais Json?     @map("propostas_atuais") // array [{data, hora}] da remarcação em andamento
   criadoEm        DateTime  @default(now()) @map("criado_em")
-  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+  atualizadoEm    DateTime  @updatedAt @map("atualizado_em")
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
@@ -642,16 +648,16 @@ model Consentimento {
 model EventoMedico {
   id          String   @id @default(uuid())
   medicoId    String   @map("medico_id") // Usuario.id (tipo=MEDICO)
-  tipo        String   // LOGIN, LOGOUT, HEARTBEAT, NAVEGACAO, CRIAR_TEMPLATE, etc
+  tipo        String // LOGIN, LOGOUT, HEARTBEAT, NAVEGACAO, CRIAR_TEMPLATE, etc
   recursoTipo String?  @map("recurso_tipo") // TEMPLATE, PRECONSULTA, PACIENTE, etc
   recursoId   String?  @map("recurso_id")
-  rota        String?  // ex: GET /medico/pacientes/:id
-  metodo      String?  // GET, POST, PUT, DELETE
-  payload     Json?    // metadados (zero PII clinica — so contexto operacional)
+  rota        String? // ex: GET /medico/pacientes/:id
+  metodo      String? // GET, POST, PUT, DELETE
+  payload     Json? // metadados (zero PII clinica — so contexto operacional)
   ipHash      String?  @map("ip_hash")
   userAgent   String?  @map("user_agent") // parsed/curto, nao raw
   duracaoMs   Int?     @map("duracao_ms") // tempo de resposta da rota
-  status      Int?     // HTTP status code
+  status      Int? // HTTP status code
   criadoEm    DateTime @default(now()) @map("criado_em")
 
   @@index([medicoId, criadoEm])
@@ -868,7 +874,7 @@ model DocumentoMedico {
   medicoId       String    @map("medico_id")
   pacienteId     String    @map("paciente_id")
   agendamentoId  String?   @map("agendamento_id")
-  tipo           String    // RECEITA | LAUDO | ENCAMINHAMENTO | EXAME_PEDIDO | OUTRO
+  tipo           String // RECEITA | LAUDO | ENCAMINHAMENTO | EXAME_PEDIDO | OUTRO
   nomeArquivo    String    @map("nome_arquivo")
   urlArquivo     String    @map("url_arquivo") @db.Text
   caminhoStorage String?   @map("caminho_storage") @db.Text
@@ -893,18 +899,18 @@ model DocumentoMedico {
 
 // ---- CONTATO DIRETO WHATSAPP (Fase 3: medico habilita disponibilidade) ----
 model ConfigContatoMedico {
-  id                    String    @id @default(uuid())
-  medicoId              String    @unique @map("medico_id")
-  whatsappHabilitado    Boolean   @default(false) @map("whatsapp_habilitado")
-  whatsappNumero        String?   @map("whatsapp_numero") // E.164: +5511999999999
-  diasDisponiveis       Int[]     @default([1,2,3,4,5]) @map("dias_disponiveis") // 0=dom .. 6=sab
-  horaInicio            String    @default("08:00") @map("hora_inicio") // HH:mm
-  horaFim               String    @default("18:00") @map("hora_fim")
-  mensagemPreFormatada  String?   @map("mensagem_pre_formatada") @db.Text
-  consentLgpdAceito     Boolean   @default(false) @map("consent_lgpd_aceito")
-  consentLgpdEm         DateTime? @map("consent_lgpd_em")
-  criadoEm              DateTime  @default(now()) @map("criado_em")
-  atualizadoEm          DateTime  @updatedAt @map("atualizado_em")
+  id                   String    @id @default(uuid())
+  medicoId             String    @unique @map("medico_id")
+  whatsappHabilitado   Boolean   @default(false) @map("whatsapp_habilitado")
+  whatsappNumero       String?   @map("whatsapp_numero") // E.164: +5511999999999
+  diasDisponiveis      Int[]     @default([1, 2, 3, 4, 5]) @map("dias_disponiveis") // 0=dom .. 6=sab
+  horaInicio           String    @default("08:00") @map("hora_inicio") // HH:mm
+  horaFim              String    @default("18:00") @map("hora_fim")
+  mensagemPreFormatada String?   @map("mensagem_pre_formatada") @db.Text
+  consentLgpdAceito    Boolean   @default(false) @map("consent_lgpd_aceito")
+  consentLgpdEm        DateTime? @map("consent_lgpd_em")
+  criadoEm             DateTime  @default(now()) @map("criado_em")
+  atualizadoEm         DateTime  @updatedAt @map("atualizado_em")
 
   medico Medico @relation(fields: [medicoId], references: [id], onDelete: Cascade)
 
@@ -937,7 +943,7 @@ model Empresa {
   cnpj         String?  @unique
   donoId       String   @map("dono_id")
   status       String   @default("ATIVA")
-  tipo         String?  // campo livre: empresa/escola/universidade/etc
+  tipo         String? // campo livre: empresa/escola/universidade/etc
   quantidade   Int?     @map("quantidade") // quantas pessoas
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -955,7 +961,7 @@ model ConviteEmpresa {
   id        String    @id @default(uuid())
   empresaId String    @map("empresa_id")
   token     String    @unique
-  label     String?   // nome opcional do link (ex.: "Grupo WhatsApp", "Email RH")
+  label     String? // nome opcional do link (ex.: "Grupo WhatsApp", "Email RH")
   ativo     Boolean   @default(true)
   expiraEm  DateTime? @map("expira_em")
   criadoEm  DateTime  @default(now()) @map("criado_em")
