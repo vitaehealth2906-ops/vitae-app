@@ -127,8 +127,6 @@
   function escapeHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function fmtData(d){if(!d)return null;const x=new Date(d);if(isNaN(x.getTime()))return null;const M=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];return `${x.getDate()} de ${M[x.getMonth()]} de ${x.getFullYear()}`;}
 
-  function gravidadeNivel(g){const t=(g||'').toUpperCase();if(['GRAVE','CRITICA','ALTA'].includes(t))return'critica';if(['MODERADA','MEDIA'].includes(t))return'media';return 'leve';}
-
   let ALERGIA_ATUAL = null;
   const ID = new URLSearchParams(location.search).get('id');
 
@@ -136,47 +134,18 @@
     return `<div class="info-row-detail"><div class="info-row-label">${escapeHtml(label)}</div><div class="info-row-value">${escapeHtml(value)}</div></div>`;
   }
 
-  function aplicarCorPorGravidade(nivel){
-    const hero = document.getElementById('heroBox');
-    const icon = document.getElementById('heroIcon');
-    const sev = document.getElementById('alGravidade');
-    if (nivel === 'critica') {
-      hero.style.borderLeftColor = 'var(--bad)';
-      icon.style.background = 'var(--bad-bg)';
-      icon.style.color = 'var(--bad)';
-      sev.style.background = 'var(--bad-bg)';
-      sev.style.color = 'var(--bad)';
-    } else if (nivel === 'media') {
-      hero.style.borderLeftColor = 'var(--warn)';
-      icon.style.background = 'var(--warn-bg)';
-      icon.style.color = 'var(--warn)';
-      sev.style.background = 'var(--warn-bg)';
-      sev.style.color = 'var(--warn)';
-    } else {
-      hero.style.borderLeftColor = 'var(--ink4)';
-      icon.style.background = 'var(--bg-alt)';
-      icon.style.color = 'var(--ink3)';
-      sev.style.background = 'var(--bg-alt)';
-      sev.style.color = 'var(--ink3)';
-    }
-    icon.querySelector('svg').style.stroke = 'currentColor';
-  }
-
-  function gravidadeLabelLongo(g){
-    const t = gravidadeNivel(g);
-    if (t === 'critica') return 'Alta gravidade';
-    if (t === 'media') return 'Moderada';
-    return 'Leve';
-  }
-
   function render(a){
     ALERGIA_ATUAL = a;
     document.getElementById('btnRemover').style.display = '';
     document.getElementById('alNome').textContent = a.nome || '—';
-    const nivel = gravidadeNivel(a.gravidade);
-    aplicarCorPorGravidade(nivel);
-    const labelSev = gravidadeLabelLongo(a.gravidade) + (a.reacao ? ' · ' + a.reacao : '');
-    document.getElementById('alGravidade').innerHTML = `<span class="dot"></span>${escapeHtml(labelSev)}`;
+
+    // Reação em destaque (onde antes ficava a gravidade). Cor de alerta vermelha fixa (CSS).
+    const sev = document.getElementById('alGravidade');
+    if (a.reacao) {
+      sev.innerHTML = `<span class="dot"></span>Reação: ${escapeHtml(a.reacao)}`;
+    } else {
+      sev.style.display = 'none';
+    }
 
     if (a.observacao || a.descricao) {
       document.getElementById('alDesc').style.display = '';
@@ -188,7 +157,6 @@
     const dataDx = fmtData(a.dataDiagnostico);
     if (dataDx) linhas.push(infoRow('Data', dataDx));
     if (a.medicoDiagnostico) linhas.push(infoRow('Diagnosticada por', a.medicoDiagnostico));
-    if (a.reacao && !a.observacao) linhas.push(infoRow('Sintoma observado', a.reacao));
     if (a.tipo) {
       const tipos = { 'MEDICAMENTO':'Medicamento', 'ALIMENTO':'Alimento', 'CONTATO':'Contato', 'AMBIENTAL':'Ambiental', 'OUTRO':'Outro' };
       linhas.push(infoRow('Tipo', tipos[a.tipo] || a.tipo));

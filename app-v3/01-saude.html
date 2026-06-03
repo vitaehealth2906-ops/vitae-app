@@ -751,58 +751,35 @@
   }
 
   // ===== Render: alergias =====
-  // Default tolerante: alergia sem gravidade aparece como "leve" (igual 06-alergias.html).
-  // Evita o caso onde alergia salva pelo quiz (sem gravidade) sumia da home.
-  function _nivelAlergia(g) {
-    const t = (g||'').toUpperCase();
-    if (['GRAVE','CRITICA','ALTA','ANAFILAXIA'].includes(t)) return 'critica';
-    if (['MODERADA','MEDIA'].includes(t)) return 'media';
-    return 'leve'; // tudo o resto, incluindo vazio
-  }
   function renderAlergias(alergias) {
-    const criticas  = alergias.filter(a => _nivelAlergia(a.gravidade) === 'critica');
-    const moderadas = alergias.filter(a => _nivelAlergia(a.gravidade) === 'media');
-    const leves     = alergias.filter(a => _nivelAlergia(a.gravidade) === 'leve');
-
-    // Resumo titulo
+    // Resumo titulo — só contagem (sem escala de gravidade)
     const resumo = document.getElementById('alergiasResumo');
-    if (alergias.length === 0) {
-      resumo.textContent = 'Nenhuma cadastrada';
-    } else {
-      const partes = [];
-      if (criticas.length) partes.push(`${criticas.length} ${criticas.length===1?'crítica':'críticas'}`);
-      if (moderadas.length) partes.push(`${moderadas.length} ${moderadas.length===1?'moderada':'moderadas'}`);
-      if (leves.length) partes.push(`${leves.length} ${leves.length===1?'leve':'leves'}`);
-      resumo.textContent = partes.join(' · ');
-    }
+    resumo.textContent = alergias.length === 0
+      ? 'Nenhuma cadastrada'
+      : `${alergias.length} ${alergias.length===1?'cadastrada':'cadastradas'}`;
 
     // Verso do RG removido no Ônix — escrita defensiva (id não existe mais)
     const verso = document.getElementById('rgVersoAlergias');
     if (verso) {
-      verso.textContent = criticas.length === 0
+      verso.textContent = alergias.length === 0
         ? 'Nenhuma'
-        : criticas.slice(0,4).map(a => a.nome).join(' · ');
+        : alergias.slice(0,4).map(a => a.nome).join(' · ');
     }
 
-    // Lista expandida (ate 3 alergias, prioriza criticas)
-    const ordenadas = [...criticas, ...moderadas, ...leves].slice(0,3);
+    // Lista expandida (ate 3 alergias). Alergia = info crítica: vermelho fixo.
+    const ordenadas = alergias.slice(0,3);
     const lista = document.getElementById('alergiasHomeList');
     if (ordenadas.length === 0) {
       lista.innerHTML = `<div style="padding:16px;text-align:center;color:var(--ink3);font-size:12px">Nenhuma alergia cadastrada. <a href="06-alergias.html" style="color:var(--green2);text-decoration:none;font-weight:700">Adicionar</a></div>`;
       return;
     }
     lista.innerHTML = ordenadas.map(a => {
-      const grav = (a.gravidade||'').toUpperCase();
-      const ehCritico = ['GRAVE','CRITICA','ALTA'].includes(grav);
-      const ehLeve = ['LEVE','BAIXA'].includes(grav);
-      const cls = ehCritico ? 'bad' : ehLeve ? 'muted' : 'bad';
-      const label = ehCritico ? 'Alta gravidade' : (ehLeve ? 'Leve' : 'Moderada');
-      const reacao = a.reacao ? ` · ${a.reacao}` : '';
+      const reacao = a.reacao ? `Reação: ${a.reacao}` : '';
       return `<div class="med-row" onclick="window.location='07-alergia-detalhe.html?id=${a.id}'" style="cursor:pointer">
-        <div class="med-icon ${cls}">${ICON_ALERT}</div>
+        <div class="med-icon bad">${ICON_ALERT}</div>
         <div class="med-row-info">
           <div class="med-row-name">${escapeHtml(a.nome||'—')}</div>
-          <div class="med-row-time">${label}${reacao}</div>
+          ${reacao ? `<div class="med-row-time">${escapeHtml(reacao)}</div>` : ''}
         </div>
       </div>`;
     }).join('');

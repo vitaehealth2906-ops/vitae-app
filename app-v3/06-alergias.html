@@ -26,9 +26,7 @@
     width: 4px;
     background: var(--ink5);
   }
-  .severity-card.critica::before { background: var(--bad); }
-  .severity-card.media::before { background: var(--warn); }
-  .severity-card.leve::before { background: var(--ink4); }
+  .severity-card::before { background: var(--bad); }
   .severity-card:active { transform: scale(0.98); }
 
   .sev-header {
@@ -115,25 +113,6 @@
   // ===== Lote 3: lista de alergias conectada =====
   function escapeHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
-  function gravidadeNivel(g){
-    const t = (g||'').toUpperCase();
-    if (['GRAVE','CRITICA','ALTA'].includes(t)) return 'critica';
-    if (['MODERADA','MEDIA'].includes(t)) return 'media';
-    return 'leve';
-  }
-  function gravidadeLabel(g){
-    const t = gravidadeNivel(g);
-    if (t === 'critica') return 'Alta gravidade';
-    if (t === 'media') return 'Moderada';
-    return 'Leve';
-  }
-  function gravidadeBadge(g){
-    const t = gravidadeNivel(g);
-    if (t === 'critica') return '<span class="badge red"><span class="dot"></span>Alta gravidade</span>';
-    if (t === 'media') return '<span class="badge warn"><span class="dot"></span>Moderada</span>';
-    return '<span class="badge muted"><span class="dot"></span>Leve</span>';
-  }
-
   function fmtData(d){
     if (!d) return null;
     const x = new Date(d);
@@ -141,40 +120,33 @@
     return `${String(x.getDate()).padStart(2,'0')}/${String(x.getMonth()+1).padStart(2,'0')}/${x.getFullYear()}`;
   }
 
+  const TIPO_LABEL = { 'MEDICAMENTO':'Medicamento', 'ALIMENTO':'Alimento', 'CONTATO':'Contato', 'AMBIENTAL':'Ambiental', 'OUTRO':'Outro' };
+
+  function _ts(a){
+    const d = a.dataDiagnostico || a.criadoEm || a.criadaEm || a.createdAt || a.atualizadoEm;
+    const x = d ? new Date(d).getTime() : NaN;
+    return isNaN(x) ? 0 : x;
+  }
+
   function cardAlergia(a) {
-    const nivel = gravidadeNivel(a.gravidade);
-    const detalhes = [];
-    if (a.reacao) detalhes.push(escapeHtml(a.reacao));
-    if (a.medicoDiagnostico) detalhes.push(escapeHtml(a.medicoDiagnostico));
-    const dataDx = fmtData(a.dataDiagnostico);
-    if (dataDx) detalhes.push(dataDx);
-    return `<div class="severity-card ${nivel} anim anim-d2" onclick="window.location='07-alergia-detalhe.html?id=${encodeURIComponent(a.id)}'">
+    const tipo = a.tipo ? (TIPO_LABEL[a.tipo] || a.tipo) : null;
+    return `<div class="severity-card anim anim-d2" onclick="window.location='07-alergia-detalhe.html?id=${encodeURIComponent(a.id)}'">
       <div class="sev-header">
         <div class="sev-name">${escapeHtml(a.nome||'—')}</div>
-        ${gravidadeBadge(a.gravidade)}
       </div>
-      ${detalhes.length ? `<div class="sev-detail">${detalhes.join(' · ')}</div>` : '<div class="sev-detail" style="color:var(--ink4);font-style:italic">Sem detalhes adicionais</div>'}
+      ${a.reacao ? `<div class="sev-detail"><strong style="color:var(--bad)">Reação:</strong> ${escapeHtml(a.reacao)}</div>` : ''}
+      ${tipo ? `<div class="sev-detail" style="color:var(--ink4)">${escapeHtml(tipo)}</div>` : ''}
     </div>`;
   }
 
   async function iniciar() {
     try {
       const r = await vitaeAPI.listarAlergias();
-      const lista = r.alergias || r || [];
+      const lista = (r.alergias || r || []).slice().sort((a, b) => _ts(b) - _ts(a));
       const total = lista.length;
 
-      const criticas = lista.filter(a => gravidadeNivel(a.gravidade) === 'critica');
-      const medias = lista.filter(a => gravidadeNivel(a.gravidade) === 'media');
-      const leves = lista.filter(a => gravidadeNivel(a.gravidade) === 'leve');
-
       const sub = document.getElementById('alergiasSubtitle');
-      if (total === 0) {
-        sub.textContent = 'Nenhuma cadastrada';
-      } else {
-        const partes = [`${total} cadastrada${total===1?'':'s'}`];
-        if (criticas.length) partes.push(`${criticas.length} crítica${criticas.length===1?'':'s'}`);
-        sub.textContent = partes.join(' · ');
-      }
+      sub.textContent = total === 0 ? 'Nenhuma cadastrada' : `${total} cadastrada${total===1?'':'s'}`;
 
       const container = document.getElementById('alergiasContainer');
       if (total === 0) {
@@ -187,20 +159,7 @@
         return;
       }
 
-      let html = '';
-      if (criticas.length) {
-        html += `<div class="section-label anim anim-d2" style="color: var(--bad)">Críticas (anafilaxia possível)</div>`;
-        html += criticas.map(cardAlergia).join('');
-      }
-      if (medias.length) {
-        html += `<div class="section-label anim anim-d3" style="color: var(--warn)">Moderadas</div>`;
-        html += medias.map(cardAlergia).join('');
-      }
-      if (leves.length) {
-        html += `<div class="section-label anim anim-d4" style="color: var(--ink3)">Leves</div>`;
-        html += leves.map(cardAlergia).join('');
-      }
-      container.innerHTML = html;
+      container.innerHTML = lista.map(cardAlergia).join('');
 
     } catch (e) {
       console.error('[06-alergias] erro', e);
