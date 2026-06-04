@@ -174,9 +174,11 @@
     </div>
 
     <div class="form-group anim anim-d4">
-      <label class="form-label">Horário principal</label>
+      <label class="form-label">Horários</label>
+      <div id="horariosLista" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
       <input type="time" class="input" id="inputHorario" value="08:00">
-      <div class="form-hint">Horário pra você lembrar de tomar</div>
+      <button type="button" onclick="adicionarHorario()" style="margin-top:8px;width:100%;padding:11px;border:none;border-radius:12px;background:rgba(0,229,160,0.12);color:#00B486;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer">+ Adicionar horário</button>
+      <div class="form-hint">Adicione um horário por vez (ex: 08:00, 12:30, 18:00).</div>
     </div>
 
     <div class="form-group anim anim-d5">
@@ -208,6 +210,25 @@
   document.getElementById('dateEnd').disabled = true;
   document.getElementById('dateEnd').style.opacity = '0.4';
 
+  // ===== Horários (lista; salvos como texto separado por vírgula) =====
+  let HORARIOS = [];
+  function renderHorarios() {
+    document.getElementById('horariosLista').innerHTML = HORARIOS.map(h =>
+      `<span style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;background:#fff;border:1.5px solid rgba(0,0,0,0.08);border-radius:999px;font-size:14px;font-weight:600;color:#0D0F14">${h}<span onclick="removerHorario('${h}')" style="cursor:pointer;color:#9CA3AF;font-weight:700;font-size:17px;line-height:1">×</span></span>`
+    ).join('');
+  }
+  function adicionarHorario() {
+    const v = document.getElementById('inputHorario').value;
+    if (!v) return;
+    if (!HORARIOS.includes(v)) HORARIOS.push(v);
+    HORARIOS.sort();
+    renderHorarios();
+  }
+  function removerHorario(h) {
+    HORARIOS = HORARIOS.filter(x => x !== h);
+    renderHorarios();
+  }
+
   async function carregarParaEditar() {
     if (!ID_EDITAR) return;
     try {
@@ -220,7 +241,7 @@
       document.getElementById('inputVia').value = m.via || 'oral';
       document.getElementById('inputMotivo').value = m.motivo || '';
       document.getElementById('inputFreq').value = m.frequencia || 'diário';
-      if (m.horario) document.getElementById('inputHorario').value = m.horario;
+      if (m.horario) { HORARIOS = String(m.horario).split(',').map(s => s.trim()).filter(Boolean); renderHorarios(); }
       if (m.dataFim) {
         document.getElementById('cont').checked = false;
         document.getElementById('dateEnd').disabled = false;
@@ -251,12 +272,16 @@
     mostrarErro('');
 
     // Note: campo "via" mostrado na UI nao e persistido (schema backend nao suporta — ficaria em observacao futura)
+    // junta todos os horários da lista; se a pessoa só escolheu um sem clicar "adicionar", usa ele
+    let _horarios = HORARIOS.slice();
+    const _scratch = document.getElementById('inputHorario').value;
+    if (_horarios.length === 0 && _scratch) _horarios = [_scratch];
     const dados = {
       nome: document.getElementById('inputNome').value.trim(),
       dosagem: document.getElementById('inputDose').value.trim() || undefined,
       motivo: document.getElementById('inputMotivo').value.trim() || undefined,
       frequencia: document.getElementById('inputFreq').value,
-      horario: document.getElementById('inputHorario').value || undefined
+      horario: _horarios.length ? _horarios.join(', ') : undefined
     };
     // remove undefined pra nao enviar
     Object.keys(dados).forEach(k => dados[k] === undefined && delete dados[k]);
