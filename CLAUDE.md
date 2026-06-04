@@ -623,7 +623,8 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 **ESTUDO:** 36 agentes (workflow) + 2 previews construídos copiando telas reais (`vita-telas-b2b/PREVIEW-painel-ficha.html`, `PREVIEW-alergia-rg.html`). Plano: `Obsidian/PLANO-QUIZ-RG-CICLO-DADOS-2026-06-03/` (00-CONSOLIDADO + 01-PLANO-4-TOPICOS-FINAL).
 
-**PENDÊNCIAS:** rodar o resto da matriz de testes (T6-T16 painel/pré-consulta dinâmicos) se quiser cobertura total; CSS órfão `.tag.allergy-grave` em 14-rg-publico (inofensivo). Próximo provável: plano do "Decoder".
+**TESTES:** robô `tests/e2e-dinamico-sessao37.js` = **32/32 em produção** (T1-T5 alergia/cartão RG, T6-T9 painel do dono backend+UI, T10-T12 pré-consulta unificada, T15 segurança 403). Achado: cartão RG OK — o "anafilaxia" que parecia gravidade era a condição demo "Histórico de anafilaxia". Commits `c77e028..0dddb74`.
+**PENDÊNCIAS:** CSS órfão `.tag.allergy-grave` em 14-rg-publico (inofensivo). Próximo provável: plano do "Decoder".
 
 ---
 
