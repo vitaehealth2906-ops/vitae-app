@@ -624,7 +624,10 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 **ESTUDO:** 36 agentes (workflow) + 2 previews construídos copiando telas reais (`vita-telas-b2b/PREVIEW-painel-ficha.html`, `PREVIEW-alergia-rg.html`). Plano: `Obsidian/PLANO-QUIZ-RG-CICLO-DADOS-2026-06-03/` (00-CONSOLIDADO + 01-PLANO-4-TOPICOS-FINAL).
 
 **TESTES:** robô `tests/e2e-dinamico-sessao37.js` = **32/32 em produção** (T1-T5 alergia/cartão RG, T6-T9 painel do dono backend+UI, T10-T12 pré-consulta unificada, T15 segurança 403). Achado: cartão RG OK — o "anafilaxia" que parecia gravidade era a condição demo "Histórico de anafilaxia". Commits `c77e028..0dddb74`.
-**PENDÊNCIAS:** CSS órfão `.tag.allergy-grave` em 14-rg-publico (inofensivo). Próximo provável: plano do "Decoder".
+**CONTINUAÇÃO (03/jun, mesma sessão):**
+- **Medicamentos — horários múltiplos + botão Editar:** `05-add-medicamento.html` ganhou LISTA de horários (etiquetas removíveis + "+ Adicionar horário"), salvos como texto separado por vírgula no campo `horario` que JÁ existia — zero backend. `04-med-detalhe.html`: o lápis sem rótulo virou botão **"Editar"** com texto. Robô 6/6. Deploy travou na fila da Vercel (Hobby = 1 build/vez; um ficou preso em "Initializing") — destravado cancelando o build travado + redeploy. **APRENDIZADO:** se um deploy Vercel ficar preso em "Initializing", cancelar pelo painel (Vercel ≠ Railway: api.vitaidsaude.com=Railway/backend; app.vitaidsaude.com=Vercel/frontend).
+- **Nova tela do RG público (scan do QR):** `14-rg-publico.html` REESCRITA — foto no topo + a ficha EXATA do painel do dono (componente copiado, estilo zinc/shadcn, sub-linhas sem os seloszinhos de anotação). Endpoint público `autorizacao.js GET /rg-publico/:id` AMPLIADO (aditivo) pra devolver `fotoUrl` + `reacao` + `motivo` + `implantes` + `parentescoEmergencia` + 2º contato. Mesmo `?id=` → QRs antigos seguem funcionando. Lê o banco AO VIVO → atualiza sozinho quando o RG muda. Lucas escolheu MANTER e-mail/celular/foto na tela pública SEM senha (ciente do risco de exposição). Robô E2E produção **16/16**. Commit `e32db18`. (Some o CSS órfão `.tag.allergy-grave` — arquivo reescrito.)
+**PENDÊNCIAS:** Próximo provável: plano do "Decoder".
 
 ---
 
