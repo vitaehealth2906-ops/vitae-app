@@ -15,7 +15,7 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
   try {
     const usuario = await prisma.usuario.findUnique({
       where: { id: req.params.userId },
-      select: { id: true, nome: true, email: true, celular: true },
+      select: { id: true, nome: true, email: true, celular: true, fotoUrl: true },
     });
 
     if (!usuario) {
@@ -29,11 +29,11 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
     const [medicamentos, alergias, examesRecentes] = await Promise.all([
       prisma.medicamento.findMany({
         where: { usuarioId: usuario.id, ativo: true },
-        select: { nome: true, dosagem: true, frequencia: true },
+        select: { nome: true, dosagem: true, frequencia: true, motivo: true },
       }),
       prisma.alergia.findMany({
         where: { usuarioId: usuario.id },
-        select: { nome: true, tipo: true, gravidade: true },
+        select: { nome: true, tipo: true, gravidade: true, reacao: true },
       }),
       prisma.exame.findMany({
         where: { usuarioId: usuario.id },
@@ -75,6 +75,11 @@ router.get('/rg-publico/:userId', async (req, res, next) => {
       telMae: perfil.telMae,
       nomePai: perfil.nomePai,
       telPai: perfil.telPai,
+      parentescoEmergencia: perfil.parentescoEmergencia,
+      contatoEmergenciaNome2: perfil.contatoEmergenciaNome2,
+      contatoEmergenciaTel2: perfil.contatoEmergenciaTel2,
+      parentescoEmergencia2: perfil.parentescoEmergencia2,
+      implantes: perfil.implantes,
     } : {};
 
     // Auditoria — registra acesso publico ao RG (sem auth)
