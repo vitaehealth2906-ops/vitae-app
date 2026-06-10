@@ -494,7 +494,7 @@ async function _atualizarBolinhaExames() {
     if (el.querySelector('.vitae-bn-new')) return; // já tem
     const dot = document.createElement('div');
     dot.className = 'vitae-bn-new';
-    dot.style.cssText = 'position:absolute;top:-1px;right:6px;width:11px;height:11px;border-radius:50%;background:#00E5A0;border:2.5px solid #fff;box-shadow:0 0 10px rgba(0,229,160,0.55);z-index:5;pointer-events:none;';
+    dot.style.cssText = 'position:absolute;top:-1px;right:6px;width:11px;height:11px;border-radius:50%;background:#2563EB;border:2.5px solid #fff;box-shadow:0 0 10px rgba(37,99,235,0.55);z-index:5;pointer-events:none;';
     // Garante que o pai tem position relative
     const cs = window.getComputedStyle(el);
     if (cs.position === 'static') el.style.position = 'relative';
