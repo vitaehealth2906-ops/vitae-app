@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id · Portal de Atendimento ao Titular (DPO)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif'],mono:['JetBrains Mono','monospace']},colors:{brand:{50:'#eff4ff',100:'#dbe6fe',200:'#bfd2fe',300:'#93b4fd',400:'#608dfa',500:'#3b66f6',600:'#2563EB',700:'#1d4fd7',900:'#1e3a8a'},coral:'#FF6B5E'}}}}}</script>
+<style>
+  body{font-family:'Inter',sans-serif;background:#F4F4F5}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .screen{display:none}
+  .screen.active{display:block;animation:f .25s ease}
+  @keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .nav-item.active{background:#eff4ff;color:#1d4fd7;font-weight:600}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#d4d4d8;border-radius:8px}
+  /* dropzone arrastando */
+  .dropzone.drag{background:#eff4ff;border-color:#2563EB}
+  /* barra de progresso */
+  @keyframes prog{from{width:0}to{width:var(--w)}}
+  .prgline{animation:prog .9s ease forwards}
+</style>
+</head>
+<body class="text-zinc-900">
+
+<!-- ====================== BARRA DE NAVEGACAO DO PREVIEW (so pro Lucas clicar) ====================== -->
+<div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-white border border-zinc-200 rounded-full shadow-lg px-2 py-1.5 text-xs">
+  <span class="px-2 text-zinc-400 font-semibold hidden sm:inline">PREVIEW</span>
+  <button onclick="go('d1')" class="navbtn px-3 py-1.5 rounded-full hover:bg-zinc-100" data-s="d1">1 · Entrada</button>
+  <button onclick="go('d2')" class="navbtn px-3 py-1.5 rounded-full hover:bg-zinc-100" data-s="d2">2 · O pedido</button>
+  <button onclick="go('d3')" class="navbtn px-3 py-1.5 rounded-full hover:bg-zinc-100" data-s="d3">3 · Enviar</button>
+  <button onclick="go('d4')" class="navbtn px-3 py-1.5 rounded-full hover:bg-zinc-100" data-s="d4">4 · Pronto</button>
+  <span class="w-px h-4 bg-zinc-200 mx-0.5"></span>
+  <button onclick="go('d5')" class="navbtn px-3 py-1.5 rounded-full hover:bg-zinc-100" data-s="d5">Painel</button>
+</div>
+
+
+<!-- ============================================================================================== -->
+<!-- TELA 1 — ENTRADA (co-branded, tira o medo). Casca de layout do login + tokens zinc + Inter.    -->
+<!-- ============================================================================================== -->
+<section id="d1" class="screen active">
+  <div class="min-h-screen flex items-center justify-center p-4 sm:p-6" style="background:#E4E4E7">
+    <div class="w-full max-w-5xl bg-white rounded-2xl border border-zinc-200 shadow-xl overflow-hidden flex flex-col md:flex-row" style="min-height:600px">
+
+      <!-- FAIXA ESQUERDA — co-branding sobrio, azul institucional FOSCO (sem circulos saltitantes) -->
+      <div class="md:w-[46%] p-10 sm:p-12 flex flex-col text-white" style="background:#1e3a8a">
+        <!-- aperto de mao: vita id + operadora lado a lado -->
+        <div class="flex items-center gap-3">
+          <span class="text-2xl font-extrabold tracking-tight">vita<span class="bg-white text-brand-600 rounded-md px-1.5 ml-0.5">id</span></span>
+          <span class="w-px h-6 bg-white/30"></span>
+          <div class="text-sm leading-tight">
+            <div class="text-white/60 text-[11px] font-medium">para</div>
+            <div class="font-semibold">Unimed Campinas</div>
+          </div>
+        </div>
+
+        <div class="mt-auto pt-10">
+          <h2 class="text-2xl sm:text-[28px] font-extrabold leading-tight">Um paciente pediu uma cópia dos próprios dados de saúde.</h2>
+          <p class="mt-4 text-[15px] text-white/80 leading-relaxed max-w-sm">Você é o canal oficial para isso. A gente deixou pronto pra ser rápido.</p>
+
+          <div class="mt-8 flex flex-col gap-3.5 max-w-sm">
+            <div class="flex items-start gap-3 text-[14px] font-medium text-white/90 leading-snug">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="flex-none mt-0.5"><path d="M5 13l4 4L19 7"/></svg>
+              É um direito do paciente, garantido por lei (LGPD art. 18 + Estatuto do Paciente).
+            </div>
+            <div class="flex items-start gap-3 text-[14px] font-medium text-white/90 leading-snug">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="flex-none mt-0.5"><path d="M5 13l4 4L19 7"/></svg>
+              Você envia do jeito que já tem o arquivo — sem formatar nada.
+            </div>
+            <div class="flex items-start gap-3 text-[14px] font-medium text-white/90 leading-snug">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="flex-none mt-0.5"><path d="M5 13l4 4L19 7"/></svg>
+              No fim, você recebe um protocolo que comprova que cumpriu o prazo.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LADO DIREITO — zinc, a acao -->
+      <div class="flex-1 p-10 sm:p-12 flex flex-col justify-center">
+        <span class="inline-flex items-center gap-2 text-[11px] font-bold tracking-wider text-zinc-500 uppercase mb-5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-brand-600"><rect x="4" y="10.5" width="16" height="10" rx="3"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+          Portal de atendimento ao titular
+        </span>
+
+        <h1 class="text-[26px] font-extrabold tracking-tight text-zinc-900">Você tem um pedido para atender</h1>
+        <p class="text-zinc-500 text-[14.5px] mt-1.5 mb-7">Confira os detalhes e envie os dados. Leva poucos minutos.</p>
+
+        <!-- card de identidade do pedido (isolamento D5) -->
+        <div class="border border-zinc-200 rounded-xl overflow-hidden">
+          <div class="px-4 py-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
+            <span class="text-[11px] font-bold tracking-wider text-zinc-500 uppercase">Pedido</span>
+            <span class="mono text-[13px] font-semibold text-zinc-700">VITA-2026-0001</span>
+          </div>
+          <div class="divide-y divide-zinc-100">
+            <div class="px-4 py-3 flex items-center justify-between gap-4">
+              <span class="text-[13px] text-zinc-500">Titular (paciente)</span>
+              <span class="text-[14px] font-medium text-zinc-900 text-right">Maria Helena Souza<br><span class="mono text-[12px] text-zinc-500 font-medium">···.456.789-··</span></span>
+            </div>
+            <div class="px-4 py-3 flex items-center justify-between gap-4">
+              <span class="text-[13px] text-zinc-500">Recebido em</span>
+              <span class="mono text-[13px] font-medium text-zinc-900">04/06/2026</span>
+            </div>
+            <div class="px-4 py-3 flex items-center justify-between gap-4">
+              <span class="text-[13px] text-zinc-500">Prazo de resposta</span>
+              <!-- pill de prazo: neutro (>3 dias) -->
+              <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                até 19/06 · 15 dias
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="go('d2')" class="mt-7 w-full h-12 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-[15px] transition-colors shadow-sm">Ver o pedido</button>
+
+        <!-- nota anti-phishing -->
+        <div class="flex gap-2.5 items-start mt-6 bg-zinc-50 border border-zinc-200 rounded-lg p-3.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="flex-none mt-0.5 text-brand-600"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+          <p class="text-[12.3px] text-zinc-500 leading-relaxed">Este link é exclusivo deste pedido e expira após o atendimento. Em dúvida sobre a autenticidade, fale com <b class="text-zinc-700">privacidade@vitaidsaude.com</b>.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================================================== -->
+<!-- TELA 2 — O PEDIDO (a prova gov.br em destaque). Shell institucional zinc.                       -->
+<!-- ============================================================================================== -->
+<section id="d2" class="screen">
+  <div class="min-h-screen py-8 px-4 flex flex-col items-center">
+    <div class="w-full max-w-[1040px] bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden" style="box-shadow:0 1px 2px rgba(0,0,0,.05)">
+
+      <!-- HEADER 56px -->
+      <header class="h-14 px-6 flex items-center justify-between border-b border-zinc-200">
+        <div class="flex items-center gap-3">
+          <span class="text-base font-bold tracking-tight">vita<span class="font-extrabold text-white bg-brand-600 rounded-md px-1.5 ml-0.5">id</span></span>
+          <span class="w-px h-4 bg-zinc-200"></span>
+          <span class="text-[10.5px] font-semibold tracking-wide uppercase text-zinc-500 bg-zinc-100 border border-zinc-200 px-2 py-1 rounded-md">DPO · Unimed Campinas</span>
+        </div>
+        <span class="text-[13px] text-zinc-500">Ana Ribeiro · Encarregada</span>
+      </header>
+
+      <div class="p-6 sm:p-8">
+        <button onclick="go('d1')" class="inline-flex items-center gap-2 text-[14px] font-medium text-zinc-500 hover:text-zinc-900 mb-6 transition-colors">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Voltar
+        </button>
+
+        <div class="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-7 items-start">
+
+          <!-- COLUNA ESQUERDA — A PROVA (heroi) -->
+          <div class="flex flex-col gap-4">
+            <div class="border border-zinc-200 rounded-xl overflow-hidden">
+              <!-- selo gov.br sobrio (nao imita brasao oficial) -->
+              <div class="px-5 py-4 border-b border-zinc-200" style="background:#eff4ff">
+                <div class="flex items-center gap-2.5">
+                  <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white border border-brand-200 text-brand-700">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>
+                  </span>
+                  <div>
+                    <div class="text-[14px] font-bold text-zinc-900">Autorização do Titular</div>
+                    <div class="text-[12px] font-medium text-brand-700">Assinada digitalmente via gov.br</div>
+                  </div>
+                </div>
+              </div>
+              <div class="px-5 py-4 divide-y divide-zinc-100">
+                <div class="py-2.5 flex items-center justify-between gap-4">
+                  <span class="text-[13px] text-zinc-500">Quem assinou</span>
+                  <span class="text-[14px] font-medium text-zinc-900 text-right">Maria Helena Souza</span>
+                </div>
+                <div class="py-2.5 flex items-center justify-between gap-4">
+                  <span class="text-[13px] text-zinc-500">CPF</span>
+                  <span class="mono text-[13px] font-medium text-zinc-900">···.456.789-··</span>
+                </div>
+                <div class="py-2.5 flex items-center justify-between gap-4">
+                  <span class="text-[13px] text-zinc-500">Assinado em</span>
+                  <span class="mono text-[13px] font-medium text-zinc-900">04/06/2026 14:22</span>
+                </div>
+                <div class="py-2.5">
+                  <div class="text-[13px] text-zinc-500 mb-1.5">Código de verificação</div>
+                  <div class="mono text-[12px] text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-md px-2.5 py-1.5 break-all">7H2K-9PQ4-A3F9-K81M</div>
+                  <a href="#" onclick="return false" class="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-brand-700 hover:text-brand-900 mt-2">
+                    Conferir no validar.iti.gov.br
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>
+                  </a>
+                </div>
+              </div>
+              <!-- hash de integridade, micro-impressao -->
+              <div class="px-5 py-2.5 border-t border-zinc-100 bg-zinc-50">
+                <div class="mono text-[10px] text-zinc-400 truncate">HASH · a3f97b21e8c4d05f6a1b2c3d4e5f6071829abcde · DOC ÍNTEGRO</div>
+              </div>
+            </div>
+
+            <button onclick="alert('Abriria o termo completo em PDF (o que o paciente rolou-até-o-fim e assinou).')" class="w-full h-11 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-[14px] font-medium text-zinc-700 flex items-center justify-center gap-2 transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-400"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+              Ver autorização completa (PDF)
+            </button>
+          </div>
+
+          <!-- COLUNA DIREITA — O QUE FOI PEDIDO -->
+          <div class="flex flex-col gap-4">
+
+            <!-- o que o paciente autorizou -->
+            <div class="border border-zinc-200 rounded-xl overflow-hidden">
+              <div class="px-5 pt-4 pb-3 text-[12px] font-bold tracking-wide uppercase text-zinc-500">O que o paciente autorizou você a enviar</div>
+              <div class="divide-y divide-zinc-100">
+                <div class="px-5 py-3 flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-2.5">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-400"><path d="M3 12h4l2-6 4 12 2-6h4"/></svg>
+                    <span class="text-[14px] font-medium text-zinc-900">Exames laboratoriais</span>
+                  </div>
+                  <span class="text-[12.5px] text-zinc-400">todo o histórico</span>
+                </div>
+                <div class="px-5 py-3 flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-2.5">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-400"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg>
+                    <span class="text-[14px] font-medium text-zinc-900">Histórico de utilização (consultas, exames, internações)</span>
+                  </div>
+                  <span class="text-[12.5px] text-zinc-400">desde 2019</span>
+                </div>
+                <div class="px-5 py-3 flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-2.5">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-400"><path d="M19 14c1.5-1.8 2-3.5 2-5a7 7 0 1 0-14 0c0 1.5.5 3.2 2 5"/><path d="M12 19v3M8 22h8"/></svg>
+                    <span class="text-[14px] font-medium text-zinc-900">Internações</span>
+                  </div>
+                  <span class="text-[12.5px] text-zinc-400">todo o histórico</span>
+                </div>
+                <div class="px-5 py-3 flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-2.5">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-400"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                    <span class="text-[14px] font-medium text-zinc-900">Prescrições / medicamentos</span>
+                  </div>
+                  <span class="text-[12.5px] text-zinc-400">desde 2019</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- base legal -->
+            <div class="border border-zinc-200 rounded-xl overflow-hidden">
+              <div class="px-5 pt-4 pb-3 text-[12px] font-bold tracking-wide uppercase text-zinc-500">Base legal deste pedido</div>
+              <div class="divide-y divide-zinc-100">
+                <div class="px-5 py-2.5 flex items-start gap-2.5">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-600 flex-none mt-0.5"><path d="M5 13l4 4L19 7"/></svg>
+                  <span class="text-[13.5px] text-zinc-700"><b class="font-semibold">LGPD art. 18</b> — direito de acesso e portabilidade dos próprios dados.</span>
+                </div>
+                <div class="px-5 py-2.5 flex items-start gap-2.5">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-600 flex-none mt-0.5"><path d="M5 13l4 4L19 7"/></svg>
+                  <span class="text-[13.5px] text-zinc-700"><b class="font-semibold">Lei 15.378/2026</b> — Estatuto do Paciente (acesso sem justificativa).</span>
+                </div>
+                <div class="px-5 py-2.5 flex items-start gap-2.5">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-600 flex-none mt-0.5"><path d="M5 13l4 4L19 7"/></svg>
+                  <span class="text-[13.5px] text-zinc-700">Compartilhar com o próprio titular é direito; não exige autorização extra.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- faixa de prazo -->
+            <div class="flex items-center gap-2.5 bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-400"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              <span class="text-[13.5px] text-zinc-700"><b class="font-semibold">Prazo:</b> responda até 19/06/2026.</span>
+            </div>
+
+            <!-- acoes -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-1">
+              <button onclick="go('d3')" class="flex-1 h-12 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-[15px] transition-colors shadow-sm">Enviar os dados</button>
+              <button onclick="alert('Abriria um campo para encaminhar o pedido a outra pessoa da equipe.')" class="h-12 px-5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-[14px] font-medium text-zinc-600 transition-colors">Não sou o responsável</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================================================== -->
+<!-- TELA 3 — ENVIAR ("do jeito que voce ja tem")                                                   -->
+<!-- ============================================================================================== -->
+<section id="d3" class="screen">
+  <div class="min-h-screen py-8 px-4 flex flex-col items-center">
+    <div class="w-full max-w-[1040px] bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden" style="box-shadow:0 1px 2px rgba(0,0,0,.05)">
+
+      <header class="h-14 px-6 flex items-center justify-between border-b border-zinc-200">
+        <div class="flex items-center gap-3">
+          <span class="text-base font-bold tracking-tight">vita<span class="font-extrabold text-white bg-brand-600 rounded-md px-1.5 ml-0.5">id</span></span>
+          <span class="w-px h-4 bg-zinc-200"></span>
+          <span class="text-[10.5px] font-semibold tracking-wide uppercase text-zinc-500 bg-zinc-100 border border-zinc-200 px-2 py-1 rounded-md">DPO · Unimed Campinas</span>
+        </div>
+        <span class="text-[13px] text-zinc-500">Ana Ribeiro · Encarregada</span>
+      </header>
+
+      <div class="p-6 sm:p-8">
+        <button onclick="go('d2')" class="inline-flex items-center gap-2 text-[14px] font-medium text-zinc-500 hover:text-zinc-900 mb-6 transition-colors">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Voltar
+        </button>
+
+        <div class="max-w-[720px] mx-auto">
+          <h1 class="text-[22px] font-extrabold tracking-tight text-zinc-900">Envie os dados de Maria Helena</h1>
+          <p class="text-zinc-500 text-[14px] mt-1.5 mb-6">Manda como está. A gente organiza depois.</p>
+
+          <!-- DROPZONE (componente novo) -->
+          <div id="dz" class="dropzone border-[1.5px] border-dashed border-zinc-300 rounded-xl p-10 text-center transition-colors cursor-pointer" style="background:#FAFAFA" onclick="fakePick()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="event.preventDefault();this.classList.remove('drag');fakePick()">
+            <div class="w-12 h-12 mx-auto rounded-full bg-white border border-zinc-200 flex items-center justify-center mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-zinc-400"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 16v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
+            </div>
+            <div class="text-[15px] font-semibold text-zinc-900">Arraste os arquivos aqui</div>
+            <div class="text-[13px] text-zinc-500 mt-1.5 max-w-md mx-auto">PDF, imagem, XML, HL7, CSV — do jeito que você exporta do seu sistema. A gente organiza depois.</div>
+            <button onclick="event.stopPropagation();fakePick()" class="mt-4 h-9 px-4 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-100 text-[13.5px] font-medium text-zinc-700 transition-colors">Escolher do computador</button>
+          </div>
+          <p class="text-[12px] text-zinc-400 mt-2.5 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10.5" width="16" height="10" rx="3"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+            Conexão segura. Os arquivos vão direto pro espaço isolado deste paciente.
+          </p>
+
+          <!-- ESTADO VAZIO da lista (quando ainda nao subiu nada) -->
+          <div id="emptyFiles" class="text-center py-8 text-zinc-400 text-[13px]">Nenhum arquivo anexado ainda.</div>
+
+          <!-- LISTA DE ARQUIVOS (preenche ao "escolher") -->
+          <div id="fileList" class="mt-5 flex flex-col gap-2.5 hidden">
+            <!-- arquivo 1 (sucesso) -->
+            <div class="flex items-center gap-3 border border-zinc-200 rounded-lg px-3.5 py-3">
+              <span class="w-9 h-9 rounded-md bg-zinc-100 flex items-center justify-center flex-none text-zinc-400">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+              </span>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13.5px] font-medium text-zinc-900 truncate">exames_maria_2019-2026.pdf</div>
+                <div class="mono text-[11px] text-zinc-400 mt-0.5">4,2 MB</div>
+              </div>
+              <span class="inline-flex items-center gap-1 text-[12px] font-semibold text-brand-700">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> enviado
+              </span>
+              <button class="w-7 h-7 rounded-md hover:bg-zinc-100 flex items-center justify-center text-zinc-400" onclick="this.closest('div.flex').remove()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <!-- arquivo 2 (carregando) -->
+            <div class="flex items-center gap-3 border border-zinc-200 rounded-lg px-3.5 py-3">
+              <span class="w-9 h-9 rounded-md bg-zinc-100 flex items-center justify-center flex-none text-zinc-400">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+              </span>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13.5px] font-medium text-zinc-900 truncate">utilizacao_pin-ss.xml</div>
+                <div class="mt-1.5 h-1 rounded-full bg-zinc-100 overflow-hidden">
+                  <div class="prgline h-full bg-brand-600 rounded-full" style="--w:64%"></div>
+                </div>
+              </div>
+              <span class="mono text-[11px] text-zinc-400 flex-none">8,1 MB · 64%</span>
+              <button class="w-7 h-7 rounded-md hover:bg-zinc-100 flex items-center justify-center text-zinc-400" onclick="this.closest('div.flex').remove()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <!-- arquivo 3 (erro) -->
+            <div class="flex items-center gap-3 border border-red-200 rounded-lg px-3.5 py-3" style="background:#FEF2F2">
+              <span class="w-9 h-9 rounded-md bg-white flex items-center justify-center flex-none text-red-400 border border-red-100">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+              </span>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13.5px] font-medium text-zinc-900 truncate">internacao_2021.pdf</div>
+                <div class="text-[12px] text-red-600 mt-0.5">Não consegui ler este arquivo — ele pode estar corrompido. Tente exportar de novo.</div>
+              </div>
+              <button class="h-8 px-3 rounded-md border border-red-200 bg-white hover:bg-red-50 text-[12.5px] font-medium text-red-600 flex-none">Tentar de novo</button>
+              <button class="w-7 h-7 rounded-md hover:bg-red-100 flex items-center justify-center text-red-400" onclick="this.closest('div.flex').remove()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- campo opcional -->
+          <div class="mt-6 border border-zinc-200 rounded-xl p-4">
+            <label class="block text-[13px] font-semibold text-zinc-700 mb-2">Quer dizer algo pra equipe? <span class="text-zinc-400 font-normal">(opcional)</span></label>
+            <textarea rows="2" class="w-full text-[14px] text-zinc-900 placeholder:text-zinc-400 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 resize-none" placeholder="Ex.: segue laudo de 2019 a 2026, faltou o de jan/2024 que está em arquivo morto."></textarea>
+          </div>
+
+          <!-- carimbo de origem automatico (mostrado, nao pedido) -->
+          <div class="mt-4 border border-zinc-200 rounded-xl overflow-hidden">
+            <div class="px-4 pt-3.5 pb-2.5 text-[12px] font-bold tracking-wide uppercase text-zinc-500 flex items-center gap-2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-400"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>
+              Vai junto automaticamente
+            </div>
+            <div class="grid grid-cols-2 gap-x-6 gap-y-1 px-4 pb-4 text-[13px]">
+              <div class="flex justify-between gap-3 py-1 border-b border-zinc-50"><span class="text-zinc-500">Origem</span><span class="font-medium text-zinc-900">Unimed Campinas</span></div>
+              <div class="flex justify-between gap-3 py-1 border-b border-zinc-50"><span class="text-zinc-500">Enviado por</span><span class="font-medium text-zinc-900 mono text-[11.5px]">ana.ribeiro@unimedcampinas...</span></div>
+              <div class="flex justify-between gap-3 py-1 border-b border-zinc-50"><span class="text-zinc-500">Data</span><span class="font-medium text-zinc-900 mono text-[12px]">06/06/2026 10:14</span></div>
+              <div class="flex justify-between gap-3 py-1 border-b border-zinc-50"><span class="text-zinc-500">Pedido</span><span class="font-medium text-zinc-900 mono text-[12px]">VITA-2026-0001</span></div>
+            </div>
+          </div>
+
+          <!-- acoes (sticky-ish no rodape do card) -->
+          <div class="flex flex-col sm:flex-row gap-3 mt-6">
+            <button id="btnConfirmar" onclick="go('d4')" disabled class="flex-1 h-12 rounded-lg bg-brand-600 text-white font-semibold text-[15px] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed enabled:hover:bg-brand-700">Confirmar envio</button>
+            <button class="h-12 px-5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-[14px] font-medium text-zinc-600 transition-colors">Salvar e continuar depois</button>
+          </div>
+          <p id="hintArquivo" class="text-[12px] text-zinc-400 text-center mt-2">Anexe pelo menos um arquivo para confirmar o envio.</p>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================================================== -->
+<!-- TELA 4 — RECIBO (a prova de que cumpriu o prazo)                                               -->
+<!-- ============================================================================================== -->
+<section id="d4" class="screen">
+  <div class="min-h-screen py-8 px-4 flex flex-col items-center">
+    <div class="w-full max-w-[1040px] bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden" style="box-shadow:0 1px 2px rgba(0,0,0,.05)">
+
+      <header class="h-14 px-6 flex items-center justify-between border-b border-zinc-200">
+        <div class="flex items-center gap-3">
+          <span class="text-base font-bold tracking-tight">vita<span class="font-extrabold text-white bg-brand-600 rounded-md px-1.5 ml-0.5">id</span></span>
+          <span class="w-px h-4 bg-zinc-200"></span>
+          <span class="text-[10.5px] font-semibold tracking-wide uppercase text-zinc-500 bg-zinc-100 border border-zinc-200 px-2 py-1 rounded-md">DPO · Unimed Campinas</span>
+        </div>
+        <span class="text-[13px] text-zinc-500">Ana Ribeiro · Encarregada</span>
+      </header>
+
+      <div class="p-6 sm:p-10">
+        <div class="max-w-[620px] mx-auto">
+
+          <!-- icone de sucesso sobrio (sem confete, sem verde de startup) -->
+          <div class="flex flex-col items-center text-center">
+            <div class="w-14 h-14 rounded-full flex items-center justify-center mb-4" style="background:#eff4ff">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-brand-600"><path d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <h1 class="text-[22px] font-extrabold tracking-tight text-zinc-900">Recebido. Protocolo gerado.</h1>
+            <p class="text-zinc-500 text-[14px] mt-1.5">Guarde este comprovante — ele prova que você atendeu no prazo.</p>
+
+            <!-- numero de protocolo em destaque -->
+            <div class="mt-6 mb-1">
+              <div class="mono text-[26px] font-bold tracking-tight text-zinc-900">VITA-2026-0001-RC</div>
+              <div class="w-16 h-[3px] rounded-full bg-brand-600 mx-auto mt-2.5"></div>
+            </div>
+          </div>
+
+          <!-- comprovante -->
+          <div class="mt-7 border border-zinc-200 rounded-xl overflow-hidden">
+            <div class="px-5 pt-4 pb-3 text-[12px] font-bold tracking-wide uppercase text-zinc-500">Comprovante de atendimento</div>
+            <div class="divide-y divide-zinc-100">
+              <div class="px-5 py-3 flex items-center justify-between gap-4"><span class="text-[13px] text-zinc-500">Pedido</span><span class="mono text-[13px] font-medium text-zinc-900">VITA-2026-0001</span></div>
+              <div class="px-5 py-3 flex items-center justify-between gap-4"><span class="text-[13px] text-zinc-500">Titular</span><span class="text-[14px] font-medium text-zinc-900 text-right">Maria Helena Souza · <span class="mono text-[12px] text-zinc-500">···.456.789-··</span></span></div>
+              <div class="px-5 py-3 flex items-center justify-between gap-4"><span class="text-[13px] text-zinc-500">Atendido por</span><span class="text-[14px] font-medium text-zinc-900 text-right">Ana Ribeiro · Unimed Campinas</span></div>
+              <div class="px-5 py-3 flex items-center justify-between gap-4"><span class="text-[13px] text-zinc-500">Data/hora do envio</span><span class="mono text-[13px] font-medium text-zinc-900">06/06/2026 10:16</span></div>
+              <div class="px-5 py-3 flex items-center justify-between gap-4"><span class="text-[13px] text-zinc-500">Arquivos recebidos</span><span class="text-[14px] font-medium text-zinc-900">2 <span class="text-zinc-400 font-normal">(12,3 MB)</span></span></div>
+              <div class="px-5 py-3 flex items-center justify-between gap-4">
+                <span class="text-[13px] text-zinc-500">Prazo legal</span>
+                <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                  Dentro do prazo · cumprido em 2 de 15 dias
+                </span>
+              </div>
+              <div class="px-5 py-3 flex items-center justify-between gap-4"><span class="text-[13px] text-zinc-500">Hash de integridade</span><span class="mono text-[11px] text-zinc-400 truncate max-w-[180px]">a3f97b21e8c4d05f…</span></div>
+            </div>
+          </div>
+
+          <p class="text-[13px] text-zinc-500 leading-relaxed mt-4">Este protocolo comprova que <b class="text-zinc-700">Unimed Campinas</b> atendeu à solicitação de acesso do titular dentro do prazo legal (LGPD art. 18, §5).</p>
+
+          <div class="flex flex-col sm:flex-row gap-3 mt-6">
+            <button class="flex-1 h-12 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-[15px] transition-colors shadow-sm flex items-center justify-center gap-2">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+              Baixar comprovante (PDF)
+            </button>
+            <button class="h-12 px-5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-[14px] font-medium text-zinc-600 transition-colors">Enviar cópia por e-mail</button>
+          </div>
+
+          <!-- ponte pro lote -->
+          <div class="mt-7 pt-5 border-t border-zinc-100 text-center">
+            <p class="text-[13.5px] text-zinc-500">Recebe muitos pedidos?
+              <button onclick="go('d5')" class="font-semibold text-brand-700 hover:text-brand-900 inline-flex items-center gap-1">Veja todos num painel só
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </button>
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================================================== -->
+<!-- TELA 5 — PAINEL EM LOTE (convite, surge com volume). Reusa a tabela do empresa-painel.          -->
+<!-- ============================================================================================== -->
+<section id="d5" class="screen">
+  <div class="min-h-screen py-8 px-4 flex flex-col items-center">
+    <div class="w-full max-w-[1040px] bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden" style="box-shadow:0 1px 2px rgba(0,0,0,.05)">
+
+      <header class="h-14 px-6 flex items-center justify-between border-b border-zinc-200">
+        <div class="flex items-center gap-3">
+          <span class="text-base font-bold tracking-tight">vita<span class="font-extrabold text-white bg-brand-600 rounded-md px-1.5 ml-0.5">id</span></span>
+          <span class="w-px h-4 bg-zinc-200"></span>
+          <span class="text-[10.5px] font-semibold tracking-wide uppercase text-zinc-500 bg-zinc-100 border border-zinc-200 px-2 py-1 rounded-md">DPO · Unimed Campinas</span>
+        </div>
+        <span class="text-[13px] text-zinc-500">Ana Ribeiro · Encarregada</span>
+      </header>
+
+      <div class="p-6 sm:p-8">
+
+        <!-- metrica unica -->
+        <div class="mb-6">
+          <div class="text-[12px] font-medium uppercase tracking-wide text-zinc-500 mb-1.5">Pedidos no prazo</div>
+          <div class="text-[30px] leading-9 font-semibold text-zinc-900" style="font-variant-numeric:tabular-nums">7 <span class="text-[16px] text-zinc-400 font-normal">de 8</span></div>
+          <div class="w-16 h-[3px] rounded-full bg-brand-600 mt-2.5"></div>
+        </div>
+
+        <!-- tabela de pedidos -->
+        <div class="border border-zinc-200 rounded-xl overflow-hidden">
+          <div class="px-6 py-4 flex items-center justify-between">
+            <div><span class="text-base font-semibold text-zinc-900">Pedidos de pacientes</span><span class="text-[14px] text-zinc-400 ml-2">8 pedidos</span></div>
+          </div>
+          <!-- busca -->
+          <div class="px-6 py-3.5 border-t border-b border-zinc-200">
+            <div class="relative max-w-[300px]">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+              <input type="text" placeholder="Buscar por nome ou protocolo" class="w-full h-9 pl-9 pr-3 text-[14px] text-zinc-900 placeholder:text-zinc-400 border border-zinc-200 rounded-md outline-none focus:ring-2 focus:ring-zinc-300" style="box-shadow:0 1px 2px rgba(0,0,0,.05)">
+            </div>
+          </div>
+          <!-- cabecalho -->
+          <div class="grid grid-cols-[minmax(0,1fr)_120px_150px_140px_44px] items-center gap-3 px-6 h-11 border-b border-zinc-200">
+            <div class="text-[12px] font-medium uppercase tracking-wide text-zinc-500">Paciente</div>
+            <div class="text-[12px] font-medium uppercase tracking-wide text-zinc-500">Recebido</div>
+            <div class="text-[12px] font-medium uppercase tracking-wide text-zinc-500">Prazo</div>
+            <div class="text-[12px] font-medium uppercase tracking-wide text-zinc-500">Status</div>
+            <div></div>
+          </div>
+
+          <!-- linhas (cada uma = ilha isolada, D5) -->
+          <div>
+            <!-- linha 1 -->
+            <div onclick="go('d2')" class="grid grid-cols-[minmax(0,1fr)_120px_150px_140px_44px] items-center gap-3 px-6 min-h-[56px] border-b border-zinc-100 cursor-pointer hover:bg-zinc-50 transition-colors">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-[11px] font-semibold text-zinc-500 flex-none">MH</span>
+                <span class="text-[14px] font-medium text-zinc-900 truncate">Maria Helena Souza</span>
+              </div>
+              <div class="mono text-[12.5px] text-zinc-500">04/06</div>
+              <div><span class="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Faltam 2 dias</span></div>
+              <div><span class="inline-flex items-center px-2.5 py-1 text-[12px] font-semibold rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200">Aguardando envio</span></div>
+              <div class="flex justify-end text-zinc-300"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+            <!-- linha 2 -->
+            <div onclick="go('d4')" class="grid grid-cols-[minmax(0,1fr)_120px_150px_140px_44px] items-center gap-3 px-6 min-h-[56px] border-b border-zinc-100 cursor-pointer hover:bg-zinc-50 transition-colors">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-[11px] font-semibold text-zinc-500 flex-none">JC</span>
+                <span class="text-[14px] font-medium text-zinc-900 truncate">João Carlos Pereira</span>
+              </div>
+              <div class="mono text-[12.5px] text-zinc-500">03/06</div>
+              <div><span class="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200">até 18/06</span></div>
+              <div><span class="inline-flex items-center px-2.5 py-1 text-[12px] font-semibold rounded-full bg-brand-50 text-brand-700 border border-brand-200">Recebido</span></div>
+              <div class="flex justify-end text-zinc-300"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+            <!-- linha 3 -->
+            <div onclick="go('d4')" class="grid grid-cols-[minmax(0,1fr)_120px_150px_140px_44px] items-center gap-3 px-6 min-h-[56px] border-b border-zinc-100 cursor-pointer hover:bg-zinc-50 transition-colors">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-[11px] font-semibold text-zinc-500 flex-none">RA</span>
+                <span class="text-[14px] font-medium text-zinc-900 truncate">Rita de Almeida</span>
+              </div>
+              <div class="mono text-[12.5px] text-zinc-500">02/06</div>
+              <div><span class="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200">até 17/06</span></div>
+              <div><span class="inline-flex items-center px-2.5 py-1 text-[12px] font-semibold rounded-full bg-violet-50 text-violet-700 border border-violet-200">Em tradução</span></div>
+              <div class="flex justify-end text-zinc-300"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+            <!-- linha 4 -->
+            <div onclick="go('d4')" class="grid grid-cols-[minmax(0,1fr)_120px_150px_140px_44px] items-center gap-3 px-6 min-h-[56px] border-b border-zinc-100 cursor-pointer hover:bg-zinc-50 transition-colors">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-[11px] font-semibold text-zinc-500 flex-none">PS</span>
+                <span class="text-[14px] font-medium text-zinc-900 truncate">Pedro Santos Lima</span>
+              </div>
+              <div class="mono text-[12.5px] text-zinc-500">28/05</div>
+              <div><span class="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">Prazo vencido</span></div>
+              <div><span class="inline-flex items-center px-2.5 py-1 text-[12px] font-semibold rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200">Aguardando envio</span></div>
+              <div class="flex justify-end text-zinc-300"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+            <!-- linha 5 -->
+            <div onclick="go('d4')" class="grid grid-cols-[minmax(0,1fr)_120px_150px_140px_44px] items-center gap-3 px-6 min-h-[56px] cursor-pointer hover:bg-zinc-50 transition-colors">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-[11px] font-semibold text-zinc-500 flex-none">LF</span>
+                <span class="text-[14px] font-medium text-zinc-900 truncate">Luana Ferreira</span>
+              </div>
+              <div class="mono text-[12.5px] text-zinc-500">26/05</div>
+              <div><span class="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200">atendido</span></div>
+              <div><span class="inline-flex items-center px-2.5 py-1 text-[12px] font-semibold rounded-full bg-brand-600 text-white border border-brand-600">Concluído</span></div>
+              <div class="flex justify-end text-zinc-300"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+          </div>
+
+          <div class="px-6 py-3 border-t border-zinc-200 text-[13px] text-zinc-500 flex items-center justify-center">
+            <button class="h-8 px-4 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-[13.5px] font-medium text-zinc-700">Carregar mais</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<script>
+  // navegacao entre as 5 telas
+  function go(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.s===id));
+    window.scrollTo(0,0);
+  }
+  // simula "escolher arquivos" na tela 3: mostra a lista, esconde o vazio, habilita o botao
+  function fakePick(){
+    document.getElementById('emptyFiles').classList.add('hidden');
+    document.getElementById('fileList').classList.remove('hidden');
+    const btn=document.getElementById('btnConfirmar');
+    btn.disabled=false;
+    document.getElementById('hintArquivo').textContent='2 arquivos prontos. 1 com erro — você pode reenviar ou seguir.';
+  }
+  go('d1');
+</script>
+</body>
+</html>

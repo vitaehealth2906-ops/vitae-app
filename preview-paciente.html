@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vita id · Sistema do Paciente (Termo + RG)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']},colors:{brand:{50:'#eff4ff',100:'#dbe6fe',200:'#bfd2fe',300:'#93b4fd',400:'#608dfa',500:'#3b66f6',600:'#2563EB',700:'#1d4fd7',900:'#1e3a8a'},coral:'#FF6B5E'}}}}}</script>
+<style>
+  body{font-family:'Inter',sans-serif}
+  .screen{display:none}
+  .screen.active{display:block;animation:f .25s ease}
+  @keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .nav-item.active{background:#eff4ff;color:#1d4fd7;font-weight:600}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#d4d4d8;border-radius:8px}
+
+  /* Mono para IDs/CPF/datas técnicas — a estética "documento" + carimbo dono+origem+data */
+  .mono{font-family:'ui-monospace','SFMono-Regular','Menlo','Consolas',monospace}
+
+  /* Cartão Ônix — réplica fiel do 01-saude.html, dentro da língua do KIT */
+  .onix{position:relative;border-radius:20px;overflow:hidden;
+    background:radial-gradient(120% 120% at 0% 0%,#23262e 0%,#15171c 45%,#0c0d11 100%);
+    box-shadow:0 18px 40px -16px rgba(13,15,20,.55),0 2px 8px rgba(0,0,0,.3);
+    aspect-ratio:1.586/1;}
+  .onix-noise{position:absolute;inset:0;opacity:.5;background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:3px 3px;}
+  .onix-spec{position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.06) 48%,transparent 60%);}
+  .onix-micro{position:absolute;left:18px;right:18px;bottom:6px;font-size:6px;letter-spacing:.18em;color:rgba(255,255,255,.22);white-space:nowrap;overflow:hidden;}
+
+  /* Scroll-gate: fades topo/base reusando o padrão de fade da transcrição do app */
+  .term-fade-top{position:absolute;top:0;left:0;right:0;height:26px;background:linear-gradient(to bottom,#fff,rgba(255,255,255,0));pointer-events:none;border-radius:12px 12px 0 0;}
+  .term-fade-bot{position:absolute;bottom:0;left:0;right:0;height:30px;background:linear-gradient(to top,#fff,rgba(255,255,255,0));pointer-events:none;border-radius:0 0 12px 12px;transition:opacity .2s;}
+
+  /* Toggle pill (caixinha 3) */
+  .tgl{width:44px;height:26px;border-radius:100px;background:#C4C9D4;position:relative;transition:background .2s;flex-shrink:0;cursor:pointer;}
+  .tgl.on{background:#2563EB;}
+  .tgl::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .tgl.on::after{transform:translateX(18px);}
+
+  /* shimmer skeleton (reuso do .is-loading) */
+  .shimmer{background:linear-gradient(90deg,#f4f4f5 25%,#e8e8ec 37%,#f4f4f5 63%);background-size:400% 100%;animation:sh 1.4s ease-in-out infinite;}
+  @keyframes sh{0%{background-position:100% 50%}100%{background-position:0 50%}}
+
+  /* item de exame entrando (fadeUp que o app já usa) */
+  .fadeUp{animation:fu .4s ease}
+  @keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body class="bg-zinc-100 min-h-screen">
+
+<!-- ====== TOPO: abas Termo / Meu RG ====== -->
+<div class="max-w-5xl mx-auto px-4 pt-6 pb-2">
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div>
+        <div class="text-[15px] font-extrabold text-zinc-900 leading-none">vita id <span class="text-zinc-400 font-semibold">· sistema do paciente</span></div>
+        <div class="text-[11px] text-zinc-500 mt-1">Preview navegável — Termo + RG</div>
+      </div>
+    </div>
+    <div class="inline-flex bg-white border border-zinc-200 rounded-xl p-1 shadow-sm">
+      <button id="tab-termo" onclick="showTab('termo')" class="nav-item active px-4 py-2 rounded-lg text-[13px] text-zinc-600 transition">Termo</button>
+      <button id="tab-rg" onclick="showTab('rg')" class="nav-item px-4 py-2 rounded-lg text-[13px] text-zinc-600 transition">Meu RG</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== LEGENDA do estado (destaque do scroll-gate + troca de estado do RG) ====== -->
+<div class="max-w-5xl mx-auto px-4 pb-4">
+  <div id="legend" class="text-[12px] text-zinc-500"></div>
+</div>
+
+<div class="max-w-5xl mx-auto px-4 pb-16 flex justify-center">
+
+<!-- ================= ABA 1 — TERMO (Antes de começar) ================= -->
+<section id="screen-termo" class="screen active w-full flex flex-col items-center">
+
+  <!-- Frame de celular -->
+  <div class="w-full max-w-[400px] bg-white rounded-[40px] border-[10px] border-zinc-900 shadow-2xl overflow-hidden" style="height:812px">
+    <!-- notch -->
+    <div class="relative bg-white">
+      <div class="absolute left-1/2 -translate-x-1/2 top-2 w-28 h-6 bg-zinc-900 rounded-full"></div>
+    </div>
+
+    <div class="h-full flex flex-col">
+      <!-- conteúdo rolável da tela -->
+      <div class="flex-1 overflow-y-auto px-6 pt-12 pb-4">
+
+        <!-- dots 1/3 -->
+        <div class="flex items-center gap-2 mb-7">
+          <span class="h-1.5 rounded-full bg-brand-600 transition-all" style="width:22px"></span>
+          <span class="h-1.5 w-1.5 rounded-full bg-zinc-200"></span>
+          <span class="h-1.5 w-1.5 rounded-full bg-zinc-200"></span>
+          <span class="ml-auto text-[11px] font-semibold text-zinc-400">Passo 3 de 3</span>
+        </div>
+
+        <div class="text-[11px] font-bold tracking-[0.14em] text-brand-700 uppercase mb-3">Antes de começar</div>
+        <h1 class="text-[25px] font-extrabold text-zinc-900 leading-[1.1] tracking-tight mb-2">
+          Você manda no <span class="italic bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent pr-1">seu histórico</span>
+        </h1>
+        <p class="text-[13.5px] text-zinc-500 leading-relaxed mb-6">
+          Leia o combinado abaixo. Ele é curto e em português de gente. Some três coisas que você liga ou desliga.
+        </p>
+
+        <!-- AS 3 CAIXINHAS -->
+        <div class="space-y-2.5 mb-6">
+          <!-- 1 -->
+          <div class="flex items-start gap-3 bg-white border border-zinc-200 rounded-xl p-3.5">
+            <div class="w-7 h-7 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center flex-shrink-0">
+              <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="text-[13px] font-bold text-zinc-900">Usar o app</div>
+              <div class="text-[12px] text-zinc-500 leading-snug">Guardar e ver suas coisas de saúde no celular.</div>
+            </div>
+            <span class="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-1 rounded-md flex-shrink-0">sempre</span>
+          </div>
+          <!-- 2 -->
+          <div class="flex items-start gap-3 bg-white border border-zinc-200 rounded-xl p-3.5">
+            <div class="w-7 h-7 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center flex-shrink-0">
+              <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="text-[13px] font-bold text-zinc-900">Guardar minha saúde</div>
+              <div class="text-[12px] text-zinc-500 leading-snug">Você adiciona exame, remédio e alergia quando quiser.</div>
+            </div>
+            <span class="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-1 rounded-md flex-shrink-0">sempre</span>
+          </div>
+          <!-- 3 — OPCIONAL, começa vazia. Opt-in SEPARADO do termo (bases LGPD distintas) -->
+          <div class="bg-white border border-zinc-200 rounded-xl p-3.5" id="box3">
+            <div class="flex items-start gap-3">
+              <div class="w-7 h-7 rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center flex-shrink-0" id="box3-icon">
+                <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>
+              </div>
+              <div class="flex-1">
+                <div class="text-[13px] font-bold text-zinc-900">Buscar nas entidades <span class="text-[10px] font-semibold text-zinc-400">· opcional</span></div>
+                <div class="text-[12px] text-zinc-500 leading-snug">Pedir pras clínicas, laboratórios e planos os dados que já são seus por direito.</div>
+              </div>
+              <div class="tgl" id="tgl3" onclick="toggleBox3()"></div>
+            </div>
+            <!-- sub-aviso discreto (não modal), aparece ao ligar -->
+            <div id="box3-aviso" class="hidden mt-3 ml-10 text-[12px] text-zinc-600 bg-brand-50/60 border border-brand-100 rounded-lg p-2.5 leading-snug">
+              Pra confirmar que é você de verdade, vamos pedir seu <b>gov.br Ouro</b> no próximo passo. Sem isso, a busca não roda — e o resto do app funciona igual.
+            </div>
+          </div>
+        </div>
+
+        <!-- O TERMO QUE ROLA-ATÉ-O-FIM (o coração) -->
+        <div class="text-[11px] font-bold tracking-[0.12em] text-zinc-900 uppercase mb-2">O combinado</div>
+
+        <div class="relative">
+          <div id="termBox" onscroll="onTermScroll()"
+               class="relative h-[210px] overflow-y-auto bg-white border border-zinc-200 rounded-xl px-4 py-4 text-[13px] text-zinc-600 leading-relaxed">
+
+            <!-- ESTADO: carregando (escondido por padrão) -->
+            <div id="term-loading" class="hidden space-y-2.5">
+              <div class="shimmer h-3 rounded w-3/4"></div>
+              <div class="shimmer h-3 rounded w-full"></div>
+              <div class="shimmer h-3 rounded w-5/6"></div>
+            </div>
+
+            <!-- ESTADO: erro (escondido por padrão) -->
+            <div id="term-erro" class="hidden text-center py-8">
+              <svg viewBox="0 0 24 24" class="w-7 h-7 text-zinc-300 mx-auto mb-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <p class="text-[13px] text-zinc-500 mb-3">Não consegui carregar o termo agora.</p>
+              <button onclick="loadTerm()" class="text-[13px] font-bold text-brand-700 bg-brand-50 px-4 py-2 rounded-lg">Tentar de novo</button>
+            </div>
+
+            <!-- ESTADO: texto do termo (padrão) -->
+            <div id="term-texto">
+              <p class="font-bold text-zinc-900 mb-1.5">O que a gente faz</p>
+              <p class="mb-3">O vita id reúne, num lugar só, as suas coisas de saúde: exames, remédios e alergias. Você guarda o que quiser, quando quiser.</p>
+
+              <p class="font-bold text-zinc-900 mb-1.5">O que a gente NÃO faz</p>
+              <p class="mb-3">A gente não dá diagnóstico e não decide nada sobre a sua saúde. Quem lê e decide é você e o seu médico. O vita id é um espelho do que existe — nunca um palpite.</p>
+
+              <p class="font-bold text-zinc-900 mb-1.5">De onde vem cada dado</p>
+              <p class="mb-3">Tudo que entra aqui carrega <b>de onde veio</b> e <b>a data</b>. Se uma informação não tiver fonte, ela não entra. E a gente sempre guarda o documento original, do jeito que chegou da clínica.</p>
+
+              <p class="font-bold text-zinc-900 mb-1.5">Buscar é um direito seu</p>
+              <p class="mb-3">Pedir os seus próprios dados pras clínicas, laboratórios e planos é um direito garantido por lei (LGPD, art. 18, e o Estatuto do Paciente). Você não precisa justificar nada. Essa busca só roda se você tiver ligado a opção "Buscar nas entidades" — que é separada deste combinado.</p>
+
+              <p class="font-bold text-zinc-900 mb-1.5">Você manda</p>
+              <p class="mb-3">Ninguém vê os seus dados sem a sua autorização. E você pode parar, apagar ou desligar qualquer coisa quando quiser. É seu.</p>
+
+              <p class="text-[12px] text-zinc-400 mb-1">Versão do combinado: <span class="mono">v6 · 09/06/2026</span></p>
+              <!-- âncora de fim -->
+              <div id="term-end" class="h-px"></div>
+            </div>
+          </div>
+          <div class="term-fade-top"></div>
+          <div class="term-fade-bot" id="termFadeBot"></div>
+        </div>
+      </div>
+
+      <!-- rodapé fixo: botão + micro-texto (o gate) -->
+      <div class="px-6 pb-7 pt-3 bg-white border-t border-zinc-100">
+        <p id="gate-msg" class="text-center text-[12px] text-zinc-400 mb-2.5">Role o termo até o fim para continuar.</p>
+        <button id="btnContinuar" disabled
+                onclick="concordar()"
+                class="w-full py-3.5 rounded-xl text-white font-bold text-[15px] transition-all duration-200"
+                style="background:linear-gradient(120deg,#3B82F6,#2563EB);opacity:.45;pointer-events:none;">
+          Li e concordo — começar
+        </button>
+        <p class="text-center text-[11px] text-zinc-400 mt-2.5">
+          <span class="mono" id="consent-stamp">consentimento será carimbado: titular · data · hora · versão</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- controles de demo do estado do termo (fora do frame) -->
+  <div class="mt-5 flex flex-wrap items-center justify-center gap-2 text-[12px]">
+    <span class="text-zinc-400">Demonstrar estado:</span>
+    <button onclick="setTermState('vazio')"   class="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600">Vazio</button>
+    <button onclick="setTermState('loading')" class="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600">Carregando</button>
+    <button onclick="setTermState('erro')"    class="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600">Erro</button>
+    <button onclick="setTermState('sucesso')" class="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600">Sucesso (rolado)</button>
+  </div>
+</section>
+
+<!-- ================= ABA 2 — MEU RG (com a seção nova) ================= -->
+<section id="screen-rg" class="screen w-full flex flex-col items-center">
+
+  <div class="w-full max-w-[400px] bg-white rounded-[40px] border-[10px] border-zinc-900 shadow-2xl overflow-hidden" style="height:812px">
+    <div class="relative bg-zinc-100">
+      <div class="absolute left-1/2 -translate-x-1/2 top-2 w-28 h-6 bg-zinc-900 rounded-full z-20"></div>
+    </div>
+
+    <div class="h-full overflow-y-auto bg-zinc-100 relative">
+
+      <!-- pill "atualizando" (reuso .upd-pill) -->
+      <div id="updPill" class="hidden absolute top-3 right-4 z-30 items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-600/10 text-brand-600 text-[10.5px] font-bold">
+        <span class="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse"></span>atualizando
+      </div>
+
+      <!-- header -->
+      <div class="px-6 pt-12 pb-2">
+        <div class="text-[26px] font-extrabold text-zinc-900 tracking-tight leading-none">Minha <span class="italic bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent pr-1">saúde</span></div>
+        <div class="text-[13px] text-zinc-500 mt-1.5">Tudo sobre você, em um só lugar</div>
+      </div>
+
+      <!-- CARTÃO ÔNIX -->
+      <div class="px-5 pt-3 pb-1">
+        <div class="onix">
+          <div class="onix-noise"></div>
+          <div class="onix-spec"></div>
+          <div class="absolute top-4 left-5">
+            <svg viewBox="0 0 400 200" style="height:30px;width:auto" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="vg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#2563EB"/><stop offset="100%" stop-color="#3B82F6"/></linearGradient></defs><text x="115" y="50%" dominant-baseline="central" text-anchor="middle" font-family="Inter,sans-serif" font-weight="800" font-size="96" letter-spacing="-5" fill="#FFFFFF">vita</text><rect x="225" y="28" width="165" height="144" rx="24" fill="url(#vg)"/><text x="307" y="50%" dominant-baseline="central" text-anchor="middle" font-family="Inter,sans-serif" font-weight="800" font-size="96" letter-spacing="-5" fill="#0D0F14">id</text></svg>
+          </div>
+          <div class="absolute left-5 right-5 bottom-6 flex items-end justify-between">
+            <div>
+              <div class="text-[8px] uppercase tracking-[0.18em] text-white/40 mb-0.5">titular</div>
+              <div class="text-[13px] font-bold text-white">Lucas Borelli</div>
+              <div class="text-[8px] uppercase tracking-[0.18em] text-white/40 mt-1.5 mb-0.5">cpf</div>
+              <div class="mono text-[11px] text-white/80">123.456.789-09</div>
+            </div>
+            <div class="w-14 h-14 rounded-lg bg-white p-1 flex items-center justify-center">
+              <svg viewBox="0 0 100 100" class="w-full h-full"><rect width="100" height="100" fill="#fff"/><g fill="#0D0F14"><rect x="8" y="8" width="24" height="24"/><rect x="14" y="14" width="12" height="12" fill="#fff"/><rect x="68" y="8" width="24" height="24"/><rect x="74" y="14" width="12" height="12" fill="#fff"/><rect x="8" y="68" width="24" height="24"/><rect x="14" y="74" width="12" height="12" fill="#fff"/><rect x="44" y="8" width="6" height="6"/><rect x="56" y="20" width="6" height="6"/><rect x="44" y="44" width="6" height="6"/><rect x="68" y="44" width="6" height="6"/><rect x="80" y="56" width="6" height="6"/><rect x="56" y="68" width="6" height="6"/><rect x="44" y="80" width="6" height="6"/><rect x="68" y="68" width="12" height="12"/></g></svg>
+            </div>
+          </div>
+          <div class="onix-micro">VITA·ID · DOCUMENTO·DE·SAÚDE · VITA·ID · DOCUMENTO·DE·SAÚDE · VITA·ID · DOCUMENTO·DE·SAÚDE · VITA·ID</div>
+        </div>
+      </div>
+
+      <!-- MEDICAMENTOS DE HOJE (mock, contexto) -->
+      <div class="text-[11px] font-bold tracking-[0.12em] text-zinc-400 uppercase px-6 pt-5 pb-2">Medicamentos de hoje</div>
+      <div class="mx-5 mb-4 bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3.5 border-b border-zinc-100">
+          <div class="text-[14px] font-extrabold text-zinc-900">2 remédios hoje</div>
+          <a class="text-[12px] font-bold text-brand-600 flex items-center gap-1">Ver semana
+            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
+        <div class="py-1.5">
+          <div class="flex items-center gap-3 px-4 py-2">
+            <div class="w-9 h-9 rounded-[10px] bg-brand-50 flex items-center justify-center flex-shrink-0">
+              <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+            </div>
+            <div class="flex-1"><div class="text-[13px] font-bold text-zinc-900">Losartana 50mg</div><div class="text-[11px] text-zinc-500">08:00</div></div>
+            <div class="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center"><svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALERGIAS (mock, contexto) -->
+      <div class="text-[11px] font-bold tracking-[0.12em] text-zinc-400 uppercase px-6 pt-1 pb-2">Alergias</div>
+      <div class="mx-5 mb-4 bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3.5 border-b border-zinc-100">
+          <div class="text-[14px] font-extrabold text-zinc-900">2 alergias</div>
+          <a class="text-[12px] font-bold text-brand-600 flex items-center gap-1">Ver todas
+            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
+        <div class="px-4 py-3 flex flex-wrap gap-2">
+          <span class="text-[12px] font-bold px-2.5 py-1 rounded-md" style="background:rgba(239,68,68,.07);color:#b91c1c">Dipirona</span>
+          <span class="text-[12px] font-bold px-2.5 py-1 rounded-md" style="background:rgba(239,68,68,.07);color:#b91c1c">Penicilina</span>
+        </div>
+      </div>
+
+      <!-- ★★★ SEÇÃO NOVA — EXAMES DAS SUAS CLÍNICAS ★★★ -->
+      <div class="text-[11px] font-bold tracking-[0.12em] text-zinc-400 uppercase px-6 pt-1 pb-2">Exames das suas clínicas</div>
+      <div class="mx-5 mb-6 bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden" id="examesCard">
+        <!-- header da seção (resumo + ver todos) -->
+        <div class="flex items-center justify-between px-4 py-3.5 border-b border-zinc-100" id="examesHeader">
+          <div class="text-[14px] font-extrabold text-zinc-900" id="examesResumo">&nbsp;</div>
+          <a class="text-[12px] font-bold text-brand-600 flex items-center gap-1" id="examesVerTodos">Ver todos
+            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
+        <div id="examesBody"><!-- preenchido por JS conforme estado --></div>
+      </div>
+
+      <div class="h-6"></div>
+    </div>
+  </div>
+
+  <!-- controles de demo do estado da seção (fora do frame) -->
+  <div class="mt-5 flex flex-wrap items-center justify-center gap-2 text-[12px]">
+    <span class="text-zinc-400">Demonstrar estado:</span>
+    <button onclick="setExamesState('vazio')"   class="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600">Vazio</button>
+    <button onclick="setExamesState('loading')" class="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600">Carregando</button>
+    <button onclick="setExamesState('erro')"    class="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600">Erro</button>
+    <button onclick="setExamesState('sucesso')" class="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600">Sucesso</button>
+    <button onclick="simularEspelho()" class="px-3 py-1.5 rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700">▶ Simular espelho (Tradutor escreve)</button>
+  </div>
+</section>
+
+</div>
+
+<!-- ====== mini-detalhe do exame (espelho do que o Tradutor guardou) ====== -->
+<div id="detalhe" class="hidden fixed inset-0 z-50 bg-zinc-900/50 flex items-end sm:items-center justify-center p-4" onclick="if(event.target===this)fecharDetalhe()">
+  <div class="bg-white w-full max-w-[400px] rounded-2xl overflow-hidden shadow-2xl">
+    <div class="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
+      <div class="text-[15px] font-extrabold text-zinc-900" id="d-nome">Exame</div>
+      <button onclick="fecharDetalhe()" class="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-400">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="px-5 py-4 space-y-3">
+      <!-- selo de isolamento (D5) -->
+      <div class="text-[11px] mono text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2" id="d-selo"></div>
+      <!-- traduzido (palavra de gente, D7) + valor citado do documento (D6, nunca veredito da máquina) -->
+      <div>
+        <div class="text-[11px] font-bold tracking-wide text-zinc-400 uppercase mb-1.5">O que veio</div>
+        <div class="text-[13px] text-zinc-700 leading-relaxed" id="d-corpo"></div>
+      </div>
+      <!-- LOINC por baixo, nunca como manchete -->
+      <div class="flex items-center justify-between text-[12px] bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+        <span class="text-zinc-500">código padrão (LOINC)</span>
+        <span class="mono text-zinc-700" id="d-loinc"></span>
+      </div>
+      <button class="w-full py-3 rounded-xl border border-zinc-200 text-[13px] font-bold text-zinc-700 hover:bg-zinc-50 flex items-center justify-center gap-2">
+        <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Ver original, como veio da clínica
+      </button>
+      <p class="text-[11px] text-zinc-400 text-center leading-snug">O vita id guarda o documento original. Ele não dá diagnóstico — quem lê e decide é você e seu médico.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ NAV ABAS ============ */
+function showTab(t){
+  document.getElementById('screen-termo').classList.toggle('active', t==='termo');
+  document.getElementById('screen-rg').classList.toggle('active', t==='rg');
+  document.getElementById('tab-termo').classList.toggle('active', t==='termo');
+  document.getElementById('tab-rg').classList.toggle('active', t==='rg');
+  setLegend(t);
+}
+function setLegend(t){
+  const el=document.getElementById('legend');
+  if(t==='termo') el.innerHTML='<b class="text-zinc-700">Termo:</b> o botão "Li e concordo" só acende depois que você rolar o combinado até o fim (gate de scroll real, igual Apple/Stripe). Honestidade &gt; conversão.';
+  else el.innerHTML='<b class="text-zinc-700">Meu RG:</b> a seção nova "Exames das suas clínicas" — cada exame chega traduzido em palavra de gente, carimbado com de onde veio e quando. Use "Simular espelho" para ver o RG se atualizar sozinho quando o Tradutor escreve.';
+}
+
+/* ============ CAIXINHA 3 (opt-in separado) ============ */
+let box3on=false;
+function toggleBox3(){
+  box3on=!box3on;
+  document.getElementById('tgl3').classList.toggle('on',box3on);
+  document.getElementById('box3-aviso').classList.toggle('hidden',!box3on);
+  const ic=document.getElementById('box3-icon');
+  if(box3on){
+    ic.className='w-7 h-7 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center flex-shrink-0';
+    ic.innerHTML='<svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  }else{
+    ic.className='w-7 h-7 rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center flex-shrink-0';
+    ic.innerHTML='<svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>';
+  }
+}
+
+/* ============ TERMO — scroll gate ============ */
+const termBox=document.getElementById('termBox');
+const btn=document.getElementById('btnContinuar');
+const gateMsg=document.getElementById('gate-msg');
+const fadeBot=document.getElementById('termFadeBot');
+
+function enableBtn(){
+  btn.disabled=false;
+  btn.style.opacity='1';
+  btn.style.pointerEvents='auto';
+  gateMsg.textContent='Você leu até o fim. Pode continuar.';
+  gateMsg.className='text-center text-[12px] text-brand-700 font-semibold mb-2.5';
+  fadeBot.style.opacity='0';
+}
+function disableBtn(){
+  btn.disabled=true;
+  btn.style.opacity='.45';
+  btn.style.pointerEvents='none';
+  gateMsg.textContent='Role o termo até o fim para continuar.';
+  gateMsg.className='text-center text-[12px] text-zinc-400 mb-2.5';
+  fadeBot.style.opacity='1';
+}
+function onTermScroll(){
+  // só vale quando o texto do termo está visível (não em loading/erro)
+  if(document.getElementById('term-texto').classList.contains('hidden')) return;
+  const reachedEnd = termBox.scrollTop + termBox.clientHeight >= termBox.scrollHeight - 8;
+  if(reachedEnd) enableBtn();
+}
+function concordar(){
+  if(btn.disabled) return;
+  // carimbo de consentimento (D5: dono+data+hora+versão)
+  const now=new Date();
+  const stamp=`consentimento: titular · ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · v6`;
+  document.getElementById('consent-stamp').textContent=stamp;
+  // avança pro RG; se caixinha 3 ligada, na máquina real iria pro gov.br Ouro antes
+  showTab('rg');
+  if(box3on){
+    // simula que a busca foi ligada → carrega exames com o fluxo de "chegando"
+    setExamesState('loading');
+    setTimeout(()=>setExamesState('sucesso'),1400);
+  }else{
+    setExamesState('vazio');
+  }
+}
+
+/* estados do termo (vazio/loading/erro/sucesso) */
+function setTermState(s){
+  const tx=document.getElementById('term-texto');
+  const ld=document.getElementById('term-loading');
+  const er=document.getElementById('term-erro');
+  tx.classList.add('hidden'); ld.classList.add('hidden'); er.classList.add('hidden');
+  disableBtn();
+  if(s==='loading'){ ld.classList.remove('hidden'); gateMsg.textContent='Carregando o termo…'; }
+  else if(s==='erro'){ er.classList.remove('hidden'); gateMsg.textContent='Não foi possível carregar o termo.'; }
+  else { // vazio ou sucesso
+    tx.classList.remove('hidden');
+    termBox.scrollTop=0;
+    if(s==='sucesso'){ termBox.scrollTop=termBox.scrollHeight; setTimeout(enableBtn,30); }
+    else { /* vazio: pode rolar; gate trava se NÃO há o que rolar (termo curto) */
+      // se o termo couber inteiro sem rolagem, libera (correção do cético)
+      setTimeout(()=>{ if(termBox.scrollHeight<=termBox.clientHeight+8) enableBtn(); },40);
+    }
+  }
+}
+function loadTerm(){ setTermState('loading'); setTimeout(()=>setTermState('vazio'),900); }
+
+/* ============ MEU RG — seção "Exames das suas clínicas" ============ */
+// dados mock de exames TRADUZIDOS (cada um carimbado dono+origem+data, D5)
+const EXAMES=[
+  {nome:'Hemograma completo', origem:'Fleury', data:'12/05/2026', id:'8821',
+   loinc:'58410-2',
+   corpo:'Hemoglobina 11,2 g/dL — <span class="text-amber-600 font-semibold">fora da faixa do laudo</span> (referência 12,0–16,0). Demais valores dentro da faixa citada no documento.'},
+  {nome:'Colesterol total e frações', origem:'Sabin', data:'03/04/2026', id:'8744',
+   loinc:'2093-3',
+   corpo:'Colesterol total 198 mg/dL — dentro da faixa do laudo (&lt;200). HDL 52, LDL 121, conforme o documento.'},
+  {nome:'Glicemia de jejum', origem:'Unimed Bauru', data:'21/02/2026', id:'8610',
+   loinc:'1558-6',
+   corpo:'Glicose 92 mg/dL — dentro da faixa do laudo (70–99). Coleta em jejum, conforme o documento.'}
+];
+
+function selo(e){ return `arquivo isolado · paciente #LB-204 · origem ${e.origem} · ${e.data}`; }
+
+function rowHTML(e,isNew){
+  return `<button onclick="abrirDetalhe('${e.id}')" class="w-full text-left flex items-start gap-3 px-4 py-3 ${isNew?'fadeUp':''} hover:bg-zinc-50 transition">
+    <div class="w-9 h-9 rounded-[10px] bg-brand-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+      <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    </div>
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-2">
+        <div class="text-[13px] font-bold text-zinc-900 truncate">${e.nome}</div>
+        ${isNew?'<span class="text-[9px] font-bold text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded">novo</span>':''}
+      </div>
+      <div class="text-[11px] mono text-zinc-500 mt-1 flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-brand-600 inline-block"></span>${e.origem} · ${e.data}
+      </div>
+    </div>
+    <svg viewBox="0 0 24 24" class="w-4 h-4 text-zinc-300 flex-shrink-0 mt-2" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>`;
+}
+
+let examesState='vazio';
+let visibleExames=[]; // o que está na lista (para o espelho ADICIONAR sem apagar)
+
+function renderExames(){
+  const body=document.getElementById('examesBody');
+  const resumo=document.getElementById('examesResumo');
+  const verTodos=document.getElementById('examesVerTodos');
+  const header=document.getElementById('examesHeader');
+
+  if(examesState==='loading'){
+    header.style.display='flex'; verTodos.style.visibility='hidden';
+    resumo.textContent='Buscando seus exames…';
+    body.innerHTML=`<div class="py-1.5">
+      ${[0,1,2].map(()=>`<div class="flex items-center gap-3 px-4 py-3">
+        <div class="shimmer w-9 h-9 rounded-[10px]"></div>
+        <div class="flex-1 space-y-2"><div class="shimmer h-3 rounded w-2/3"></div><div class="shimmer h-2.5 rounded w-1/3"></div></div>
+      </div>`).join('')}
+    </div>`;
+    return;
+  }
+  if(examesState==='erro'){
+    header.style.display='flex'; verTodos.style.visibility=visibleExames.length?'visible':'hidden';
+    resumo.textContent=visibleExames.length?`${visibleExames.length} exames recebidos`:'Exames das suas clínicas';
+    // erro nunca apaga o que já chegou
+    const jaTem = visibleExames.map((e,i)=>rowHTML(e,false)).join('');
+    body.innerHTML=`${visibleExames.length?`<div class="py-1.5">${jaTem}</div>`:''}
+      <div class="px-4 py-4 ${visibleExames.length?'border-t border-zinc-100':''}">
+        <div class="text-[12.5px] text-zinc-600 mb-2">Não consegui buscar agora — seus dados estão salvos.</div>
+        <button onclick="setExamesState('sucesso')" class="text-[13px] font-bold text-brand-700 bg-brand-50 px-4 py-2 rounded-lg">Tentar de novo</button>
+      </div>`;
+    return;
+  }
+  if(examesState==='vazio'){
+    header.style.display='flex'; verTodos.style.visibility='hidden';
+    resumo.textContent='Exames das suas clínicas';
+    const cta = box3on
+      ? `<button onclick="setExamesState('loading');setTimeout(()=>setExamesState('sucesso'),1400)" class="text-[13px] font-bold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2.5 rounded-xl">Pedir um chamado</button>`
+      : `<button onclick="showTab('termo')" class="text-[13px] font-bold text-brand-700 bg-brand-50 px-4 py-2.5 rounded-xl">Ligar a busca nas entidades</button>`;
+    body.innerHTML=`<div class="px-5 py-7 text-center">
+      <div class="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-3">
+        <svg viewBox="0 0 24 24" class="w-6 h-6 text-zinc-400" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="text-[13.5px] font-bold text-zinc-700 mb-1">Seus exames das clínicas aparecem aqui.</div>
+      <div class="text-[12px] text-zinc-500 leading-snug mb-4 max-w-[260px] mx-auto">Quando você pede um chamado, o que chega traduzido entra nesta lista — sempre com de onde veio e a data.</div>
+      ${cta}
+    </div>`;
+    return;
+  }
+  // sucesso
+  header.style.display='flex'; verTodos.style.visibility='visible';
+  if(!visibleExames.length) visibleExames=EXAMES.slice();
+  resumo.textContent=`${visibleExames.length} exames recebidos`;
+  body.innerHTML=`<div class="py-1.5">${visibleExames.map((e,i)=>rowHTML(e,e._new)).join('')}</div>`;
+}
+
+function setExamesState(s){
+  examesState=s;
+  if(s==='sucesso' && !visibleExames.length) visibleExames=EXAMES.slice();
+  if(s==='vazio') visibleExames=[];
+  renderExames();
+}
+
+/* espelho Second V ↔ RG: o Tradutor escreve do outro lado → evento → o RG re-renderiza sozinho.
+   Branch de "exames" adicionado ao listener (correção do cético: o listener real não tinha esse branch). */
+window.addEventListener('vitae:data-updated',(ev)=>{
+  const key=ev.detail&&ev.detail.key;
+  if(key!=='exames') return;
+  // pill "atualizando" acende durante o sync
+  const pill=document.getElementById('updPill');
+  pill.classList.remove('hidden'); pill.classList.add('flex');
+  const novo=ev.detail.data;
+  // adiciona no topo SEM apagar o que já existe (erro nunca apaga; espelho ADICIONA)
+  novo._new=true;
+  visibleExames.forEach(e=>e._new=false);
+  visibleExames.unshift(novo);
+  examesState='sucesso';
+  renderExames();
+  setTimeout(()=>{ pill.classList.add('hidden'); pill.classList.remove('flex'); novo._new=false; renderExames(); },2200);
+});
+
+function simularEspelho(){
+  showTab('rg');
+  if(examesState!=='sucesso') setExamesState('sucesso');
+  const novo={nome:'TSH (hormônio da tireoide)', origem:'Hermes Pardini', data:'09/06/2026', id:'9001',
+    loinc:'3016-3',
+    corpo:'TSH 5,84 µUI/mL — <span class="text-amber-600 font-semibold">fora da faixa do laudo</span> (referência 0,40–4,00). Valor citado do documento; o vita id não interpreta.'};
+  EXAMES.push(novo);
+  // dispara o MESMO evento que o app real usa — prova de que o espelho é o mecanismo nativo
+  window.dispatchEvent(new CustomEvent('vitae:data-updated',{detail:{key:'exames',data:novo}}));
+}
+
+/* detalhe do exame (espelho do que o Tradutor guardou) */
+function abrirDetalhe(id){
+  const e=[...EXAMES,...visibleExames].find(x=>x.id===id);
+  if(!e) return;
+  document.getElementById('d-nome').textContent=e.nome;
+  document.getElementById('d-selo').textContent=selo(e);
+  document.getElementById('d-corpo').innerHTML=e.corpo;
+  document.getElementById('d-loinc').textContent='LOINC '+e.loinc;
+  document.getElementById('detalhe').classList.remove('hidden');
+}
+function fecharDetalhe(){ document.getElementById('detalhe').classList.add('hidden'); }
+
+/* init */
+setLegend('termo');
+setExamesState('vazio');
+</script>
+</body>
+</html>

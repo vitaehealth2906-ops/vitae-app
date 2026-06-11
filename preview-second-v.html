@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Second V — Painel do tradutor · vita id</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif'],mono:['JetBrains Mono','monospace']},colors:{brand:{50:'#eff4ff',100:'#dbe6fe',200:'#bfd2fe',300:'#93b4fd',400:'#608dfa',500:'#3b66f6',600:'#2563EB',700:'#1d4fd7',900:'#1e3a8a'},coral:'#FF6B5E',zinc:{50:'#FAFAFA',100:'#F4F4F5',200:'#E4E4E7',400:'#A1A1AA',500:'#71717A',700:'#3F3F46',900:'#18181B'}}}}}</script>
+<style>
+  body{font-family:'Inter',sans-serif;background:#F4F4F5;color:#18181B}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .screen{display:none}.screen.active{display:block;animation:f .25s ease}
+  @keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .nav-item.active{background:#eff4ff;color:#1d4fd7;font-weight:600}
+  ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#d4d4d8;border-radius:8px}
+  /* dot do paciente — a cor viaja com ele em todas as telas (D5) */
+  .pdot{width:26px;height:26px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex:none}
+  .skel{background:linear-gradient(90deg,#f4f4f5 25%,#ececee 37%,#f4f4f5 63%);background-size:400% 100%;animation:sk 1.4s ease infinite;border-radius:6px}
+  @keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+  /* cartão Ônix (copiado de empresa-painel.html) */
+  .onix{position:relative;width:100%;max-width:300px;aspect-ratio:1.586/1;border-radius:16px;padding:16px 18px;color:#FAFAF7;overflow:hidden;background:radial-gradient(ellipse at 18% -10%,rgba(255,255,255,.045),transparent 55%),linear-gradient(135deg,#050507 0%,#0e0e10 50%,#050507 100%);box-shadow:0 18px 44px rgba(0,0,0,.5),0 0 0 .5px rgba(255,255,255,.06) inset}
+  .onix-l{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.42);font-weight:600;margin-bottom:4px}
+  .onix-name{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.05}
+  .onix-cpf{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.04em;margin-top:8px}
+  .onix-micro{position:absolute;bottom:4px;left:6%;right:6%;font-family:'JetBrains Mono',monospace;font-size:4.5px;letter-spacing:.06em;color:rgba(255,255,255,.16);text-transform:uppercase;white-space:nowrap;overflow:hidden}
+  [data-tip]{position:relative}
+  [data-tip]:hover::after{content:attr(data-tip);position:absolute;left:0;top:calc(100% + 6px);z-index:40;background:#18181B;color:#fff;font-size:11px;font-weight:500;line-height:1.4;padding:7px 9px;border-radius:7px;width:230px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+</style>
+</head>
+<body class="min-h-screen">
+
+<div class="max-w-[1180px] mx-auto px-4 py-5">
+  <!-- moldura do painel (mesma casca do empresa-painel.html) -->
+  <div class="bg-white border border-zinc-200 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.05)] overflow-hidden flex min-h-[760px]">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside class="w-[232px] flex-none border-r border-zinc-200 flex flex-col bg-zinc-50/60">
+      <div class="h-14 px-5 flex items-center gap-2 border-b border-zinc-200">
+        <span class="text-[15px] font-bold tracking-tight">vita<span class="text-white font-extrabold bg-gradient-to-r from-[#3B82F6] to-[#2563EB] rounded-[5px] px-1.5 py-px ml-0.5">id</span></span>
+        <span class="w-px h-4 bg-zinc-200"></span>
+        <span class="text-[12px] font-semibold text-zinc-500">Second V</span>
+      </div>
+      <nav class="p-3 flex flex-col gap-1 text-[13.5px] text-zinc-700">
+        <button onclick="go('chamados')"  class="nav-item active flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-zinc-100 transition">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> Chamados</button>
+        <button onclick="go('novo')"      class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-zinc-100 transition">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="m22 6-10 7L2 6"/></svg> Novo chamado</button>
+        <button onclick="go('esteira')"   class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-zinc-100 transition">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg> Esteira</button>
+        <button onclick="go('conferencia')" class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-zinc-100 transition">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Conferência</button>
+        <button onclick="go('catalogo')"  class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-zinc-100 transition">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg> Catálogo de DPOs</button>
+        <button onclick="go('timeline')"  class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-zinc-100 transition">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Linha do tempo</button>
+      </nav>
+      <div class="mt-auto p-3 border-t border-zinc-200">
+        <div class="flex items-center gap-2.5 px-2 py-1.5">
+          <span class="w-8 h-8 rounded-full bg-zinc-100 text-zinc-500 flex items-center justify-center text-[12px] font-semibold">TV</span>
+          <div class="min-w-0">
+            <div class="text-[12.5px] font-medium leading-tight truncate">Tradutor · Vale</div>
+            <div class="text-[11px] text-zinc-400 leading-tight">Second V</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===================== CONTEÚDO ===================== -->
+    <main class="flex-1 min-w-0 flex flex-col">
+      <!-- topo -->
+      <header class="h-14 px-6 flex items-center justify-between border-b border-zinc-200 flex-none">
+        <div class="flex items-center gap-3">
+          <h1 id="topTitle" class="text-[15px] font-semibold">Chamados</h1>
+          <span class="text-[10.5px] font-semibold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">Demonstração</span>
+        </div>
+        <div class="flex items-center gap-2 text-[12px] text-zinc-500">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Isolamento por paciente ativo
+        </div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto p-6">
+
+        <!-- ============================================================= -->
+        <!-- TELA 1 · CHAMADOS                                              -->
+        <!-- ============================================================= -->
+        <section id="screen-chamados" class="screen active">
+          <p class="text-[13px] text-zinc-500 mb-4 max-w-2xl">A fila de tudo que já saiu. Bate o olho e vê o que está parado — o estado vem escrito em português, não em código.</p>
+
+          <!-- chips de filtro com contadores -->
+          <div class="flex flex-wrap gap-2 mb-4" id="chamFiltros">
+            <button onclick="filtrarCham('todos')"     class="chamchip px-3 py-1.5 rounded-lg text-[12.5px] font-medium border border-zinc-300 bg-zinc-900 text-white">Todos <span class="opacity-70">24</span></button>
+            <button onclick="filtrarCham('rg')"        class="chamchip px-3 py-1.5 rounded-lg text-[12.5px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"><span class="inline-block w-1.5 h-1.5 rounded-full bg-brand-600 mr-1.5"></span>No RG <span class="text-zinc-400">9</span></button>
+            <button onclick="filtrarCham('aguardando')" class="chamchip px-3 py-1.5 rounded-lg text-[12.5px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"><span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>Aguardando <span class="text-zinc-400">7</span></button>
+            <button onclick="filtrarCham('semresposta')" class="chamchip px-3 py-1.5 rounded-lg text-[12.5px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"><span class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>Sem resposta <span class="text-zinc-400">5</span></button>
+            <button onclick="filtrarCham('traduzindo')" class="chamchip px-3 py-1.5 rounded-lg text-[12.5px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"><span class="inline-block w-1.5 h-1.5 rounded-full bg-violet-500 mr-1.5"></span>Traduzindo <span class="text-zinc-400">3</span></button>
+          </div>
+
+          <!-- busca -->
+          <div class="relative max-w-xs mb-3">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Buscar paciente ou entidade" class="w-full h-9 pl-9 pr-3 text-[13px] rounded-lg border border-zinc-200 bg-white outline-none focus:ring-2 focus:ring-zinc-300">
+          </div>
+
+          <!-- tabela -->
+          <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white">
+            <div class="grid grid-cols-[minmax(0,1.4fr)_1.1fr_0.9fr_0.7fr_1fr] gap-3 px-5 h-11 items-center border-b border-zinc-200 text-[11.5px] font-medium uppercase tracking-wide text-zinc-400">
+              <div>Paciente</div><div>Entidade</div><div>Pedido</div><div>Enviado</div><div>Estado</div>
+            </div>
+            <div id="chamRows"></div>
+          </div>
+          <div class="text-center py-3 text-[12.5px] text-zinc-400">Mostrando 6 de 24 · <button class="text-brand-600 font-medium hover:underline">Carregar mais</button></div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- TELA 2 · NOVO CHAMADO (HUB DE E-MAIL)                          -->
+        <!-- ============================================================= -->
+        <section id="screen-novo" class="screen">
+          <p class="text-[13px] text-zinc-500 mb-4 max-w-2xl">Um assistente de 4 passos: monta o e-mail certo, pro DPO certo, pedindo o dado certo — e anexa a autorização que o paciente assinou. Você só revisa e envia.</p>
+
+          <!-- stepper -->
+          <div class="flex items-center gap-1.5 mb-5 text-[12.5px]" id="stepper">
+            <span data-step="1" class="step px-3 py-1.5 rounded-lg font-semibold bg-brand-50 text-brand-700">1 · Paciente</span>
+            <span class="text-zinc-300">›</span>
+            <span data-step="2" class="step px-3 py-1.5 rounded-lg font-medium text-zinc-400">2 · Entidade</span>
+            <span class="text-zinc-300">›</span>
+            <span data-step="3" class="step px-3 py-1.5 rounded-lg font-medium text-zinc-400">3 · O que pedir</span>
+            <span class="text-zinc-300">›</span>
+            <span data-step="4" class="step px-3 py-1.5 rounded-lg font-medium text-zinc-400">4 · Revisar</span>
+          </div>
+
+          <div class="grid grid-cols-[1fr_380px] gap-6 items-start">
+            <!-- coluna esquerda: passos -->
+            <div class="space-y-4">
+
+              <!-- passo 1 -->
+              <div data-panel="1" class="nvpanel">
+                <div class="bg-white border border-zinc-200 rounded-xl p-5">
+                  <h3 class="text-[14px] font-semibold mb-1">Escolha o paciente</h3>
+                  <p class="text-[12.5px] text-zinc-500 mb-3">Só aparece quem <strong>assinou a autorização</strong>. Sem assinatura, não dá pra pedir em nome dele.</p>
+                  <div class="relative mb-3">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input type="text" placeholder="Buscar paciente" class="w-full h-9 pl-9 pr-3 text-[13px] rounded-lg border border-zinc-200 outline-none focus:ring-2 focus:ring-zinc-300">
+                  </div>
+                  <div class="space-y-1.5">
+                    <button onclick="selPaciente('Marina Costa','PAC-3194','#2563EB','MC')" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-left">
+                      <span class="pdot" style="background:#2563EB">MC</span>
+                      <span class="flex-1 min-w-0"><span class="block text-[13.5px] font-medium">Marina Costa</span><span class="mono text-[11px] text-zinc-400">#PAC-3194 · autorizou 10/05</span></span>
+                      <span class="text-[11px] font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded">autorizado</span>
+                    </button>
+                    <button onclick="selPaciente('João Pereira','PAC-2087','#0891B2','JP')" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-left">
+                      <span class="pdot" style="background:#0891B2">JP</span>
+                      <span class="flex-1 min-w-0"><span class="block text-[13.5px] font-medium">João Pereira</span><span class="mono text-[11px] text-zinc-400">#PAC-2087 · autorizou 28/05</span></span>
+                      <span class="text-[11px] font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded">autorizado</span>
+                    </button>
+                    <div class="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-zinc-200 bg-zinc-50/60 opacity-70">
+                      <span class="pdot bg-zinc-300 text-zinc-500">RA</span>
+                      <span class="flex-1 min-w-0"><span class="block text-[13.5px] font-medium text-zinc-500">Rafael Alves</span><span class="mono text-[11px] text-zinc-400">#PAC-4410</span></span>
+                      <span class="flex items-center gap-1 text-[11px] font-semibold text-zinc-500"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> sem autorização</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- passo 2 -->
+              <div data-panel="2" class="nvpanel hidden">
+                <div class="bg-white border border-zinc-200 rounded-xl p-5 space-y-3">
+                  <h3 class="text-[14px] font-semibold">Escolha a entidade</h3>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Tipo</label>
+                      <select id="selTipo" onchange="nada()" class="w-full h-9 px-2.5 text-[13px] rounded-lg border border-zinc-200 bg-white outline-none focus:ring-2 focus:ring-zinc-300">
+                        <option>Laboratório</option><option>Operadora</option><option>Hospital</option><option>Clínica</option><option>Farmácia</option><option>SUS</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Entidade</label>
+                      <select id="selEntidade" onchange="trocarEntidade()" class="w-full h-9 px-2.5 text-[13px] rounded-lg border border-zinc-200 bg-white outline-none focus:ring-2 focus:ring-zinc-300">
+                        <option value="fleury">Fleury</option>
+                        <option value="dasa">Dasa</option>
+                        <option value="unimed">Unimed</option>
+                        <option value="bradesco">Bradesco</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- 2º nível Unimed/Bradesco -->
+                  <div id="segundoNivel" class="hidden bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <label class="block text-[12px] font-semibold text-amber-800 mb-1.5" id="segundoNivelLabel">Qual Unimed?</label>
+                    <select class="w-full h-9 px-2.5 text-[13px] rounded-lg border border-amber-300 bg-white outline-none" id="segundoNivelSel"></select>
+                    <p class="text-[11.5px] text-amber-700 mt-1.5">Cada cooperativa tem seu próprio DPO. Sem escolher, não dá pra avançar.</p>
+                  </div>
+
+                  <!-- cartão de confiança do canal -->
+                  <div id="cartaoCanal" class="border border-zinc-200 rounded-lg overflow-hidden">
+                    <div class="px-4 py-2.5 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
+                      <span class="text-[12.5px] font-semibold" id="ccNome">Fleury · Laboratório</span>
+                      <span id="ccBadge" class="text-[11px] font-semibold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded">verificado</span>
+                    </div>
+                    <div class="p-4 space-y-1.5 text-[12.5px]">
+                      <div class="flex justify-between gap-3"><span class="text-zinc-500">canal</span><span class="mono text-zinc-800" id="ccCanal">privacidade@grupofleury.com.br</span></div>
+                      <div class="flex justify-between gap-3"><span class="text-zinc-500">fonte</span><span class="text-zinc-800 text-right" id="ccFonte">política oficial · 24/05/2024</span></div>
+                      <div class="flex justify-between gap-3"><span class="text-zinc-500">verificado a mão em</span><span class="text-zinc-800" id="ccData">24/05/2026</span></div>
+                    </div>
+                  </div>
+                  <p class="text-[11.5px] text-zinc-400 flex items-start gap-1.5"><svg width="13" height="13" class="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> Canais conferidos a mão na política oficial da entidade. A gente nunca inventa e-mail.</p>
+                </div>
+              </div>
+
+              <!-- passo 3 -->
+              <div data-panel="3" class="nvpanel hidden">
+                <div class="bg-white border border-zinc-200 rounded-xl p-5">
+                  <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-[14px] font-semibold">O que pedir</h3>
+                    <button onclick="pedirTudo()" class="text-[12.5px] font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg">Pedir tudo</button>
+                  </div>
+                  <p class="text-[12.5px] text-zinc-500 mb-3">O paciente tem direito a tudo. Os mais relevantes pra esta entidade sobem ao topo.</p>
+                  <div id="pedirLista" class="grid grid-cols-2 gap-2"></div>
+                  <div class="mt-3 pt-3 border-t border-zinc-100 text-[11.5px] text-zinc-500 flex items-start gap-1.5">
+                    <svg width="13" height="13" class="mt-px flex-none text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                    A base legal é costurada sozinha no e-mail (LGPD art. 18 + Estatuto do Paciente + a norma da entidade). Você não escreve lei.
+                  </div>
+                </div>
+              </div>
+
+              <!-- passo 4 -->
+              <div data-panel="4" class="nvpanel hidden">
+                <div class="bg-white border border-zinc-200 rounded-xl p-5">
+                  <h3 class="text-[14px] font-semibold mb-1">Revisar e enviar</h3>
+                  <p class="text-[12.5px] text-zinc-500 mb-3">O e-mail já vem escrito e formal. Edite à vontade — nada se perde.</p>
+                  <textarea id="emailEdit" class="w-full h-56 p-3.5 text-[12.5px] leading-relaxed rounded-lg border border-zinc-200 bg-zinc-50/40 outline-none focus:ring-2 focus:ring-zinc-300 font-sans resize-none"></textarea>
+                  <div class="flex flex-wrap items-center gap-2 mt-3">
+                    <span class="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-zinc-700 bg-zinc-100 border border-zinc-200 px-2.5 py-1 rounded-lg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> mandato-assinado.pdf</span>
+                    <span class="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-zinc-700 bg-zinc-100 border border-zinc-200 px-2.5 py-1 rounded-lg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> consentimento-10-05.pdf</span>
+                    <span class="text-[11px] text-zinc-400">anexados automaticamente</span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-4">
+                    <button onclick="enviarChamado()" class="text-[14px] font-semibold text-white bg-gradient-to-r from-[#3B82F6] to-[#2563EB] hover:brightness-95 px-5 h-10 rounded-lg shadow-sm">Criar registro e enviar</button>
+                    <button class="text-[14px] font-medium text-zinc-700 bg-white border border-zinc-200 hover:bg-zinc-50 px-4 h-10 rounded-lg">Salvar rascunho</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- navegação do wizard -->
+              <div class="flex items-center justify-between">
+                <button id="btnVoltar" onclick="passo(-1)" class="text-[13px] font-medium text-zinc-500 hover:text-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed" disabled>‹ Voltar</button>
+                <button id="btnAvancar" onclick="passo(1)" class="text-[13px] font-semibold text-brand-600 hover:text-brand-700">Avançar ›</button>
+              </div>
+            </div>
+
+            <!-- coluna direita: prévia ao vivo -->
+            <div class="sticky top-2">
+              <div class="bg-white border border-zinc-200 rounded-xl overflow-hidden">
+                <div class="px-4 py-2.5 bg-zinc-900 text-white flex items-center gap-2 text-[12px] font-medium">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> Prévia do e-mail · ao vivo
+                </div>
+                <div class="p-4 text-[12px] space-y-2.5">
+                  <div><span class="text-zinc-400">Para:</span> <span class="mono text-zinc-800" id="pvPara">privacidade@grupofleury.com.br</span></div>
+                  <div><span class="text-zinc-400">Assunto:</span> <span class="text-zinc-800" id="pvAssunto">Solicitação de acesso a dados — titular …</span></div>
+                  <hr class="border-zinc-100">
+                  <div id="pvCorpo" class="text-[12px] leading-relaxed text-zinc-700 whitespace-pre-line min-h-[180px]">Selecione um paciente para o e-mail começar a se montar aqui.</div>
+                  <hr class="border-zinc-100">
+                  <div class="flex flex-wrap gap-1.5" id="pvAnexos"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- TELA 3 · ESTEIRA (tabela + trilho horizontal — sem Kanban)     -->
+        <!-- ============================================================= -->
+        <section id="screen-esteira" class="screen">
+          <p class="text-[13px] text-zinc-500 mb-4 max-w-2xl">A linha de produção. Quando o dado chega bagunçado, ele anda por 6 estações até virar parte do RG. Cada peça mostra de quem é, de onde veio e quando chegou — pra nunca misturar paciente.</p>
+
+          <!-- trilho de 6 estações = filtro horizontal (cabe em 1040px, sem Kanban) -->
+          <div class="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1" id="trilho">
+            <button onclick="filtrarEsteira('todos')" class="estchip flex-none px-3 py-1.5 rounded-lg text-[12px] font-medium border border-zinc-300 bg-zinc-900 text-white">Todas <span class="opacity-70">8</span></button>
+            <span class="text-zinc-300 flex-none">·</span>
+            <button onclick="filtrarEsteira('Recebido')" class="estchip flex-none px-3 py-1.5 rounded-lg text-[12px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50">Recebido <span class="text-zinc-400">2</span></button>
+            <button onclick="filtrarEsteira('Identificado')" class="estchip flex-none px-3 py-1.5 rounded-lg text-[12px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50">Identificado <span class="text-zinc-400">1</span></button>
+            <button onclick="filtrarEsteira('Lido')" class="estchip flex-none px-3 py-1.5 rounded-lg text-[12px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50">Lido <span class="text-zinc-400">1</span></button>
+            <button onclick="filtrarEsteira('Traduzido')" class="estchip flex-none px-3 py-1.5 rounded-lg text-[12px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50">Traduzido <span class="text-zinc-400">1</span></button>
+            <button onclick="filtrarEsteira('Conferido')" class="estchip flex-none px-3 py-1.5 rounded-lg text-[12px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50">Conferido <span class="text-zinc-400">1</span></button>
+            <button onclick="filtrarEsteira('No RG')" class="estchip flex-none px-3 py-1.5 rounded-lg text-[12px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50">No RG <span class="text-zinc-400">2</span></button>
+          </div>
+
+          <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white">
+            <div class="grid grid-cols-[minmax(0,1.3fr)_1fr_1.1fr_0.9fr_28px] gap-3 px-5 h-11 items-center border-b border-zinc-200 text-[11.5px] font-medium uppercase tracking-wide text-zinc-400">
+              <div>Paciente · arquivo isolado</div><div>Dado · origem</div><div>Estação</div><div>Recebido</div><div></div>
+            </div>
+            <div id="esteiraRows"></div>
+          </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- TELA 4 · CONFERÊNCIA                                           -->
+        <!-- ============================================================= -->
+        <section id="screen-conferencia" class="screen">
+          <div class="flex items-center gap-3 mb-1">
+            <span class="pdot" style="background:#2563EB">MC</span>
+            <div>
+              <h2 class="text-[15px] font-semibold leading-tight">Conferência · Marina Costa</h2>
+              <span class="mono text-[11px] text-zinc-400">#PAC-3194 · arquivo isolado #ARQ-7781</span>
+            </div>
+          </div>
+          <p class="text-[13px] text-zinc-500 mb-4 max-w-2xl">De um lado o documento cru que chegou; do outro o que viramos pra LOINC. Em cima, a confirmação de que é a pessoa certa. <strong>Quem confirma é você</strong> — o sistema não pinta verde sozinho.</p>
+
+          <!-- semáforo de identidade — nasce ÂMBAR, humano confirma -->
+          <div id="semaforo" class="border border-amber-200 bg-amber-50 rounded-xl p-4 mb-4">
+            <div class="flex items-start gap-3">
+              <span class="w-3 h-3 rounded-full bg-amber-500 mt-1 flex-none"></span>
+              <div class="flex-1">
+                <div class="text-[13.5px] font-semibold text-amber-900">Confira você: é a pessoa certa?</div>
+                <div class="text-[12.5px] text-amber-800 mt-1">O documento traz <strong>Marina Costa</strong>. O CPF do laudo (<span class="mono">···.···.123-45</span>) confere com o do paciente do chamado. A identificação é um ato seu — não é automática.</div>
+                <div class="mono text-[11px] text-amber-700 mt-2">origem: Fleury · resp. técnico CRBM 1234 · coleta 10/05/2026</div>
+                <div class="flex gap-2 mt-3">
+                  <button onclick="confirmarIdentidade()" class="text-[12.5px] font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg">Confirmo — é a Marina</button>
+                  <button onclick="naoBate()" class="text-[12.5px] font-medium text-red-600 bg-white border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded-lg">Não bate / é outra pessoa</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- lado a lado: original × tradução -->
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <!-- original -->
+            <div class="bg-white border border-zinc-200 rounded-xl overflow-hidden">
+              <div class="px-4 py-2.5 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
+                <span class="text-[12.5px] font-semibold">Original (guardado)</span>
+                <span class="text-[11px] font-medium text-zinc-500 flex items-center gap-1"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> não se altera</span>
+              </div>
+              <div class="p-4 mono text-[12px] leading-relaxed text-zinc-700 bg-[#fcfcfd] min-h-[220px]">
+LABORATÓRIO FLEURY S/A<br>Paciente: MARINA COSTA<br>Coleta: 10/05/2026<br>──────────────────────<br>HEMOGLOBINA ......... 13,2 g/dL<br>GLICOSE (JEJUM) ..... 92 mg/dL<br>COLESTEROL TOTAL .... 188 mg/dL<br>TSH ................. 2,1 µUI/mL
+              </div>
+            </div>
+            <!-- tradução -->
+            <div class="bg-white border border-zinc-200 rounded-xl overflow-hidden">
+              <div class="px-4 py-2.5 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
+                <span class="text-[12.5px] font-semibold">Tradução (você edita)</span>
+                <span class="text-[11px] font-medium text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded">LOINC</span>
+              </div>
+              <div class="divide-y divide-zinc-100">
+                <div class="px-4 py-3">
+                  <div class="flex items-center justify-between"><span class="text-[13px] font-medium">Hemoglobina</span><span class="mono text-[12px] text-violet-700">718-7</span></div>
+                  <div class="text-[11.5px] text-zinc-500 mt-1">valor 13,2 · un g/dL · ref 12–16 (mulher adulta) <button class="text-brand-600 font-medium ml-1">editar</button></div>
+                </div>
+                <div class="px-4 py-3">
+                  <div class="flex items-center justify-between"><span class="text-[13px] font-medium">Glicose em jejum</span><span class="mono text-[12px] text-violet-700">1558-6</span></div>
+                  <div class="text-[11.5px] text-zinc-500 mt-1">valor 92 · un mg/dL <button class="text-brand-600 font-medium ml-1">editar</button></div>
+                </div>
+                <div class="px-4 py-3">
+                  <div class="flex items-center justify-between"><span class="text-[13px] font-medium">Colesterol total</span><span class="mono text-[12px] text-violet-700">2093-3</span></div>
+                  <div class="text-[11.5px] text-zinc-500 mt-1">valor 188 · un mg/dL <button class="text-brand-600 font-medium ml-1">editar</button></div>
+                </div>
+                <div class="px-4 py-3">
+                  <div class="flex items-center justify-between"><span class="text-[13px] font-medium">TSH</span><span class="mono text-[12px] text-violet-700">3016-3</span></div>
+                  <div class="text-[11.5px] text-zinc-500 mt-1">valor 2,1 · un µUI/mL <button class="text-brand-600 font-medium ml-1">editar</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between bg-white border border-zinc-200 rounded-xl p-4">
+            <button class="text-[13px] font-medium text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 px-4 h-10 rounded-lg">‹ Devolver pra esteira</button>
+            <div class="flex items-center gap-3">
+              <span id="confHint" class="text-[12px] text-zinc-400">Confirme a identidade acima para liberar o envio.</span>
+              <button id="btnProRg" disabled class="text-[14px] font-semibold text-white bg-gradient-to-r from-[#3B82F6] to-[#2563EB] px-5 h-10 rounded-lg shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">Conferido → enviar pro RG</button>
+            </div>
+          </div>
+          <p class="text-[11.5px] text-zinc-400 mt-3 flex items-start gap-1.5 max-w-2xl">
+            <svg width="13" height="13" class="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            O envio grava o dado no RG da paciente no servidor. Quando ela abrir o app, o RG dela puxa esse dado novo e mostra o mesmo cartão que aparece aqui. O Second V e o RG são espelhos — a ponte é o servidor, não esta aba.
+          </p>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- TELA 5 · CATÁLOGO DE DPOs                                      -->
+        <!-- ============================================================= -->
+        <section id="screen-catalogo" class="screen">
+          <p class="text-[13px] text-zinc-500 mb-4 max-w-2xl">Nosso ativo: a lista curada de pra-onde-mandar, conferida uma a uma na política oficial de cada entidade. É o que faz o chamado funcionar.</p>
+
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <button class="px-3 py-1.5 rounded-lg text-[12.5px] font-medium border border-zinc-300 bg-zinc-900 text-white">Todos</button>
+            <button class="px-3 py-1.5 rounded-lg text-[12.5px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50">Laboratório</button>
+            <button class="px-3 py-1.5 rounded-lg text-[12.5px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50">Operadora</button>
+            <button class="px-3 py-1.5 rounded-lg text-[12.5px] font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50">Hospital</button>
+            <div class="relative ml-auto">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" placeholder="Buscar entidade" class="w-56 h-9 pl-9 pr-3 text-[13px] rounded-lg border border-zinc-200 outline-none focus:ring-2 focus:ring-zinc-300">
+            </div>
+          </div>
+
+          <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white">
+            <div class="grid grid-cols-[minmax(0,1.1fr)_0.9fr_1.3fr_0.9fr] gap-3 px-5 h-11 items-center border-b border-zinc-200 text-[11.5px] font-medium uppercase tracking-wide text-zinc-400">
+              <div>Entidade</div><div>Tipo</div><div>Canal</div><div>Estado · conferido</div>
+            </div>
+            <div id="catRows"></div>
+          </div>
+
+          <div class="mt-4 bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-[12px] text-zinc-600 flex items-start gap-2.5">
+            <svg width="16" height="16" class="mt-px flex-none text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <div>Cada canal aqui veio da política oficial da entidade — a LGPD (art. 41) obriga a publicar o Encarregado. Domínio conferido a mão, data registrada. <strong>A gente nunca inventa e-mail.</strong> A saúde do canal é curada por pessoa, não por telemetria automática (telemetria de quique entra numa versão futura, quando houver envio próprio).</div>
+          </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- TELA 6 · LINHA DO TEMPO                                        -->
+        <!-- ============================================================= -->
+        <section id="screen-timeline" class="screen">
+          <p class="text-[13px] text-zinc-500 mb-4 max-w-2xl">A prova, por paciente: quando autorizou, o que pedimos, de quem veio, quando entrou no RG. É o que se mostra pro regulador — e é sempre de <strong>um</strong> paciente só.</p>
+
+          <div class="flex items-center gap-3 mb-5 bg-white border border-zinc-200 rounded-xl p-3">
+            <span class="pdot" style="background:#2563EB">MC</span>
+            <div class="flex-1">
+              <div class="text-[14px] font-semibold leading-tight">Marina Costa</div>
+              <div class="mono text-[11px] text-zinc-400">#PAC-3194</div>
+            </div>
+            <button class="text-[12.5px] font-medium text-brand-600 hover:text-brand-700 flex items-center gap-1.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Trocar paciente</button>
+          </div>
+
+          <div class="bg-white border border-zinc-200 rounded-xl p-6">
+            <ol class="relative border-l-2 border-zinc-100 ml-2 space-y-6">
+              <li class="pl-6 relative">
+                <span class="absolute -left-[9px] top-0.5 w-4 h-4 rounded-full bg-brand-600 border-2 border-white shadow"></span>
+                <div class="mono text-[11px] text-zinc-400">10/05/2026</div>
+                <div class="text-[13.5px] font-medium mt-0.5">Marina assinou a autorização</div>
+                <div class="text-[12px] text-zinc-500">consentimento <span class="mono">#CONS-991</span> · rolou o termo até o fim antes de aceitar</div>
+              </li>
+              <li class="pl-6 relative">
+                <span class="absolute -left-[9px] top-0.5 w-4 h-4 rounded-full bg-zinc-300 border-2 border-white shadow"></span>
+                <div class="mono text-[11px] text-zinc-400">12/05/2026</div>
+                <div class="text-[13.5px] font-medium mt-0.5">Pedido enviado → Fleury (lab)</div>
+                <div class="text-[12px] text-zinc-500"><span class="mono">privacidade@grupofleury.com.br</span> · itens: Exames, Histórico evolutivo · base: LGPD art. 18</div>
+              </li>
+              <li class="pl-6 relative">
+                <span class="absolute -left-[9px] top-0.5 w-4 h-4 rounded-full bg-zinc-300 border-2 border-white shadow"></span>
+                <div class="mono text-[11px] text-zinc-400">18/05/2026</div>
+                <div class="text-[13.5px] font-medium mt-0.5">Fleury respondeu</div>
+                <div class="text-[12px] text-zinc-500">arquivo-cru.pdf recebido · isolado em <span class="mono">#ARQ-7781</span></div>
+              </li>
+              <li class="pl-6 relative">
+                <span class="absolute -left-[9px] top-0.5 w-4 h-4 rounded-full bg-zinc-300 border-2 border-white shadow"></span>
+                <div class="mono text-[11px] text-zinc-400">18/05/2026</div>
+                <div class="text-[13.5px] font-medium mt-0.5">Identidade confirmada por <span class="text-zinc-700">Tradutor · Vale</span></div>
+                <div class="text-[12px] text-zinc-500">nome + CPF batem com o paciente do chamado (confirmação humana)</div>
+              </li>
+              <li class="pl-6 relative">
+                <span class="absolute -left-[9px] top-0.5 w-4 h-4 rounded-full bg-violet-500 border-2 border-white shadow"></span>
+                <div class="mono text-[11px] text-zinc-400">19/05/2026</div>
+                <div class="text-[13.5px] font-medium mt-0.5">Traduzido pra LOINC</div>
+                <div class="text-[12px] text-zinc-500">Hemoglobina <span class="mono">718-7</span>, Glicose <span class="mono">1558-6</span>… · original guardado intacto</div>
+              </li>
+              <li class="pl-6 relative">
+                <span class="absolute -left-[9px] top-0.5 w-4 h-4 rounded-full bg-brand-600 border-2 border-white shadow"></span>
+                <div class="mono text-[11px] text-zinc-400">19/05/2026</div>
+                <div class="text-[13.5px] font-medium mt-0.5">Conferido e espelhado no RG ✓</div>
+                <div class="text-[12px] text-zinc-500">gravado no servidor · o RG da Marina mostra o dado quando ela abre o app</div>
+              </li>
+            </ol>
+          </div>
+          <p class="text-[11.5px] text-zinc-400 mt-3 flex items-start gap-1.5 max-w-2xl">
+            <svg width="13" height="13" class="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Cada marca traz dono + origem + data + ID. É um registro de auditoria — não se edita. Prova que houve consentimento antes do pedido e que o original foi guardado.
+          </p>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- nota de honestidade pro Lucas (o que é v0 real vs visão) -->
+  <div class="max-w-[1180px] mx-auto mt-4 text-[11.5px] text-zinc-400 px-1 leading-relaxed">
+    Demonstração navegável. Pronto pra construir já (front reusa a casca do painel do dono): <strong>Chamados · Novo chamado · Catálogo de DPOs</strong> — geram o e-mail, anexam o termo, registram o estado. <strong>Esteira · Conferência · Linha do tempo</strong> dependem de máquina nova no servidor (guardar o PDF cru isolado, base LOINC, gravar no RG, log que não se edita) e entram numa segunda etapa.
+  </div>
+</div>
+
+<!-- toast -->
+<div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-7 bg-zinc-900 text-white text-[13px] font-semibold px-4 py-2.5 rounded-lg shadow-xl opacity-0 pointer-events-none transition-opacity duration-200 z-50"></div>
+
+<script>
+/* ---------- navegação por sidebar ---------- */
+const TITULOS = {chamados:'Chamados', novo:'Novo chamado', esteira:'Esteira', conferencia:'Conferência', catalogo:'Catálogo de DPOs', timeline:'Linha do tempo'};
+function go(tela){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+tela).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('topTitle').textContent = TITULOS[tela];
+  document.querySelector('.flex-1.overflow-y-auto').scrollTop = 0;
+}
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.opacity='1'; setTimeout(()=>t.style.opacity='0',2200); }
+function nada(){}
+
+/* ---------- TELA 1: Chamados ---------- */
+const ESTADOS = {
+  rg:        {dot:'bg-brand-600',  txt:'No RG',                cls:'text-brand-700 bg-brand-50 border-brand-200',  tip:'Pronto. O dado já foi traduzido e está espelhado no RG do paciente.', acao:'ver no RG'},
+  aguardando:{dot:'bg-amber-500',  txt:'Aguardando a clínica', cls:'text-amber-700 bg-amber-50 border-amber-200',  tip:'O e-mail saiu e ainda está dentro do prazo legal (até 15 dias). Sem ação por enquanto.', acao:''},
+  semresposta:{dot:'bg-red-500',   txt:'Sem resposta — cobrar', cls:'text-red-700 bg-red-50 border-red-200',       tip:'Passou do prazo e a clínica não respondeu. Reenviar a cobrança citando a Lei 15.378/2026.', acao:'reenviar cobrança'},
+  traduzindo:{dot:'bg-violet-500', txt:'Traduzindo',           cls:'text-violet-700 bg-violet-50 border-violet-200', tip:'O dado chegou e está na esteira sendo identificado e traduzido pra LOINC.', acao:'abrir na esteira'}
+};
+const CHAMADOS = [
+  {dot:'#2563EB',ini:'MC',nome:'Marina Costa',  id:'PAC-3194',ent:'Fleury (lab)',     ped:'Exames',          env:'12/05 · há 6 d',  est:'rg'},
+  {dot:'#0891B2',ini:'JP',nome:'João Pereira',  id:'PAC-2087',ent:'Unimed Bauru',     ped:'Utilização',      env:'28/05 · há 2 d',  est:'aguardando'},
+  {dot:'#7C3AED',ini:'AL',nome:'Ana Lima',      id:'PAC-1142',ent:'Sírio-Libanês',    ped:'Sumário de alta', env:'03/05 · há 35 d', est:'semresposta'},
+  {dot:'#DB2777',ini:'CS',nome:'Carla Souza',   id:'PAC-2901',ent:'Dasa',             ped:'Exames + biópsia',env:'05/06 · há 5 d',  est:'traduzindo'},
+  {dot:'#059669',ini:'RM',nome:'Rui Martins',   id:'PAC-3380',ent:'Hapvida',          ped:'Histórico',       env:'01/06 · há 9 d',  est:'aguardando'},
+  {dot:'#D97706',ini:'BF',nome:'Bia Ferreira',  id:'PAC-4002',ent:'SUS · Meu SUS Dig.',ped:'Vacinas',        env:'20/04 · há 51 d', est:'semresposta'}
+];
+function renderChamados(filtro='todos'){
+  const wrap = document.getElementById('chamRows');
+  const lista = filtro==='todos' ? CHAMADOS : CHAMADOS.filter(c=>c.est===filtro);
+  if(!lista.length){
+    wrap.innerHTML = `<div class="px-5 py-12 text-center"><div class="w-10 h-10 rounded-lg bg-zinc-100 mx-auto mb-3 flex items-center justify-center text-zinc-400"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="text-[14px] font-semibold mb-1">Nada neste estado</div><p class="text-[12.5px] text-zinc-500">Tente outro filtro acima.</p></div>`;
+    return;
+  }
+  wrap.innerHTML = lista.map(c=>{ const e=ESTADOS[c.est]; return `
+    <div onclick="${c.est==='rg'?`go2('timeline')`:c.est==='traduzindo'?`go2('esteira')`:`toast('Abrindo chamado de ${c.nome}')`}" class="grid grid-cols-[minmax(0,1.4fr)_1.1fr_0.9fr_0.7fr_1fr] gap-3 px-5 py-3 items-center border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="pdot" style="background:${c.dot}">${c.ini}</span>
+        <span class="min-w-0"><span class="block text-[13.5px] font-medium truncate">${c.nome}</span><span class="mono text-[11px] text-zinc-400">#${c.id}</span></span>
+      </div>
+      <div class="text-[13px] text-zinc-700 truncate">${c.ent}</div>
+      <div class="text-[13px] text-zinc-600">${c.ped}</div>
+      <div class="text-[12px] text-zinc-400">${c.env}</div>
+      <div data-tip="${e.tip}"><span class="inline-flex items-center gap-1.5 text-[12px] font-semibold border px-2.5 py-1 rounded-full ${e.cls}"><span class="w-1.5 h-1.5 rounded-full ${e.dot}"></span>${e.txt}</span>${e.acao?`<div class="text-[11px] text-brand-600 font-medium mt-0.5">${e.acao} →</div>`:''}</div>
+    </div>`; }).join('');
+}
+function go2(tela){ // navegação programática (sem event.currentTarget)
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+tela).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach((n,i)=>{ n.classList.toggle('active', n.textContent.trim().startsWith(TITULOS[tela])); });
+  document.getElementById('topTitle').textContent = TITULOS[tela];
+}
+function filtrarCham(f){
+  document.querySelectorAll('.chamchip').forEach(c=>{ c.className = c.className.replace('bg-zinc-900 text-white','bg-white text-zinc-700').replace('border-zinc-300','border-zinc-200'); });
+  event.currentTarget.className = event.currentTarget.className.replace('bg-white text-zinc-700','bg-zinc-900 text-white').replace('border-zinc-200','border-zinc-300');
+  renderChamados(f);
+}
+
+/* ---------- TELA 2: Novo chamado ---------- */
+let stepAtual = 1;
+const PACIENTE = {nome:'', id:'', cor:'', ini:''};
+const ENTIDADES = {
+  fleury:{nome:'Fleury · Laboratório', canal:'privacidade@grupofleury.com.br', fonte:'política oficial · 24/05/2024', data:'24/05/2026', badge:'verificado', badgeCls:'text-brand-700 bg-brand-50 border-brand-200', norma:'RDC ANVISA 786/2023', segundo:null, portal:false},
+  dasa:{nome:'Dasa · Laboratório', canal:'portal OneTrust (form do titular)', fonte:'portal de privacidade oficial', data:'há 12 d', badge:'usa portal', badgeCls:'text-brand-700 bg-brand-50 border-brand-200', norma:'RDC ANVISA 786/2023', segundo:null, portal:true},
+  unimed:{nome:'Unimed · Operadora', canal:'(escolha a cooperativa)', fonte:'política oficial da cooperativa', data:'—', badge:'escolher', badgeCls:'text-amber-700 bg-amber-50 border-amber-200', norma:'RN ANS 509/2022', segundo:{label:'Qual Unimed?', ops:['Unimed Bauru — dpo@unimedbauru.com.br','Unimed Jaú — dpo@unimedjau.com.br','Central — encarregado-lgpd@unimed.coop.br']}, portal:false},
+  bradesco:{nome:'Bradesco · Operadora/Seguro', canal:'(Saúde ou Seguros?)', fonte:'política oficial', data:'—', badge:'escolher', badgeCls:'text-amber-700 bg-amber-50 border-amber-200', norma:'RN ANS 509/2022', segundo:{label:'Saúde ou Seguros?', ops:['Bradesco Seguros — protecao.dados@bradescoseguros.com.br','Bradesco Saúde — (DPO distinto, conferir)']}, portal:false}
+};
+const TIPOS_DADO = [
+  ['Exames laboratoriais','Sangue, urina etc. Vem semi-estruturado, fácil de traduzir.'],
+  ['Histórico evolutivo','Várias coletas no tempo — o lab guarda anos.'],
+  ['Anatomia patológica / biópsia','Laudo de tecido. Riqueza alta.'],
+  ['Laudos de imagem','Raio-x, TC, RM, US (laudo + DICOM).'],
+  ['Vacinas','Caderneta. Ninguém mais consolida isso.'],
+  ['Consultas / atendimentos','Registro de cada atendimento.'],
+  ['Internações','Episódios de internação.'],
+  ['Sumário de alta','Resumo pronto pra ler, entrega obrigatória.'],
+  ['Cirurgias / procedimentos','Descrição cirúrgica, próteses, materiais.'],
+  ['Prescrições / medicamentos','O que foi prescrito.'],
+  ['Dispensação (farmácia)','O que de fato foi comprado/usado.'],
+  ['Histórico de utilização','Tudo que o plano pagou — o extrato da saúde.'],
+  ['Prontuário integral','A cópia completa. Direito garantido.']
+];
+const TOPO_POR_TIPO = {
+  'Laboratório':['Exames laboratoriais','Histórico evolutivo','Anatomia patológica / biópsia'],
+  'Operadora':['Histórico de utilização','Internações','Prescrições / medicamentos'],
+  'Hospital':['Sumário de alta','Cirurgias / procedimentos','Laudos de imagem'],
+  'Clínica':['Prontuário integral','Prescrições / medicamentos','Laudos de imagem'],
+  'Farmácia':['Dispensação (farmácia)','Prescrições / medicamentos'],
+  'SUS':['Vacinas','Consultas / atendimentos','Internações']
+};
+function selPaciente(nome,id,cor,ini){
+  PACIENTE.nome=nome; PACIENTE.id=id; PACIENTE.cor=cor; PACIENTE.ini=ini;
+  toast('Paciente: '+nome);
+  atualizarPrevia();
+  passo(1);
+}
+function trocarEntidade(){
+  const e = ENTIDADES[document.getElementById('selEntidade').value];
+  document.getElementById('ccNome').textContent = e.nome;
+  document.getElementById('ccCanal').textContent = e.canal;
+  document.getElementById('ccFonte').textContent = e.fonte;
+  document.getElementById('ccData').textContent = e.data;
+  const b = document.getElementById('ccBadge'); b.textContent=e.badge; b.className='text-[11px] font-semibold px-2 py-0.5 rounded border '+e.badgeCls;
+  const sn = document.getElementById('segundoNivel');
+  if(e.segundo){
+    sn.classList.remove('hidden');
+    document.getElementById('segundoNivelLabel').textContent = e.segundo.label;
+    document.getElementById('segundoNivelSel').innerHTML = '<option value="">— selecione —</option>'+e.segundo.ops.map(o=>`<option>${o}</option>`).join('');
+  } else sn.classList.add('hidden');
+  atualizarPrevia();
+}
+function pedirLista(){
+  const tipo = document.getElementById('selTipo').value;
+  const topo = TOPO_POR_TIPO[tipo]||[];
+  const ordenada = [...TIPOS_DADO].sort((a,b)=> (topo.includes(b[0])?1:0)-(topo.includes(a[0])?1:0));
+  document.getElementById('pedirLista').innerHTML = ordenada.map(([t,desc],i)=>`
+    <label class="flex items-start gap-2 px-3 py-2 rounded-lg border ${topo.includes(t)?'border-brand-200 bg-brand-50/40':'border-zinc-200'} cursor-pointer hover:bg-zinc-50" data-tip="${desc}">
+      <input type="checkbox" class="ckdado mt-0.5 accent-brand-600" value="${t}" onchange="atualizarPrevia()" ${topo.includes(t)?'checked':''}>
+      <span class="text-[12.5px] ${topo.includes(t)?'font-medium':''}">${t}${topo.includes(t)?' <span class="text-[10px] text-brand-600 font-semibold">·relevante</span>':''}</span>
+    </label>`).join('');
+  atualizarPrevia();
+}
+function pedirTudo(){ document.querySelectorAll('.ckdado').forEach(c=>c.checked=true); atualizarPrevia(); toast('Marcado tudo — o paciente tem direito a tudo'); }
+function passo(dir){
+  const novo = stepAtual + dir;
+  if(novo<1||novo>4) return;
+  if(stepAtual===1 && dir>0 && !PACIENTE.nome){ toast('Escolha um paciente primeiro'); return; }
+  stepAtual = novo;
+  document.querySelectorAll('.nvpanel').forEach((p,i)=>p.classList.toggle('hidden', (i+1)!==stepAtual));
+  document.querySelectorAll('.step').forEach((s,i)=>{
+    s.className = 'step px-3 py-1.5 rounded-lg '+((i+1)===stepAtual?'font-semibold bg-brand-50 text-brand-700':(i+1)<stepAtual?'font-medium text-brand-600':'font-medium text-zinc-400');
+  });
+  document.getElementById('btnVoltar').disabled = stepAtual===1;
+  document.getElementById('btnAvancar').classList.toggle('hidden', stepAtual===4);
+  if(stepAtual===3) pedirLista();
+  atualizarPrevia();
+}
+function atualizarPrevia(){
+  const e = ENTIDADES[document.getElementById('selEntidade')?.value || 'fleury'];
+  document.getElementById('pvPara').textContent = e.portal ? '(via portal OneTrust — não é e-mail)' : (e.canal.includes('@')?e.canal:'privacidade@grupofleury.com.br');
+  const nome = PACIENTE.nome || '…';
+  document.getElementById('pvAssunto').textContent = `Solicitação de acesso a dados de saúde — titular ${nome} (LGPD art.18)`;
+  const itens = [...document.querySelectorAll('.ckdado:checked')].map(c=>'  • '+c.value);
+  const corpo = !PACIENTE.nome ? 'Selecione um paciente para o e-mail começar a se montar aqui.' :
+`Prezado(a) Encarregado(a),
+
+Na qualidade de representante autorizado do titular ${nome} (#${PACIENTE.id}), solicito, com base na LGPD (art. 18) e na Lei 15.378/2026 (Estatuto dos Direitos do Paciente)${e.norma?` e na ${e.norma}`:''}, o acesso e a cópia dos seguintes dados:
+${itens.length?itens.join('\n'):'  • (selecione os tipos no passo 3)'}
+
+Segue anexa a autorização assinada pelo titular.
+Prazo legal de resposta: 15 dias.`;
+  document.getElementById('pvCorpo').textContent = corpo;
+  document.getElementById('emailEdit') && (document.getElementById('emailEdit').value = corpo);
+  document.getElementById('pvAnexos').innerHTML = !PACIENTE.nome ? '' :
+    `<span class="inline-flex items-center gap-1 text-[10.5px] font-medium text-zinc-600 bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded">📎 mandato-assinado.pdf</span>
+     <span class="inline-flex items-center gap-1 text-[10.5px] font-medium text-zinc-600 bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded">📎 consentimento.pdf</span>`;
+}
+function enviarChamado(){ toast('Pedido enviado pra '+ (ENTIDADES[document.getElementById('selEntidade').value].nome.split(' ·')[0]) +' — acompanhe em Chamados'); }
+
+/* ---------- TELA 3: Esteira ---------- */
+const ESTACOES = {
+  'Recebido':    {cor:'bg-zinc-400',   tip:'O DPO subiu o arquivo cru. Ainda ninguém olhou.'},
+  'Identificado':{cor:'bg-sky-400',    tip:'Confirmado de quem é (nome + CPF batem). Por um humano.'},
+  'Lido':        {cor:'bg-sky-500',    tip:'Conteúdo aberto e separado em pedaços (cada exame/laudo).'},
+  'Traduzido':   {cor:'bg-violet-500', tip:'Cada pedaço ganhou código LOINC + nome de gente. Original guardado.'},
+  'Conferido':   {cor:'bg-brand-500',  tip:'Um humano bateu original × tradução na Conferência.'},
+  'No RG':       {cor:'bg-brand-600',  tip:'Gravado no servidor. O RG do paciente mostra quando ele abre o app.'}
+};
+const ORDEM = ['Recebido','Identificado','Lido','Traduzido','Conferido','No RG'];
+const ESTEIRA = [
+  {dot:'#2563EB',ini:'MC',nome:'Marina Costa',  id:'PAC-3194',arq:'ARQ-7781',dado:'Exames',     orig:'Fleury (lab)',  rec:'12/05', est:'No RG',        presa:false},
+  {dot:'#DB2777',ini:'CS',nome:'Carla Souza',   id:'PAC-2901',arq:'ARQ-8120',dado:'Biópsia',    orig:'Dasa (lab)',    rec:'05/06', est:'Traduzido',    presa:false},
+  {dot:'#0891B2',ini:'JP',nome:'João Pereira',  id:'PAC-2087',arq:'ARQ-8044',dado:'Utilização', orig:'Unimed Bauru',  rec:'04/06', est:'Identificado', presa:false},
+  {dot:'#7C3AED',ini:'AL',nome:'Ana Lima',      id:'PAC-1142',arq:'ARQ-7905',dado:'Sumário',    orig:'Sírio-Libanês', rec:'03/06', est:'Lido',         presa:false},
+  {dot:'#059669',ini:'RM',nome:'Rui Martins',   id:'PAC-3380',arq:'ARQ-8200',dado:'Histórico',  orig:'Hapvida',       rec:'06/06', est:'Recebido',     presa:false},
+  {dot:'#D97706',ini:'BF',nome:'Bia Ferreira',  id:'PAC-4002',arq:'ARQ-8210',dado:'Exame solto',orig:'Lab municipal', rec:'06/06', est:'Recebido',     presa:true},
+  {dot:'#BE185D',ini:'TL',nome:'Téo Luz',       id:'PAC-3771',arq:'ARQ-7990',dado:'Vacinas',    orig:'SUS (RNDS)',    rec:'30/05', est:'Conferido',    presa:false},
+  {dot:'#1D4FD7',ini:'VR',nome:'Vera Rocha',    id:'PAC-2510',arq:'ARQ-7600',dado:'Exames',     orig:'Fleury (lab)',  rec:'28/05', est:'No RG',        presa:false}
+];
+function renderEsteira(filtro='todos'){
+  const wrap = document.getElementById('esteiraRows');
+  const lista = filtro==='todos' ? ESTEIRA : ESTEIRA.filter(x=>x.est===filtro);
+  if(!lista.length){ wrap.innerHTML = `<div class="px-5 py-12 text-center text-[13px] text-zinc-500">Nada nesta estação agora.</div>`; return; }
+  wrap.innerHTML = lista.map(x=>{
+    const e = ESTACOES[x.est]; const idx = ORDEM.indexOf(x.est);
+    const dots = ORDEM.map((_,i)=>`<span class="w-1.5 h-1.5 rounded-full ${i<=idx?e.cor:'bg-zinc-200'}"></span>`).join('<span class="w-2 h-px bg-zinc-200"></span>');
+    return `
+    <div onclick="go2('conferencia')" class="grid grid-cols-[minmax(0,1.3fr)_1fr_1.1fr_0.9fr_28px] gap-3 px-5 py-3 items-center border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer ${x.presa?'bg-red-50/40':''}">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="pdot" style="background:${x.dot}">${x.ini}</span>
+        <span class="min-w-0"><span class="block text-[13px] font-medium truncate">${x.nome}</span><span class="mono text-[11px] text-zinc-400">#${x.id} · 🔒#${x.arq}</span></span>
+      </div>
+      <div class="min-w-0"><span class="block text-[13px] text-zinc-700">${x.dado}</span><span class="text-[11.5px] text-zinc-400 truncate">${x.orig}</span></div>
+      <div data-tip="${e.tip}">
+        <span class="inline-flex items-center gap-1.5 text-[12px] font-medium"><span class="w-2 h-2 rounded-full ${e.cor}"></span>${x.est}</span>
+        <div class="flex items-center mt-1.5">${dots}</div>
+        ${x.presa?'<div class="text-[10.5px] text-red-600 font-semibold mt-1">precisa de você</div>':''}
+      </div>
+      <div class="text-[12px] text-zinc-400">${x.rec}</div>
+      <div class="text-zinc-300"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></div>
+    </div>`;
+  }).join('');
+}
+function filtrarEsteira(f){
+  document.querySelectorAll('.estchip').forEach(c=>{ c.className = c.className.replace('bg-zinc-900 text-white','bg-white text-zinc-700').replace('border-zinc-300','border-zinc-200'); });
+  event.currentTarget.className = event.currentTarget.className.replace('bg-white text-zinc-700','bg-zinc-900 text-white').replace('border-zinc-200','border-zinc-300');
+  renderEsteira(f);
+}
+
+/* ---------- TELA 4: Conferência (semáforo nasce âmbar) ---------- */
+function confirmarIdentidade(){
+  const s = document.getElementById('semaforo');
+  s.className = 'border border-brand-200 bg-brand-50 rounded-xl p-4 mb-4';
+  s.innerHTML = `<div class="flex items-start gap-3">
+    <span class="w-3 h-3 rounded-full bg-brand-600 mt-1 flex-none"></span>
+    <div class="flex-1">
+      <div class="text-[13.5px] font-semibold text-brand-900">É a pessoa certa ✓</div>
+      <div class="text-[12.5px] text-brand-800 mt-1">Identidade confirmada por <strong>Tradutor · Vale</strong>. Nome + CPF batem com o paciente do chamado.</div>
+      <div class="mono text-[11px] text-brand-700 mt-2">confirmado a mão · 10/06/2026 14:22 · fica registrado na linha do tempo</div>
+    </div></div>`;
+  const btn = document.getElementById('btnProRg'); btn.disabled=false;
+  document.getElementById('confHint').textContent = 'Identidade confirmada. Pode enviar pro RG.';
+  toast('Identidade confirmada — agora você pode enviar pro RG');
+}
+function naoBate(){
+  const s = document.getElementById('semaforo');
+  s.className = 'border border-red-200 bg-red-50 rounded-xl p-4 mb-4';
+  s.innerHTML = `<div class="flex items-start gap-3">
+    <span class="w-3 h-3 rounded-full bg-red-500 mt-1 flex-none"></span>
+    <div class="flex-1">
+      <div class="text-[13.5px] font-semibold text-red-900">Não bate — envio bloqueado</div>
+      <div class="text-[12.5px] text-red-800 mt-1">O documento parece ser de outra pessoa. Pra nunca misturar gente, o envio pro RG fica travado.</div>
+      <div class="flex gap-2 mt-3">
+        <button onclick="toast('Devolvido pra esteira com nota')" class="text-[12.5px] font-medium text-red-700 bg-white border border-red-200 px-3 py-1.5 rounded-lg">Devolver pra esteira</button>
+        <button onclick="toast('Reatribuir a outro paciente')" class="text-[12.5px] font-medium text-zinc-700 bg-white border border-zinc-200 px-3 py-1.5 rounded-lg">Reatribuir</button>
+      </div>
+    </div></div>`;
+  document.getElementById('btnProRg').disabled = true;
+  document.getElementById('confHint').textContent = 'Envio bloqueado — identidade não confere.';
+}
+document.getElementById('btnProRg').addEventListener('click',()=>toast('Conferido e gravado no RG da Marina ✓ (server-side)'));
+
+/* ---------- TELA 5: Catálogo ---------- */
+const CATALOGO = [
+  {ent:'Fleury',tipo:'Laboratório',canal:'privacidade@grupofleury.com.br',estado:'ok',data:'24/05/2024'},
+  {ent:'Sabin',tipo:'Laboratório',canal:'dpo@sabin.com.br',estado:'ok',data:'há 20 d'},
+  {ent:'Dasa',tipo:'Lab/Diagnóstico',canal:'portal OneTrust',estado:'portal',data:'há 12 d'},
+  {ent:'Grupo Pardini',tipo:'Laboratório',canal:'privacidade@grupopardini.com.br',estado:'rever',data:'checar redirecionamento p/ Dasa'},
+  {ent:'Unimed',tipo:'Operadora',canal:'340 cooperativas — escolher',estado:'escolher',data:'2º nível obrigatório'},
+  {ent:'Hapvida / NDI',tipo:'Operadora',canal:'privacidade@intermedica.com.br',estado:'ok',data:'há 30 d'},
+  {ent:'Bradesco',tipo:'Operadora/Seguro',canal:'Saúde ≠ Seguros — escolher',estado:'escolher',data:'2 DPOs distintos'},
+  {ent:'SulAmérica',tipo:'Operadora/Seguro',canal:'privacidade@sulamerica.com.br',estado:'ok',data:'há 22 d'},
+  {ent:'Amil',tipo:'Operadora',canal:'privacidade@amil.com.br',estado:'ok',data:'há 40 d'},
+  {ent:'Albert Einstein',tipo:'Hospital',canal:'dpo@einstein.br',estado:'ok',data:'há 18 d'},
+  {ent:'Sírio-Libanês',tipo:'Hospital',canal:'dpo.hsl@lbca.com.br',estado:'ok',data:'há 41 d (escritório, declarado na política)'}
+];
+const SAUDE = {
+  ok:      {cls:'text-brand-700 bg-brand-50 border-brand-200',   dot:'bg-brand-600',  txt:'ok'},
+  portal:  {cls:'text-brand-700 bg-brand-50 border-brand-200',   dot:'bg-brand-600',  txt:'usa portal'},
+  escolher:{cls:'text-amber-700 bg-amber-50 border-amber-200',   dot:'bg-amber-500',  txt:'escolher'},
+  rever:   {cls:'text-zinc-600 bg-zinc-100 border-zinc-200',     dot:'bg-zinc-400',   txt:'reconferir'}
+};
+function renderCatalogo(){
+  document.getElementById('catRows').innerHTML = CATALOGO.map(c=>{ const s=SAUDE[c.estado]; return `
+    <div onclick="toast('Abrindo ficha do canal: ${c.ent}')" class="grid grid-cols-[minmax(0,1.1fr)_0.9fr_1.3fr_0.9fr] gap-3 px-5 py-3 items-center border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer">
+      <div class="text-[13.5px] font-medium">${c.ent}</div>
+      <div class="text-[12.5px] text-zinc-500">${c.tipo}</div>
+      <div class="mono text-[11.5px] text-zinc-700 truncate">${c.canal}</div>
+      <div><span class="inline-flex items-center gap-1.5 text-[12px] font-semibold border px-2.5 py-1 rounded-full ${s.cls}"><span class="w-1.5 h-1.5 rounded-full ${s.dot}"></span>${s.txt}</span><div class="text-[10.5px] text-zinc-400 mt-0.5">${c.data}</div></div>
+    </div>`; }).join('');
+}
+
+/* ---------- init ---------- */
+renderChamados(); renderEsteira(); renderCatalogo(); atualizarPrevia();
+</script>
+</body>
+</html>
