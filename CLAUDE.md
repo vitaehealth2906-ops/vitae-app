@@ -624,7 +624,8 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 **Rollback:** flag `FLUXO_TERMOS_V2=false` OU tag `pre-fluxo-termos-2026-06-11`. Banco: nada a reverter (additive).
 
-**Pendente:** preencher razao social/CNPJ/endereco apos CNPJ (10/07) + nome do DPO; paginas legais standalone em `legal-v2/` (drafts, ainda com [PREENCHER], 6 documentos completos prontos); avaliar backfill de flag pros 154 se quiser exigir reaceite controlado no futuro. Estudo completo no Obsidian: `TERMOS-COMPLETO-2026-06-11/`.
+**Continuacao (mesma sessao):** paginas legais completas publicadas em `/legal/` (termos, privacidade, cookies, saude-e-mandato, menores) e LINKADAS no rodape da tela 27. E-mails (privacidade@/contato@vitaidsaude.com) + URLs preenchidos (17 campos via `tests/_fill-legal.js`). Smoke re-rodado 11/11. Tudo no ar (2o push).
+**Pendente real:** ~65 campos `[PREENCHER]` nas paginas legais que dependem do CNPJ/razao social/endereco/nome do DPO/datas/ferramentas de cookie (impossivel ate 10/07); backfill opcional de flag pros 154. Estudo completo no Obsidian: `TERMOS-COMPLETO-2026-06-11/`.
 
 ---
 
