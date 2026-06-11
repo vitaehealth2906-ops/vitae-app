@@ -198,12 +198,8 @@
                 </div>
             </div>
 
-            <div class="terms">
-                <div class="terms-check" id="termsCheck" onclick="toggleTerms()"></div>
-                <div class="terms-text">
-                    Li e aceito os <a href="#">Termos de Uso</a> e a <a href="#">Política de Privacidade</a>
-                </div>
-            </div>
+            <!-- Aceite movido para a tela 27-consentimento.html (aparece depois de criar conta) -->
+            <div style="height:6px"></div>
 
             <div id="errorMsg" style="display:none; background:rgba(217,68,82,0.10); border:1.5px solid rgba(217,68,82,0.3); border-radius:14px; padding:13px 16px; font-size:13.5px; font-weight:600; color:#EF4444; text-align:center; margin-bottom:6px;"></div>
 
@@ -224,6 +220,9 @@
 <script>
     let termsAccepted = false;
     let isLogin = false;
+    // Fluxo de termos v2: tela 27-consentimento entre "criar conta" e onboarding.
+    // Rollback rapido: trocar para false (volta ao fluxo antigo direto pro quiz).
+    const FLUXO_TERMOS_V2 = true;
     const _preferLogin = sessionStorage.getItem('vitae_prefer_login') === '1';
     sessionStorage.removeItem('vitae_prefer_login');
     localStorage.setItem('vitae_tipo_escolhido', 'PACIENTE');
@@ -294,7 +293,7 @@
             if (!senhaInput.value.trim()) allFilled = false;
         }
 
-        if (allFilled && (isLogin || termsAccepted)) {
+        if (allFilled) {
             btn.classList.add('enabled');
         } else {
             btn.classList.remove('enabled');
@@ -332,8 +331,6 @@
             const errorMsg = document.getElementById('errorMsg');
             if (isLogin) {
                 errorMsg.textContent = 'Preencha email e senha.';
-            } else if (!termsAccepted) {
-                errorMsg.textContent = 'Aceite os termos para continuar.';
             } else {
                 errorMsg.textContent = 'Preencha todos os campos.';
             }
@@ -358,7 +355,7 @@
                         const perfilData = await vitaeAPI.getPerfil();
                         const p = perfilData.perfil || {};
                         const vazio = !p.dataNascimento && !p.tipoSanguineo && !p.genero && !p.cpf;
-                        window.location.href = vazio ? _redirectAfterAuth_quizVazio() : _redirectAfterAuth_perfilOk();
+                        window.location.href = vazio ? (FLUXO_TERMOS_V2 ? '27-consentimento.html' : _redirectAfterAuth_quizVazio()) : _redirectAfterAuth_perfilOk();
                     } catch(e) {
                         window.location.href = _redirectAfterAuth_perfilOk();
                     }
@@ -388,7 +385,7 @@
                 } else if (tipoEscolhido === 'MEDICO') {
                     window.location.href = '20-medico-cadastro.html';
                 } else {
-                    window.location.href = _redirectAfterAuth_quizVazio();
+                    window.location.href = FLUXO_TERMOS_V2 ? '27-consentimento.html' : _redirectAfterAuth_quizVazio();
                 }
             }
         } catch (err) {
@@ -415,7 +412,6 @@
             loginLink.innerHTML = 'Nao tem conta? <a href="#" onclick="toggleLogin(); return false;">Criar conta</a>';
             nomeInput.closest('.field').style.display = 'none';
             celularInput.closest('.field').style.display = 'none';
-            document.querySelector('.terms').style.display = 'none';
             document.getElementById('forgotLink').style.display = 'block';
         } else {
             header.innerHTML = 'Criar <span>conta</span>';
@@ -424,7 +420,6 @@
             loginLink.innerHTML = 'Ja tem conta? <a href="#" onclick="toggleLogin(); return false;">Entrar</a>';
             nomeInput.closest('.field').style.display = 'flex';
             celularInput.closest('.field').style.display = 'flex';
-            document.querySelector('.terms').style.display = 'flex';
             document.getElementById('forgotLink').style.display = 'none';
         }
         checkForm();
@@ -512,9 +507,9 @@
                                 const perfilData = await vitaeAPI.getPerfil();
                                 const p = perfilData.perfil || {};
                                 const vazio = !p.dataNascimento && !p.tipoSanguineo && !p.genero && !p.cpf;
-                                window.location.href = vazio ? _redirectAfterAuth_quizVazio() : _redirectAfterAuth_perfilOk();
+                                window.location.href = vazio ? (FLUXO_TERMOS_V2 ? '27-consentimento.html' : _redirectAfterAuth_quizVazio()) : _redirectAfterAuth_perfilOk();
                             } catch(e) {
-                                window.location.href = _redirectAfterAuth_quizVazio();
+                                window.location.href = FLUXO_TERMOS_V2 ? '27-consentimento.html' : _redirectAfterAuth_quizVazio();
                             }
                         }
                     } catch (err) {
@@ -546,7 +541,7 @@
                 const perfilData = await vitaeAPI.getPerfil();
                 const p = perfilData.perfil || {};
                 const vazio = !p.dataNascimento && !p.tipoSanguineo && !p.genero && !p.cpf;
-                window.location.href = vazio ? _redirectAfterAuth_quizVazio() : _redirectAfterAuth_perfilOk();
+                window.location.href = vazio ? (FLUXO_TERMOS_V2 ? '27-consentimento.html' : _redirectAfterAuth_quizVazio()) : _redirectAfterAuth_perfilOk();
             } catch(e) {
                 window.location.href = _redirectAfterAuth_perfilOk();
             }

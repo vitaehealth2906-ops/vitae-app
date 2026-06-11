@@ -1865,21 +1865,9 @@
             }
         } catch (_) {}
 
-        // LGPD: 3 consentimentos em paralelo, com await curto (rapidissimo em paralelo).
-        // Espera no maximo 1.5s — depois redireciona mesmo se algum demorar.
-        // (Se redirect rola antes deles enviarem, navegador aborta — entao precisamos
-        // esperar o suficiente pros 3 saírem da fila. Em paralelo, ~200-500ms.)
-        if (typeof vitaeAPI !== 'undefined' && vitaeAPI.isLoggedIn()) {
-            const consentimentos = Promise.all([
-                vitaeAPI.registrarConsentimento({ tipo: 'TERMOS_USO', aceito: true }).catch(()=>{}),
-                vitaeAPI.registrarConsentimento({ tipo: 'POLITICA_PRIVACIDADE', aceito: true }).catch(()=>{}),
-                vitaeAPI.registrarConsentimento({ tipo: 'PROCESSAMENTO_IA', aceito: true }).catch(()=>{}),
-            ]);
-            await Promise.race([
-                consentimentos,
-                new Promise(r => setTimeout(r, 1500)),
-            ]);
-        }
+        // LGPD: o aceite agora e EXPLICITO na tela 27-consentimento.html (antes do onboarding),
+        // com leitura ate o fim + consentimento destacado de dado de saude. O quiz NAO grava mais
+        // consentimento por conta propria — acabou o "aceite escondido" (juridicamente nulo).
 
         // Quiz vita id terminou: RG da Saúde criado.
         // Redirect IMEDIATO. Alergias/meds (se houver) continuam fire-and-forget

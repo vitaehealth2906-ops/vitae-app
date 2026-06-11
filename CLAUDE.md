@@ -609,6 +609,25 @@ TODA feature nova DEVE passar pelas 5 fases antes de codar:
 
 ## 9. DIARIO DE SESSOES
 
+### Sessao 40 — 11/06/2026 — Novo fluxo de Termos de Condicoes (tela 27 + scroll-to-accept)
+
+**Contexto:** Estudo profundo (workflows multi-agente + benchmarks Apple/Google + entidades BR) dos termos/LGPD e decisao de mover o aceite pra uma tela dedicada entre "criar conta" e o onboarding, no padrao **scroll-ate-o-fim** (Apple/Stripe). O aceite de hoje era nulo (marcado escondido no fim do quiz). Implementacao **frontend-only, ZERO schema change** (regra de ouro do banco intacta). Lucas aprovou o preview visual antes (`preview-termos.html`).
+
+**O que foi feito (local; push so apos smoke verde):**
+- **Nova `app-v3/27-consentimento.html`**: tela de termos (Plus Jakarta, gradiente azul, frame celular) com barra de leitura + caixa rolavel com os 6 documentos (Termos de Uso, Privacidade, Cookies, Menores art.14/ECA, Consentimento de Saude art.11, Mandato de Busca) + 2 confirmacoes destacadas (saude obrigatoria / mandato opcional). Botao so libera apos **rolar ate o fim + marcar a saude**. Ao aceitar: grava 4 consentimentos (`TERMOS_USO`, `POLITICA_PRIVACIDADE`, `COMPARTILHAMENTO_MEDICO`, `PROCESSAMENTO_IA`) com `versao='2026-06-1.0'` + `setFlagsApp({termosAceitosEm, termosVersao, mandatoBuscaAceito})` + flag local, e roteia pro onboarding/quiz (mesma regra do 26). Boot pula a tela pra quem ja aceitou. DPO = privacidade@vitaidsaude.com; razao social/CNPJ/endereco ficam `[PREENCHER]` ate o CNPJ.
+- **`26-cadastro.html`**: removida a caixinha de aceite + o gate; cadastro/login/Google de **perfil vazio** agora roteiam pra `27-consentimento.html`. Flag de rollback `const FLUXO_TERMOS_V2 = true`.
+- **`30-quiz.html`**: removido o **aceite escondido** (linhas 1868-1882 que marcavam 3 consentimentos sozinho — juridicamente nulo).
+- **Backend NAO mudou**: `z.enum` ja tinha os 4 tipos; `PerfilSaude.flagsApp` Json ja existe; `/perfil/flags-app` `.passthrough()`. Sem migration.
+- **Grandfather:** usuarios atuais com perfil preenchido NAO veem a tela (vao direto pro RG). De proposito NAO foi forcada trava no quiz, pra nao incomodar os 154 — so cadastro novo passa pelos termos.
+
+**Validacao:** `tests/smoke-fluxo-termos.js` (Playwright/Edge contra `serve.js` local, API mockada) = **11/11** (cadastro logado+vazio -> 27; botao travado -> rolar -> marcar saude -> libera; aceite grava 4 consentimentos + flag e segue pro onboarding; sem erro de JS; caixinha removida). O mock NAO testa o backend real — recomendado um cadastro novo de teste no ambiente publicado.
+
+**Rollback:** flag `FLUXO_TERMOS_V2=false` OU tag `pre-fluxo-termos-2026-06-11`. Banco: nada a reverter (additive).
+
+**Pendente:** preencher razao social/CNPJ/endereco apos CNPJ (10/07) + nome do DPO; paginas legais standalone em `legal-v2/` (drafts, ainda com [PREENCHER], 6 documentos completos prontos); avaliar backfill de flag pros 154 se quiser exigir reaceite controlado no futuro. Estudo completo no Obsidian: `TERMOS-COMPLETO-2026-06-11/`.
+
+---
+
 ### Sessao 37 — 03/06/2026 — Reforma do quiz do RG (8 slides AZUL) + ciclo do dado ponta-a-ponta (alergia/cartao RG, painel do dono, pre-consulta) — TUDO NO AR E TESTADO
 
 **O QUE FOI FEITO (tudo deployado + robô 20/20 em produção):**
